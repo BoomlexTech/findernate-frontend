@@ -1,0 +1,54 @@
+"use client";
+
+import SearchBar from "@/components/SearchBar";
+import Image from "next/image";
+
+export default function SearchPage() {
+  const user = {
+    name: "John Doe",
+    profilePic: "https://cdn.pixabay.com/photo/2016/08/08/09/17/avatar-1577909_1280.png", // or a remote image if configured
+    isBusinessAccount: true,
+    businessCategory: "Bussiness Account",
+  };
+
+  return (
+    <div className="p-6 min-h-screen ">
+      {/* Search Header */}
+      <div className="bg-white p-6 rounded-xl shadow-sm flex justify-between items-center mb-6 max-w-4xl mx-auto relative">
+        {/* Left Text */}
+        <div>
+          <h2 className="text-2xl font-semibold text-gray-900">Search</h2>
+          <p className="text-sm text-gray-500 mt-1">
+            Discover businesses, products, services, and more
+          </p>
+        </div>
+
+        {/* Right Profile Info */}
+        <div className="flex items-center space-x-3">
+          
+          <div className="flex flex-col items-end">
+            <span className="font-medium text-gray-900">{user.name}</span>
+            {user.isBusinessAccount && (
+              <span
+                className="text-gray-400 text-xs">
+                {"Business Account"}
+              </span>
+            )}
+          </div>
+          <Image
+            src={user.profilePic}
+            alt={user.name}
+            width={40}
+            height={40}
+            className="w-10 h-10 rounded-full object-cover"
+          />
+        </div>
+
+        <div className="absolute left-0 top-[10rem] w-full">
+            <SearchBar/>
+        </div>
+      </div>
+ 
+    </div>
+  );
+}
