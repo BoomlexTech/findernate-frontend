@@ -1,6 +1,6 @@
 "use client";
 
-import { Home, Search, MessageCircle, Bell, User, TrendingUp, Building, Package, Settings, Bookmark, Plus } from 'lucide-react';
+import { Home, Search, MessageCircle, User, TrendingUp, Building, Package, Settings, Bookmark, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
 import { useState } from 'react';
@@ -11,16 +11,15 @@ const navigationItems = [
   { icon: Home, label: 'Home', route: '/'},
   { icon: Search, label: 'Search', route: '/search'},
   { icon: MessageCircle, label: 'Messages', route: '/chats'},
-  { icon: Bell, label: 'Notifications', route: '/notifications'},
   { icon: User, label: 'Profile', route: '/profile'},
 ];
 
 const discoverItems = [
-  { icon: TrendingUp, label: 'Trending' },
-  { icon: Building, label: 'Businesses' },
-  { icon: Package, label: 'Products' },
-  { icon: Settings, label: 'Services' },
-  { icon: Bookmark, label: 'Saved' },
+  { icon: TrendingUp, label: 'Trending', route: '/trending' },
+  { icon: Building, label: 'Businesses', route: '/businesses' },
+  { icon: Package, label: 'Products', route: '/products' },
+  { icon: Settings, label: 'Services', route: '/services' },
+  { icon: Bookmark, label: 'Saved', route: '/saved' },
 ];
 
 export default function LeftSidebar() {
@@ -50,16 +49,14 @@ export default function LeftSidebar() {
 	  <nav className="mb-8">
 		<ul className="space-y-2">
 		  {navigationItems.map((item, index) => (
-			<li key={item.label}>
+			<li key={index}>
 			  <button
 				onClick={()=> {setIsActive(index);
 						router.push(item.route)}}
 				className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-all duration-200 ${
 				  index===isActive
 					? 'bg-yellow-50 text-yellow-600 border border-yellow-400 font-medium'
-					: 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
-				}`}
-			  >
+					: 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}`}>
 				<item.icon className="w-6 h-6" />
 				<span>{item.label}</span>
 			  </button>
@@ -81,14 +78,25 @@ export default function LeftSidebar() {
 		  Discover
 		</h3>
 		<ul className="space-y-2">
-		  {discoverItems.map((item) => (
-			<li key={item.label}>
-			  <button className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-all duration-200">
+		  {discoverItems.map((item, i) => {
+			const index = navigationItems.length + i;
+			return(
+			<li key={index}>
+			  <button 
+				onClick={()=> {
+					setIsActive(index)
+					router.push(item.route)
+				}}
+			  	className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-all duration-200
+							${index===isActive
+							? 'bg-yellow-50 text-yellow-600 border border-yellow-400 font-medium'
+							: 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}`}>
 				<item.icon className="w-6 h-6" />
 				<span>{item.label}</span>
 			  </button>
 			</li>
-		  ))}
+			)
+		})}
 		</ul>
 	  </div>
 	</div>
