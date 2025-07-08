@@ -1,5 +1,5 @@
 // postcss.config.mjs
- config = {
+ const config = {
   plugins: {
     '@tailwindcss/postcss': {},
     autoprefixer: {},

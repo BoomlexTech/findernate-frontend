@@ -1,9 +1,9 @@
 'use client'
 import AccountSettings from '@/components/AccountSettings';
+import FloatingHeader from '@/components/FloatingHeader';
 import PostCard from '@/components/PostCard';
 import ProfilePostsSection from '@/components/ProfilePostsSection';
 import UserProfile from '@/components/UserProfile'
-import Image from 'next/image'
 import React from 'react'
 
 const Page = () => {
@@ -35,53 +35,22 @@ const Page = () => {
     // Add more posts with the same structure...
   ];
 
-  const savedPosts = [
-    // Same structure as posts
-  ];
+  // const savedPosts = [
+  //    Same structure as posts
+  // ];
 
-  const taggedPosts = [
-    // Same structure as posts
-  ];
-    const user = {
-    name: "John Doe",
-    profilePic: "https://cdn.pixabay.com/photo/2016/08/08/09/17/avatar-1577909_1280.png", // or a remote image if configured
-    isBusinessAccount: true,
-    businessCategory: "Business Account",
-  };
+  // const taggedPosts = [
+  //    Same structure as posts
+  // ];
+
   return (
     <div className='bg-gray-50 max-w-6xl mx-auto'>
 
-            {/* Search Header */}
-            <div className="bg-white p-6 rounded-xl shadow-sm flex justify-between items-center mb-6">
-              {/* Left Text */}
-              <div>
-                <h2 className="text-2xl font-semibold text-gray-900">Profile</h2>
-                <p className="text-sm text-gray-500 mt-1">
-                  Discover businesses, products, services, and more
-                </p>
-              </div>
-      
-              {/* Right Profile Info */}
-              <div className="flex items-center space-x-3">
-                
-                <div className="flex flex-col items-end">
-                  <span className="font-medium text-gray-900">{user.name}</span>
-                  {user.isBusinessAccount && (
-                    <span
-                      className="text-gray-400 text-xs">
-                      {"Business Account"}
-                    </span>
-                  )}
-                </div>
-                <Image
-                  src={user.profilePic}
-                  alt={user.name}
-                  width={40}
-                  height={40}
-                  className="w-10 h-10 rounded-full object-cover"
-                />
-              </div>    
-            </div>
+            <FloatingHeader
+            paragraph="Manage your account and business settings"
+            heading="Profile"
+            username="John Doe"
+            accountBadge={true}/>
 
             {/* Components in column with gaps */}
             <div className='flex flex-col gap-6'>
