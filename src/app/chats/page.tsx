@@ -1,11 +1,11 @@
-import React from 'react'
+// app/chats/page.tsx
+import MessagePanel from "@/components/MessagePanel";
 
-const page = () => {
+export default function page() {
   return (
-    <>
-      <h1>This is the message page</h1>
-    </>
-  )
+    <div className="flex">
+      {/* LeftSidebar is assumed already rendered in layout */}
+      <MessagePanel />
+    </div>
+  );
 }
-
-export default page
