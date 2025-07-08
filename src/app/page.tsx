@@ -9,7 +9,7 @@ export default function Home() {
       <div className="max-w-7xl mx-auto flex">
 
         {/* Main Content */}
-        <div className="flex-1 ml-64 mr-80">
+        <div className="flex-1 pl-20 pr-[23rem]">
           <MainContent />
         </div>
 

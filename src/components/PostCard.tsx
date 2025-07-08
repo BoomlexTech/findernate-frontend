@@ -4,6 +4,7 @@ import { Heart, MessageCircle, Share2, MapPin, Phone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
+import Link from 'next/link';
 
 interface PostCardProps {
   post: {
@@ -38,13 +39,14 @@ export default function PostCard({ post }: PostCardProps) {
       <div className="p-6 pb-4">
         <div className="flex items-start space-x-3">
           {/* Removed Avatar */}
+          <Link href={`/profile/${post.user.username}`}>
           <Image
           width={20}
           height={20}
           src={post.user.profilePic}
           alt={post.user.fullName}
           className="w-10 h-10 rounded-full object-cover"
-           />
+           /> </Link>
           <div className="flex-1">
             <div className="flex items-center space-x-2">
               <h3 className="font-semibold text-gray-900">{post.user.fullName}</h3>
