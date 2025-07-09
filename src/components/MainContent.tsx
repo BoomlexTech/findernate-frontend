@@ -68,7 +68,8 @@ const mockPosts = [
     likes: 189,
     comments: 41,
     shares: 22
-  }
+  },
+
 ];
 
 export default function MainContent() {
