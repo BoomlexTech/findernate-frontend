@@ -15,3 +15,14 @@ export const discoverItems = [
   { icon: Settings, label: 'Services', route: '/services' },
   { icon: Bookmark, label: 'Saved', route: '/saved' },
 ];
+
+export const DEFAULT_ONBOARDING_ITEMS = 
+  {
+    title: "Connect with Friends and Family",
+    description: "Connecting with family and friends provides a sense of belonging and security.",
+    centerIcon: "👥",
+    floatingIcons: ["👨", "👩", "🧑", "👴", "👵", "👶"],
+    primaryButtonText: "Next",
+    showSkipButton: true,
+    footerText: "Already have an account? Sign in"
+  }
