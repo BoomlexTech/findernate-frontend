@@ -1,28 +1,18 @@
 "use client";
 
-import { Home, Search, MessageCircle, User, TrendingUp, Building, Package, Settings, Bookmark, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { discoverItems, navigationItems } from '@/constants/uiItems';
+import { Plus } from 'lucide-react';
 
-const navigationItems = [
-  { icon: Home, label: 'Home', route: '/'},
-  { icon: Search, label: 'Search', route: '/search'},
-  { icon: MessageCircle, label: 'Messages', route: '/chats'},
-  { icon: User, label: 'Profile', route: '/profile'},
-];
+interface leftSidebarProps {
+	togglePost: () => void;
+}
 
-const discoverItems = [
-  { icon: TrendingUp, label: 'Trending', route: '/trending' },
-  { icon: Building, label: 'Businesses', route: '/businesses' },
-  { icon: Package, label: 'Products', route: '/products' },
-  { icon: Settings, label: 'Services', route: '/services' },
-  { icon: Bookmark, label: 'Saved', route: '/saved' },
-];
-
-export default function LeftSidebar() {
+export default function LeftSidebar({togglePost}: leftSidebarProps) {
 
 	const [isActive, setIsActive] = useState(0);
 	const router = useRouter();
@@ -67,7 +57,10 @@ export default function LeftSidebar() {
 
 	  {/* Create Post Button */}
 	  <div className="mb-8">
-		<Button variant='custom' className="flex gap-3 w-full h-[3rem] bg-[#DBB42C] hover:bg-[#DBB42C]/80 text-white font-medium py-3 rounded-xl transition-all duration-600 shadow-sm hover:shadow-md transform hover:scale-105">
+		<Button 
+		onClick={togglePost}
+		variant='custom' 
+		className="flex gap-3 w-full h-[3rem] bg-gradient-to-r from-yellow-400 to-yellow-600 hover:bg-[#DBB42C]/80 text-white font-medium py-3 rounded-xl transition-all duration-600 shadow-sm hover:shadow-md transform hover:scale-105">
 		  <Plus size={20}/> Create Post
 		</Button>
 	  </div>

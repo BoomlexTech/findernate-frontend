@@ -3,10 +3,9 @@ import React from 'react'
 const page = () => {
   return (
     <>
-      <h1>This is the services page</h1>
+      <h1>This is the products page</h1>
     </>
   )
 }
 
 export default page
-
