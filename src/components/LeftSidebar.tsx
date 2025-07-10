@@ -9,7 +9,7 @@ import { discoverItems, navigationItems } from '@/constants/uiItems';
 import { Plus } from 'lucide-react';
 
 interface leftSidebarProps {
-	togglePost: () => void;
+	togglePost?: () => void;
 }
 
 export default function LeftSidebar({togglePost}: leftSidebarProps) {
