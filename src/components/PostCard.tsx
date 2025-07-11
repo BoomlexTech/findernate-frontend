@@ -77,7 +77,7 @@ export default function PostCard({ post }: PostCardProps) {
               <p className="text-sm text-gray-600 mb-2">{post.productWindow.text}</p>
               <p className="text-lg font-bold text-yellow-600">{post.productWindow.price}</p>
             </div>
-            <Button  variant='custom' className="ml-4 bg-[#DBB42C] hover:bg-[#DBB42C]/90 text-white font-medium cursor-pointer">
+            <Button  variant='custom' className="ml-4 bg-gradient-to-r from-yellow-400 to-yellow-600 hover:bg-[#DBB42C]/90 text-white font-medium cursor-pointer">
               Learn More
             </Button>
           </div>

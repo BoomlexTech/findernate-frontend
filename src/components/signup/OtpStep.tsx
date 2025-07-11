@@ -5,11 +5,11 @@ import { OTPStepProps } from '@/types';
 
 
 
-const OTPStep = ({ data, updateData, onNext, onPrev }: OTPStepProps) => {
+const OTPStep = ({ updateData, onNext, onPrev }: OTPStepProps) => {
   const [otp, setOtp] = useState(['', '', '', '']);
   const [timer, setTimer] = useState(60);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
-  console.log(data);
+  // console.log(data);
 
   useEffect(() => {
     if (timer > 0) {

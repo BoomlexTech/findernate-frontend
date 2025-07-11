@@ -73,7 +73,7 @@ export default function MessagePanel() {
                 <p className="text-sm font-semibold text-gray-900">AVantika</p>
                 <p className="text-xs text-gray-500">Personal Account</p>
               </div>
-              <img src="https://ui-avatars.com/api/?name=AVantika&background=D4AF37&color=fff&size=150&bold=true" alt="AVantika" className="w-10 h-10 rounded-full object-cover border-2 border-yellow-400" />
+              <Image width={10} height={10} src="https://ui-avatars.com/api/?name=AVantika&background=D4AF37&color=fff&size=150&bold=true" alt="AVantika" className="w-10 h-10 rounded-full object-cover border-2 border-yellow-400" />
             </div>
           </div>
         </div>
@@ -116,7 +116,7 @@ export default function MessagePanel() {
             <div className="p-6 border-b border-gray-200 bg-white">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
-                  <img src={selected.avatar} alt={selected.name} className="w-12 h-12 rounded-full object-cover" />
+                  <Image width={12} height={12} src={selected.avatar} alt={selected.name} className="w-12 h-12 rounded-full object-cover" />
                   <div>
                     <div className="flex items-center space-x-2">
                       <h2 className="text-lg font-semibold text-gray-900">{selected.name}</h2>
