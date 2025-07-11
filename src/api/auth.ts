@@ -7,8 +7,8 @@ export const signUp = async (data: {
   email: string;
   password: string;
   phoneNumber: string;
-  dateOfBirth: string;
-  gender: string;
+  dateOfBirth?: string;
+  gender?: string;
   bio?: string;
   profileImageUrl?: string;
   location?: string
