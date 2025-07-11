@@ -40,7 +40,7 @@ const Page = () => {
               
               {/* Subtitle */}
               <p className="text-gray-600 text-lg mb-4">
-                Discover what's popular in your network right now
+                Discover what&apos;s popular in your network right now
               </p>
               
               {/* Stats row */}

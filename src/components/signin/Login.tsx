@@ -1,6 +1,10 @@
 import { useState } from 'react';
 
-export default function LoginComponent() {
+interface LoginComponentProps {
+  onForgotPassword?: () => void;
+}
+
+export default function LoginComponent({onForgotPassword}: LoginComponentProps) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
@@ -15,7 +19,7 @@ export default function LoginComponent() {
 
       {/* Content */}
       <div className="flex-1 px-6 py-8">
-        <div className="max-w-sm mx-auto">
+        <div className="min-w-md mx-auto">
           <h1 className="text-2xl font-semibold text-gray-900 mb-2">Sign In</h1>
           <p className="text-gray-600 mb-8">Enter your credentials</p>
 
@@ -50,7 +54,7 @@ export default function LoginComponent() {
                 <button 
                   type="button" 
                   className="text-sm text-blue-600 hover:text-blue-700 transition-colors"
-                  onClick={() => console.log('Forgot password clicked')}
+                  onClick={onForgotPassword}
                 >
                   Forgot Password?
                 </button>
@@ -61,7 +65,7 @@ export default function LoginComponent() {
               <button
                 type="button"
                 onClick={handleSubmit}
-                className="w-full bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-medium py-4 px-6 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2"
+                className="w-full bg-gradient-to-b from-yellow-400 to-yellow-600 hover:bg-yellow-500 text-gray-900 font-medium py-4 px-6 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2"
               >
                 Done
               </button>
@@ -72,7 +76,7 @@ export default function LoginComponent() {
             <p className="text-gray-600">
               Do not have an Account?{' '}
               <button 
-                className="text-blue-600 hover:text-blue-700 transition-colors font-medium"
+                className="text-yellow-600 hover:text-yellow-700 transition-colors font-medium"
                 onClick={() => console.log('Sign up clicked')}
               >
                 Sign up

@@ -34,7 +34,7 @@ export default function TrendingBusiness() {
   };
 
   return (
-    <div className="bg-yellow-50 rounded-xl shadow-sm border border-gray-200 p-6 cursor-pointer">
+    <div className="bg-yellow-100 rounded-xl shadow-sm border border-gray-200 p-6 cursor-pointer">
       <h3 className="text-lg font-semibold text-gray-900 mb-4">Trending Business Owners</h3>
       <div className="space-y-1 max-h-80">
         {trendingBusinesses.map((business) => (
@@ -51,7 +51,6 @@ export default function TrendingBusiness() {
             />
             <div className="flex flex-col gap-0">
               <p className="font-semibold text-gray-900 text-sm m-0">{business.name}</p>
-              {/* <p className="text-xs text-gray-600 m-0">{business.username}</p> */}
               <span
                 className="text-yellow-600 text-xs m-0 p-0">
                 {business.category}

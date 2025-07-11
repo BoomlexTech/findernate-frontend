@@ -4,6 +4,7 @@ import { WelcomeStepProps } from "@/types";
 import Image from "next/image";
 
 const WelcomeStep = ({ data }: WelcomeStepProps) => {
+  console.log(data);
   return (
     <div className="flex flex-col items-center justify-center min-h-screen px-4 py-10 bg-white text-center relative">
       <div className="relative w-64 h-64 rounded-full bg-yellow-200 flex items-center justify-center mx-auto mb-6">

@@ -2,20 +2,65 @@
 'use client';
 import { FormEvent, useState } from 'react';
 import { UsernameStepProps } from '@/types';
+import { useUserStore } from '@/store/useUserStore';
+import { useRouter } from 'next/navigation';
+import { signUp } from '@/api/auth';
 
-const UsernameStep = ({ data, updateData, onNext, onPrev }: UsernameStepProps) => {
+const UsernameStep = ({ data, updateData, onPrev }: UsernameStepProps) => {
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  //console.log(data);
+  const {setUser} = useUserStore();
+  const router = useRouter();
+
+  const payload = {
+  fullName: data.fullName,
+  username: data.username,
+  email: data.email,
+  password: data.password,
+  phoneNumber: data.phone,             
+  dateOfBirth: data.dateOfBirth,
+  gender: data.gender,
+  bio: data.about || '',
+  location: '',                         
+  link: '',                             
+  profileImageUrl: '',                  
+};
 
   const handleInputChange = (field: keyof typeof data, value: string) => {
     updateData({ [field]: value });
   };
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (data.username && data.password && data.password === data.confirmPassword) {
-      onNext();
+    if (!data.username || !data.password || data.password !== data.confirmPassword) {
+    setError('Please fill in all fields correctly.');
+    return;
+  }
+     
+      setLoading(true);
+      setError('');
+          try {
+      const res = await signUp(payload); // call your API
+      const { user, token } = res;
+
+      setUser({ ...user, token }); // store in Zustand
+      localStorage.setItem('token', token); // optional
+
+      router.push('/'); // redirect to home
+    } catch (err: unknown) {
+        if (typeof err === 'object' && err !== null && 'response' in err) {
+          const error = err as { response?: { data?: { message?: string } } };
+          setError(error.response?.data?.message || 'Signup failed');
+        } else {
+          setError('Signup failed');
+        }} finally {
+      setLoading(false);
     }
+  
+    
   };
 
   const passwordsMatch = data.password === data.confirmPassword;
@@ -100,12 +145,14 @@ const UsernameStep = ({ data, updateData, onNext, onPrev }: UsernameStepProps) =
             )}
           </div>
 
+          {error && <p className="text-red-500 text-sm">{error}</p>}
+
           <button
             type="submit"
             className="w-full py-3 bg-yellow-400 text-black font-semibold rounded-md hover:bg-yellow-500 transition"
-            disabled={!passwordsMatch}
+            disabled={!passwordsMatch || loading}
           >
-            Done
+            {loading ? 'processing' : 'Done'}
           </button>
         </form>
 
