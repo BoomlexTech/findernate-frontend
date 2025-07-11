@@ -67,7 +67,7 @@ const Page = () => {
                     onClick={() => setActiveFilter(filter.name)}
                     className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 flex items-center gap-2 ${
                       activeFilter === filter.name
-                        ? 'bg-blue-600 text-white shadow-lg transform scale-105'
+                        ? 'bg-[#DBB42C] text-white shadow-lg transform scale-105'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:scale-105'
                     }`}
                   >
@@ -75,7 +75,7 @@ const Page = () => {
                     {filter.count && (
                       <span className={`text-xs px-2 py-1 rounded-full ${
                         activeFilter === filter.name
-                          ? 'bg-gradient-to-r from-yellow-400 to-yellow-600 hover:bg-[#DBB42C]/80  text-white'
+                          ? 'bg-white text-black'
                           : 'bg-gray-300 text-gray-600'
                       }`}>
                         {filter.count}
@@ -108,11 +108,15 @@ const Page = () => {
         <MainContent/>
       </div>
        
-      {/* Right Sidebar / Trending Topics */}
-      <aside className="w-full md:w-[320px] p-4 bg-white shadow-md rounded-lg md:sticky md:top-4 md:h-fit">
-        <TrendingTopics />
-        <TrendingBusiness />
-      </aside>
+      {/* Right Sidebar / Trending Topics with Independent Scroll */}
+      <div className="w-full md:w-[320px] p-4 md:p-6">
+        <aside className="bg-white shadow-md rounded-lg md:sticky md:top-4 md:h-[calc(100vh-2rem)] overflow-y-auto">
+          <div className="p-4 space-y-6">
+            <TrendingTopics />
+            <TrendingBusiness />
+          </div>
+        </aside>
+      </div>
     </div>
   );
 };
