@@ -1,5 +1,5 @@
 'use client'
-import React, { ReactNode } from 'react';
+import React, { ReactNode, useEffect } from 'react';
 import { DEFAULT_ONBOARDING_ITEMS } from '@/constants/uiItems';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -28,6 +28,9 @@ const OnboardingScreen = ({
 }: onboardingScreenProps) => {
 
   const router = useRouter();
+useEffect(() => {
+  localStorage.setItem("isOnboarded", "true");
+}, []);
 
   floatingIcons = [
     "emojisix.svg",

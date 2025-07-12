@@ -2,15 +2,19 @@
 
 import MainContent from '@/components/MainContent';
 import RightSidebar from '@/components/RightSidebar';
-import { useUserStore } from '@/store/useUserStore';
+import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
 export default function Home() {
-    const user = useUserStore((state) => state.user);
 
-  useEffect(() => {
-    console.log('Zustand user:', user);
-  }, [user]);
+  const router = useRouter();
+
+    useEffect(() => {
+    const onboarded = localStorage.getItem("isOnboarded");
+    if (onboarded !== "true") {
+      router.push("/onboarding");
+    }
+  },);
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto flex">
