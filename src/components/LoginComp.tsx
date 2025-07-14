@@ -2,26 +2,25 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { login } from '@/api/auth';
+import axios from 'axios';
+import { useUserStore } from '@/store/useUserStore';
 
 interface LoginFormData {
   email: string;
   password: string;
 }
 
-interface LoginComponentProps {
-  onLogin?: (data: LoginFormData) => void;
-  onCreateAccount?: () => void;
-}
 
-const LoginComponent: React.FC<LoginComponentProps> = ({ 
-  onLogin
-}) => {
+const LoginComponent: React.FC = () => {
   const [formData, setFormData] = useState<LoginFormData>({
     email: '',
     password: ''
   });
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState('');
+  const { setUser, setToken } = useUserStore();
   const router = useRouter();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -39,17 +38,23 @@ const LoginComponent: React.FC<LoginComponentProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
+    setError('')
     try {
-      if (onLogin) {
-         onLogin(formData);
-      }
-      console.log('Login submitted:', formData);
-    } catch (error) {
-      console.error('Login error:', error);
-    } finally {
+      const response = await login(formData)
+      const user = response.data.user
+      const token = response.data.accessToken
+
+      setToken(token);
+      setUser(user);
+      router.push('/');
+    } catch (err) {
+        if (axios.isAxiosError(err)) {
+            setError(err.response?.data?.message || 'Signup failed');
+        } else {
+            setError('Signup failed');
+        }
+    }finally {
       setIsLoading(false);
-      router.push('/')
     }
   };
 
@@ -59,7 +64,7 @@ const LoginComponent: React.FC<LoginComponentProps> = ({
       <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
         {/* Logo and Header */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+          <div className="w-16 h-16 bg-button-gradient rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
             <span className="text-white text-2xl font-bold">F</span>
           </div>
           <h1 className="text-3xl font-bold text-gray-800 mb-2">Findernate</h1>
@@ -120,10 +125,12 @@ const LoginComponent: React.FC<LoginComponentProps> = ({
             type="submit"
             onClick={handleSubmit}
             disabled={isLoading}
-            className="w-full py-3 px-4 bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-semibold rounded-lg hover:from-yellow-500 hover:to-orange-600 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+            className="w-full py-3 px-4 bg-button-gradient text-white font-semibold rounded-lg transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
           >
             {isLoading ? 'Signing In...' : 'Sign In'}
           </button>
+
+          {error && <p className="text-red-500">{error}</p>}
         </div>
 
         {/* Create Account Link */}
@@ -132,28 +139,13 @@ const LoginComponent: React.FC<LoginComponentProps> = ({
             Don&apos;t have an account?{' '}
             <button 
               onClick={onCreateAccount}
-              className="text-yellow-600 hover:text-yellow-700 font-medium hover:underline transition-colors"
+              className="text-yellow-600 hover:text-yellow-700 font-medium hover:underline transition-colors cursor-pointer"
             >
               Create Account
             </button>
           </p>
         </div>
 
-        {/* Demo Credentials */}
-        <div className="mt-8 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="font-semibold text-yellow-800">Demo Credentials:</h3>
-    
-          </div>
-          <div className="space-y-1 text-sm">
-            <p className="text-yellow-700">
-              <span className="font-medium">Email:</span> priya@example.com
-            </p>
-            <p className="text-yellow-700">
-              <span className="font-medium">Password:</span> password123
-            </p>
-          </div>
-        </div>
       </div>
     </div>
   );

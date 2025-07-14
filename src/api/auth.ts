@@ -19,17 +19,19 @@ export const signUp = async (data: {
   return response.data;
 };
 
-export const login = async (data: {
-  email: string;
-  password: string;
-}) => {
-  const response = await axios.post('/auth/login', data);
-  return response.data;
-};
-
 export const VerifyOtp = async (data: {
   otp: string;
 }) => {
   const response = await axios.post('/users/register/verify', data);
   return response.data;
 };
+
+export const login = async (data: {
+  email: string;
+  password: string;
+}) => {
+  const response = await axios.post('/users/login', data);
+  return response.data;
+};
+
+
