@@ -3,9 +3,9 @@ import React, { useState } from 'react';
 import { UserPlus, Eye, EyeOff, Check, RefreshCw, ChevronDown, User } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { countryCodes } from '@/constants/uiItems';
-import { useUserStore } from '@/store/useUserStore';
 import { signUp } from '@/api/auth';
 import axios from 'axios';
+import OTPStep from './OtpStep';
 
 export default function SignupComponent() {
   const [formData, setFormData] = useState({
@@ -14,13 +14,14 @@ export default function SignupComponent() {
     countryCode: '+91',
     phoneNumber: '',
     email: '',
-    password: ''
+    password: '',
+    confirmPassword: ''
   });
   const [showPassword, setShowPassword] = useState(false);
   const [usernameAvailable, setUsernameAvailable] = useState<boolean>(false);
   const [showCountryDropdown, setShowCountryDropdown] = useState(false);
+  const [step, setStep] = useState<'signup' | 'otp'>('signup');
   const [error, setError] = useState('');
-  const { setUser } = useUserStore();
   const router = useRouter();
 
 
@@ -57,8 +58,7 @@ export default function SignupComponent() {
     try {
       const response = await signUp(formData);
       console.log(response);
-      setUser(response.data); // or whatever your API returns
-      router.push('/')// Redirect or show success
+      setStep('otp');
     } catch (err) {
         if (axios.isAxiosError(err)) {
             setError(err.response?.data?.message || 'Signup failed');
@@ -66,10 +66,12 @@ export default function SignupComponent() {
             setError('Signup failed');
         }
     }
-    console.log('Zustand:', setUser);
   };
 
   return (
+    <>
+    
+    {step === 'signup' && (
     <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-orange-50 flex items-center justify-center p-4" onClick={() => setShowCountryDropdown(false)}>
       <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
         {/* Logo and Header */}
@@ -230,6 +232,33 @@ export default function SignupComponent() {
             </div>
           </div>
 
+                   {/* confirm Password */}
+          <div>
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                name="confirmPassword"
+                placeholder=" Confirm Password"
+                value={formData.confirmPassword}
+                onChange={handleInputChange}
+                className="w-full px-4 py-3 pl-12 pr-12 text-black placeholder:text-gray-600 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none transition-all"
+                required
+              />
+              <div className="absolute left-3 top-3.5 text-gray-400">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-3.5 text-gray-400 hover:text-gray-600"
+              >
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
+          </div>
+
           {/* Submit Button */}
           <button
             onClick={handleSubmit}
@@ -251,6 +280,13 @@ export default function SignupComponent() {
           </p>
         </div>
       </div>
-    </div>
+    </div>)}
+
+    {step === 'otp' && (
+      <div>
+        <OTPStep/>
+      </div>
+    )}
+    </>
   );
 }
