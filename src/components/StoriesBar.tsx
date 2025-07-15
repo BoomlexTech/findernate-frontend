@@ -126,14 +126,14 @@ export default function StoriesBar() {
 
   return (
     <>
-      <div className="flex overflow-x-auto space-x-6 pb-2 px-2 scrollbar-hide">
+      <div className="flex overflow-x-auto space-x-6 pb-2 px-2 scrollbar-hide bg-white rounded-lg">
         {storyUsers.map((user) => (
-          <div key={user.id} className="flex flex-col items-center flex-shrink-0">
+          <div key={user.id} className="flex flex-col items-center mt-5 flex-shrink-0">
             <div
               onClick={() => openStoryModal(user)}
               className={`relative w-16 h-16 rounded-full border-2 ${
                 user.isNew
-                  ? "border-gradient-to-r from-pink-500 to-purple-500 bg-gradient-to-r from-pink-500 to-purple-500 p-[2px]"
+                  ? "border-gradient-to-r from-pink-500 to-purple-500 p-[2px]"
                   : "border-gray-300"
               } overflow-hidden cursor-pointer transition-transform hover:scale-105`}
             >
