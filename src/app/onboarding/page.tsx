@@ -1,48 +1,33 @@
 'use client'
-import React, { ReactNode } from 'react';
+import React, { useEffect } from 'react';
 import { DEFAULT_ONBOARDING_ITEMS } from '@/constants/uiItems';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
 
-interface onboardingScreenProps {
-  title: string;
-  description: string;
-  floatingIcons?: ReactNode[];
-  primaryButtonText: string;
-  onPrimaryClick?: ()=> void;
-  showSkipButton?: boolean;
-  onSkipClick?: ()=> void;
-  footerText: string;
-  onFooterClick: () => void;
-  backgroundColor: string;
-}
+const OnboardingScreen = () => {
 
-const OnboardingScreen = ({
-  title,
-  description,
-  floatingIcons = [],
-  primaryButtonText = "Next",
-  showSkipButton = true,
-  footerText,
-  onFooterClick,
-}: onboardingScreenProps) => {
+const router = useRouter();
 
-  const router = useRouter();
+useEffect(() => {
+  localStorage.setItem("isOnboarded", "true");
+}, []);
 
-  floatingIcons = [
+  const floatingIcons = [
     "emojisix.svg",
     "emoji.svg",
     "emojifour.svg",
     "emojifive.svg",
     "PartyIcon.svg",
     "emojithree.svg",
+    "emojisix.svg",
     ]
 
-    const handlePrimaryClick = () => {
+    const handleSignupClick = () => {
       router.push('/signup');
     }
-    const handleSkipClick = () => {
-      router.push('/signup');
+    const handleSigninClick = () => {
+      router.push('/signin');
     }
 
   return (
@@ -51,7 +36,7 @@ const OnboardingScreen = ({
       <div className="flex-1 flex items-center justify-center p-8 lg:p-16">
         <div className="relative w-full max-w-lg">
           {/* Floating Icons Container */}
-          <div className="relative w-96 h-96 mx-auto">
+          <div className="relative w-[30rem] h-[30rem] mx-auto">
             {/* Center Circle with Icon */}
             <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-yellow-400 rounded-full flex items-center justify-center text-6xl z-10 shadow-lg">
                    <Image
@@ -70,10 +55,11 @@ const OnboardingScreen = ({
                 { top: '8%', right: '20%', size: 'w-15 h-15' },
                 { top: '35%', left: '2%', size: 'w-18 h-18' },
                 { top: '55%', right: '3%', size: 'w-12 h-12' },
-                { bottom: '15%', left: '2%', size: 'w-10 h-10' },
-                { bottom: '5%', right: '10%', size: 'w-12 h-12' },
-                { top: '25%', left: '0%', size: 'w-10 h-10' },
-                { bottom: '8%', left: '12%', size: 'w-13 h-13' }
+                { bottom: '15%', left: '10%', size: 'w-10 h-10' },
+                { bottom: '5%', right: '30%', size: 'w-12 h-12' },
+                { top: '15%', left: '40%', size: 'w-10 h-10' },
+                { bottom: '8%', left: '12%', size: 'w-13 h-13'},
+                { bottom: '0%', right: '26%', size: 'w-9 h-9'}
               ];
               
               const position = positions[index % positions.length];
@@ -105,10 +91,10 @@ const OnboardingScreen = ({
           {/* Text Content */}
           <div className="mb-12">
             <h1 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-6 leading-tight">
-              {title || DEFAULT_ONBOARDING_ITEMS.title}
+              {DEFAULT_ONBOARDING_ITEMS.title}
             </h1>
             <p className="text-gray-600 text-lg leading-relaxed">
-              {description || DEFAULT_ONBOARDING_ITEMS.description}
+              { DEFAULT_ONBOARDING_ITEMS.description}
             </p>
           </div>
 
@@ -116,34 +102,22 @@ const OnboardingScreen = ({
           <div className="space-y-4 mb-8">
             {/* Primary Button */}
             <button
-              onClick={handlePrimaryClick}
-              className="w-full bg-yellow-400 text-black font-semibold py-4 px-8 rounded-lg hover:bg-yellow-500 transition-colors duration-200 text-lg shadow-sm"
+              onClick={handleSignupClick}
+              className="w-full bg-button-gradient text-black font-semibold py-4 px-8 rounded-lg hover:bg-yellow-500 transition-colors duration-200 text-lg shadow-sm cursor-pointer"
             >
-              {primaryButtonText || DEFAULT_ONBOARDING_ITEMS.primaryButtonText}
+              {DEFAULT_ONBOARDING_ITEMS.primaryButtonText}
             </button>
 
-            {/* Skip Button (Optional) */}
-            {showSkipButton && (
-              <button
-                onClick={handleSkipClick}
-                className="w-full bg-transparent border border-gray-300 text-gray-700 font-medium py-4 px-8 rounded-lg hover:bg-gray-50 transition-colors duration-200 text-lg"
+            <Button
+              variant='custom'
+              onClick={handleSigninClick}
+              className="w-full bg-transparent border border-gray-300 text-gray-700 font-medium py-4 px-8 rounded-lg hover:bg-gray-50 transition-colors duration-200 text-lg cursor-pointer"
               >
-                Skip
-              </button>
-            )}
+                Sign In
+            </Button>
+            
           </div>
 
-          {/* Footer Text (Optional) */}
-          {
-            <div className="text-center">
-              <button
-                onClick={onFooterClick}
-                className="text-gray-500 text-base hover:text-gray-700 transition-colors duration-200"
-              >
-                {footerText || DEFAULT_ONBOARDING_ITEMS.footerText}
-              </button>
-            </div>
-          }
         </div>
       </div>
     </div>

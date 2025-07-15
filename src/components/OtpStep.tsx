@@ -1,15 +1,21 @@
 // components/Signup/OTPStep.jsx
 'use client';
 import { useState, useRef, useEffect } from 'react';
-import { OTPStepProps } from '@/types';
+import { useRouter } from 'next/navigation';
+import { VerifyOtp } from '@/api/auth';
+import axios from 'axios';
+import { useUserStore } from '@/store/useUserStore';
 
 
 
-const OTPStep = ({ updateData, onNext, onPrev }: OTPStepProps) => {
-  const [otp, setOtp] = useState(['', '', '', '']);
+const OTPStep = () => {
+  const [otp, setOtp] = useState(Array(6).fill(''));
   const [timer, setTimer] = useState(60);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const [error, setError] = useState('');
+  const router = useRouter();
   // console.log(data);
+  const {setUser} = useUserStore();
 
   useEffect(() => {
     if (timer > 0) {
@@ -27,12 +33,11 @@ const OTPStep = ({ updateData, onNext, onPrev }: OTPStepProps) => {
       setOtp(newOtp);
       
       // Auto-focus next input
-      if (value && index < 3) {
+      if (value && index < 5) {
         inputRefs.current[index + 1]?.focus();
       }
       
       // Update parent data
-      updateData({ otp: newOtp.join('') });
     }
   };
 
@@ -42,13 +47,22 @@ const OTPStep = ({ updateData, onNext, onPrev }: OTPStepProps) => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (otp.join('').length === 4) {
-      onNext();
-    }
-  };
-
+    if (otp.join('').length === 6) {
+     try{ 
+      const  response = await VerifyOtp({ otp: otp.join('') })
+      setUser(response)
+      router.push('/');
+    } catch(err){
+        if (axios.isAxiosError(err)) {
+            setError(err.response?.data?.message || 'Signup failed');
+        } else {
+            setError('Signup failed');
+        }
+      }
+    };
+  }
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -58,17 +72,11 @@ const OTPStep = ({ updateData, onNext, onPrev }: OTPStepProps) => {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen px-4 py-12 bg-white">
       <div className="max-w-md w-full">
-        <button
-          className="text-sm text-yellow-500 hover:underline mb-4"
-          onClick={onPrev}
-        >
-          ← Back
-        </button>
 
         <h1 className="text-3xl font-bold text-gray-800 mb-2">OTP Verification</h1>
         <p className="text-gray-500 mb-6">Enter the 4-digit code sent to your phone</p>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleVerify} className="space-y-6">
           <div className="flex justify-between gap-3">
             {otp.map((digit, index) => (
               <input
@@ -106,8 +114,10 @@ const OTPStep = ({ updateData, onNext, onPrev }: OTPStepProps) => {
             type="submit"
             className="w-full py-3 bg-yellow-400 text-black font-semibold rounded-md hover:bg-yellow-500 transition"
           >
-            Next
+            Verify
           </button>
+
+          {error && <p className="text-red-500">{error}</p>}
         </form>
 
         <div className="text-center text-sm text-gray-500 mt-6">

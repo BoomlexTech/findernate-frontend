@@ -13,6 +13,10 @@ export default function Home() {
     console.log("Zustand user:", user);
   }, [user]);
 
+import { useRouter } from 'next/navigation';
+
+
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto flex">

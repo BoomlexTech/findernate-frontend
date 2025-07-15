@@ -6,8 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import Link from 'next/link';
 
-interface PostCardProps {
-  post: {
+export interface Post {
     id: number;
     user: {
       profilePic: string;
@@ -30,6 +29,9 @@ interface PostCardProps {
     comments: number;
     shares: number;
   };
+
+export interface PostCardProps {
+  post: Post;
 }
 
 export default function PostCard({ post }: PostCardProps) {

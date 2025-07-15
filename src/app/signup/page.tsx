@@ -1,9 +1,8 @@
-'use client';
 
-import SignupContainer from '@/components/signup/SignupContainer';
+import SignupComponent from '@/components/SignUp';
 
 const SignupPage = () => {
-  return <SignupContainer />;
+  return <SignupComponent />;
 };
 
 export default SignupPage;
