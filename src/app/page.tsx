@@ -1,31 +1,40 @@
 "use client";
 
-import MainContent from '@/components/MainContent';
-import RightSidebar from '@/components/RightSidebar';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect } from "react";
+import MainContent from "@/components/MainContent";
+import RightSidebar from "@/components/RightSidebar";
+import StoriesBar from "@/components/StoriesBar";
+import { useUserStore } from "@/store/useUserStore";
 
 export default function Home() {
+  const user = useUserStore((state) => state.user);
 
-  const router = useRouter();
+  useEffect(() => {
+    console.log("Zustand user:", user);
+  }, [user]);
 
-    useEffect(() => {
-    const onboarded = localStorage.getItem("isOnboarded");
-    if (onboarded !== "true") {
-      router.push("/onboarding");
-    }
-  },);
+import { useRouter } from 'next/navigation';
+
+
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto flex">
+        {/* Main Content Area */}
+        <div className="flex-1  pr-[23rem]">
+          {/* Stories Bar - Sticky within main content */}
+          <div className="sticky top-0 z-10 bg-gray-50 border-b border-gray-200 py-4 px-4 mb-4">
+            <StoriesBar />
+          </div>
 
-        {/* Main Content */}
-        <div className="flex-1 pl-20 pr-[23rem]">
-          <MainContent />
+          {/* Posts - Scrollable */}
+          <div className="overflow-y-auto">
+            <MainContent />
+          </div>
         </div>
 
-        {/* Right Sidebar */}
-        <div className="w-[23rem] fixed right-0 h-full bg-white border-l border-gray-200 overflow-y-auto">
+        {/* Right Sidebar - Fixed */}
+        <div className="w-[23rem] fixed right-0 top-0 h-full bg-white border-l border-gray-200 overflow-y-auto">
           <RightSidebar />
         </div>
       </div>

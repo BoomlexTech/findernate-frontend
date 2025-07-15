@@ -56,7 +56,7 @@ const Page = () => {
             <div className='flex flex-col gap-6'>
               <UserProfile/>
               <AccountSettings/>
-              <div className='w-1/2'>
+              <div className='w-full'>
               <ProfilePostsSection
               PostCard={PostCard}
               posts={posts}  
