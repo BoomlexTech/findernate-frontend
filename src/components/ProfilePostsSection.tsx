@@ -1,10 +1,10 @@
-'use client'
+'use client';
 import React, { useState } from 'react';
 import { Grid3X3, Bookmark, Tag } from 'lucide-react';
 
 interface Post {
   id: string | number;
-  [key: string]: any; // Allow any additional post properties
+  [key: string]: any;
 }
 
 interface ProfilePostsSectionProps {
@@ -14,11 +14,11 @@ interface ProfilePostsSectionProps {
   taggedPosts?: Post[];
 }
 
-const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({ 
-  PostCard, 
-  posts = [], 
-  savedPosts = [], 
-  taggedPosts = [] 
+const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
+  PostCard,
+  posts = [],
+  savedPosts = [],
+  taggedPosts = []
 }) => {
   const [activeTab, setActiveTab] = useState('posts');
 
@@ -30,8 +30,6 @@ const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
 
   const getCurrentPosts = () => {
     switch (activeTab) {
-      case 'posts':
-        return posts;
       case 'saved':
         return savedPosts;
       case 'tagged':
@@ -42,37 +40,41 @@ const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
   };
 
   return (
-    <div className="w-full bg-white rounded-xl shadow-sm">
+    <div className="w-full bg-white rounded-xl shadow-sm px-4 py-6">
       {/* Tabs Header */}
-      <div className="flex border-b border-gray-200">
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 flex items-center justify-center gap-2 py-4 px-6 text-sm font-medium transition-colors ${
-                activeTab === tab.id
-                  ? 'text-orange-600 border-b-2 border-orange-600'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              <Icon className="w-4 h-4" />
-              {tab.label}
-              {tab.count > 0 && (
-                <span className={`ml-1 text-xs ${
-                  activeTab === tab.id ? 'text-orange-600' : 'text-gray-400'
-                }`}>
-                  ({tab.count})
-                </span>
-              )}
-            </button>
-          );
-        })}
+      <div className="flex justify-center border-b border-gray-200 mb-6">
+        <div className="flex gap-6 sm:gap-12 text-center">
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-2 py-2 px-4 text-sm font-medium transition-colors ${
+                  activeTab === tab.id
+                    ? 'text-orange-600 border-b-2 border-orange-600'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+                {tab.label}
+                {tab.count > 0 && (
+                  <span
+                    className={`ml-1 text-xs ${
+                      activeTab === tab.id ? 'text-orange-600' : 'text-gray-400'
+                    }`}
+                  >
+                    ({tab.count})
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Content Area */}
-      <div className="p-6">
+      <div className="max-w-screen-lg mx-auto w-full">
         {getCurrentPosts().length === 0 ? (
           <div className="text-center py-12">
             <div className="text-gray-400 mb-4">
@@ -90,7 +92,7 @@ const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-6">
+<div className="grid grid-cols-2 gap-6">
             {getCurrentPosts().map((post, index) => (
               <PostCard key={post.id || index} post={post} />
             ))}

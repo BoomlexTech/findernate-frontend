@@ -45,7 +45,27 @@ export default function SuggestedUsers() {
 
   return (
     <div className="  bg-gray-100 rounded-xl shadow-sm border border-gray-200 p-6">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">Suggested for You</h3>
+     <div className="flex items-center gap-2 mb-4">
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className="lucide lucide-users w-5 h-5 text-gray-600"
+  >
+    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+    <circle cx="9" cy="7" r="4"></circle>
+    <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+  </svg>
+  <h3 className="text-lg font-semibold text-gray-900">Suggested for You</h3>
+</div>
+
       <div className="space-y-4">
         {suggestedUsers.map((user) => (
           <div key={user.id} className="flex items-center justify-between">
