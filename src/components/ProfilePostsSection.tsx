@@ -3,10 +3,6 @@ import React, { useState } from 'react';
 import { Grid3X3, Bookmark, Tag } from 'lucide-react';
 import { Post } from './PostCard';
 
-interface Post {
-  id: string | number;
-  [key: string]: any;
-}
 
 interface ProfilePostsSectionProps {
   PostCard: React.ComponentType<{post: Post}>
