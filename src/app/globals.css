@@ -12,6 +12,12 @@
   --font-mono: var(--font-geist-mono);
 }
 
+@layer utilities {
+  .bg-button-gradient {
+    @apply bg-gradient-to-r from-yellow-400 to-yellow-600;
+  }
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #f9fafb;

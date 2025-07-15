@@ -23,7 +23,7 @@ export const DEFAULT_ONBOARDING_ITEMS =
     description: "Connecting with family and friends provides a sense of belonging and security.",
     centerIcon: "👥",
     floatingIcons: ["👨", "👩", "🧑", "👴", "👵", "👶"],
-    primaryButtonText: "Next",
+    primaryButtonText: "Sign Up",
     showSkipButton: true,
     footerText: "Already have an account? Sign in"
   }

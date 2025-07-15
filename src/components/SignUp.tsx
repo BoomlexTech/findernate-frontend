@@ -6,6 +6,7 @@ import { countryCodes } from '@/constants/uiItems';
 import { signUp } from '@/api/auth';
 import axios from 'axios';
 import OTPStep from './OtpStep';
+import { Button } from './ui/button';
 
 export default function SignupComponent() {
   const [formData, setFormData] = useState({
@@ -94,7 +95,7 @@ export default function SignupComponent() {
                 placeholder="Full Name (e.g., Priya Sharma)"
                 value={formData.fullName}
                 onChange={handleInputChange}
-                className="w-full px-4 py-3 pl-12 text-black placeholder:text-gray-600 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none transition-all"
+                className="w-full px-4 py-3 pl-12 text-black placeholder:text-gray-400 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none transition-all"
                 required
               />
               <div className="absolute left-3 top-3.5 text-gray-400">
@@ -115,23 +116,23 @@ export default function SignupComponent() {
                 placeholder="username"
                 value={formData.username}
                 onChange={handleInputChange}
-                className="w-full px-4 py-3 pl-12 pr-20 text-black placeholder:text-gray-600 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none transition-all"
+                className="w-full px-4 py-3 pl-12 pr-20 text-black placeholder:text-gray-400 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none transition-all"
                 required
               />
               <div className="absolute left-3 top-3.5 text-gray-400">
                  <User/>
               </div>
-              <div className="absolute right-3 top-3 flex items-center space-x-2">
+              <div className="absolute right-1 top-1 flex items-center space-x-2">
                 {usernameAvailable && (
                   <Check className="w-5 h-5 text-green-500" />
                 )}
-                <button
-                  type="button"
+                <Button
+                  variant='custom'
                   onClick={checkUsernameAvailability}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="cursor-pointer text-gray-400"
                 >
                   <RefreshCw className="w-4 h-4" />
-                </button>
+                </Button>
               </div>
             </div>
             <p className="text-sm text-gray-500 mt-1">
@@ -162,7 +163,7 @@ export default function SignupComponent() {
                 placeholder="9876543210"
                 value={formData.phoneNumber}
                 onChange={handleInputChange}
-                className="w-full px-4 py-3 pl-24 text-black placeholder:text-gray-600 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none transition-all"
+                className="w-full px-4 py-3 pl-24 text-black placeholder:text-gray-400 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none transition-all"
                 required
               />
               
@@ -194,7 +195,7 @@ export default function SignupComponent() {
                 placeholder="Email address"
                 value={formData.email}
                 onChange={handleInputChange}
-                className="w-full px-4 py-3 pl-12 text-black placeholder:text-gray-600 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none transition-all"
+                className="w-full px-4 py-3 pl-12 text-black placeholder:text-gray-400 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none transition-all"
                 required
               />
               <div className="absolute left-3 top-3.5 text-gray-400">
@@ -214,7 +215,7 @@ export default function SignupComponent() {
                 placeholder="Password"
                 value={formData.password}
                 onChange={handleInputChange}
-                className="w-full px-4 py-3 pl-12 pr-12 text-black placeholder:text-gray-600 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none transition-all"
+                className="w-full px-4 py-3 pl-12 pr-12 text-black placeholder:text-gray-400 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none transition-all"
                 required
               />
               <div className="absolute left-3 top-3.5 text-gray-400">
@@ -241,7 +242,7 @@ export default function SignupComponent() {
                 placeholder=" Confirm Password"
                 value={formData.confirmPassword}
                 onChange={handleInputChange}
-                className="w-full px-4 py-3 pl-12 pr-12 text-black placeholder:text-gray-600 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none transition-all"
+                className="w-full px-4 py-3 pl-12 pr-12 text-black placeholder:text-gray-400 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none transition-all"
                 required
               />
               <div className="absolute left-3 top-3.5 text-gray-400">
@@ -263,7 +264,7 @@ export default function SignupComponent() {
           <button
             onClick={handleSubmit}
             type="submit"
-            className="w-full py-3 px-4 bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-semibold rounded-lg hover:from-yellow-500 hover:to-orange-600 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl"
+            className="w-full py-3 px-4 bg-button-gradient text-white font-semibold rounded-lg hover:from-yellow-500 hover:to-orange-600 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl"
           >
             Create Account
           </button>

@@ -1,14 +1,12 @@
 'use client'
 import React, { useState } from 'react';
 import { Grid3X3, Bookmark, Tag } from 'lucide-react';
+import { Post } from './PostCard';
 
-interface Post {
-  id: string | number;
-  [key: string]: any; // Allow any additional post properties
-}
+
 
 interface ProfilePostsSectionProps {
-  PostCard: React.ComponentType<any>;
+  PostCard: React.ComponentType<{post: Post}>
   posts?: Post[];
   savedPosts?: Post[];
   taggedPosts?: Post[];
