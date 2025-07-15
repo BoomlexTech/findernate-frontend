@@ -5,6 +5,8 @@ import MainContent from "@/components/MainContent";
 import RightSidebar from "@/components/RightSidebar";
 import StoriesBar from "@/components/StoriesBar";
 import { useUserStore } from "@/store/useUserStore";
+import { useRouter } from "next/navigation";
+
 
 export default function Home() {
   const user = useUserStore((state) => state.user);
@@ -12,9 +14,6 @@ export default function Home() {
   useEffect(() => {
     console.log("Zustand user:", user);
   }, [user]);
-
-import { useRouter } from 'next/navigation';
-
 
 
   return (
