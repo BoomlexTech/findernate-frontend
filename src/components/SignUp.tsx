@@ -7,6 +7,7 @@ import { signUp } from '@/api/auth';
 import axios from 'axios';
 import OTPStep from './OtpStep';
 import { Button } from './ui/button';
+import Input from './ui/Input';
 
 export default function SignupComponent() {
   const [formData, setFormData] = useState({
@@ -87,22 +88,18 @@ export default function SignupComponent() {
         {/* Form */}
         <div className="space-y-6">
           {/* Full Name */}
-          <div>
             <div className="relative">
-              <input
+              <Input
                 type="text"
                 name="fullName"
                 placeholder="Full Name (e.g., Priya Sharma)"
                 value={formData.fullName}
                 onChange={handleInputChange}
-                className="w-full px-4 py-3 pl-12 text-black placeholder:text-gray-400 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none transition-all"
+                leftIcon={<User/>}
                 required
               />
-              <div className="absolute left-3 top-3.5 text-gray-400">
-                    <User/>  
-              </div>
             </div>
-          </div>
+         
 
           {/* Username */}
           <div>
@@ -110,18 +107,16 @@ export default function SignupComponent() {
               Username (Your Profile URL)
             </label>
             <div className="relative">
-              <input
+              <Input
                 type="text"
                 name="username"
                 placeholder="username"
                 value={formData.username}
                 onChange={handleInputChange}
-                className="w-full px-4 py-3 pl-12 pr-20 text-black placeholder:text-gray-400 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none transition-all"
+                className='!mb-1'
+                leftIcon={<User/>}
                 required
               />
-              <div className="absolute left-3 top-3.5 text-gray-400">
-                 <User/>
-              </div>
               <div className="absolute right-1 top-1 flex items-center space-x-2">
                 {usernameAvailable && (
                   <Check className="w-5 h-5 text-green-500" />
@@ -157,13 +152,13 @@ export default function SignupComponent() {
                   <ChevronDown className="w-3 h-3" />
                 </button>
               </div>
-              <input
+              <Input
                 type="tel"
                 name="phoneNumber"
                 placeholder="9876543210"
                 value={formData.phoneNumber}
                 onChange={handleInputChange}
-                className="w-full px-4 py-3 pl-24 text-black placeholder:text-gray-400 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none transition-all"
+                inputClassName='pl-25'
                 required
               />
               
@@ -187,42 +182,37 @@ export default function SignupComponent() {
           </div>
 
           {/* Email */}
-          <div>
             <div className="relative">
-              <input
+              <Input
                 type="email"
                 name="email"
                 placeholder="Email address"
                 value={formData.email}
                 onChange={handleInputChange}
-                className="w-full px-4 py-3 pl-12 text-black placeholder:text-gray-400 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none transition-all"
-                required
-              />
-              <div className="absolute left-3 top-3.5 text-gray-400">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                leftIcon={
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
                 </svg>
-              </div>
+                }
+                required
+              />
             </div>
-          </div>
 
           {/* Password */}
           <div>
             <div className="relative">
-              <input
+              <Input
                 type={showPassword ? "text" : "password"}
                 name="password"
                 placeholder="Password"
                 value={formData.password}
                 onChange={handleInputChange}
-                className="w-full px-4 py-3 pl-12 pr-12 text-black placeholder:text-gray-400 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none transition-all"
-                required
-              />
-              <div className="absolute left-3 top-3.5 text-gray-400">
+                leftIcon={
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-              </div>
+                </svg>}
+                required
+              />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
@@ -236,20 +226,17 @@ export default function SignupComponent() {
                    {/* confirm Password */}
           <div>
             <div className="relative">
-              <input
+              <Input
                 type={showPassword ? "text" : "password"}
                 name="confirmPassword"
                 placeholder=" Confirm Password"
                 value={formData.confirmPassword}
                 onChange={handleInputChange}
-                className="w-full px-4 py-3 pl-12 pr-12 text-black placeholder:text-gray-400 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none transition-all"
+                leftIcon={ <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>}
                 required
               />
-              <div className="absolute left-3 top-3.5 text-gray-400">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-              </div>
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
@@ -264,7 +251,7 @@ export default function SignupComponent() {
           <button
             onClick={handleSubmit}
             type="submit"
-            className="w-full py-3 px-4 bg-button-gradient text-white font-semibold rounded-lg hover:from-yellow-500 hover:to-orange-600 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl"
+            className="w-full py-3 px-4 bg-button-gradient text-white font-semibold rounded-lg transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl"
           >
             Create Account
           </button>

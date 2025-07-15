@@ -5,7 +5,6 @@ import MainContent from "@/components/MainContent";
 import RightSidebar from "@/components/RightSidebar";
 import StoriesBar from "@/components/StoriesBar";
 import { useUserStore } from "@/store/useUserStore";
-import { useRouter } from "next/navigation";
 
 
 export default function Home() {

@@ -87,7 +87,7 @@ export default function SuggestedUsers() {
             <Button
               size="sm"
               variant="custom"
-              className="text-xs px-4 py-1 bg-[#DBB42C] border-[#FCD45C] text-white hover:bg-[#FCD45C]"
+              className="text-xs px-4 py-1 bg-button-gradient border-[#FCD45C] text-white hover:bg-[#FCD45C] cursor-pointer"
             >
               Follow
             </Button>
