@@ -15,7 +15,7 @@ const OTPStep = () => {
   const [error, setError] = useState('');
   const router = useRouter();
   // console.log(data);
-  const {setUser} = useUserStore();
+  const {setUser, setToken} = useUserStore();
 
   useEffect(() => {
     if (timer > 0) {
@@ -52,7 +52,8 @@ const OTPStep = () => {
     if (otp.join('').length === 6) {
      try{ 
       const  response = await VerifyOtp({ otp: otp.join('') })
-      setUser(response)
+      setUser(response.data.user);
+      setToken(response.data.accessToken);
       router.push('/');
     } catch(err){
         if (axios.isAxiosError(err)) {

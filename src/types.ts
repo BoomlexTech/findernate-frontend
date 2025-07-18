@@ -42,3 +42,46 @@ export type UsernameStepProps = StepWithBackProps
 export interface WelcomeStepProps {
   data: SignupData;
 }
+
+export interface ProductDetailsFormProps {
+  formData: {
+      postType: string;
+      mentions: string[];
+      mood: string;
+      activity: string;
+  settings: {
+    visibility: string;
+    allowComments: boolean;
+    allowLikes: boolean;
+  };
+  product: {
+    name: string;
+    price: string;
+    currency: string;
+    inStock: boolean;
+  };
+  status: string;
+}
+  
+onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
+categories?: string[];
+}
+
+// Regular post
+export interface RegularPostPayload {
+  description: string;
+  location: { name: string };
+  tags: string[];
+  image: File[];
+  postType: 'Regular';
+  caption: string;
+  mood: string;
+  activity: string;
+  mentions: string[];
+  settings: {
+    visibility: string;
+    allowComments: boolean;
+    allowLikes: boolean;
+  };
+  status: string;
+}
