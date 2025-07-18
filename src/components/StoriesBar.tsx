@@ -126,7 +126,7 @@ export default function StoriesBar() {
 
   return (
     <>
-      <div className="flex overflow-x-auto space-x-6 pb-2 px-2 scrollbar-hide bg-white rounded-lg">
+      <div className="flex overflow-x-auto space-x-6 pb-2 px-2 scrollbar-hide bg-white shadow-md rounded-lg">
         {storyUsers.map((user) => (
           <div key={user.id} className="flex flex-col items-center mt-5 flex-shrink-0">
             <div

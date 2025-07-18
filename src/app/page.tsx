@@ -1,19 +1,13 @@
 "use client";
 
-import { useEffect } from "react";
+// import { useEffect } from "react";
 import MainContent from "@/components/MainContent";
 import RightSidebar from "@/components/RightSidebar";
 import StoriesBar from "@/components/StoriesBar";
-import { useUserStore } from "@/store/useUserStore";
+// import { useUserStore } from "@/store/useUserStore";
 
 
 export default function Home() {
-  const user = useUserStore((state) => state.user);
-
-  useEffect(() => {
-    console.log("Zustand user:", user);
-  }, [user]);
-
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -21,7 +15,7 @@ export default function Home() {
         {/* Main Content Area */}
         <div className="flex-1  pr-[23rem]">
           {/* Stories Bar - Sticky within main content */}
-          <div className="sticky top-0 z-10 bg-gray-50 border-b border-gray-200 py-4 px-4 mb-4">
+          <div className="sticky top-0 z-10 bg-gray-50 pt-4 px-4">
             <StoriesBar />
           </div>
 

@@ -22,7 +22,7 @@ const Page = () => {
       <div className="flex-1 p-4 md:pl-8 md:pr-6">
         {/* Enhanced Trending Posts Header */}
         <div className="mb-8">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 relative overflow-hidden">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 relative overflow-hidden">
             {/* Background decoration */}
             <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-full transform translate-x-16 -translate-y-16"></div>
             <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-pink-500/10 to-orange-500/10 rounded-full transform -translate-x-12 translate-y-12"></div>
@@ -67,7 +67,7 @@ const Page = () => {
                     onClick={() => setActiveFilter(filter.name)}
                     className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 flex items-center gap-2 ${
                       activeFilter === filter.name
-                        ? 'bg-[#DBB42C] text-white shadow-lg transform scale-105'
+                        ? 'bg-button-gradient text-white shadow-lg transform scale-105'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:scale-105'
                     }`}
                   >
@@ -109,8 +109,8 @@ const Page = () => {
       </div>
        
       {/* Right Sidebar / Trending Topics with Independent Scroll */}
-      <div className="w-full md:w-[320px] p-4 md:p-6">
-        <aside className="bg-white shadow-md rounded-lg md:sticky md:top-4 md:h-[calc(100vh-2rem)] overflow-y-auto">
+      <div className="w-full md:w-[320px] md:p-6 lg:p-0">
+        <aside className="w-full md:w-[20rem] max-w-full bg-white shadow-md rounded-lg md:sticky md:top-4 md:h-[calc(100vh-2rem)] overflow-y-auto">
           <div className="p-4 space-y-6">
             <TrendingTopics />
             <TrendingBusiness />

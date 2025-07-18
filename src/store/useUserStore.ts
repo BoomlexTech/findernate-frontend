@@ -1,11 +1,13 @@
 // store/useUserStore.ts
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 type User = {
   _id: string;
-  name: string;
+  fullName: string;
   email: string;
   username?: string;
+  isBusinessProfile: boolean;
   avatar?: string;
   // Add other fields as needed
 };
@@ -20,24 +22,26 @@ type UserStore = {
   logout: () => void;
 };
 
-export const useUserStore = create<UserStore>((set) => ({
-  user: null,
-  token: typeof window !== 'undefined' ? localStorage.getItem('token'): null,
+export const useUserStore = create<UserStore>()(
+  persist(
+    (set ) => ({
+      user: null,
+      token: null,
 
-  setUser: (userData) => set({ user: userData }),
+      setUser: (userData) => set({ user: userData }),
 
-    setToken: (token: string) => {
-    localStorage.setItem('token', token);
-    set({ token });
-  },
+      setToken: (token) => set({ token }),
 
-  updateUser: (fields) =>
-    set((state) => ({
-      user: state.user ? { ...state.user, ...fields } : null,
-    })),
+      updateUser: (fields) =>
+        set((state) => ({
+          user: state.user ? { ...state.user, ...fields } : null,
+        })),
 
-    logout: () => {
-    localStorage.removeItem('token');
-    set({ user: null, token: null });
-  },
-}));
+      logout: () => set({ user: null, token: null }),
+    }),
+    {
+      name: 'user-storage', // 🔐 key for localStorage
+      partialize: (state) => ({ user: state.user, token: state.token }), // optional: only store user & token
+    }
+  )
+);
