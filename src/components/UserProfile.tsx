@@ -2,14 +2,12 @@
 
 import { useRef, useState } from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import {BadgeCheck, Settings, Pencil, Shield, Check, X,} from "lucide-react";
 import { Button } from "./ui/button";
 import SettingsModal from "./SettingsModal"; // Adjust import path
 import { useUserStore } from "@/store/useUserStore";
 
 const UserProfile = () => {
-  const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [showSettings, setShowSettings] = useState(false); // New state
