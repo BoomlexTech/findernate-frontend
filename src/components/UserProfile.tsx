@@ -5,12 +5,14 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {BadgeCheck, Settings, Pencil, Shield, Check, X,} from "lucide-react";
 import { Button } from "./ui/button";
+import SettingsModal from "./SettingsModal"; // Adjust import path
 import { useUserStore } from "@/store/useUserStore";
 
 const UserProfile = () => {
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [showSettings, setShowSettings] = useState(false); // New state
 
   const user = useUserStore((state)=> state.user)
 
@@ -70,7 +72,7 @@ const UserProfile = () => {
               alt={formData.name}
               width={96}
               height={96}
-              className="rounded-full border-4 border-white w-24 h-24 object-cover"
+              className="rounded-full border-4 border-white w-32 h-32 object-cover"
             />
             <div className="absolute bottom-0 right-0 bg-yellow-500 rounded-full p-1 shadow">
               <CameraIcon className="w-4 h-4 text-white" />
@@ -91,7 +93,8 @@ const UserProfile = () => {
         <div className="flex justify-between items-start">
           <div className="flex-1 mr-4">
             {/* Name and Username */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 mb-0">
+
               {isEditing ? (
                 <input
                   type="text"
@@ -101,8 +104,8 @@ const UserProfile = () => {
                   placeholder="Your name"
                 />
               ) : (
-                <h1 className="text-xl font-semibold text-gray-900">
-                  {user?.fullName}
+                <h1 className="text-2xl font-semibold text-gray-900">
+                  {formData.name}
                 </h1>
               )}
               <BadgeCheck className="text-blue-500 w-5 h-5" />
@@ -221,16 +224,18 @@ const UserProfile = () => {
                 >
                   <Pencil className="w-4 h-4" /> Edit Profile
                 </Button>
-                <Button
-                  onClick={() => router.push("/settings")}
-                  className="border px-2.5 py-1.5 rounded-md text-black hover:bg-gray-100"
-                >
-                  <Settings className="w-4 h-4" />
-                </Button>
+                  <Button
+          onClick={() => setShowSettings(true)}
+          className="border px-2.5 py-1.5 rounded-md text-black hover:bg-gray-100"
+        >
+          <Settings className="w-4 h-4" />
+        </Button>
               </>
             )}
           </div>
         </div>
+      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
+
 
         {/* Stats */}
         <div className="flex gap-6 mt-6 text-sm text-gray-700 font-medium">

@@ -1,51 +1,26 @@
 "use client";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import {
-  Bell,
-  Globe,
-  User,
-  HelpCircle,
-  LogOut,
-  Shield,
-  MapPin,
-  Phone,
-  ChevronLeft,
-  ChevronRight,
-  ChevronDown,
-  Volume2,
-  Layers,
-} from "lucide-react";
 
-const SettingsPage = () => {
+import { ChevronLeft, Globe, Bell, Volume2, User, HelpCircle, LogOut, Shield, MapPin, Phone, ChevronRight, ChevronDown, Layers } from "lucide-react";
+import { useState } from "react";
+
+const SettingsModal = ({ onClose }: { onClose: () => void }) => {
   const [muteNotifications, setMuteNotifications] = useState(false);
   const [hideAddress, setHideAddress] = useState(false);
   const [hideNumber, setHideNumber] = useState(false);
- const router = useRouter();
+
   return (
-    <div className="bg-gray-50 min-h-screen">
-      {/* Status Bar */}
-      {/* <div className="bg-gray-200 px-4 py-2 flex justify-between items-center text-sm text-gray-800">
-        <span>10:34</span>
-        <div className="flex items-center gap-1">
-          <div className="w-4 h-4 bg-gray-600 rounded"></div>
-          <div className="w-4 h-4 bg-gray-600 rounded"></div>
-          <div className="w-4 h-4 bg-gray-600 rounded"></div>
+    <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center">
+      <div className="bg-white w-full max-w-md h-[90vh] rounded-xl shadow-lg overflow-y-scroll relative">
+        {/* Header */}
+        <div className="sticky top-0 z-10 bg-white px-4 py-4 flex items-center justify-center border-b border-gray-200">
+          <ChevronLeft
+            className="w-6 h-6 text-gray-600 absolute left-4 cursor-pointer"
+            onClick={onClose}
+          />
+          <h1 className="text-2xl font-medium text-black">Settings</h1>
         </div>
-      </div> */}
 
-      {/* Header */}
-      <div className="bg-white px-4 py-4 flex items-center justify-center relative border-b border-gray-200">
-        <ChevronLeft
-          className="w-6 h-6 text-gray-600 absolute left-4 cursor-pointer"
-          onClick={() => router.back()}
-        />{" "}
-        <h1 className="text-2xl font-medium text-black">Settings</h1>
-      </div>
-
-      {/* Settings Content */}
-      <div className="bg-white">
-        {/* Main Settings */}
+        {/* Content */}
         <div className="px-4 py-2">
           <SettingItem icon={<Shield />} title="Upgrade Business Profile" />
           <SettingItem
@@ -64,24 +39,16 @@ const SettingsPage = () => {
             enabled={muteNotifications}
             onToggle={() => setMuteNotifications(!muteNotifications)}
           />
-          <SettingItem
-            icon={<Bell />}
-            title="Custom Notification"
-            // highlighted
-          />
+          <SettingItem icon={<Bell />} title="Custom Notification" />
           <SettingItem icon={<User />} title="Account" />
           <SettingItem icon={<Layers />} title="About App" />
           <SettingItem icon={<HelpCircle />} title="Help Center" />
         </div>
 
-        {/* Divider */}
         <div className="h-px bg-gray-200 mx-4"></div>
 
-        {/* Business Info Section */}
         <div className="px-4 py-6">
-          <h2 className="text-gray-500 font-medium text-sm mb-4">
-            Business Info
-          </h2>
+          <h2 className="text-gray-500 font-medium text-sm mb-4">Business Info</h2>
           <div className="space-y-0">
             <SettingItem icon={<Shield />} title="View Your Business Details" />
             <SettingItem icon={<Shield />} title="Complete your KYC" />
@@ -102,10 +69,8 @@ const SettingsPage = () => {
           </div>
         </div>
 
-        {/* Divider */}
         <div className="h-px bg-gray-200 mx-4"></div>
 
-        {/* Logout */}
         <div className="px-4 py-2">
           <div className="flex items-center justify-between py-4">
             <div className="flex items-center gap-3">
@@ -116,34 +81,20 @@ const SettingsPage = () => {
           </div>
         </div>
       </div>
-
-      {/* Bottom Navigation Indicator */}
-      <div className="fixed bottom-0 left-0 right-0 bg-black h-1 flex justify-center items-center">
-        <div className="w-32 h-1 bg-white rounded-full"></div>
-      </div>
     </div>
   );
-};
-
-// ✅ Updated: SettingItem with optional `right` prop
-type SettingItemProps = {
-  icon: React.ReactNode;
-  title: string;
-  right?: React.ReactNode;
-  highlighted?: boolean;
 };
 
 const SettingItem = ({
   icon,
   title,
   right,
-  highlighted = false,
-}: SettingItemProps) => (
-  <div
-    className={`flex items-center justify-between py-4 ${
-      highlighted ? "bg-gray-100" : ""
-    }`}
-  >
+}: {
+  icon: React.ReactNode;
+  title: string;
+  right?: React.ReactNode;
+}) => (
+  <div className="flex items-center justify-between py-4">
     <div className="flex items-center gap-3">
       <span className="text-gray-600">{icon}</span>
       <span className="text-gray-900 font-medium">{title}</span>
@@ -152,20 +103,17 @@ const SettingItem = ({
   </div>
 );
 
-// ✅ Type for toggle component
-type SettingToggleProps = {
-  icon: React.ReactNode;
-  title: string;
-  enabled: boolean;
-  onToggle: () => void;
-};
-
 const SettingToggle = ({
   icon,
   title,
   enabled,
   onToggle,
-}: SettingToggleProps) => (
+}: {
+  icon: React.ReactNode;
+  title: string;
+  enabled: boolean;
+  onToggle: () => void;
+}) => (
   <div className="flex items-center justify-between py-4">
     <div className="flex items-center gap-3">
       <span className="text-gray-600">{icon}</span>
@@ -193,4 +141,4 @@ const SettingToggle = ({
   </div>
 );
 
-export default SettingsPage;
+export default SettingsModal;
