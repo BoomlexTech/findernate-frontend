@@ -3,22 +3,18 @@
 import { useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import {
-  BadgeCheck,
-  Settings,
-  Pencil,
-  Shield,
-  Check,
-  X,
-} from "lucide-react";
+import {BadgeCheck, Settings, Pencil, Shield, Check, X,} from "lucide-react";
 import { Button } from "./ui/button";
 import SettingsModal from "./SettingsModal"; // Adjust import path
+import { useUserStore } from "@/store/useUserStore";
 
 const UserProfile = () => {
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [showSettings, setShowSettings] = useState(false); // New state
+
+  const user = useUserStore((state)=> state.user)
 
   const [formData, setFormData] = useState({
     name: "Priya Sharma",
@@ -27,7 +23,7 @@ const UserProfile = () => {
     website: "https://www.priyaenterprises.in",
     joinedDate: "June 2025",
     bio: "Entrepreneur | Fashion Designer | 📍 Mumbai | Creating beautiful ethnic wear ✨",
-    isBusiness: true,
+    isBusiness: false,
     businessCategory: "Fashion & Apparel",
     following: 20,
     followers: 15,
@@ -98,6 +94,7 @@ const UserProfile = () => {
           <div className="flex-1 mr-4">
             {/* Name and Username */}
             <div className="flex items-center gap-2 mb-0">
+
               {isEditing ? (
                 <input
                   type="text"
@@ -112,14 +109,14 @@ const UserProfile = () => {
                 </h1>
               )}
               <BadgeCheck className="text-blue-500 w-5 h-5" />
-              {formData.isBusiness && (
+              {user?.isBusinessProfile && (
                 <span className="bg-yellow-100 text-yellow-700 text-xs font-medium px-2 py-1 rounded-full flex items-center gap-1">
                   Business Account <Shield className="w-3 h-3" />
                 </span>
               )}
             </div>
 
-            <p className="text-gray-500 text-sm mb-2">{formData.username}</p>
+            <p className="text-gray-500 text-sm mb-2">{"@ "+user?.username}</p>
 
             {/* Bio */}
             {isEditing ? (

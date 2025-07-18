@@ -95,7 +95,7 @@ export default function MainContent() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto py-6 px-4">
+    <div className="max-w-xl mx-auto py-4 px-4">
       {posts.length === 0 ? (
         <div className="text-center py-12">
           <div className="text-6xl mb-4">📱</div>
