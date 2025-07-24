@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import PostCard from "@/components/PostCard";
-// import { Button } from "@/components/ui/button";
 import { getHomeFeed } from "@/api/homeFeed";
 import { FeedPost, MediaItem } from "@/types";
 
@@ -18,7 +17,7 @@ type RawFeedItem = {
   postType: string;
   createdAt: string;
   media: MediaItem[];
-    engagement?: {
+  engagement?: {
     comments: number;
     impressions: number;
     likes: number;
@@ -27,7 +26,7 @@ type RawFeedItem = {
     shares: number;
     views: number;
   }
-    customization?: {
+  customization?: {
     normal?: {
       location?: {
         name: string;
@@ -37,8 +36,8 @@ type RawFeedItem = {
         };
       };
       tags?: string[];
-      // optional: mood, activity, etc.
-        business?: {
+    };
+    business?: {
       description: string;
       location?: {
         name: string;
@@ -61,22 +60,23 @@ type RawFeedItem = {
         maxBookingsPerDay: number;
       };
     };
-    };
   };
 };
 
-
-
 export default function MainContent() {
-  // const [posts, setPosts] = useState('');
-  // const [loading, setLoading] = useState(false);
   const [feed, setFeed] = useState<FeedPost[]>([]);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [initialLoad, setInitialLoad] = useState(true);
+  const loaderRef = useRef<HTMLDivElement>(null);
 
-  useEffect(()=> {
-    const fetchPosts = async () => {
-      try{
-      const res = await getHomeFeed()
-        const mappedFeed: FeedPost[] = res.data.feed.map((item: RawFeedItem ) => ({
+  const fetchPosts = async (pageNum: number) => {
+    try {
+      setLoading(true);
+      const res = await getHomeFeed({ page: pageNum, limit: 10 });
+      
+      const mappedFeed: FeedPost[] = res.data.feed.map((item: RawFeedItem) => ({
         _id: item._id,
         username: item.userId.username,
         profileImageUrl: item.userId.profileImageUrl,
@@ -86,45 +86,79 @@ export default function MainContent() {
         postType: item.postType,
         createdAt: item.createdAt,
         media: item.media as MediaItem[],
-          engagement: item.engagement || {
-            comments: 0,
-            impressions: 0,
-            likes: 0,
-            reach: 0,
-            saves: 0,
-            shares: 0,
-            views: 0,},
-      location: item.customization?.normal?.location || null,
-      tags: item.customization?.normal?.tags || [],
-      }))
-      setFeed(mappedFeed);
-      console.log(res);
-    } catch(err) {
-      console.log(err);
+        engagement: item.engagement || {
+          comments: 0,
+          impressions: 0,
+          likes: 0,
+          reach: 0,
+          saves: 0,
+          shares: 0,
+          views: 0,
+        },
+        location: item.customization?.normal?.location || null,
+        tags: item.customization?.normal?.tags || [],
+      }));
+
+      const newPosts = mappedFeed.filter(
+        newPost => !feed.some(existingPost => existingPost._id === newPost._id)
+      );
+
+      if (pageNum === 1) {
+        setFeed(mappedFeed);
+      } else {
+        setFeed(prev => [...prev, ...newPosts]);
+      }
+
+      if (mappedFeed.length < 10 || newPosts.length === 0) {
+        setHasMore(false);
+      }
+    } catch (err) {
+      console.error("Error fetching posts:", err);
+    } finally {
+      setLoading(false);
+      if (initialLoad) setInitialLoad(false);
     }
-  }
+  };
 
-    fetchPosts();
-  },[]);
+  const handleObserver = useCallback((entries: IntersectionObserverEntry[]) => {
+    const [target] = entries;
+    if (target.isIntersecting && hasMore && !loading) {
+      setPage(prev => prev + 1);
+    }
+  }, [hasMore, loading]);
 
+  useEffect(() => {
+    const observer = new IntersectionObserver(handleObserver, {
+      root: null,
+      rootMargin: "20px",
+      threshold: 0.1
+    });
 
-  // const loadMorePosts = () => {
-  //   setLoading(true);
-  //   setTimeout(() => {
-  //     setPosts([
-  //       ...posts,
-  //       ...mockPosts.map((post) => ({
-  //         ...post,
-  //         id: post.id + posts.length,
-  //       })),
-  //     ]);
-  //     setLoading(false);
-  //   }, 1000);
-  // };
+    if (loaderRef.current) {
+      observer.observe(loaderRef.current);
+    }
+
+    return () => {
+      if (loaderRef.current) {
+        observer.unobserve(loaderRef.current);
+      }
+    };
+  }, [handleObserver]);
+
+  useEffect(() => {
+    fetchPosts(page);
+  }, [page]);
 
   return (
     <div className="max-w-3xl mx-auto py-4 px-4">
-      {feed.length === 0 ? (
+      {initialLoad ? (
+        <div className="text-center py-12">
+          <div className="text-6xl mb-4">⏳</div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            Loading Posts...
+          </h2>
+        </div>
+      ) : feed.length === 0 ? (
         <div className="text-center py-12">
           <div className="text-6xl mb-4">📱</div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
@@ -142,17 +176,19 @@ export default function MainContent() {
             ))}
           </div>
 
-          {/* {posts.length >= 15 && (
-            <div className="mt-8 text-center">
-              <Button
-                onClick={loadMorePosts}
-                disabled={loading}
-                className="px-8 py-3 bg-white text-gray-900 border-2 border-[#FCD45C] hover:bg-[#FCD45C] hover:text-black transition-all duration-200 font-medium"
-              >
-                {loading ? "Loading..." : "Load More Posts"}
-              </Button>
+          <div ref={loaderRef} className="h-10">
+            {loading && (
+              <div className="text-center py-8">
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#FCD45C]"></div>
+              </div>
+            )}
+          </div>
+
+          {!hasMore && !loading && (
+            <div className="text-center py-8 text-gray-500">
+              You&apos;ve reached the end of the feed
             </div>
-          )} */}
+          )}
         </>
       )}
     </div>

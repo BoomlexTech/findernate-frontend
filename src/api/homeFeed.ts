@@ -1,7 +1,7 @@
 import axios from './base' 
 
-export const getHomeFeed = async() => {
-    const response = await axios.get('/posts/home-feed')
+export const getHomeFeed = async({page, limit}: {page: number, limit: number}) => {
+    const response = await axios.get(`/posts/home-feed?page=${page}&limit=${limit}`)
 
     return response.data
 }
