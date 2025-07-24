@@ -59,6 +59,7 @@ export interface ProductDetailsFormProps {
     price: string;
     currency: string;
     inStock: boolean;
+    link: string;
   };
   status: string;
 }
@@ -85,3 +86,186 @@ export interface RegularPostPayload {
   };
   status: string;
 }
+
+export interface ServiceDetailsFormProps {
+  formData: {
+  postType: string;
+  caption: string;
+  description: string;
+  image: File[]; // Array of File objects
+  mentions: string[]; // Array of user IDs
+  settings: {
+    visibility: string;
+    allowComments: boolean;
+    allowLikes: boolean;
+  };
+  location: {
+    name: string;
+  };
+  status: string;
+
+  // Service-specific fields
+  service: {
+    name: string;
+    description: string;
+    price: string; // Keep as string for input, convert to number for API
+    currency: string;
+    category: string;
+    subcategory: string;
+    duration: string; // Keep as string for input, convert to number for API
+    serviceType: string; // 'in-person', 'online', 'hybrid'
+    availability: {
+      schedule: Array<{
+        day: string;
+        timeSlots: Array<{
+          startTime: string;
+          endTime: string;
+        }>;
+      }>;
+      timezone: string;
+      bookingAdvance: string; // string for input, convert to number for API
+      maxBookingsPerDay: string; // string for input, convert to number for API
+    };
+    location: {
+      type: string; // 'studio', 'home', etc.
+      address: string;
+      city: string;
+      state: string;
+      country: string;
+      coordinates?: {
+        type: 'Point';
+        coordinates: [number, number]; // [lng, lat] (optional)
+      };
+    };
+    requirements: string[];
+    deliverables: string[];
+    tags: string[];
+    link: string;
+    };
+  }
+
+  onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
+  categories?: string[];
+}
+
+export interface BusinessPostFormProps {
+  formData: {
+  postType: string;
+  caption: string;
+  description: string;
+  image: File[]; // Array of File objects
+  mentions: string[]; // Array of user IDs
+  settings: {
+    visibility: string;
+    allowComments: boolean;
+    allowLikes: boolean;
+  };
+  status: string;
+
+  business: {
+    businessName: string;
+    businessType: string;
+    description: string;
+    category: string;
+    subcategory: string;
+    contact: {
+      phone: string;
+      email: string;
+      website: string;
+      socialMedia: Array<{
+        platform: string;
+        url: string;
+      }>;
+    };
+    location: {
+      address: string;
+      city: string;
+      state: string;
+      country: string;
+      postalCode: string;
+    };
+    hours: Array<{
+      day: string;
+      openTime: string;
+      closeTime: string;
+      isClosed: boolean;
+    }>;
+    features: string[];
+    priceRange: string;
+    rating: number;
+    tags: string[];
+    announcement: string;
+    promotions: Array<{
+      title: string;
+      description: string;
+      discount: number;
+      validUntil: string; // ISO date string
+      isActive: boolean;
+    }>;
+    link: string;
+  },
+}
+onChange?: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
+
+}
+
+export type MediaItem = {
+  type: 'image' | 'video';
+  url: string;
+  thumbnailUrl?: string;
+  duration?: number | null;
+  dimensions?: {
+    width: number;
+    height: number;
+  };
+};
+
+export interface FeedPost {
+  _id: string;
+  username: string
+  profileImageUrl: string
+  description: string
+  caption: string
+  contentType: string
+  postType: string
+  createdAt: string
+  media: MediaItem[]
+
+    engagement: {
+    comments: number;
+    impressions: number;
+    likes: number;
+    reach: number;
+    saves: number;
+    shares: number;
+    views: number;
+  };
+    location: {
+    name: string;
+    coordinates: {
+      type: string;
+      coordinates: [number, number];
+    };
+  } | null;
+
+  tags: string[];
+}
+
+
+export interface SearchUser {
+  _id: string;
+  username: string;
+  fullName: string;
+  profileImageUrl?: string;
+  bio?: string;
+  location?: string;
+}
+
+export interface SearchResult {
+  _id: string;
+  caption: string;
+  postType: string;
+  contentType: string;
+  userId: SearchUser;
+  media?: { url: string; type: string }[];
+} 

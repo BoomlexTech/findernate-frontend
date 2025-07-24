@@ -1,20 +1,38 @@
+import { getUserProfile } from '@/api/user';
 import Image from 'next/image';
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 
 type floatingHeaderProps = {
     paragraph: string;
     heading: string;
     username: string;
     accountBadge: boolean;
+    width?: string;
+}
+interface profileProps{
+  fullName: string;
+  profileImageUrl: string;
 }
 
-const FloatingHeader = ({paragraph, heading, username, accountBadge}: floatingHeaderProps) => {
+const FloatingHeader = ({paragraph, heading, username, accountBadge, width=""}: floatingHeaderProps) => {
+  const [profile, setProfile] = useState<profileProps | null>(null);
 
-    const user = {
-        profilePic: "https://cdn.pixabay.com/photo/2016/08/08/09/17/avatar-1577909_1280.png", // or a remote image if configured
-    };
+
+
+      useEffect(()=>{
+        const fetchProfile = async () => {
+          try{
+            const data = await getUserProfile();
+            setProfile(data)
+          } catch(err){
+            console.log(err)
+          }
+        }
+        fetchProfile();
+      },[]);
+
   return (
-          <div className="bg-white p-6 rounded-xl shadow-sm flex justify-between items-center mb-6 min-w-6xl w-full">
+          <div className={`bg-white p-6 rounded-xl shadow-sm flex justify-between items-center mb-6 ${width || 'min-w-6xl w-full'}`}>
             {/* Left Text */}
             <div>
               <h2 className="text-2xl font-semibold text-gray-900">{heading}</h2>
@@ -27,7 +45,7 @@ const FloatingHeader = ({paragraph, heading, username, accountBadge}: floatingHe
             <div className="flex items-center space-x-3">
               
               <div className="flex flex-col items-end">
-                <span className="font-medium text-gray-900">{username}</span>
+                <span className="font-medium text-gray-900">{profile?.fullName}</span>
                 {accountBadge && (
                   <span
                     className="text-gray-400 text-xs">
@@ -35,13 +53,15 @@ const FloatingHeader = ({paragraph, heading, username, accountBadge}: floatingHe
                   </span>
                 )}
               </div>
-              <Image
-                src={user.profilePic}
+              {profile?.profileImageUrl &&
+               <Image
+                src={profile?.profileImageUrl}
                 alt={username}
                 width={40}
                 height={40}
                 className="w-10 h-10 rounded-full object-cover"
-              />
+              />}
+             
             </div>
     
           </div>

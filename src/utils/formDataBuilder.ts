@@ -1,28 +1,29 @@
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const buildFormData = (data: Record<string, any>, form = new FormData(), parentKey = '') => {
-    Object.entries(data).forEach(([key, value]) => {
-      const fullKey = parentKey ? `${parentKey}[${key}]` : key;
-  
+function buildFormData(formData: FormData, data: any, parentKey = '') {
+  if (data instanceof File) {
+    // If it's a File, append directly
+    formData.append(parentKey, data);
+  } else if (Array.isArray(data)) {
+    // If it's an array of Files or primitives
+    data.forEach((value) => {
       if (value instanceof File) {
-        form.append(fullKey, value);
-      } else if (Array.isArray(value)) {
-        value.forEach((item, index) => {
-          if (item instanceof File) {
-            form.append(`${fullKey}[${index}]`, item);
-          } else if (typeof item === 'object') {
-            buildFormData(item, form, `${fullKey}[${index}]`);
-          } else {
-            form.append(`${fullKey}[${index}]`, item);
-          }
-        });
-      } else if (typeof value === 'object' && value !== null) {
-        buildFormData(value, form, fullKey);
-      } else if (value !== undefined && value !== null) {
-        form.append(fullKey, value);
+        // For files, use the same key (e.g., image)
+        formData.append(parentKey, value);
+      } else if (typeof value === 'object') {
+        // For objects in array, flatten with index
+        buildFormData(formData, value, `${parentKey}[]`);
+      } else {
+        // For primitives, use key[]
+        formData.append(`${parentKey}[]`, value);
       }
     });
-  
-    return form;
-  };
-  
+  } else if (data && typeof data === 'object') {
+    // For objects, recurse
+    Object.keys(data).forEach(key => {
+      buildFormData(formData, data[key], parentKey ? `${parentKey}[${key}]` : key);
+    });
+  } else if (data !== undefined && data !== null) {
+    // For primitives
+    formData.append(parentKey, data);
+  }
+}
+export default buildFormData; 

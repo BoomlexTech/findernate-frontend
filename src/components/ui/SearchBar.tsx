@@ -10,7 +10,7 @@ interface searchBarProps {
 
 export default function SearchBar({onChange,placeholder,className,value}:searchBarProps) {
   return (
-    <div className="relative w-full max-w-5xl">
+    <div className="relative w-full max-w-[54rem]">
       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
       <input
         type="text"

@@ -6,8 +6,8 @@ import { Button } from './ui/button';
 import ProductDetailsForm from './posting/ProductDetailsForm';
 import ServiceDetailsForm from './posting/ServiceDetailsForm';
 import BusinessDetailsForm from './posting/BusinessDetailsForm';
-import { createProductPost, createRegularPost } from '@/api/post';
-import { ProductDetailsFormProps, RegularPostPayload } from '@/types';
+import { createProductPost, createRegularPost, createServicePost, createBusinessPost } from '@/api/post';
+import { ProductDetailsFormProps, RegularPostPayload, ServiceDetailsFormProps, BusinessPostFormProps } from '@/types';
 import RegularPostForm from './posting/RegularDetailsForm';
 
 interface createPostModalProps {
@@ -29,7 +29,6 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
 
   const [regularForm, setRegularForm] = useState({
     postType: 'photo',
-    caption: '',
     mood: '',
     activity: '',
     mentions: [] as string[],
@@ -43,7 +42,7 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
 
   const [productForm, setProductForm] = useState({
     postType: 'photo',
-    mentions: ["686f86a232ff68d345b72ea9"] as string[],
+    mentions: [] as string[],
     mood: 'testing',
     activity: 'testing',
     settings: {
@@ -52,29 +51,110 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
       allowLikes: true,
     }, 
     product: {
-      name: 'cool t-shirt',
-      price: '999',
-      currency: 'INR',
+      name: '',
+      price: '',
+      currency: '',
+      link:'',
       inStock: true,
     },
     status: 'scheduled',
-  });
+}); 
 
-  const [serviceForm, setServiceForm] = useState({
-    serviceName: '',
+const [serviceForm, setServiceForm] = useState({
+  // Shared post fields
+  postType: 'photo', // or whatever type you need
+  caption: '',
+  description: '',
+  image: [], // Array of File objects
+  mentions: [], // Array of user IDs
+  settings: {
+    visibility: 'public',
+    allowComments: true,
+    allowLikes: true,
+  },
+  location: {
+    name: '', // or more detailed location object if needed
+  },
+  status: 'scheduled',
+
+  // Service-specific fields (as an object)
+  service: {
+    name: '',
+    description: '',
     price: '',
+    currency: 'INR',
     category: '',
-    description: '',
-    available: true,
-  });
+    subcategory: '',
+    duration: '',
+    serviceType: '', // 'in-person', 'online', 'hybrid'
+    availability: {
+      schedule: [], // [{ day: 'Monday', timeSlots: [{ startTime: '', endTime: '' }] }]
+      timezone: '',
+      bookingAdvance: '',
+      maxBookingsPerDay: '',
+    },
+    location: {
+      type: '', // 'studio', 'home', etc.
+      address: '',
+      city: '',
+      state: '',
+      country: '',
+      coordinates: undefined, // { type: 'Point', coordinates: [lng, lat] } or undefined
+    },
+    requirements: [],
+    deliverables: [],
+    tags: [],
+    link:'',
+  }
+});
 
-  const [businessForm, setBusinessForm] = useState({
+const [businessForm, setBusinessForm] = useState<BusinessPostFormProps>({
+  formData: {
+  postType: 'photo',
+  caption: '',
+  description: '',
+  image: [],
+  mentions: [],
+  settings: {
+    visibility: 'public',
+    allowComments: true,
+    allowLikes: true,
+  },
+  status: 'scheduled',
+  business: {
     businessName: '',
-    industry: '',
-    location: '',
+    businessType: '',
     description: '',
-    open: true,
-  });
+    category: '',
+    subcategory: '',
+    contact: {
+      phone: '',
+      email: '',
+      website: '',
+      socialMedia: [],
+    },
+    location: {
+      address: '',
+      city: '',
+      state: '',
+      country: '',
+      postalCode: '',
+    },
+    hours: [
+      // Example: { day: 'Monday', openTime: '', closeTime: '', isClosed: false }
+    ],
+    features: [],
+    priceRange: '',
+    rating: 0,
+    tags: [],
+    announcement: '',
+    promotions: [
+      { title: '', description: '', discount: 0, validUntil: '', isActive: false }
+    ],
+    link: '',
+  }
+},
+});
 
   const handleRegularChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
   const { name, value } = e.target;
@@ -84,36 +164,114 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
    }))
   }
   
-  const handleProductChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
-  ) => {
-    const target = e.target as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
-    const { name, value, type } = target;
-    setProductForm((prev) => ({
-      ...prev,
+const handleProductChange = (
+  e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+) => {
+  const target = e.target;
+  const { name, value, type } = target;
+
+  setProductForm((prev) => ({
+    ...prev,
+    product: {
+      ...prev.product,
       [name]: type === 'checkbox' ? (target as HTMLInputElement).checked : value,
-    }));
-  };
+    },
+  }));
+};
+
   const handleServiceChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
-    const target = e.target as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
-    const { name, value, type } = target;
-    setServiceForm((prev) => ({
-      ...prev,
-      [name]: type === 'checkbox' ? (target as HTMLInputElement).checked : value,
-    }));
+    const { name, value, type } = e.target;
+    setServiceForm((prev) => {
+      // 1. Fields inside service
+      if (name in prev.service) {
+        return {
+          ...prev,
+          service: {
+            ...prev.service,
+            [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value,
+          }
+        };
+      }
+      // 2. Top-level fields
+      if (name in prev) {
+        return {
+          ...prev,
+          [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value,
+        };
+      }
+      // 3. Fields inside service.location
+      if (name in prev.service.location) {
+        return {
+          ...prev,
+          service: {
+            ...prev.service,
+            location: {
+              ...prev.service.location,
+              [name]: value,
+            }
+          }
+        };
+      }
+      // 4. Fields inside service.availability
+      if (name in prev.service.availability) {
+        return {
+          ...prev,
+          service: {
+            ...prev.service,
+            availability: {
+              ...prev.service.availability,
+              [name]: value,
+            }
+          }
+        };
+      }
+      // 5. Add more nested cases as needed (e.g., requirements, deliverables, tags, etc.)
+  
+      return prev; // fallback
+    });
   };
   
   const handleBusinessChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
-    const target = e.target as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
-    const { name, value, type } = target;
-    setBusinessForm((prev) => ({
-      ...prev,
-      [name]: type === 'checkbox' ? (target as HTMLInputElement).checked : value,
-    }));
+    const { name, value } = e.target;
+    setBusinessForm((prev) => {
+    const formData = JSON.parse(JSON.stringify(prev.formData));
+    
+    if (
+      formData.business &&
+      typeof formData.business.location === 'object' &&
+      formData.business.location !== null &&
+      name in formData.business.location
+    ) {
+      formData.business.location[name] = value;
+    }
+      else if (formData.business && typeof formData.business === 'object' && name in formData.business) {
+        formData.business[name] = value;
+      }
+       // Handle top-level business fields
+       else if (formData.business && name in formData.business) {
+        formData.business[name] = value;
+      }
+      // Handle nested fields
+      else if (name === "discount" || name === "isActive" || name === "validUntil") {
+        if (!formData.business.promotions[0]) {
+          formData.business.promotions[0] = { title: '', description: '', discount: 0, validUntil: '', isActive: false };
+        }
+        if (name === "discount") {
+          formData.business.promotions[0].discount = Number(value);
+        } else if (name === "isActive") {
+          formData.business.promotions[0].isActive = value === "Active";
+        } else if (name === "validUntil") {
+          formData.business.promotions[0].validUntil = value;
+        }  
+      }
+      // Add more cases as needed for other nested fields
+  
+      return { ...prev, formData };
+    });
   };
 
   const handleImageUpload = (e:React.ChangeEvent<HTMLInputElement>) => {
@@ -160,15 +318,19 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
         console.log('Product Post Data:',sharedForm, productForm); 
         const productPayload = finalPayload;
         const res = await createProductPost({formData:productPayload} as unknown as ProductDetailsFormProps);
-        console.log(res);}
-      // } else if (postType === 'Service') {
-      //   const res = await createServicePost(serviceForm);
-      //   console.log(res);
-      // } else if (postType === 'Business') {
-      //   const res = await createBusinessPost(businessForm);
-      //   console.log(res);
-      // }
-    } catch (err) {
+        console.log(res);
+      } else if (postType === 'Service') {
+        console.log('Service Post Data:',sharedForm, serviceForm);
+        const servicePayload = finalPayload;
+        const res = await createServicePost({formData:servicePayload} as unknown as ServiceDetailsFormProps);
+        console.log(res);
+       } else if (postType === 'Business') {
+        console.log('Business Post Data:', businessForm);
+        const res = await createBusinessPost({formData:businessForm} as unknown as BusinessPostFormProps);
+        console.log(res);
+       }
+    }
+    catch (err) {
       console.error(err);
     } finally{
       setLoading(false);
@@ -185,7 +347,7 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
           <h2 className="text-xl font-semibold text-gray-800">Create Post</h2>
           <button
             onClick={closeModal}
-            className="text-gray-500 hover:text-gray-700 transition-colors"
+            className="text-gray-500 hover:text-gray-700 transition-colors cursor-pointer"
           >
             <X size={24} />
           </button>
@@ -253,7 +415,7 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
           </div>
 
           {/* Post Content */}
-          <div className="mb-6">
+          <div className="mb-1">
             <label className='text-black text-bold ml-2'>Add Description</label>
             <textarea
               value={sharedForm.description}
@@ -294,7 +456,7 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
           )}
           {postType === 'Business' && (
             <BusinessDetailsForm
-              formData={businessForm}
+              formData={businessForm.formData}
               onChange={handleBusinessChange}
             />
           )}
@@ -378,8 +540,15 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
             </label>
             <input
               type="text"
-              value={sharedForm.tags.join(', ')}
-              onChange={(e) => setSharedForm({...sharedForm, tags: e.target.value.split(', ')})}
+              value={sharedForm.tags.map(tag => tag.startsWith('#') ? tag : `#${tag}`).join(', ')}
+              onChange={(e) => {
+                const updatedTags = e.target.value
+                .split(',')
+                .map(tag => tag.trim().replace(/^#*/, '')) // remove any existing #
+                .filter(Boolean); // remove empty strings
+                setSharedForm({...sharedForm, tags: updatedTags})
+                }
+              }
               placeholder="Add hashtags...(without #)"
               className="w-full p-3 border border-gray-300 placeholder:text-gray-500 text-black rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
             />

@@ -18,7 +18,7 @@ const ProductDetailsForm: React.FC<ProductDetailsFormProps> = ({
           <label className="block text-sm font-medium text-gray-700 mb-1">Product Name</label>
           <input
             type="text"
-            name="product"
+            name="name"
             placeholder="e.g., Handcrafted Silk Saree"
             value={formData.product.name}
             onChange={onChange}
@@ -55,6 +55,17 @@ const ProductDetailsForm: React.FC<ProductDetailsFormProps> = ({
           ))}
         </select>
       </div>
+         <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Product Link</label>
+          <input
+            type="text"
+            name="link"
+            value={formData.product.link}
+            onChange={onChange}
+            className="w-full p-3 border text-gray-900 border-gray-300 rounded-lg placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+            required
+          />
+        </div>
 
       <div className="flex items-center">
         <input

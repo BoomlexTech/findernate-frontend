@@ -1,18 +1,60 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import {BadgeCheck, Settings, Pencil, Shield, Check, X,} from "lucide-react";
 import { Button } from "./ui/button";
 import SettingsModal from "./SettingsModal"; // Adjust import path
-import { useUserStore } from "@/store/useUserStore";
+import { getUserProfile } from "@/api/user";
+
+ interface UserProfile {
+  _id: string;
+  username: string;
+  fullName: string;
+  email: string;
+  phoneNumber: string;
+  dateOfBirth: string;
+  gender: string;
+  isBusinessProfile: boolean;
+  isEmailVerified: boolean;
+  isPhoneVerified: boolean;
+  createdAt: string;
+  profileImageUrl: string;
+  bio: string;
+  link: string;
+  location: string;
+  followersCount: number;
+  followingCount: number;
+  postsCount: number;
+}
+
 
 const UserProfile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [showSettings, setShowSettings] = useState(false); // New state
+  const [profile, setProfile] = useState<UserProfile | null>(null);
 
-  const user = useUserStore((state)=> state.user)
+  useEffect(()=>{
+    const fetchProfile = async () => {
+      try{
+        const data = await getUserProfile();
+        setProfile(data.userId)
+        //console.log(data)
+      } catch(err){
+        console.log(err)
+      }
+      
+    }
+    fetchProfile();
+  },[])
+
+  const joinedDate = profile?.createdAt
+  ? new Date(profile.createdAt).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+    })
+  : 'N/A';
 
   const [formData, setFormData] = useState({
     name: "Priya Sharma",
@@ -65,16 +107,21 @@ const UserProfile = () => {
       <div className="bg-gradient-to-r from-yellow-400 to-yellow-600 h-32 w-full relative">
         <div className="absolute -bottom-12 left-6">
           <div className="relative cursor-pointer" onClick={handleImageClick}>
+            {profile?.profileImageUrl&&
+            <>
             <Image
-              src={formData.profilePic}
+              src={profile?.profileImageUrl}
               alt={formData.name}
               width={96}
               height={96}
               className="rounded-full border-4 border-white w-32 h-32 object-cover"
             />
-            <div className="absolute bottom-0 right-0 bg-yellow-500 rounded-full p-1 shadow">
+             <div className="absolute bottom-0 right-0 bg-yellow-500 rounded-full p-1 shadow">
               <CameraIcon className="w-4 h-4 text-white" />
             </div>
+            </>
+            }
+            
             <input
               ref={fileInputRef}
               type="file"
@@ -103,18 +150,18 @@ const UserProfile = () => {
                 />
               ) : (
                 <h1 className="text-2xl font-semibold text-gray-900">
-                  {formData.name}
+                  {profile?.fullName}
                 </h1>
               )}
               <BadgeCheck className="text-blue-500 w-5 h-5" />
-              {user?.isBusinessProfile && (
+              {profile?.isBusinessProfile && (
                 <span className="bg-yellow-100 text-yellow-700 text-xs font-medium px-2 py-1 rounded-full flex items-center gap-1">
                   Business Account <Shield className="w-3 h-3" />
                 </span>
               )}
             </div>
 
-            <p className="text-gray-500 text-sm mb-2">{"@ "+user?.username}</p>
+            <p className="text-gray-500 text-sm mb-2">{"@ "+ profile?.username}</p>
 
             {/* Bio */}
             {isEditing ? (
@@ -126,7 +173,7 @@ const UserProfile = () => {
                 placeholder="Tell people about yourself..."
               />
             ) : (
-              <p className="mt-2 text-sm text-gray-800">{formData.bio}</p>
+              <p className="mt-2 text-sm text-gray-800">{profile?.bio}</p>
             )}
 
             {/* Business Category */}
@@ -164,7 +211,7 @@ const UserProfile = () => {
                     placeholder="Location"
                   />
                 ) : (
-                  <span>{formData.location}</span>
+                  <span>{profile?.location}</span>
                 )}
               </div>
 
@@ -181,17 +228,17 @@ const UserProfile = () => {
                   />
                 ) : (
                   <a
-                    href={formData.website}
+                    href={profile?.link}
                     target="_blank"
                     rel="noreferrer"
                     className="text-yellow-700 underline"
                   >
-                    {formData.website.replace("https://", "")}
+                    {profile?.link}
                   </a>
                 )}
               </div>
 
-              <div>📅 Joined {formData.joinedDate}</div>
+              <div>📅 Joined {joinedDate}</div>
             </div>
           </div>
 
@@ -238,15 +285,15 @@ const UserProfile = () => {
         {/* Stats */}
         <div className="flex gap-6 mt-6 text-sm text-gray-700 font-medium">
           <span>
-            <strong className="text-black">{formData.following}</strong>{" "}
+            <strong className="text-black">{profile?.followingCount}</strong>{" "}
             Following
           </span>
           <span>
-            <strong className="text-black">{formData.followers}</strong>{" "}
+            <strong className="text-black">{profile?.followersCount}</strong>{" "}
             Followers
           </span>
           <span>
-            <strong className="text-black">{formData.posts}</strong> Posts
+            <strong className="text-black">{profile?.postsCount || 0}</strong> Posts
           </span>
         </div>
       </div>

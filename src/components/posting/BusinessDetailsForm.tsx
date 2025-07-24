@@ -1,22 +1,8 @@
 import React from 'react';
+import { BusinessPostFormProps } from '@/types';
 
-interface BusinessDetailsFormProps {
-  formData: {
-    businessName: string;
-    announcement: string;
-    industry: string;
-    location: string;
-    description: string;
-    discount: string;
-    isActive: string;
-    validUntil: string;
-    open: boolean;
-  };
-  onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
-  industries: string[];
-}
 
-const BusinessDetailsForm: React.FC<BusinessDetailsFormProps> = ({
+const BusinessDetailsForm: React.FC<BusinessPostFormProps> = ({
   formData,
   onChange,
 }) => {
@@ -27,15 +13,26 @@ const BusinessDetailsForm: React.FC<BusinessDetailsFormProps> = ({
     <div className="bg-gray-100 p-6 rounded-xl shadow mb-6 border-2 border-yellow-500">
       <h3 className="text-lg text-black font-semibold mb-4">Business Details</h3>
       <div className="gap-4 mb-4">
-        <div>
+        <div className='mb-3'>
           <label className="block text-sm font-medium text-gray-700 mb-1">Business Name</label>
           <input
             type="text"
             name="businessName"
             placeholder="e.g., Priya Enterprises"
-            value={formData.businessName}
+            value={formData.business.businessName}
             onChange={onChange}
             className="w-full p-3 text-black border border-gray-300 rounded-lg placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+            required
+          />
+        </div>
+         <div className='mb-4'>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Business Link</label>
+          <input
+            type="text"
+            name="link"
+            value={formData.business.link}
+            onChange={onChange}
+            className="w-full p-3 border text-gray-900 border-gray-300 rounded-lg placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-yellow-500"
             required
           />
         </div>
@@ -43,9 +40,9 @@ const BusinessDetailsForm: React.FC<BusinessDetailsFormProps> = ({
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Announcements</label>
           <textarea
-            name="businessName"
+            name="announcement"
             placeholder="Write your business announcement..."
-            value={formData.announcement}
+            value={formData.business.announcement}
             onChange={onChange}
             className="w-full p-3 text-black border border-gray-300 rounded-lg placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-yellow-500"
             required
@@ -58,9 +55,9 @@ const BusinessDetailsForm: React.FC<BusinessDetailsFormProps> = ({
     <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
     <input
       type="text"
-      name="location"
+      name="address"
       placeholder="e.g., Mumbai, India"
-      value={formData.location}
+      value={formData.business?.location?.address || ''}
       onChange={onChange}
       className="w-full p-3 text-black border border-gray-300 rounded-lg placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-yellow-500"
       required
@@ -72,7 +69,7 @@ const BusinessDetailsForm: React.FC<BusinessDetailsFormProps> = ({
     <textarea
       name="description"
       placeholder="Detailed description..."
-      value={formData.description}
+      value={formData.business.description}
       onChange={onChange}
       className="w-full p-3 text-black border border-gray-300 rounded-lg placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-yellow-500"
       rows={3}
@@ -83,10 +80,10 @@ const BusinessDetailsForm: React.FC<BusinessDetailsFormProps> = ({
     <div>
       <label className="block text-sm font-medium text-gray-700 mb-1">Discount (%)</label>
       <input
-        type="text"
+        type="number"
         name="discount"
         placeholder="Enter discount"
-        value={formData.discount}
+        value={formData.business.promotions[0].discount}
         onChange={onChange}
         className="w-full p-3 text-black border border-gray-300 rounded-lg placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-yellow-500"
         required
@@ -96,10 +93,9 @@ const BusinessDetailsForm: React.FC<BusinessDetailsFormProps> = ({
       <label className="block text-sm font-medium text-gray-700 mb-1">Is Active</label>
       <select
         name="isActive"
-        value={formData.isActive}
+        value={formData.business.promotions[0].isActive.toString()}
         onChange={onChange}
-        className={`w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500
-          ${formData.isActive === '' ? 'text-gray-500' : 'text-gray-900'}`}
+        className='w-full p-3 text-black border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500'
         required
       >
         {isActive.map((active) => (
@@ -115,7 +111,7 @@ const BusinessDetailsForm: React.FC<BusinessDetailsFormProps> = ({
       type="date"
       name="validUntil"
       placeholder="Select expiry date"
-      value={formData.validUntil}
+      value={formData.business.promotions[0].validUntil}
       onChange={onChange}
       className="w-full p-3 text-black border border-gray-300 rounded-lg placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-yellow-500"
       required
