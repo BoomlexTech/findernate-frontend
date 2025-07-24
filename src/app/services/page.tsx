@@ -1,90 +1,145 @@
-// Assuming you already have Tailwind CSS configured
 "use client";
-import React, { useState } from "react";
-import { Clock, MapPin, Star, Search, Plus, Bell } from "lucide-react";
+
+import React, { useState, useEffect } from 'react';
+import { Search, Plus, Bell } from 'lucide-react';
+import PostCard from '@/components/PostCard';
+import { getExploreFeed } from '@/api/exploreFeed';
+import { transformExploreFeedToFeedPost, shuffleArray } from '@/utils/transformExploreFeed';
+import { FeedPost } from '@/types';
 
 const ServicesPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedLocation, setSelectedLocation] = useState("");
   const [selectedPrice, setSelectedPrice] = useState("");
-  const [sortBy, setSortBy] = useState("recent");
-
-  const services = [
-    {
-      id: 1,
-      title: "Custom Web Development",
-      description:
-        "Full-stack web development with modern technologies. Includes design, development, and deployment.",
-      price: 50000,
-      duration: "4-6 weeks",
-      location: "Bangalore, Karnataka",
-      rating: 4.8,
-      category: "Technology Services",
-      provider: {
-        name: "Rajesh Kumar",
-        username: "@rajesh_tech",
-        avatar:
-          "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face",
-      },
-      image:
-        "https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?w=400&h=300&fit=crop",
-    },
-    {
-      id: 2,
-      title: "South India Cultural Tour Package",
-      description:
-        "Complete 4-day South India cultural experience with temple visits, beach tours, and traditional meals.",
-      price: 12000,
-      duration: "4 days 3 nights",
-      location: "Chennai, Tamil Nadu",
-      rating: 4.8,
-      category: "Tourism & Travel",
-      provider: {
-        name: "Ananya Iyer",
-        username: "@ananya_travels",
-        avatar:
-          "https://images.unsplash.com/photo-1494790108755-2616c34f0e9f?w=150&h=150&fit=crop&crop=face",
-      },
-      image:
-        "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=300&fit=crop",
-    },
-    {
-      id: 3,
-      title: "Wedding Photography Package",
-      description:
-        "Complete wedding photography coverage including pre-wedding, ceremony, and reception. Includes edited photos and album.",
-      price: 25000,
-      duration: "Full day coverage",
-      location: "Chennai, Tamil Nadu",
-      rating: 4.8,
-      category: "Photography & Videography",
-      provider: {
-        name: "Vikram Malhotra",
-        username: "@vikram_photography",
-        avatar:
-          "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
-      },
-      image:
-        "https://images.unsplash.com/photo-1519741347686-c1e0aadf4611?w=400&h=300&fit=crop",
-    },
-  ];
+  const [sortBy, setSortBy] = useState("likes");
+  const [services, setServices] = useState<FeedPost[]>([]);
+  const [allServices, setAllServices] = useState<FeedPost[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasNextPage, setHasNextPage] = useState(true);
 
   const categories = [
     "Technology Services",
     "Tourism & Travel",
     "Photography & Videography",
+    "Health & Wellness",
+    "Education & Training",
+    "Home Services",
+    "Professional Services",
+    "Entertainment"
   ];
-  const locations = ["Bangalore, Karnataka", "Chennai, Tamil Nadu"];
+
+  const locations = ["Bangalore, Karnataka", "Chennai, Tamil Nadu", "Mumbai, Maharashtra", "Delhi, India"];
 
   const clearFilters = () => {
     setSearchTerm("");
     setSelectedCategory("");
     setSelectedLocation("");
     setSelectedPrice("");
-    setSortBy("recent");
+    setSortBy("time"); // Reset to default sort
   };
 
+  const fetchServices = async (pageNum: number = 1, reset: boolean = false) => {
+    setLoading(true);
+    try {
+      const response = await getExploreFeed({
+        page: pageNum,
+        limit: 20, // Fetch more data for better filtering
+        types: 'service',
+        sortBy: 'time' // Use consistent sorting for base data
+      });
+      
+      const transformedData = transformExploreFeedToFeedPost(response.data.feed);
+      
+      if (reset) {
+        setAllServices(transformedData);
+        setServices(transformedData);
+      } else {
+        const newAllServices = [...allServices, ...transformedData];
+        setAllServices(newAllServices);
+        setServices(newAllServices);
+      }
+      
+      setHasNextPage(response.data.pagination.hasNextPage);
+    } catch (error) {
+      console.error('Failed to fetch services:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch data only once on component mount
+  useEffect(() => {
+    fetchServices(1, true);
+    setPage(1);
+  }, []);
+
+  // Apply filters whenever filter criteria or data changes
+  useEffect(() => {
+    applyFilters();
+  }, [searchTerm, selectedCategory, selectedLocation, selectedPrice, sortBy, allServices]);
+
+  const applyFilters = () => {
+    let filtered = [...allServices];
+
+    // Apply search filter
+    if (searchTerm) {
+      filtered = filtered.filter(service => 
+        service.caption.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        service.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        service.username.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Apply category filter
+    if (selectedCategory) {
+      filtered = filtered.filter(service => 
+        service.tags.some(tag => tag.toLowerCase().includes(selectedCategory.toLowerCase())) ||
+        service.contentType.toLowerCase().includes(selectedCategory.toLowerCase())
+      );
+    }
+
+    // Apply location filter
+    if (selectedLocation) {
+      filtered = filtered.filter(service => 
+        service.location?.name.toLowerCase().includes(selectedLocation.toLowerCase())
+      );
+    }
+
+    // Apply sorting
+    switch (sortBy) {
+      case 'likes':
+        filtered.sort((a, b) => b.engagement.likes - a.engagement.likes);
+        break;
+      case 'views':
+        filtered.sort((a, b) => b.engagement.views - a.engagement.views);
+        break;
+      case 'engagement':
+        filtered.sort((a, b) => 
+          (b.engagement.likes + b.engagement.comments + b.engagement.shares) - 
+          (a.engagement.likes + a.engagement.comments + a.engagement.shares)
+        );
+        break;
+      case 'time':
+        filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        break;
+      default:
+        break;
+    }
+
+    setServices(filtered);
+  };
+
+  const handleLoadMore = () => {
+    if (hasNextPage && !loading) {
+      const nextPage = page + 1;
+      setPage(nextPage);
+      fetchServices(nextPage, false);
+    }
+  };
+
+  // Use services state directly as it's already filtered
   const filteredServices = services;
 
   return (
@@ -176,10 +231,10 @@ const ServicesPage = () => {
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
             >
-              <option value="recent">Most Recent</option>
-              <option value="popular">Most Popular</option>
-              <option value="price-low">Price: Low to High</option>
-              <option value="price-high">Price: High to Low</option>
+              <option value="likes">Most Liked</option>
+              <option value="views">Most Viewed</option>
+              <option value="engagement">Most Engaging</option>
+              <option value="time">Recently Added</option>
             </select>
 
             <button
@@ -195,86 +250,49 @@ const ServicesPage = () => {
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold text-gray-900">All Services</h2>
           <span className="text-sm text-gray-500">
-            {filteredServices.length * 2} services found
+            {filteredServices.length} services found
           </span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[...filteredServices, ...filteredServices].map((service) => (
-            <div
-              key={service.id + Math.random()}
-              className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md overflow-hidden"
-            >
-              <div className="relative">
-                <img
-                  src={service.image}
-                  alt={service.title}
-                  className="w-full h-48 object-cover"
-                />
-                <span className="absolute top-3 right-3 bg-white text-sm font-semibold px-3 py-1 rounded-full">
-                  ₹{service.price.toLocaleString()}
-                </span>
-              </div>
-              <div className="p-4">
-                <div className="flex items-center gap-3 mb-3">
-                  <img
-                    src={service.provider.avatar}
-                    className="w-10 h-10 rounded-full object-cover"
-                  />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-900">
-                      {service.provider.name}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {service.provider.username}
-                    </p>
-                  </div>
-                  <div className="bg-blue-500 w-5 h-5 rounded-full flex items-center justify-center text-white text-xs">
-                    ✓
-                  </div>
+        {loading && services.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="text-6xl mb-4">🔧</div>
+            <p className="text-gray-600">Loading services...</p>
+          </div>
+        ) : filteredServices.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="text-6xl mb-4">🔧</div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              No Services Found
+            </h2>
+            <p className="text-gray-600">
+              Try adjusting your search criteria or check back later.
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="space-y-6 mb-8">
+              {filteredServices.map((service) => (
+                <div key={service._id} className="w-full">
+                  <PostCard post={service} />
                 </div>
-
-                <h3 className="text-base font-semibold text-gray-900 mb-1">
-                  {service.title}
-                </h3>
-                <p className="text-sm text-gray-600 mb-2 line-clamp-2">
-                  {service.description}
-                </p>
-
-                <div className="flex items-center justify-between text-sm text-gray-500 mb-2">
-                  <div className="flex items-center gap-1">
-                    <Clock className="w-4 h-4" /> {service.duration}
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <MapPin className="w-4 h-4" /> {service.location}
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Star className="w-4 h-4 text-yellow-400 fill-current" />{" "}
-                    {service.rating}
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between mb-4">
-                  <span className="bg-blue-100 text-blue-800 px-2 py-1 text-xs rounded-full">
-                    {service.category}
-                  </span>
-                  <span className="text-blue-600 font-bold">
-                    ₹{service.price.toLocaleString()}
-                  </span>
-                </div>
-
-                <div className="flex gap-2">
-                  <button className="flex-1 bg-[#DBB42C] text-white text-sm py-2 rounded hover:bg-[#dbb42c]">
-                    Book Service
-                  </button>
-                  <button className="text-sm px-4 py-2 text-black border rounded hover:bg-gray-50">
-                    View Profile
-                  </button>
-                </div>
-              </div>
+              ))}
             </div>
-          ))}
-        </div>
+
+            {/* Load More Button */}
+            {hasNextPage && (
+              <div className="text-center">
+                <button
+                  onClick={handleLoadMore}
+                  disabled={loading}
+                  className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {loading ? "Loading..." : "Load More Services"}
+                </button>
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   );
