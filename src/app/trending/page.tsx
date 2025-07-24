@@ -1,20 +1,117 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import TrendingTopics from '@/components/TrendingTopics';
-import MainContent from '@/components/MainContent';
+import PostCard from '@/components/PostCard';
 import TrendingBusiness from '@/components/TrendingBusiness';
 import { TrendingUp, Flame, Star, Clock } from 'lucide-react';
+import { getExploreFeed } from '@/api/exploreFeed';
+import { transformExploreFeedToFeedPost } from '@/utils/transformExploreFeed';
+import { FeedPost } from '@/types';
 
 const Page = () => {
   const [activeFilter, setActiveFilter] = useState('All Posts');
+  const [posts, setPosts] = useState<FeedPost[]>([]);
+  const [allPosts, setAllPosts] = useState<FeedPost[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasNextPage, setHasNextPage] = useState(true);
   
   const filters = [
     { name: 'All Posts', count: null },
-    { name: 'Technology', count: 24 },
-    { name: 'Business', count: 18 },
-    { name: 'Design', count: 12 }
+    { name: 'Business', count: null },
+    { name: 'Product', count: null },
+    { name: 'Service', count: null }
   ];
+
+  const fetchTrendingPosts = async (pageNum: number = 1, reset: boolean = false) => {
+    setLoading(true);
+    try {
+      const response = await getExploreFeed({
+        page: pageNum,
+        limit: 20, // Fetch more data
+        types: 'all', // Get all types of posts
+        sortBy: 'engagement' // Sort by engagement for trending
+      });
+      
+      const transformedData = transformExploreFeedToFeedPost(response.data.feed);
+      
+      if (reset) {
+        setAllPosts(transformedData);
+        setPosts(transformedData);
+      } else {
+        const newAllPosts = [...allPosts, ...transformedData];
+        setAllPosts(newAllPosts);
+        setPosts(newAllPosts);
+      }
+      
+      setHasNextPage(response.data.pagination.hasNextPage);
+    } catch (error) {
+      console.error('Failed to fetch trending posts:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch data only once on component mount
+  useEffect(() => {
+    fetchTrendingPosts(1, true);
+    setPage(1);
+  }, []);
+
+  // Apply filters whenever activeFilter changes
+  useEffect(() => {
+    applyFilter();
+  }, [activeFilter, allPosts]);
+
+  const applyFilter = () => {
+    let filtered = [...allPosts];
+
+    if (activeFilter !== 'All Posts') {
+      const filterLower = activeFilter.toLowerCase();
+      
+      filtered = filtered.filter(post => {
+        // Check contentType directly for business posts
+        if (filterLower === 'business') {
+          return post.contentType.toLowerCase() === 'business';
+        }
+        
+        // Check contentType directly for service posts
+        if (filterLower === 'service') {
+          return post.contentType.toLowerCase() === 'service';
+        }
+        
+        // Check contentType directly for product posts
+        if (filterLower === 'product') {
+          return post.contentType.toLowerCase() === 'product';
+        }
+        
+        // For other filters like Technology, Design, etc.
+        return (
+          post.tags.some(tag => tag.toLowerCase().includes(filterLower)) ||
+          post.contentType.toLowerCase().includes(filterLower) ||
+          post.caption.toLowerCase().includes(filterLower) ||
+          post.description.toLowerCase().includes(filterLower)
+        );
+      });
+    }
+
+    // Sort by engagement for trending
+    filtered.sort((a, b) => 
+      (b.engagement.likes + b.engagement.comments + b.engagement.shares) - 
+      (a.engagement.likes + a.engagement.comments + a.engagement.shares)
+    );
+
+    setPosts(filtered);
+  };
+
+  const handleLoadMore = () => {
+    if (hasNextPage && !loading) {
+      const nextPage = page + 1;
+      setPage(nextPage);
+      fetchTrendingPosts(nextPage, false);
+    }
+  };
 
   return (
     <div className="flex flex-col md:flex-row w-full min-h-screen bg-[#f8f9fa]">
@@ -105,7 +202,46 @@ const Page = () => {
           </div>
         )}
 
-        <MainContent/>
+        {/* Posts Content */}
+        {loading && posts.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="text-6xl mb-4">🔥</div>
+            <p className="text-gray-600">Loading trending posts...</p>
+          </div>
+        ) : posts.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="text-6xl mb-4">🔥</div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              No Trending Posts Found
+            </h2>
+            <p className="text-gray-600">
+              Check back later for trending content.
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="space-y-6 mb-8">
+              {posts.map((post) => (
+                <div key={post._id} className="w-full">
+                  <PostCard post={post} />
+                </div>
+              ))}
+            </div>
+
+            {/* Load More Button */}
+            {hasNextPage && (
+              <div className="text-center">
+                <button
+                  onClick={handleLoadMore}
+                  disabled={loading}
+                  className="px-8 py-3 bg-gradient-to-r from-yellow-400 to-yellow-600 text-white rounded-lg hover:from-yellow-500 hover:to-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium shadow-lg"
+                >
+                  {loading ? "Loading..." : "Load More Trending Posts"}
+                </button>
+              </div>
+            )}
+          </>
+        )}
       </div>
        
       {/* Right Sidebar / Trending Topics with Independent Scroll */}
