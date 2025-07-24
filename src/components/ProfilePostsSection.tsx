@@ -1,14 +1,14 @@
 'use client';
 import React, { useState } from 'react';
 import { Grid3X3, Bookmark, Tag } from 'lucide-react';
-import { Post } from './PostCard';
+import { FeedPost } from '@/types';
 
 
 interface ProfilePostsSectionProps {
-  PostCard: React.ComponentType<{post: Post}>
-  posts?: Post[];
-  savedPosts?: Post[];
-  taggedPosts?: Post[];
+  PostCard: React.ComponentType<{post: FeedPost}>
+  posts?: FeedPost[];
+  savedPosts?: FeedPost[];
+  taggedPosts?: FeedPost[];
 }
 
 const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
@@ -91,7 +91,7 @@ const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
         ) : (
 <div className="grid grid-cols-2 gap-6">
             {getCurrentPosts().map((post, index) => (
-              <PostCard key={post.id || index} post={post} />
+              <PostCard key={post._id || index} post={post} />
             ))}
           </div>
         )}

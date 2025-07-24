@@ -8,6 +8,7 @@ type User = {
   email: string;
   username?: string;
   isBusinessProfile: boolean;
+  profileImageUrl: string;
   avatar?: string;
   // Add other fields as needed
 };

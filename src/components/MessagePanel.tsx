@@ -2,6 +2,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { MessageSquare, Bell, Phone, Video, MoreHorizontal, Search, Send, Paperclip, Smile } from "lucide-react";
+import { useUserStore } from "@/store/useUserStore";
 
 const chats = [
   {
@@ -53,6 +54,7 @@ const chats = [
 export default function MessagePanel() {
   const [selectedChat, setSelectedChat] = useState<number | null>(null);
   const selected = chats.find((chat) => chat.id === selectedChat);
+  const user = useUserStore((state)=> state.user);
 
   return (
     <div className="flex w-full h-screen">
@@ -70,16 +72,18 @@ export default function MessagePanel() {
             </button>
             <div className="flex items-center space-x-3">
               <div className="text-right">
-                <p className="text-sm font-semibold text-gray-900">AVantika</p>
+                <p className="text-sm font-semibold text-gray-900">{user?.username}</p>
                 <p className="text-xs text-gray-500">Personal Account</p>
               </div>
-              <Image width={10} height={10} src="https://ui-avatars.com/api/?name=AVantika&background=D4AF37&color=fff&size=150&bold=true" alt="AVantika" className="w-10 h-10 rounded-full object-cover border-2 border-yellow-400" />
+              {user?.profileImageUrl &&
+                <Image width={10} height={10} src={user?.profileImageUrl} alt="Avantika" className="w-10 h-10 rounded-full object-cover border-2 border-yellow-400" />
+              }
             </div>
           </div>
         </div>
 
         <div className="px-6 pt-4">
-          <button className="w-full bg-[#DBB42C] text-white py-2.5 rounded-lg font-medium shadow hover:bg-yellow-500 transition">
+          <button className="w-full bg-button-gradient text-white py-2.5 rounded-lg font-medium shadow hover:bg-yellow-500 transition cursor-pointer">
             + New Chat
           </button>
         </div>
@@ -177,7 +181,7 @@ export default function MessagePanel() {
             <MessageSquare className="mx-auto mb-4 w-10 h-10 text-gray-400" />
             <h3 className="text-xl font-semibold text-gray-800">Select a conversation</h3>
             <p className="text-gray-500 mt-1">Choose a conversation to start messaging</p>
-            <button className="mt-4 bg-[#DBB42C] text-white px-4 py-2 rounded-lg hover:bg-yellow-500">
+            <button className="mt-4 bg-button-gradient text-white px-4 py-2 rounded-lg hover:bg-yellow-500">
               Start New Chat
             </button>
           </div>
