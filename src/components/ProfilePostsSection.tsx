@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 import { Grid3X3, Bookmark, Tag } from 'lucide-react';
 import { FeedPost } from '@/types';
 
-
 interface ProfilePostsSectionProps {
   PostCard: React.ComponentType<{post: FeedPost}>
   posts?: FeedPost[];
@@ -89,7 +88,7 @@ const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
             </p>
           </div>
         ) : (
-<div className="grid grid-cols-2 gap-6">
+          <div className="flex flex-col gap-6">
             {getCurrentPosts().map((post, index) => (
               <PostCard key={post._id || index} post={post} />
             ))}

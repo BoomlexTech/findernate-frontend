@@ -269,3 +269,24 @@ export interface SearchResult {
   userId: SearchUser;
   media?: { url: string; type: string }[];
 } 
+
+export interface UserProfile {
+  _id: string;
+  username: string;
+  fullName: string;
+  email: string;
+  phoneNumber: string;
+  dateOfBirth: string;
+  gender: string;
+  isBusinessProfile: boolean;
+  isEmailVerified: boolean;
+  isPhoneVerified: boolean;
+  createdAt: string;
+  profileImageUrl: string;
+  bio: string;
+  link: string;
+  location: string;
+  followersCount: number;
+  followingCount: number;
+  postsCount: number;
+}

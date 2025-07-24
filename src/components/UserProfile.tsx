@@ -2,81 +2,58 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import {BadgeCheck, Settings, Pencil, Shield, Check, X,} from "lucide-react";
+import { BadgeCheck, Settings, Pencil, Shield, Check, X } from "lucide-react";
 import { Button } from "./ui/button";
-import SettingsModal from "./SettingsModal"; // Adjust import path
-import { getUserProfile } from "@/api/user";
+import SettingsModal from "./SettingsModal";
+import { UserProfile as UserProfileType } from "@/types";
 
- interface UserProfile {
-  _id: string;
-  username: string;
-  fullName: string;
-  email: string;
-  phoneNumber: string;
-  dateOfBirth: string;
-  gender: string;
-  isBusinessProfile: boolean;
-  isEmailVerified: boolean;
-  isPhoneVerified: boolean;
-  createdAt: string;
-  profileImageUrl: string;
-  bio: string;
-  link: string;
-  location: string;
-  followersCount: number;
-  followingCount: number;
-  postsCount: number;
+interface UserProfileProps {
+  userData: UserProfileType;
+  isCurrentUser?: boolean;
+  onProfileUpdate?: (updatedData: Partial<UserProfileType>) => void;
 }
 
 
-const UserProfile = () => {
+const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserProfileProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [showSettings, setShowSettings] = useState(false); // New state
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
+  const [profile, setProfile] = useState<UserProfileType>(userData);
+  const [formData, setFormData] = useState({
+    fullName: userData.fullName,
+    username: userData.username,
+    location: userData.location,
+    link: userData.link,
+    bio: userData.bio,
+    profileImageUrl: userData.profileImageUrl,
+  });
 
-  useEffect(()=>{
-    const fetchProfile = async () => {
-      try{
-        const data = await getUserProfile();
-        setProfile(data.userId)
-        //console.log(data)
-      } catch(err){
-        console.log(err)
-      }
-      
-    }
-    fetchProfile();
-  },[])
+  // Update internal state if userData prop changes
+  useEffect(() => {
+    setProfile(userData);
+    setFormData({
+      fullName: userData.fullName,
+      username: userData.username,
+      location: userData.location,
+      link: userData.link,
+      bio: userData.bio,
+      profileImageUrl: userData.profileImageUrl,
+    });
+  }, [userData]);
 
   const joinedDate = profile?.createdAt
-  ? new Date(profile.createdAt).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-    })
-  : 'N/A';
-
-  const [formData, setFormData] = useState({
-    name: "Priya Sharma",
-    username: "@priya_enterprises",
-    location: "Mumbai, Maharashtra",
-    website: "https://www.priyaenterprises.in",
-    joinedDate: "June 2025",
-    bio: "Entrepreneur | Fashion Designer | 📍 Mumbai | Creating beautiful ethnic wear ✨",
-    isBusiness: false,
-    businessCategory: "Fashion & Apparel",
-    following: 20,
-    followers: 15,
-    posts: 1,
-    profilePic:
-      "https://cdn.pixabay.com/photo/2016/08/08/09/17/avatar-1577909_1280.png",
-  });
+    ? new Date(profile.createdAt).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+      })
+    : 'N/A';
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleImageClick = () => {
+    if (!isCurrentUser) return; // Only allow image change for current user
     fileInputRef.current?.click();
   };
 
@@ -87,7 +64,7 @@ const UserProfile = () => {
       reader.onloadend = () => {
         setFormData((prev) => ({
           ...prev,
-          profilePic: reader.result as string,
+          profileImageUrl: reader.result as string,
         }));
       };
       reader.readAsDataURL(file);
@@ -95,11 +72,29 @@ const UserProfile = () => {
   };
 
   const handleSave = () => {
-    console.log("Saving profile data:", formData);
+    if (onProfileUpdate) {
+      onProfileUpdate(formData);
+    }
     setIsEditing(false);
+    // Update local profile state with new data
+    setProfile(prev => ({
+      ...prev,
+      ...formData
+    }));
   };
 
-  const handleCancel = () => setIsEditing(false);
+  const handleCancel = () => {
+    // Reset form data to original profile data
+    setFormData({
+      fullName: profile.fullName,
+      username: profile.username,
+      location: profile.location,
+      link: profile.link,
+      bio: profile.bio,
+      profileImageUrl: profile.profileImageUrl,
+    });
+    setIsEditing(false);
+  };
 
   return (
     <div className="bg-white rounded-xl overflow-hidden shadow-sm min-w-6xl">
@@ -107,28 +102,31 @@ const UserProfile = () => {
       <div className="bg-gradient-to-r from-yellow-400 to-yellow-600 h-32 w-full relative">
         <div className="absolute -bottom-12 left-6">
           <div className="relative cursor-pointer" onClick={handleImageClick}>
-            {profile?.profileImageUrl&&
-            <>
-            <Image
-              src={profile?.profileImageUrl}
-              alt={formData.name}
-              width={96}
-              height={96}
-              className="rounded-full border-4 border-white w-32 h-32 object-cover"
-            />
-             <div className="absolute bottom-0 right-0 bg-yellow-500 rounded-full p-1 shadow">
-              <CameraIcon className="w-4 h-4 text-white" />
-            </div>
-            </>
-            }
-            
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleImageChange}
-              className="hidden"
-            />
+            {profile?.profileImageUrl && (
+              <>
+                <Image
+                  src={profile.profileImageUrl}
+                  alt={profile.fullName}
+                  width={96}
+                  height={96}
+                  className="rounded-full border-4 border-white w-32 h-32 object-cover"
+                />
+                {isCurrentUser && (
+                  <div className="absolute bottom-0 right-0 bg-yellow-500 rounded-full p-1 shadow">
+                    <CameraIcon className="w-4 h-4 text-white" />
+                  </div>
+                )}
+              </>
+            )}
+            {isCurrentUser && (
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                className="hidden"
+              />
+            )}
           </div>
         </div>
       </div>
@@ -139,12 +137,11 @@ const UserProfile = () => {
           <div className="flex-1 mr-4">
             {/* Name and Username */}
             <div className="flex items-center gap-2 mb-0">
-
               {isEditing ? (
                 <input
                   type="text"
-                  value={formData.name}
-                  onChange={(e) => handleInputChange("name", e.target.value)}
+                  value={formData.fullName}
+                  onChange={(e) => handleInputChange("fullName", e.target.value)}
                   className="text-xl font-semibold text-gray-900 border-b-2 border-yellow-300 bg-transparent focus:outline-none focus:border-yellow-500 px-1"
                   placeholder="Your name"
                 />
@@ -161,7 +158,7 @@ const UserProfile = () => {
               )}
             </div>
 
-            <p className="text-gray-500 text-sm mb-2">{"@ "+ profile?.username}</p>
+            <p className="text-gray-500 text-sm mb-2">{"@" + profile?.username}</p>
 
             {/* Bio */}
             {isEditing ? (
@@ -176,111 +173,95 @@ const UserProfile = () => {
               <p className="mt-2 text-sm text-gray-800">{profile?.bio}</p>
             )}
 
-            {/* Business Category */}
-            {formData.isBusiness && (
-              <div className="bg-yellow-50 border border-yellow-100 text-yellow-800 text-sm p-3 rounded-md mt-4 w-fit">
-                <p className="font-semibold">Business Category</p>
-                {isEditing ? (
-                  <input
-                    type="text"
-                    value={formData.businessCategory}
-                    onChange={(e) =>
-                      handleInputChange("businessCategory", e.target.value)
-                    }
-                    className="bg-transparent border-b border-yellow-400 focus:outline-none focus:border-yellow-600 mt-1"
-                    placeholder="Business category"
-                  />
-                ) : (
-                  <p>{formData.businessCategory}</p>
-                )}
-              </div>
-            )}
-
             {/* Location, Website, Joined */}
             <div className="flex items-center gap-4 mt-4 text-sm text-gray-600 flex-wrap">
-              <div className="flex items-center gap-1">
-                📍
-                {isEditing ? (
-                  <input
-                    type="text"
-                    value={formData.location}
-                    onChange={(e) =>
-                      handleInputChange("location", e.target.value)
-                    }
-                    className="border-b border-gray-300 bg-transparent focus:outline-none focus:border-yellow-500 px-1"
-                    placeholder="Location"
-                  />
-                ) : (
-                  <span>{profile?.location}</span>
-                )}
-              </div>
+              {profile?.location && (
+                <div className="flex items-center gap-1">
+                  📍
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={formData.location}
+                      onChange={(e) =>
+                        handleInputChange("location", e.target.value)
+                      }
+                      className="border-b border-gray-300 bg-transparent focus:outline-none focus:border-yellow-500 px-1"
+                      placeholder="Location"
+                    />
+                  ) : (
+                    <span>{profile.location}</span>
+                  )}
+                </div>
+              )}
 
-              <div className="flex items-center gap-1">
-                {isEditing ? (
-                  <input
-                    type="url"
-                    value={formData.website}
-                    onChange={(e) =>
-                      handleInputChange("website", e.target.value)
-                    }
-                    className="text-yellow-700 underline border-b border-gray-300 bg-transparent focus:outline-none focus:border-yellow-500 px-1"
-                    placeholder="Website URL"
-                  />
-                ) : (
-                  <a
-                    href={profile?.link}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-yellow-700 underline"
-                  >
-                    {profile?.link}
-                  </a>
-                )}
-              </div>
+              {profile?.link && (
+                <div className="flex items-center gap-1">
+                  {isEditing ? (
+                    <input
+                      type="url"
+                      value={formData.link}
+                      onChange={(e) => handleInputChange("link", e.target.value)}
+                      className="text-yellow-700 underline border-b border-gray-300 bg-transparent focus:outline-none focus:border-yellow-500 px-1"
+                      placeholder="Website URL"
+                    />
+                  ) : (
+                    <a
+                      href={profile.link}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-yellow-700 underline"
+                    >
+                      {profile.link}
+                    </a>
+                  )}
+                </div>
+              )}
 
               <div>📅 Joined {joinedDate}</div>
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-2">
-            {isEditing ? (
-              <>
-                <Button
-                  onClick={handleSave}
-                  className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-1.5 rounded-md text-md font-medium flex items-center gap-1"
-                >
-                  <Check className="w-4 h-4" /> Save
-                </Button>
-                <Button
-                  onClick={handleCancel}
-                  variant="outline"
-                  className="border px-4 py-1.5 rounded-md text-md font-medium text-gray-700 hover:bg-gray-100 flex items-center gap-1"
-                >
-                  <X className="w-4 h-4" /> Cancel
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button
-                  onClick={() => setIsEditing(true)}
-                  variant="outline"
-                  className="border px-4 py-1.5 rounded-md text-md font-medium text-black hover:bg-gray-100 flex items-center gap-1"
-                >
-                  <Pencil className="w-4 h-4" /> Edit Profile
-                </Button>
+          {/* Action Buttons - Only show for current user */}
+          {isCurrentUser && (
+            <div className="flex gap-2">
+              {isEditing ? (
+                <>
                   <Button
-          onClick={() => setShowSettings(true)}
-          className="border px-2.5 py-1.5 rounded-md text-black hover:bg-gray-100"
-        >
-          <Settings className="w-4 h-4" />
-        </Button>
-              </>
-            )}
-          </div>
+                    onClick={handleSave}
+                    className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-1.5 rounded-md text-md font-medium flex items-center gap-1"
+                  >
+                    <Check className="w-4 h-4" /> Save
+                  </Button>
+                  <Button
+                    onClick={handleCancel}
+                    variant="outline"
+                    className="border px-4 py-1.5 rounded-md text-md font-medium text-gray-700 hover:bg-gray-100 flex items-center gap-1"
+                  >
+                    <X className="w-4 h-4" /> Cancel
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    onClick={() => setIsEditing(true)}
+                    variant="outline"
+                    className="border px-4 py-1.5 rounded-md text-md font-medium text-black hover:bg-gray-100 flex items-center gap-1"
+                  >
+                    <Pencil className="w-4 h-4" /> Edit Profile
+                  </Button>
+                  <Button
+                    onClick={() => setShowSettings(true)}
+                    className="border px-2.5 py-1.5 rounded-md text-black hover:bg-gray-100"
+                  >
+                    <Settings className="w-4 h-4" />
+                  </Button>
+                </>
+              )}
+            </div>
+          )}
         </div>
-      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
 
+        {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
 
         {/* Stats */}
         <div className="flex gap-6 mt-6 text-sm text-gray-700 font-medium">

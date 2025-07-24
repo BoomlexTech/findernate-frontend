@@ -19,12 +19,24 @@ export interface SearchResponse {
 export const searchAllContent = async (
   q: string,
   near?: string,
+  limit: number = 10,
+  contentType?: string,
+  postType?: string,
+  startDate?: string,
+  endDate?: string,
   distance?: number
 ): Promise<SearchResponse> => {
-  const params: Record<string, string | number> = { q };
+  const params: Record<string, string | number> = { q, limit };
+  
+  // Add optional parameters only if they are provided
   if (near) params.near = near;
+  if (contentType) params.contentType = contentType;
+  if (postType) params.postType = postType;
+  if (startDate) params.startDate = startDate;
+  if (endDate) params.endDate = endDate;
   if (distance) params.distance = distance;
 
+  // Make sure this matches your actual API endpoint
   const response = await axios.get('/users/searchAllContent', { params });
   return response.data;
 };
