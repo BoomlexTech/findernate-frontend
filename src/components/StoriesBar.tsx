@@ -1,93 +1,127 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useStories } from "@/hooks/useStories";
+import { useUserStore } from "@/store/useUserStore";
+import { StoryUser, Story } from "@/types/story";
+import { Plus } from "lucide-react";
+import StoryViewer from "./StoryViewer";
+import CreateStoryModal from "./CreateStoryModal";
+import StoryAnalytics from "./StoryAnalytics";
 
-// Type definitions
-interface Story {
-  id: number;
-  image: string;
-  timestamp: string;
+interface StoriesBarProps {
+  onCreateStory?: () => void;
 }
 
-interface User {
-  id: number;
-  name: string;
-  image: string;
-  isNew: boolean;
-  stories: Story[];
-}
+const VIEWED_STORIES_KEY = 'findernate_viewed_stories';
 
-// Dummy story users
-const storyUsers: User[] = [
-  {
-    id: 1,
-    name: "You",
-    image: "https://picsum.photos/seed/you/100",
-    isNew: false,
-    stories: [
-      { id: 1, image: "https://picsum.photos/seed/you1/400/600", timestamp: "2 hours ago" },
-      { id: 2, image: "https://picsum.photos/seed/you2/400/600", timestamp: "4 hours ago" }
-    ]
-  },
-  {
-    id: 2,
-    name: "Sarah",
-    image: "https://picsum.photos/seed/sarah/100",
-    isNew: true,
-    stories: [
-      { id: 1, image: "https://picsum.photos/seed/sarah1/400/600", timestamp: "1 hour ago" },
-      { id: 2, image: "https://picsum.photos/seed/sarah2/400/600", timestamp: "3 hours ago" },
-      { id: 3, image: "https://picsum.photos/seed/sarah3/400/600", timestamp: "5 hours ago" }
-    ]
-  },
-  {
-    id: 3,
-    name: "Mike",
-    image: "https://picsum.photos/seed/mike/100",
-    isNew: true,
-    stories: [
-      { id: 1, image: "https://picsum.photos/seed/mike1/400/600", timestamp: "30 minutes ago" }
-    ]
-  },
-  {
-    id: 4,
-    name: "Emma",
-    image: "https://picsum.photos/seed/emma/100",
-    isNew: false,
-    stories: [
-      { id: 1, image: "https://picsum.photos/seed/emma1/400/600", timestamp: "6 hours ago" },
-      { id: 2, image: "https://picsum.photos/seed/emma2/400/600", timestamp: "8 hours ago" }
-    ]
-  },
-  {
-    id: 5,
-    name: "Alex",
-    image: "https://picsum.photos/seed/alex/100",
-    isNew: true,
-    stories: [
-      { id: 1, image: "https://picsum.photos/seed/alex1/400/600", timestamp: "45 minutes ago" }
-    ]
-  },
-  {
-    id: 6,
-    name: "Lisa",
-    image: "https://picsum.photos/seed/lisa/100",
-    isNew: false,
-    stories: [
-      { id: 1, image: "https://picsum.photos/seed/lisa1/400/600", timestamp: "7 hours ago" },
-      { id: 2, image: "https://picsum.photos/seed/lisa2/400/600", timestamp: "9 hours ago" }
-    ]
+// Helper functions for localStorage
+const loadViewedStoriesFromStorage = (): Set<string> => {
+  if (typeof window === 'undefined') return new Set();
+  
+  try {
+    const stored = localStorage.getItem(VIEWED_STORIES_KEY);
+    if (stored) {
+      const parsedArray = JSON.parse(stored);
+      return new Set(parsedArray);
+    }
+  } catch (error) {
+    console.error('Error loading viewed stories from localStorage:', error);
   }
-];
+  return new Set();
+};
 
-export default function StoriesBar() {
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+const saveViewedStoriesToStorage = (viewedStories: Set<string>) => {
+  if (typeof window === 'undefined') return;
+  
+  try {
+    const arrayToStore = Array.from(viewedStories);
+    localStorage.setItem(VIEWED_STORIES_KEY, JSON.stringify(arrayToStore));
+  } catch (error) {
+    console.error('Error saving viewed stories to localStorage:', error);
+  }
+};
+
+export default function StoriesBar({ onCreateStory }: StoriesBarProps) {
+  const [selectedUser, setSelectedUser] = useState<StoryUser | null>(null);
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showAnalytics, setShowAnalytics] = useState(false);
+  const [analyticsStory, setAnalyticsStory] = useState<Story | null>(null);
+  const [viewedStories, setViewedStories] = useState<Set<string>>(loadViewedStoriesFromStorage);
+  
+  const { user, token } = useUserStore();
+  
+  // Always call useStories - hooks must be called unconditionally
+  const { storyUsers, loading, hasActiveStories, uploadStory } = useStories();
 
-  const openStoryModal = (user: User) => {
-    setSelectedUser(user);
-    setCurrentStoryIndex(0);
+  // Clean up expired stories from viewed list
+  useEffect(() => {
+    if (storyUsers.length > 0) {
+      const currentStoryIds = new Set<string>();
+      storyUsers.forEach(user => {
+        user.stories?.forEach(story => {
+          currentStoryIds.add(story._id);
+        });
+      });
+
+      setViewedStories(prev => {
+        const filteredViewed = new Set(Array.from(prev).filter(storyId => 
+          currentStoryIds.has(storyId)
+        ));
+        
+        // Only save if there were changes
+        if (filteredViewed.size !== prev.size) {
+          saveViewedStoriesToStorage(filteredViewed);
+        }
+        
+        return filteredViewed;
+      });
+    }
+  }, [storyUsers]);
+  
+  console.log('StoriesBar - User data:', user); // Debug log
+  console.log('StoriesBar - Token:', token); // Debug token
+  if (typeof window !== 'undefined') {
+    console.log('StoriesBar - LocalStorage user-storage:', localStorage.getItem('user-storage')); // Debug localStorage
+    console.log('StoriesBar - LocalStorage token:', localStorage.getItem('token')); // Debug token key
+    console.log('StoriesBar - All localStorage keys:', Object.keys(localStorage)); // Show all keys
+  }
+
+  // Always render something - don't return null
+  if (!user) {
+    // Show a placeholder while user data loads or if user needs to log in
+    return (
+      <div className="flex overflow-x-auto space-x-6 pb-2 px-2 scrollbar-hide bg-white shadow-md rounded-lg">
+        <div className="flex flex-col items-center mt-5 flex-shrink-0">
+          <div className="w-16 h-16 rounded-full bg-blue-100 border-2 border-blue-300 flex items-center justify-center cursor-pointer hover:bg-blue-200 transition-colors">
+            <Plus size={24} className="text-blue-600" />
+          </div>
+          <p className="text-xs mt-2 text-center text-gray-700 font-medium max-w-[64px] truncate">
+            {token ? 'Your Story' : 'Login for Stories'}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const openStoryModal = (storyUser: StoryUser) => {
+    console.log('Clicked on story user:', storyUser); // Debug log
+    
+    // If current user has no stories, show create modal
+    if (storyUser.isCurrentUser && (!storyUser.stories || storyUser.stories.length === 0)) {
+      handleCreateStory();
+      return;
+    }
+    
+    // For all other cases (current user with stories OR other users with stories), show story viewer
+    if (storyUser.stories && storyUser.stories.length > 0) {
+      setSelectedUser(storyUser);
+      // Start from the first unviewed story (Instagram behavior)
+      const startIndex = getFirstUnviewedStoryIndex(storyUser);
+      setCurrentStoryIndex(startIndex);
+    }
   };
 
   const closeStoryModal = () => {
@@ -95,149 +129,153 @@ export default function StoriesBar() {
     setCurrentStoryIndex(0);
   };
 
-  const nextStory = () => {
-    if (selectedUser && currentStoryIndex < selectedUser.stories.length - 1) {
-      setCurrentStoryIndex(currentStoryIndex + 1);
-    } else if (selectedUser) {
-      const currentUserIndex = storyUsers.findIndex(user => user.id === selectedUser.id);
-      const nextUserIndex = currentUserIndex + 1;
-      if (nextUserIndex < storyUsers.length) {
-        setSelectedUser(storyUsers[nextUserIndex]);
-        setCurrentStoryIndex(0);
-      } else {
-        closeStoryModal();
-      }
-    }
+  const handleStoryViewed = (storyId: string) => {
+    setViewedStories(prev => {
+      const newViewedStories = new Set(prev).add(storyId);
+      saveViewedStoriesToStorage(newViewedStories);
+      return newViewedStories;
+    });
   };
 
-  const prevStory = () => {
-    if (!selectedUser) return;
-    if (currentStoryIndex > 0) {
-      setCurrentStoryIndex(currentStoryIndex - 1);
-    } else {
-      const currentUserIndex = storyUsers.findIndex(user => user.id === selectedUser.id);
-      const prevUserIndex = currentUserIndex - 1;
-      if (prevUserIndex >= 0) {
-        setSelectedUser(storyUsers[prevUserIndex]);
-        setCurrentStoryIndex(storyUsers[prevUserIndex].stories.length - 1);
-      }
-    }
+  const areAllStoriesViewed = (storyUser: StoryUser): boolean => {
+    if (!storyUser.stories || storyUser.stories.length === 0) return false;
+    return storyUser.stories.every(story => viewedStories.has(story._id));
   };
+
+  const getFirstUnviewedStoryIndex = (storyUser: StoryUser): number => {
+    if (!storyUser.stories || storyUser.stories.length === 0) return 0;
+    
+    // Find the first story that hasn't been viewed
+    const firstUnviewedIndex = storyUser.stories.findIndex(story => !viewedStories.has(story._id));
+    
+    // If all stories are viewed, start from the beginning (0)
+    // If some are unviewed, start from the first unviewed story
+    return firstUnviewedIndex === -1 ? 0 : firstUnviewedIndex;
+  };
+
+  const handleCreateStory = () => {
+    setShowCreateModal(true);
+  };
+
+  const handleStoryUpload = async (media: File, caption?: string) => {
+    const success = await uploadStory(media, caption);
+    if (success) {
+      setShowCreateModal(false);
+    }
+    return success;
+  };
+
+  const handleShowAnalytics = (story: Story) => {
+    setAnalyticsStory(story);
+    setShowAnalytics(true);
+  };
+
+  const handleCloseAnalytics = () => {
+    setShowAnalytics(false);
+    setAnalyticsStory(null);
+  };
+
+  console.log('StoriesBar - storyUsers from API:', storyUsers); // Debug stories from API
+  console.log('StoriesBar - loading:', loading); // Debug loading state
+
+  // Use actual story users from API, or create current user if no stories
+  let displayUsers = [...storyUsers];
+  
+  // If user exists but doesn't appear in story users (no stories), add them
+  if (user && !storyUsers.some(storyUser => storyUser.isCurrentUser)) {
+    const currentUserStory: StoryUser = {
+      _id: user._id,
+      username: user.username || user.fullName || 'You',
+      profileImageUrl: user.profileImageUrl || '',
+      stories: [],
+      hasNewStories: false,
+      isCurrentUser: true,
+    };
+    displayUsers.unshift(currentUserStory); // Add current user at the beginning
+  }
+
+  // Remove loading state for now - we'll show user immediately
 
   return (
     <>
       <div className="flex overflow-x-auto space-x-6 pb-2 px-2 scrollbar-hide bg-white shadow-md rounded-lg">
-        {storyUsers.map((user) => (
-          <div key={user.id} className="flex flex-col items-center mt-5 flex-shrink-0">
+        {displayUsers.map((storyUser) => (
+          <div key={storyUser._id} className="flex flex-col items-center mt-5 flex-shrink-0">
             <div
-              onClick={() => openStoryModal(user)}
+              onClick={() => openStoryModal(storyUser)}
               className={`relative w-16 h-16 rounded-full border-2 ${
-                user.isNew
-                  ? "border-gradient-to-r from-pink-500 to-purple-500 p-[2px]"
+                areAllStoriesViewed(storyUser)
+                  ? "border-gray-400"
+                  : storyUser.hasNewStories
+                  ? "border-2 bg-gradient-to-r from-pink-500 to-purple-500 p-[2px]"
                   : "border-gray-300"
               } overflow-hidden cursor-pointer transition-transform hover:scale-105`}
             >
-              <div className={`w-full h-full rounded-full overflow-hidden ${user.isNew ? 'bg-white p-[2px]' : ''}`}>
-                <Image
-                  src={user.image}
-                  alt={user.name}
-                  width={64}
-                  height={64}
-                  className="object-cover w-full h-full rounded-full"
-                />
+              <div className={`w-full h-full rounded-full overflow-hidden ${
+                storyUser.hasNewStories && !areAllStoriesViewed(storyUser) ? 'bg-white p-[2px]' : ''
+              }`}>
+                {storyUser.profileImageUrl ? (
+                  <Image
+                    src={storyUser.profileImageUrl}
+                    alt={storyUser.username}
+                    width={64}
+                    height={64}
+                    className="object-cover w-full h-full rounded-full"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gray-300 rounded-full flex items-center justify-center">
+                    <span className="text-gray-600 text-sm font-medium">
+                      {storyUser.username.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                )}
               </div>
-              {user.isNew && (
+              
+              {/* Add story plus icon for current user with no stories */}
+              {storyUser.isCurrentUser && (!storyUser.stories || storyUser.stories.length === 0) && (
+                <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-blue-500 rounded-full border-2 border-white flex items-center justify-center">
+                  <Plus size={12} className="text-white" />
+                </div>
+              )}
+              
+              {/* New story indicator for others */}
+              {storyUser.hasNewStories && storyUser.stories && storyUser.stories.length > 0 && !storyUser.isCurrentUser && (
                 <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
               )}
             </div>
             <p className="text-xs mt-2 text-center text-gray-700 font-medium max-w-[64px] truncate">
-              {user.name}
+              {storyUser.isCurrentUser ? "Your Story" : storyUser.username}
             </p>
           </div>
         ))}
       </div>
 
-      {/* Modal */}
+      {/* Story Viewer Modal */}
       {selectedUser && (
-        <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50">
-          <div className="relative max-w-md w-full h-[80vh] bg-black rounded-lg overflow-hidden">
-            {/* Progress Bars */}
-            <div className="absolute top-4 left-4 right-4 flex space-x-1 z-10">
-              {selectedUser.stories.map((_, index) => (
-                <div key={index} className="flex-1 h-1 bg-gray-600 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full bg-white transition-all duration-300 ${
-                      index === currentStoryIndex ? "w-full" : index < currentStoryIndex ? "w-full" : "w-0"
-                    }`}
-                  />
-                </div>
-              ))}
-            </div>
+        <StoryViewer
+          storyUser={selectedUser}
+          initialStoryIndex={currentStoryIndex}
+          allStoryUsers={displayUsers}
+          onClose={closeStoryModal}
+          onShowAnalytics={handleShowAnalytics}
+          onStoryViewed={handleStoryViewed}
+        />
+      )}
 
-            {/* User Info */}
-            <div className="absolute top-8 left-4 right-4 flex items-center space-x-3 z-10">
-              <Image
-                src={selectedUser.image}
-                alt={selectedUser.name}
-                width={32}
-                height={32}
-                className="rounded-full border-2 border-white"
-              />
-              <div>
-                <p className="text-white font-medium text-sm">{selectedUser.name}</p>
-                <p className="text-gray-300 text-xs">
-                  {selectedUser.stories[currentStoryIndex]?.timestamp}
-                </p>
-              </div>
-            </div>
+      {/* Create Story Modal */}
+      {showCreateModal && (
+        <CreateStoryModal
+          onClose={() => setShowCreateModal(false)}
+          onUpload={handleStoryUpload}
+        />
+      )}
 
-            {/* Close Button */}
-            <button
-              onClick={closeStoryModal}
-              className="absolute top-6 right-4 text-white hover:text-gray-300 z-10"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-
-            {/* Story Image */}
-            <div className="relative w-full h-full">
-              <Image
-                src={selectedUser.stories[currentStoryIndex]?.image}
-                alt={`${selectedUser.name}'s story`}
-                fill={true}
-                className="object-cover"
-              />
-              <div className="absolute inset-0 flex">
-                <div className="w-1/2 h-full cursor-pointer" onClick={prevStory} />
-                <div className="w-1/2 h-full cursor-pointer" onClick={nextStory} />
-              </div>
-            </div>
-
-            {/* Navigation Arrows */}
-            {currentStoryIndex > 0 && (
-              <button
-                onClick={prevStory}
-                className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-300"
-              >
-                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-            )}
-            {selectedUser && currentStoryIndex < selectedUser.stories.length - 1 && (
-              <button
-                onClick={nextStory}
-                className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-300"
-              >
-                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-            )}
-          </div>
-        </div>
+      {/* Story Analytics Modal - Independent of StoryViewer */}
+      {showAnalytics && analyticsStory && (
+        <StoryAnalytics
+          story={analyticsStory}
+          onClose={handleCloseAnalytics}
+        />
       )}
     </>
   );
