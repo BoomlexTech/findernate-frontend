@@ -51,6 +51,9 @@ export const createRegularPost = async (data: {
 export const createProductPost = async  ({ formData }: { formData: ProductDetailsFormProps['formData'] }) => {
   const fd = new FormData();
   buildFormData(fd, formData);
+  for (const pair of fd.entries()) {
+    console.log(pair[0] + ':', pair[1]);
+  }
   const response = await axios.post('/posts/create/product', fd, {
     headers: {
       'Content-Type': 'multipart/form-data',

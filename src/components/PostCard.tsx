@@ -51,7 +51,7 @@ export default function PostCard({ post }: PostCardProps) {
         {/* Profile + Info */}
         <div className="flex flex-col justify-start flex-1 space-y-3 relative">
           <div className="flex items-start gap-3">
-            <Link href={`/profile/${post.username}`}>
+            <Link href={`/userprofile/${post.username}`}>
               <Image
                 width={40}
                 height={40}

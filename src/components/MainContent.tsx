@@ -160,7 +160,6 @@ export default function MainContent() {
         </div>
       ) : feed.length === 0 ? (
         <div className="text-center py-12">
-          <div className="text-6xl mb-4">📱</div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
             No Posts Available
           </h2>
@@ -171,7 +170,9 @@ export default function MainContent() {
       ) : (
         <>
           <div className="space-y-6 mt-6">
-            {feed.map((post) => (
+            {feed
+            .filter(post => post.username !== null)
+            .map((post) => (
               <PostCard key={post._id} post={post} />
             ))}
           </div>
