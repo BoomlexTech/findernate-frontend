@@ -45,6 +45,8 @@ const LoginComponent: React.FC = () => {
       const user = response.data.user
       const token = response.data.accessToken
 
+      localStorage.setItem('token', token);
+
       setToken(token);
       setUser(user);
       router.push('/');

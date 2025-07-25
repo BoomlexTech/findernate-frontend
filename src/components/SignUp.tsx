@@ -60,6 +60,7 @@ export default function SignupComponent() {
     try {
       const response = await signUp(formData);
       console.log(response);
+      localStorage.setItem('token', response.data.accessToken);
       setStep('otp');
     } catch (err) {
         if (axios.isAxiosError(err)) {
