@@ -90,20 +90,13 @@ export interface RegularPostPayload {
 export interface ServiceDetailsFormProps {
   formData: {
   postType: string;
-  caption: string;
-  description: string;
-  image: File[]; // Array of File objects
   mentions: string[]; // Array of user IDs
   settings: {
     visibility: string;
     allowComments: boolean;
     allowLikes: boolean;
   };
-  location: {
-    name: string;
-  };
   status: string;
-
   // Service-specific fields
   service: {
     name: string;

@@ -63,17 +63,11 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
 const [serviceForm, setServiceForm] = useState({
   // Shared post fields
   postType: 'photo', // or whatever type you need
-  caption: '',
-  description: '',
-  image: [], // Array of File objects
   mentions: [], // Array of user IDs
   settings: {
     visibility: 'public',
     allowComments: true,
     allowLikes: true,
-  },
-  location: {
-    name: '', // or more detailed location object if needed
   },
   status: 'scheduled',
 
