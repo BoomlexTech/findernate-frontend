@@ -202,7 +202,7 @@ export default function SuggestedUsers({ users = defaultSuggestedUsers }: Sugges
                 disabled={userState?.isLoading}
                 className={`text-xs px-4 py-1 cursor-pointer flex items-center gap-1 ${
                   userState?.isFollowing 
-                    ? 'bg-red-500 hover:bg-red-600 text-white border-red-500' 
+                    ? 'bg-gray-500 hover:bg-gray-600 text-white border-gray-500' 
                     : 'bg-button-gradient border-[#FCD45C] text-white hover:bg-[#FCD45C]'
                 }`}
               >

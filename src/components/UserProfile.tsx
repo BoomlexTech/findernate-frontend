@@ -2,11 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { BadgeCheck, Settings, Pencil, Shield, Check, X, UserPlus, UserMinus } from "lucide-react";
+import { BadgeCheck, Settings, Pencil, Shield, Check, X, UserPlus, UserMinus, MessageCircle } from "lucide-react";
 import { Button } from "./ui/button";
 import SettingsModal from "./SettingsModal";
 import { UserProfile as UserProfileType } from "@/types";
 import { followUser, unfollowUser } from "@/api/user";
+import { storyAPI } from "@/api/story";
+import { Story, StoryUser } from "@/types/story";
+import StoryViewer from "./StoryViewer";
 
 interface UserProfileProps {
   userData: UserProfileType;
@@ -23,6 +26,9 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
   const [isFollowing, setIsFollowing] = useState(userData.isFollowing || false);
   const [followersCount, setFollowersCount] = useState(userData.followersCount);
   const [isFollowLoading, setIsFollowLoading] = useState(false);
+  const [userStories, setUserStories] = useState<Story[]>([]);
+  const [showStoryViewer, setShowStoryViewer] = useState(false);
+  const [storiesLoading, setStoriesLoading] = useState(false);
   const [formData, setFormData] = useState({
     fullName: userData.fullName,
     username: userData.username,
@@ -45,14 +51,63 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
       bio: userData.bio,
       profileImageUrl: userData.profileImageUrl,
     });
-  }, [userData]);
+    
+    // Fetch stories for other users when component loads
+    if (!isCurrentUser && userData._id) {
+      fetchUserStories(userData._id);
+    }
+  }, [userData, isCurrentUser]);
 
-  const joinedDate = profile?.createdAt
-    ? new Date(profile.createdAt).toLocaleDateString('en-US', {
+  const fetchUserStories = async (userId: string) => {
+    try {
+      const stories = await storyAPI.fetchStoriesByUser(userId);
+      setUserStories(stories);
+    } catch (error) {
+      console.error('Error fetching user stories:', error);
+      setUserStories([]);
+    }
+  };
+
+  // Debug the createdAt value
+  console.log('Profile createdAt:', profile?.createdAt);
+
+  const getJoinedDate = (dateString: string) => {
+    if (!dateString) return 'N/A';
+    
+    try {
+      const date = new Date(dateString);
+      // Check if the date is valid
+      if (isNaN(date.getTime())) {
+        return 'N/A';
+      }
+      return date.toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'long',
-      })
-    : 'N/A';
+      });
+    } catch (error) {
+      console.error('Error parsing date:', error);
+      return 'N/A';
+    }
+  };
+
+  const getJoinedYear = (dateString: string) => {
+    if (!dateString) return null;
+    
+    try {
+      const date = new Date(dateString);
+      // Check if the date is valid
+      if (isNaN(date.getTime())) {
+        return null;
+      }
+      return date.getFullYear();
+    } catch (error) {
+      console.error('Error parsing year:', error);
+      return null;
+    }
+  };
+
+  const joinedDate = getJoinedDate(profile?.createdAt);
+  const joinedYear = getJoinedYear(profile?.createdAt);
 
   const getInitials = (name: string) => {
     return name
@@ -67,9 +122,35 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleImageClick = () => {
-    if (!isCurrentUser) return; // Only allow image change for current user
-    fileInputRef.current?.click();
+  const handleImageClick = async () => {
+    if (isCurrentUser) {
+      // For current user, allow image change
+      fileInputRef.current?.click();
+    } else {
+      // For other users, fetch and show their stories
+      await fetchAndShowStories();
+    }
+  };
+
+  const fetchAndShowStories = async () => {
+    if (storiesLoading) return;
+    
+    setStoriesLoading(true);
+    try {
+      const stories = await storyAPI.fetchStoriesByUser(profile._id);
+      setUserStories(stories);
+      
+      if (stories.length > 0) {
+        setShowStoryViewer(true);
+      } else {
+        // User has no stories
+        console.log('User has no stories to show');
+      }
+    } catch (error) {
+      console.error('Error fetching user stories:', error);
+    } finally {
+      setStoriesLoading(false);
+    }
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -160,39 +241,64 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
   };
 
   return (
-    <div className="bg-white rounded-xl overflow-hidden shadow-sm min-w-6xl">
+    <div className="bg-white rounded-xl overflow-hidden shadow-sm w-full">
       {/* Banner */}
       <div className="bg-gradient-to-r from-yellow-400 to-yellow-600 h-32 w-full relative">
-        <div className="absolute -bottom-12 left-6">
+        <div className="absolute -bottom-12 left-4 sm:left-6">
           <div className="relative cursor-pointer" onClick={handleImageClick}>
-            {profile?.profileImageUrl ? (
-              <>
-                <Image
-                  src={profile.profileImageUrl}
-                  alt={profile.fullName}
-                  width={96}
-                  height={96}
-                  className="rounded-full border-4 border-white w-32 h-32 object-cover"
-                />
-                {isCurrentUser && (
-                  <div className="absolute bottom-0 right-0 bg-yellow-500 rounded-full p-1 shadow">
-                    <CameraIcon className="w-4 h-4 text-white" />
-                  </div>
+            {/* Story ring wrapper for other users with stories */}
+            <div className={`w-24 h-24 sm:w-32 sm:h-32 rounded-full ${
+              !isCurrentUser && userStories.length > 0 
+                ? 'bg-gradient-to-r from-pink-500 to-purple-500 p-1' 
+                : ''
+            }`}>
+              <div className={`w-full h-full rounded-full ${
+                !isCurrentUser && userStories.length > 0 
+                  ? 'bg-white p-1' 
+                  : ''
+              }`}>
+                {profile?.profileImageUrl ? (
+                  <>
+                    <Image
+                      src={profile.profileImageUrl}
+                      alt={profile.fullName}
+                      width={128}
+                      height={128}
+                      className={`rounded-full w-full h-full object-cover ${
+                        !isCurrentUser && userStories.length > 0 
+                          ? 'border-0' 
+                          : 'border-2 sm:border-4 border-white'
+                      }`}
+                    />
+                  </>
+                ) : (
+                  <>
+                    <div className={`w-full h-full rounded-full bg-button-gradient flex items-center justify-center text-white font-bold text-lg sm:text-2xl ${
+                      !isCurrentUser && userStories.length > 0 
+                        ? 'border-0' 
+                        : 'border-2 sm:border-4 border-white'
+                    }`}>
+                      {profile?.fullName ? getInitials(profile.fullName) : 
+                       profile?.username ? getInitials(profile.username) : 
+                       '?'}
+                    </div>
+                  </>
                 )}
-              </>
-            ) : (
-              <>
-                <div className="w-32 h-32 rounded-full border-4 border-white bg-button-gradient flex items-center justify-center text-white font-bold text-2xl">
-                  {profile?.fullName ? getInitials(profile.fullName) : 
-                   profile?.username ? getInitials(profile.username) : 
-                   '?'}
-                </div>
-                {isCurrentUser && (
-                  <div className="absolute bottom-0 right-0 bg-yellow-500 rounded-full p-1 shadow">
-                    <CameraIcon className="w-4 h-4 text-white" />
-                  </div>
-                )}
-              </>
+              </div>
+            </div>
+            
+            {/* Camera icon for current user */}
+            {isCurrentUser && (
+              <div className="absolute bottom-0 right-0 bg-yellow-500 rounded-full p-1 shadow">
+                <CameraIcon className="w-4 h-4 text-white" />
+              </div>
+            )}
+            
+            {/* Loading overlay */}
+            {storiesLoading && (
+              <div className="absolute inset-0 rounded-full bg-black bg-opacity-50 flex items-center justify-center">
+                <div className="w-6 h-6 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+              </div>
             )}
             {isCurrentUser && (
               <input
@@ -208,9 +314,9 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
       </div>
 
       {/* Info Section */}
-      <div className="pt-16 px-6 pb-6">
-        <div className="flex justify-between items-start">
-          <div className="flex-1 mr-4">
+      <div className="pt-16 px-4 sm:px-6 pb-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-start gap-4">
+          <div className="flex-1 w-full sm:mr-4">
             {/* Name and Username */}
             <div className="flex items-center gap-2 mb-0">
               {isEditing ? (
@@ -222,7 +328,7 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
                   placeholder="Your name"
                 />
               ) : (
-                <h1 className="text-2xl font-semibold text-gray-900">
+                <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">
                   {profile?.fullName}
                 </h1>
               )}
@@ -246,12 +352,15 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
                 placeholder="Tell people about yourself..."
               />
             ) : (
-              <p className="mt-2 text-sm text-gray-800">{profile?.bio}</p>
+              <p className="mt-2 text-sm text-gray-800">
+                {profile?.bio || (isCurrentUser ? "Add a bio to tell people about yourself" : "No bio available")}
+              </p>
             )}
 
-            {/* Location, Website, Joined */}
-            <div className="flex items-center gap-4 mt-4 text-sm text-gray-600 flex-wrap">
-              {profile?.location && (
+            {/* Location, Website, Email, Joined */}
+            <div className="flex items-center gap-3 sm:gap-4 mt-4 text-xs sm:text-sm text-gray-600 flex-wrap">
+              {/* Location */}
+              {(profile?.location || isEditing) && (
                 <div className="flex items-center gap-1">
                   📍
                   {isEditing ? (
@@ -265,13 +374,15 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
                       placeholder="Location"
                     />
                   ) : (
-                    <span>{profile.location}</span>
+                    <span>{profile.location || "No location added"}</span>
                   )}
                 </div>
               )}
 
-              {profile?.link && (
+              {/* Website/Link */}
+              {(profile?.link || isEditing) && (
                 <div className="flex items-center gap-1">
+                  🔗
                   {isEditing ? (
                     <input
                       type="url"
@@ -282,10 +393,10 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
                     />
                   ) : (
                     <a
-                      href={profile.link}
+                      href={profile.link.startsWith('http') ? profile.link : `https://${profile.link}`}
                       target="_blank"
                       rel="noreferrer"
-                      className="text-yellow-700 underline"
+                      className="text-yellow-700 underline hover:text-yellow-800"
                     >
                       {profile.link}
                     </a>
@@ -293,28 +404,54 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
                 </div>
               )}
 
-              <div>📅 Joined {joinedDate}</div>
+              {/* Email for current user or if verified */}
+              {(isCurrentUser || profile?.isEmailVerified) && profile?.email && (
+                <div className="flex items-center gap-1">
+                  📧
+                  <span className="flex items-center gap-1">
+                    {profile.email}
+                    {profile.isEmailVerified && (
+                      <span className="text-green-600" title="Verified">✓</span>
+                    )}
+                  </span>
+                </div>
+              )}
+
+              {/* Business Profile Badge */}
+              {profile?.isBusinessProfile && (
+                <div className="flex items-center gap-1">
+                  🏢
+                  <span className="text-blue-600 font-medium">Business Profile</span>
+                </div>
+              )}
+
+              {/* Joined Date */}
+              {joinedDate !== 'N/A' && (
+                <div className="flex items-center gap-1">
+                  📅 Joined {joinedDate}
+                </div>
+              )}
             </div>
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-2">
+          <div className="flex gap-2 w-full sm:w-auto justify-end">
             {isCurrentUser ? (
               <>
                 {isEditing ? (
                   <>
                     <Button
                       onClick={handleSave}
-                      className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-1.5 rounded-md text-md font-medium flex items-center gap-1"
+                      className="bg-yellow-600 hover:bg-yellow-700 text-white px-3 sm:px-4 py-1.5 rounded-md text-sm sm:text-md font-medium flex items-center gap-1"
                     >
-                      <Check className="w-4 h-4" /> Save
+                      <Check className="w-4 h-4" /> <span className="hidden sm:inline">Save</span>
                     </Button>
                     <Button
                       onClick={handleCancel}
                       variant="outline"
-                      className="border px-4 py-1.5 rounded-md text-md font-medium text-gray-700 hover:bg-gray-100 flex items-center gap-1"
+                      className="border px-3 sm:px-4 py-1.5 rounded-md text-sm sm:text-md font-medium text-gray-700 hover:bg-gray-100 flex items-center gap-1"
                     >
-                      <X className="w-4 h-4" /> Cancel
+                      <X className="w-4 h-4" /> <span className="hidden sm:inline">Cancel</span>
                     </Button>
                   </>
                 ) : (
@@ -322,9 +459,9 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
                     <Button
                       onClick={() => setIsEditing(true)}
                       variant="outline"
-                      className="border px-4 py-1.5 rounded-md text-md font-medium text-black hover:bg-gray-100 flex items-center gap-1"
+                      className="border px-3 sm:px-4 py-1.5 rounded-md text-sm sm:text-md font-medium text-black hover:bg-gray-100 flex items-center gap-1"
                     >
-                      <Pencil className="w-4 h-4" /> Edit Profile
+                      <Pencil className="w-4 h-4" /> <span className="hidden sm:inline">Edit Profile</span>
                     </Button>
                     <Button
                       onClick={() => setShowSettings(true)}
@@ -336,35 +473,46 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
                 )}
               </>
             ) : (
-              <Button
-                onClick={handleFollowToggle}
-                disabled={isFollowLoading}
-                className={`px-4 py-1.5 rounded-md text-md font-medium flex items-center gap-1 ${
-                  isFollowing 
-                    ? 'bg-red-500 hover:bg-red-600 text-white border-red-500' 
-                    : 'bg-yellow-600 hover:bg-yellow-700 text-white'
-                }`}
-              >
-                {isFollowLoading ? (
-                  <div className="w-4 h-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                ) : isFollowing ? (
-                  <>
-                    <UserMinus className="w-4 h-4" /> Unfollow
-                  </>
-                ) : (
-                  <>
-                    <UserPlus className="w-4 h-4" /> Follow
-                  </>
-                )}
-              </Button>
+              <>
+                <Button
+                  onClick={handleFollowToggle}
+                  disabled={isFollowLoading}
+                  className={`px-3 sm:px-4 py-1.5 rounded-md text-sm sm:text-md font-medium flex items-center gap-1 ${
+                    isFollowing 
+                      ? 'bg-gray-500 hover:bg-gray-600 text-white border-gray-500' 
+                      : 'bg-yellow-600 hover:bg-yellow-700 text-white'
+                  }`}
+                >
+                  {isFollowLoading ? (
+                    <div className="w-4 h-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  ) : isFollowing ? (
+                    <>
+                      <UserMinus className="w-4 h-4" /> <span className="hidden sm:inline">Unfollow</span>
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="w-4 h-4" /> <span className="hidden sm:inline">Follow</span>
+                    </>
+                  )}
+                </Button>
+                
+                <Button
+                  onClick={() => console.log('Message button clicked')}
+                  variant="outline"
+                  className="border px-3 sm:px-4 py-1.5 rounded-md text-sm sm:text-md font-medium text-gray-700 hover:bg-gray-100 flex items-center gap-1"
+                >
+                  <MessageCircle className="w-4 h-4" /> <span className="hidden sm:inline">Message</span>
+                </Button>
+              </>
             )}
           </div>
         </div>
 
         {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
 
+
         {/* Stats */}
-        <div className="flex gap-6 mt-6 text-sm text-gray-700 font-medium">
+        <div className="flex gap-4 sm:gap-6 mt-6 text-sm text-gray-700 font-medium flex-wrap">
           <span>
             <strong className="text-black">{profile?.followingCount}</strong>{" "}
             Following
@@ -378,6 +526,34 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
           </span>
         </div>
       </div>
+
+      {/* Story Viewer Modal */}
+      {showStoryViewer && userStories.length > 0 && (
+        <StoryViewer
+          storyUser={{
+            _id: profile._id,
+            username: profile.username,
+            profileImageUrl: profile.profileImageUrl,
+            stories: userStories,
+            hasNewStories: true,
+            isCurrentUser: false,
+          }}
+          initialStoryIndex={0}
+          allStoryUsers={[{
+            _id: profile._id,
+            username: profile.username,
+            profileImageUrl: profile.profileImageUrl,
+            stories: userStories,
+            hasNewStories: true,
+            isCurrentUser: false,
+          }]}
+          onClose={() => setShowStoryViewer(false)}
+          onStoryViewed={(storyId) => {
+            // Mark story as viewed
+            console.log('Story viewed:', storyId);
+          }}
+        />
+      )}
     </div>
   );
 };
