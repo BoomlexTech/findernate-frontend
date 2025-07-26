@@ -1,0 +1,245 @@
+'use client';
+
+import { useState } from 'react';
+import Image from 'next/image';
+import { Heart, MessageCircle, MoreHorizontal, Edit, Trash2 } from 'lucide-react';
+import { Button } from './ui/button';
+import { Comment, likeComment, unlikeComment, updateComment, deleteComment } from '@/api/comment';
+import { useUserStore } from '@/store/useUserStore';
+import formatPostDate from '@/utils/formatDate';
+
+interface CommentItemProps {
+  comment: Comment;
+  onUpdate: (updatedComment: Comment) => void;
+  onDelete: (commentId: string) => void;
+  isReply?: boolean;
+}
+
+const CommentItem = ({ comment, onUpdate, onDelete, isReply = false }: CommentItemProps) => {
+  const { user } = useUserStore();
+  const [isLiked, setIsLiked] = useState(comment.isLikedByUser || false);
+  const [likesCount, setLikesCount] = useState(comment.likesCount || 0);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState(comment.content);
+  const [showOptions, setShowOptions] = useState(false);
+  const [isLikeLoading, setIsLikeLoading] = useState(false);
+
+  const isOwnComment = user?._id === comment.userId;
+  const canLikeComment = !isOwnComment; // Disable like for own comments
+
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map(n => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  const handleLikeToggle = async () => {
+    if (isLikeLoading) return;
+    
+    setIsLikeLoading(true);
+    const previousIsLiked = isLiked;
+    const previousLikesCount = likesCount;
+    
+    // Optimistic update
+    const shouldLike = !isLiked;
+    setIsLiked(shouldLike);
+    setLikesCount(shouldLike ? likesCount + 1 : likesCount - 1);
+    
+    try {
+      if (shouldLike) {
+        try {
+          await likeComment(comment._id);
+        } catch (likeError: any) {
+          // Handle "already liked" error or self-like restriction
+          if (likeError?.response?.status === 409) {
+            console.log(`Comment ${comment._id} already liked or self-like not allowed - treating as successful`);
+            return; // Keep the optimistic update
+          }
+          throw likeError;
+        }
+      } else {
+        try {
+          await unlikeComment(comment._id);
+        } catch (unlikeError: any) {
+          // Handle "like not found" error
+          if (unlikeError?.response?.status === 404 || 
+              unlikeError?.response?.data?.message?.includes('not found')) {
+            console.log(`Like not found for comment ${comment._id} - treating as successful unlike`);
+            return; // Keep the optimistic update
+          }
+          throw unlikeError;
+        }
+      }
+    } catch (error: any) {
+      // Revert optimistic update on unexpected errors
+      console.error('Error toggling comment like:', error);
+      setIsLiked(previousIsLiked);
+      setLikesCount(previousLikesCount);
+      
+      // Show user-friendly message for specific errors
+      if (error?.response?.status === 409) {
+        console.log('Cannot like your own comment or comment already liked');
+      }
+    } finally {
+      setIsLikeLoading(false);
+    }
+  };
+
+  const handleEdit = async () => {
+    try {
+      const updatedComment = await updateComment(comment._id, editContent);
+      onUpdate({ ...comment, content: editContent, isEdited: true });
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Error updating comment:', error);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (window.confirm('Are you sure you want to delete this comment?')) {
+      try {
+        await deleteComment(comment._id);
+        onDelete(comment._id);
+      } catch (error) {
+        console.error('Error deleting comment:', error);
+      }
+    }
+  };
+
+  return (
+    <div className={`flex gap-3 ${isReply ? 'ml-8 pt-3' : ''}`}>
+      {/* Profile Image */}
+      <div className="flex-shrink-0">
+        {comment.user?.profileImageUrl ? (
+          <Image
+            src={comment.user.profileImageUrl}
+            alt={comment.user.username || 'User'}
+            width={32}
+            height={32}
+            className="rounded-full object-cover"
+          />
+        ) : (
+          <div className="w-8 h-8 rounded-full bg-button-gradient flex items-center justify-center">
+            <span className="text-white text-xs font-bold">
+              {getInitials(comment.user?.fullName || comment.user?.username || 'U')}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Comment Content */}
+      <div className="flex-1">
+        <div className="bg-gray-50 rounded-lg px-3 py-2">
+          <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-sm text-gray-900">
+                {comment.user?.fullName || comment.user?.username || 'Unknown User'}
+              </span>
+              {comment.isEdited && (
+                <span className="text-xs text-gray-500">(edited)</span>
+              )}
+            </div>
+
+            {/* Options Menu */}
+            {isOwnComment && (
+              <div className="relative">
+                <button
+                  onClick={() => setShowOptions(!showOptions)}
+                  className="p-1 hover:bg-gray-200 rounded"
+                >
+                  <MoreHorizontal className="w-4 h-4 text-gray-500" />
+                </button>
+
+                {showOptions && (
+                  <div className="absolute right-0 top-full mt-1 bg-white border rounded-lg shadow-lg z-10 min-w-[120px]">
+                    <button
+                      onClick={() => {
+                        setIsEditing(true);
+                        setShowOptions(false);
+                      }}
+                      className="w-full px-3 py-2 text-left text-sm text-gray-600 hover:bg-gray-50 flex items-center gap-2"
+                    >
+                      <Edit className="w-3 h-3" />
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => {
+                        handleDelete();
+                        setShowOptions(false);
+                      }}
+                      className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 text-red-600 flex items-center gap-2"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                      Delete
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Comment Text */}
+          {isEditing ? (
+            <div className="space-y-2">
+              <textarea
+                value={editContent}
+                onChange={(e) => setEditContent(e.target.value)}
+                className="w-full text-sm text-gray-900 bg-white border rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                rows={2}
+              />
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleEdit}
+                  size="sm"
+                  className="bg-yellow-600 hover:bg-yellow-700 text-white text-xs px-3 py-1"
+                >
+                  Save
+                </Button>
+                <Button
+                  onClick={() => {
+                    setIsEditing(false);
+                    setEditContent(comment.content);
+                  }}
+                  variant="outline"
+                  size="sm"
+                  className="text-xs px-3 py-1"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-gray-800">{comment.content}</p>
+          )}
+        </div>
+
+        {/* Comment Actions */}
+        <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+          <button
+            onClick={handleLikeToggle}
+            disabled={isLikeLoading || !canLikeComment}
+            className={`flex items-center gap-1 ${
+              canLikeComment ? 'hover:text-red-600 cursor-pointer' : 'cursor-not-allowed opacity-50'
+            } ${isLiked ? 'text-red-600' : ''}`}
+            title={!canLikeComment ? "You cannot like your own comment" : ""}
+          >
+            <Heart className={`w-3 h-3 ${isLiked ? 'fill-current' : ''}`} />
+            {likesCount > 0 && <span>{likesCount}</span>}
+          </button>
+
+          <button className="flex items-center gap-1 hover:text-blue-600">
+            <MessageCircle className="w-3 h-3" />
+            Reply
+          </button>
+
+          <span>{formatPostDate(comment.createdAt)}</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default CommentItem;

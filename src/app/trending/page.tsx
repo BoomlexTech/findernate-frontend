@@ -248,7 +248,7 @@ const Page = () => {
       <div className="w-full md:w-[320px] md:p-6 lg:p-0">
         <aside className="w-full md:w-[20rem] max-w-full bg-white shadow-md rounded-lg md:sticky md:top-4 md:h-[calc(100vh-2rem)] overflow-y-auto">
           <div className="p-4 space-y-6">
-            <TrendingTopics />
+            {/* <TrendingTopics /> */}
             <TrendingBusiness />
           </div>
         </aside>
