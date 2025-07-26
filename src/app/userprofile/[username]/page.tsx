@@ -32,7 +32,13 @@ const UserProfilePage = () => {
         console.log("Other user profile API response:", profileResponse);
         
         if (profileResponse.userId) {
-          setProfileData(profileResponse.userId);
+          // Transform the backend response to include isFollowing
+          const userProfileData = {
+            ...profileResponse.userId,
+            isFollowing: profileResponse.isFollowedBy === "True"
+          };
+          
+          setProfileData(userProfileData);
           
           // Fetch user posts by default (photos)
           if (profileResponse.userId._id) {
