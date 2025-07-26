@@ -2,10 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { BadgeCheck, Settings, Pencil, Shield, Check, X } from "lucide-react";
+import { BadgeCheck, Settings, Pencil, Shield, Check, X, UserPlus, UserMinus } from "lucide-react";
 import { Button } from "./ui/button";
 import SettingsModal from "./SettingsModal";
 import { UserProfile as UserProfileType } from "@/types";
+import { followUser, unfollowUser } from "@/api/user";
 
 interface UserProfileProps {
   userData: UserProfileType;
@@ -19,6 +20,9 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [profile, setProfile] = useState<UserProfileType>(userData);
+  const [isFollowing, setIsFollowing] = useState(userData.isFollowing || false);
+  const [followersCount, setFollowersCount] = useState(userData.followersCount);
+  const [isFollowLoading, setIsFollowLoading] = useState(false);
   const [formData, setFormData] = useState({
     fullName: userData.fullName,
     username: userData.username,
@@ -31,6 +35,8 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
   // Update internal state if userData prop changes
   useEffect(() => {
     setProfile(userData);
+    setIsFollowing(userData.isFollowing || false);
+    setFollowersCount(userData.followersCount);
     setFormData({
       fullName: userData.fullName,
       username: userData.username,
@@ -103,6 +109,54 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
       profileImageUrl: profile.profileImageUrl,
     });
     setIsEditing(false);
+  };
+
+  const handleFollowToggle = async () => {
+    if (isFollowLoading) return;
+    
+    // Debug check
+    console.log('Attempting to follow/unfollow user:', {
+      targetUserId: profile._id,
+      currentlyFollowing: isFollowing,
+      token: typeof window !== 'undefined' ? !!localStorage.getItem('token') : false
+    });
+    
+    setIsFollowLoading(true);
+    try {
+      if (isFollowing) {
+        await unfollowUser(profile._id);
+        setIsFollowing(false);
+        setFollowersCount(prev => prev - 1);
+      } else {
+        await followUser(profile._id);
+        setIsFollowing(true);
+        setFollowersCount(prev => prev + 1);
+      }
+    } catch (error: any) {
+      console.error('Error toggling follow status:', error);
+      
+      const errorMessage = error.response?.data?.message;
+      
+      // Handle specific error cases
+      if (errorMessage === 'Already following') {
+        // Update state to reflect reality
+        setIsFollowing(true);
+        console.log('User was already following - updating UI state');
+      } else if (errorMessage === 'Not following this user') {
+        // Update state to reflect reality
+        setIsFollowing(false);
+        console.log('User was not following - updating UI state');
+      } else {
+        // Show user-friendly error message for other errors
+        alert(errorMessage || 'Failed to update follow status');
+        
+        // Reset state on other errors
+        setIsFollowing(userData.isFollowing || false);
+        setFollowersCount(userData.followersCount);
+      }
+    } finally {
+      setIsFollowLoading(false);
+    }
   };
 
   return (
@@ -243,44 +297,68 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
             </div>
           </div>
 
-          {/* Action Buttons - Only show for current user */}
-          {isCurrentUser && (
-            <div className="flex gap-2">
-              {isEditing ? (
-                <>
-                  <Button
-                    onClick={handleSave}
-                    className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-1.5 rounded-md text-md font-medium flex items-center gap-1"
-                  >
-                    <Check className="w-4 h-4" /> Save
-                  </Button>
-                  <Button
-                    onClick={handleCancel}
-                    variant="outline"
-                    className="border px-4 py-1.5 rounded-md text-md font-medium text-gray-700 hover:bg-gray-100 flex items-center gap-1"
-                  >
-                    <X className="w-4 h-4" /> Cancel
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button
-                    onClick={() => setIsEditing(true)}
-                    variant="outline"
-                    className="border px-4 py-1.5 rounded-md text-md font-medium text-black hover:bg-gray-100 flex items-center gap-1"
-                  >
-                    <Pencil className="w-4 h-4" /> Edit Profile
-                  </Button>
-                  <Button
-                    onClick={() => setShowSettings(true)}
-                    className="border px-2.5 py-1.5 rounded-md text-black hover:bg-gray-100"
-                  >
-                    <Settings className="w-4 h-4" />
-                  </Button>
-                </>
-              )}
-            </div>
-          )}
+          {/* Action Buttons */}
+          <div className="flex gap-2">
+            {isCurrentUser ? (
+              <>
+                {isEditing ? (
+                  <>
+                    <Button
+                      onClick={handleSave}
+                      className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-1.5 rounded-md text-md font-medium flex items-center gap-1"
+                    >
+                      <Check className="w-4 h-4" /> Save
+                    </Button>
+                    <Button
+                      onClick={handleCancel}
+                      variant="outline"
+                      className="border px-4 py-1.5 rounded-md text-md font-medium text-gray-700 hover:bg-gray-100 flex items-center gap-1"
+                    >
+                      <X className="w-4 h-4" /> Cancel
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button
+                      onClick={() => setIsEditing(true)}
+                      variant="outline"
+                      className="border px-4 py-1.5 rounded-md text-md font-medium text-black hover:bg-gray-100 flex items-center gap-1"
+                    >
+                      <Pencil className="w-4 h-4" /> Edit Profile
+                    </Button>
+                    <Button
+                      onClick={() => setShowSettings(true)}
+                      className="border px-2.5 py-1.5 rounded-md text-black hover:bg-gray-100"
+                    >
+                      <Settings className="w-4 h-4" />
+                    </Button>
+                  </>
+                )}
+              </>
+            ) : (
+              <Button
+                onClick={handleFollowToggle}
+                disabled={isFollowLoading}
+                className={`px-4 py-1.5 rounded-md text-md font-medium flex items-center gap-1 ${
+                  isFollowing 
+                    ? 'bg-red-500 hover:bg-red-600 text-white border-red-500' 
+                    : 'bg-yellow-600 hover:bg-yellow-700 text-white'
+                }`}
+              >
+                {isFollowLoading ? (
+                  <div className="w-4 h-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                ) : isFollowing ? (
+                  <>
+                    <UserMinus className="w-4 h-4" /> Unfollow
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="w-4 h-4" /> Follow
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
         </div>
 
         {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
@@ -292,7 +370,7 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
             Following
           </span>
           <span>
-            <strong className="text-black">{profile?.followersCount}</strong>{" "}
+            <strong className="text-black">{followersCount}</strong>{" "}
             Followers
           </span>
           <span>
