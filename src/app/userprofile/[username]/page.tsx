@@ -43,7 +43,12 @@ const UserProfilePage = () => {
           // Fetch user posts by default (photos)
           if (profileResponse.userId._id) {
             const postsResponse = await getUserPosts(profileResponse.userId._id);
-            setPosts(postsResponse.data?.posts || []);
+            const postsWithUserInfo = (postsResponse.data?.posts || []).map((post: any) => ({
+              ...post,
+              username: profileResponse.userId.username,
+              profileImageUrl: profileResponse.userId.profileImageUrl
+            }));
+            setPosts(postsWithUserInfo);
           }
         } else {
           throw new Error("Profile data not found in response");
@@ -71,19 +76,34 @@ const UserProfilePage = () => {
         case 'posts':
           if (posts.length === 0) {
             const postsResponse = await getUserPosts(profileData._id);
-            setPosts(postsResponse.data?.posts || []);
+            const postsWithUserInfo = (postsResponse.data?.posts || []).map((post: any) => ({
+              ...post,
+              username: profileData.username,
+              profileImageUrl: profileData.profileImageUrl
+            }));
+            setPosts(postsWithUserInfo);
           }
           break;
         case 'reels':
           if (reels.length === 0) {
             const reelsResponse = await getUserReels(profileData._id);
-            setReels(reelsResponse.data?.posts || []);
+            const reelsWithUserInfo = (reelsResponse.data?.posts || []).map((post: any) => ({
+              ...post,
+              username: profileData.username,
+              profileImageUrl: profileData.profileImageUrl
+            }));
+            setReels(reelsWithUserInfo);
           }
           break;
         case 'videos':
           if (videos.length === 0) {
             const videosResponse = await getUserVideos(profileData._id);
-            setVideos(videosResponse.data?.posts || []);
+            const videosWithUserInfo = (videosResponse.data?.posts || []).map((post: any) => ({
+              ...post,
+              username: profileData.username,
+              profileImageUrl: profileData.profileImageUrl
+            }));
+            setVideos(videosWithUserInfo);
           }
           break;
       }
