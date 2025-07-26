@@ -1,6 +1,6 @@
 'use client';
 import React, { useState } from 'react';
-import { Grid3X3, Bookmark, Tag } from 'lucide-react';
+import { Grid3X3, Bookmark, Tag, Play, Video } from 'lucide-react';
 import { FeedPost } from '@/types';
 
 interface ProfilePostsSectionProps {
@@ -8,17 +8,32 @@ interface ProfilePostsSectionProps {
   posts?: FeedPost[];
   savedPosts?: FeedPost[];
   taggedPosts?: FeedPost[];
+  reels?: FeedPost[];
+  videos?: FeedPost[];
+  isOtherUser?: boolean;
+  loading?: boolean;
+  onTabChange?: (tab: string) => void;
 }
 
 const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
   PostCard,
   posts = [],
   savedPosts = [],
-  taggedPosts = []
+  taggedPosts = [],
+  reels = [],
+  videos = [],
+  isOtherUser = false,
+  loading = false,
+  onTabChange
 }) => {
   const [activeTab, setActiveTab] = useState('posts');
 
-  const tabs = [
+  // Different tabs based on whether it's other user or current user
+  const tabs = isOtherUser ? [
+    { id: 'posts', label: 'Posts', icon: Grid3X3, count: posts.length },
+    { id: 'reels', label: 'Reels', icon: Play, count: reels.length },
+    { id: 'videos', label: 'Videos', icon: Video, count: videos.length }
+  ] : [
     { id: 'posts', label: 'Posts', icon: Grid3X3, count: posts.length },
     { id: 'saved', label: 'Saved', icon: Bookmark, count: savedPosts.length },
     { id: 'tagged', label: 'Tagged', icon: Tag, count: taggedPosts.length }
@@ -30,8 +45,19 @@ const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
         return savedPosts;
       case 'tagged':
         return taggedPosts;
+      case 'reels':
+        return reels;
+      case 'videos':
+        return videos;
       default:
         return posts;
+    }
+  };
+
+  const handleTabClick = (tabId: string) => {
+    setActiveTab(tabId);
+    if (onTabChange) {
+      onTabChange(tabId);
     }
   };
 
@@ -45,7 +71,7 @@ const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => handleTabClick(tab.id)}
                 className={`flex items-center gap-2 py-2 px-4 text-sm font-medium transition-colors ${
                   activeTab === tab.id
                     ? 'text-orange-600 border-b-2 border-orange-600'
@@ -71,20 +97,29 @@ const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
 
       {/* Content Area */}
       <div className="max-w-screen-lg mx-auto w-full">
-        {getCurrentPosts().length === 0 ? (
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-orange-500 mx-auto mb-4"></div>
+            <p className="text-gray-500">Loading {activeTab}...</p>
+          </div>
+        ) : getCurrentPosts().length === 0 ? (
           <div className="text-center py-12">
             <div className="text-gray-400 mb-4">
               {activeTab === 'posts' && <Grid3X3 className="w-12 h-12 mx-auto" />}
               {activeTab === 'saved' && <Bookmark className="w-12 h-12 mx-auto" />}
               {activeTab === 'tagged' && <Tag className="w-12 h-12 mx-auto" />}
+              {activeTab === 'reels' && <Play className="w-12 h-12 mx-auto" />}
+              {activeTab === 'videos' && <Video className="w-12 h-12 mx-auto" />}
             </div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">
               No {activeTab} yet
             </h3>
             <p className="text-gray-500">
-              {activeTab === 'posts' && "Share your first post to get started"}
+              {activeTab === 'posts' && (isOtherUser ? "No posts shared yet" : "Share your first post to get started")}
               {activeTab === 'saved' && "Save posts you want to view later"}
               {activeTab === 'tagged' && "Posts you're tagged in will appear here"}
+              {activeTab === 'reels' && (isOtherUser ? "No reels shared yet" : "Create your first reel")}
+              {activeTab === 'videos' && (isOtherUser ? "No videos shared yet" : "Upload your first video")}
             </p>
           </div>
         ) : (

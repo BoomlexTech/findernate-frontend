@@ -48,6 +48,15 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
       })
     : 'N/A';
 
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map(n => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
@@ -102,7 +111,7 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
       <div className="bg-gradient-to-r from-yellow-400 to-yellow-600 h-32 w-full relative">
         <div className="absolute -bottom-12 left-6">
           <div className="relative cursor-pointer" onClick={handleImageClick}>
-            {profile?.profileImageUrl && (
+            {profile?.profileImageUrl ? (
               <>
                 <Image
                   src={profile.profileImageUrl}
@@ -111,6 +120,19 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
                   height={96}
                   className="rounded-full border-4 border-white w-32 h-32 object-cover"
                 />
+                {isCurrentUser && (
+                  <div className="absolute bottom-0 right-0 bg-yellow-500 rounded-full p-1 shadow">
+                    <CameraIcon className="w-4 h-4 text-white" />
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <div className="w-32 h-32 rounded-full border-4 border-white bg-button-gradient flex items-center justify-center text-white font-bold text-2xl">
+                  {profile?.fullName ? getInitials(profile.fullName) : 
+                   profile?.username ? getInitials(profile.username) : 
+                   '?'}
+                </div>
                 {isCurrentUser && (
                   <div className="absolute bottom-0 right-0 bg-yellow-500 rounded-full p-1 shadow">
                     <CameraIcon className="w-4 h-4 text-white" />
