@@ -84,6 +84,13 @@ export const createBusinessPost = async ({formData}: {formData: BusinessPostForm
   return response.data;
 };
 
+// Get single post
+export const getPostById = async (postId: string) => {
+  const response = await axios.get(`/posts/${postId}`);
+  return response.data.data;
+};
+
+
 // Like/Unlike functions
 export const likePost = async (postId: string) => {
   console.log('API: Calling likePost with postId:', postId);

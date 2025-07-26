@@ -12,6 +12,8 @@ import { Badge } from './ui/badge';
 import ProductCard from './post-window/ProductCard';
 import BusinessPostCard from './post-window/BusinessCard';
 import { likePost, unlikePost } from '@/api/post';
+import { postEvents } from '@/utils/postEvents';
+import { getCommentsByPost, Comment } from '@/api/comment';
 
 export interface PostCardProps {
   post: FeedPost;
@@ -21,13 +23,83 @@ export default function PostCard({ post }: PostCardProps) {
   const [profileImageError, setProfileImageError] = useState(false);
   const [isLiked, setIsLiked] = useState(post.isLikedBy);
   const [likesCount, setLikesCount] = useState(post.engagement.likes);
+  const [commentsCount, setCommentsCount] = useState(post.engagement.comments);
   const [isLoading, setIsLoading] = useState(false);
+  const [hasRefreshed, setHasRefreshed] = useState(false);
 
   // Sync local state with prop changes (important for page refreshes)
   useEffect(() => {
     setIsLiked(post.isLikedBy);
     setLikesCount(post.engagement.likes);
-  }, [post.isLikedBy, post.engagement.likes]);
+    setCommentsCount(post.engagement.comments);
+  }, [post.isLikedBy, post.engagement.likes, post.engagement.comments]);
+
+  // Fetch fresh comment count on component mount
+  useEffect(() => {
+    const fetchCommentCount = async () => {
+      try {
+        console.log(`Fetching comment count for post ${post._id}...`);
+        const commentsResponse: Comment[] | any = await getCommentsByPost(post._id);
+        console.log(`Comments response for post ${post._id}:`, commentsResponse);
+        
+        let actualCount = 0;
+        
+        // Handle different possible response formats
+        if (Array.isArray(commentsResponse)) {
+          actualCount = commentsResponse.length;
+        } else if (commentsResponse && typeof commentsResponse === 'object') {
+          if (Array.isArray(commentsResponse.comments)) {
+            actualCount = commentsResponse.comments.length;
+          } else if (typeof commentsResponse.count === 'number') {
+            actualCount = commentsResponse.count;
+          }
+        }
+        
+        console.log(`Actual comment count for post ${post._id}: ${actualCount}, Current count: ${commentsCount}`);
+        
+        // Always update to ensure we have the correct count
+        setCommentsCount(actualCount);
+      } catch (error) {
+        console.error('Error fetching comment count for post:', post._id, error);
+        // Don't change the count on error, keep the original value
+      }
+    };
+
+    fetchCommentCount();
+  }, [post._id]); // Only run when post ID changes
+
+  // For debugging - log the initial like state
+  useEffect(() => {
+    console.log(`PostCard loaded for post ${post._id}: isLikedBy=${post.isLikedBy}, likes=${post.engagement.likes}`);
+  }, [post._id]);
+
+  // Load like status from localStorage on component mount (for persistence across refreshes)
+  useEffect(() => {
+    if (!hasRefreshed && typeof window !== 'undefined') {
+      const savedLikeStatus = localStorage.getItem(`post_like_${post._id}`);
+      const savedLikesCount = localStorage.getItem(`post_likes_count_${post._id}`);
+      
+      if (savedLikeStatus !== null) {
+        const isLikedFromStorage = savedLikeStatus === 'true';
+        const likesCountFromStorage = savedLikesCount ? parseInt(savedLikesCount) : post.engagement.likes;
+        
+        console.log(`Loading like status from localStorage for post ${post._id}: isLiked=${isLikedFromStorage}, count=${likesCountFromStorage}`);
+        setIsLiked(isLikedFromStorage);
+        setLikesCount(likesCountFromStorage);
+      }
+      setHasRefreshed(true);
+    }
+  }, [post._id, post.engagement.likes, hasRefreshed]);
+
+  // Listen for comment count changes from other tabs/components
+  useEffect(() => {
+    const cleanup = postEvents.on(post._id, 'commentCountChange', (newCount: number) => {
+      console.log(`Comment count updated for post ${post._id}: ${newCount}`);
+      setCommentsCount(newCount);
+    });
+
+    return cleanup;
+  }, [post._id]);
 
   const handleLikeToggle = async () => {
     if (isLoading) return;
@@ -44,9 +116,15 @@ export default function PostCard({ post }: PostCardProps) {
     console.log(`Action determined: ${shouldLike ? 'LIKE' : 'UNLIKE'}`);
 
     // Optimistic update
+    const newLikesCount = shouldLike ? likesCount + 1 : likesCount - 1;
     setIsLiked(shouldLike);
-    setLikesCount(shouldLike ? likesCount + 1 : likesCount - 1);
-    console.log(`Optimistic update - new isLiked: ${shouldLike}, new likesCount: ${shouldLike ? likesCount + 1 : likesCount - 1}`);
+    setLikesCount(newLikesCount);
+    
+    // Save to localStorage for persistence
+    localStorage.setItem(`post_like_${post._id}`, shouldLike.toString());
+    localStorage.setItem(`post_likes_count_${post._id}`, newLikesCount.toString());
+    
+    console.log(`Optimistic update - new isLiked: ${shouldLike}, new likesCount: ${newLikesCount}`);
 
     try {
       const timeoutPromise = new Promise((_, reject) => 
@@ -55,8 +133,19 @@ export default function PostCard({ post }: PostCardProps) {
 
       if (shouldLike) {
         console.log(`Liking post ${post._id}`);
-        await Promise.race([likePost(post._id), timeoutPromise]);
-        console.log(`Successfully liked post ${post._id}`);
+        try {
+          await Promise.race([likePost(post._id), timeoutPromise]);
+          console.log(`Successfully liked post ${post._id}`);
+        } catch (likeError: any) {
+          // Handle "already liked" error
+          if (likeError?.response?.status === 409) {
+            console.log(`Post ${post._id} already liked - treating as successful like`);
+            // Don't revert the optimistic update since the post is effectively "liked"
+            return;
+          }
+          // Re-throw other errors to be handled by outer catch
+          throw likeError;
+        }
       } else {
         console.log(`Unliking post ${post._id}`);
         try {
@@ -82,14 +171,39 @@ export default function PostCard({ post }: PostCardProps) {
       console.error('Full error object:', error);
       setIsLiked(previousIsLiked);
       setLikesCount(previousLikesCount);
+      
+      // Revert localStorage as well
+      localStorage.setItem(`post_like_${post._id}`, previousIsLiked.toString());
+      localStorage.setItem(`post_likes_count_${post._id}`, previousLikesCount.toString());
     } finally {
       console.log(`=== LIKE TOGGLE END - Expected final state: isLiked: ${shouldLike}, loading: false ===`);
       setIsLoading(false);
     }
   };
 
+  const handlePostClick = (e: React.MouseEvent) => {
+    // Check if we're already on a post page (single post view)
+    if (window.location.pathname.includes('/post/')) {
+      return; // Don't open new tab if already on post page
+    }
+    
+    // Prevent opening if clicking on interactive elements
+    const target = e.target as HTMLElement;
+    if (target.closest('button') || target.closest('a') || target.closest('input')) {
+      return;
+    }
+    // Open post page in new tab with post data in URL state
+    const postData = encodeURIComponent(JSON.stringify(post));
+    window.open(`/post/${post._id}?data=${postData}`, '_blank');
+  };
+
   return (
-    <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200 relative">
+    <div 
+      className={`bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200 relative ${
+        window.location.pathname.includes('/post/') ? 'cursor-default' : 'cursor-pointer'
+      }`}
+      onClick={handlePostClick}
+    >
       {/* Media + Info Side-by-Side */}
       <div className="flex flex-row gap-4 p-3">
         {/* Media */}
@@ -178,7 +292,7 @@ export default function PostCard({ post }: PostCardProps) {
             </button>
             <button className="flex items-center space-x-2 text-gray-600 hover:text-blue-500 transition-colors">
               <MessageCircle className="w-5 h-5" />
-              <span className="text-sm font-medium">{post.engagement.comments || 0}</span>
+              <span className="text-sm font-medium">{commentsCount || 0}</span>
             </button>
             <button className="flex items-center space-x-2 text-gray-600 hover:text-green-500 transition-colors">
               <Share2 className="w-5 h-5" />
