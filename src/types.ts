@@ -223,6 +223,8 @@ export interface FeedPost {
   postType: string
   createdAt: string
   media: MediaItem[]
+  isLikedBy: boolean;
+  likedBy: string[];
 
     engagement: {
     comments: number;

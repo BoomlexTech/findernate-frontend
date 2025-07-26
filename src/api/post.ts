@@ -83,6 +83,21 @@ export const createBusinessPost = async ({formData}: {formData: BusinessPostForm
   });
   return response.data;
 };
+
+// Like/Unlike functions
+export const likePost = async (postId: string) => {
+  console.log('API: Calling likePost with postId:', postId);
+  const response = await axios.post('/posts/like', { postId }, { timeout: 10000 });
+  console.log('API: likePost response:', response.data);
+  return response.data;
+};
+
+export const unlikePost = async (postId: string) => {
+  console.log('API: Calling unlikePost with postId:', postId);
+  const response = await axios.post('/posts/unlike', { postId }, { timeout: 500 });
+  console.log('API: unlikePost response:', response.data);
+  return response.data;
+};
   
   
   

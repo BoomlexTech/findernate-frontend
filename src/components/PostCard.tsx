@@ -6,11 +6,12 @@ import Link from 'next/link';
 import { FeedPost } from '@/types';
 // import { Button } from './ui/button';
 import formatPostDate from '@/utils/formatDate';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import ServiceCard from './post-window/ServiceCard';
 import { Badge } from './ui/badge';
 import ProductCard from './post-window/ProductCard';
 import BusinessPostCard from './post-window/BusinessCard';
+import { likePost, unlikePost } from '@/api/post';
 
 export interface PostCardProps {
   post: FeedPost;
@@ -18,6 +19,74 @@ export interface PostCardProps {
 
 export default function PostCard({ post }: PostCardProps) {
   const [profileImageError, setProfileImageError] = useState(false);
+  const [isLiked, setIsLiked] = useState(post.isLikedBy);
+  const [likesCount, setLikesCount] = useState(post.engagement.likes);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Sync local state with prop changes (important for page refreshes)
+  useEffect(() => {
+    setIsLiked(post.isLikedBy);
+    setLikesCount(post.engagement.likes);
+  }, [post.isLikedBy, post.engagement.likes]);
+
+  const handleLikeToggle = async () => {
+    if (isLoading) return;
+    
+    console.log(`=== LIKE TOGGLE START for post ${post._id} ===`);
+    console.log(`Current state - isLiked: ${isLiked}, likesCount: ${likesCount}`);
+    
+    setIsLoading(true);
+    const previousIsLiked = isLiked;
+    const previousLikesCount = likesCount;
+    
+    // Determine the action BEFORE updating state
+    const shouldLike = !isLiked;
+    console.log(`Action determined: ${shouldLike ? 'LIKE' : 'UNLIKE'}`);
+
+    // Optimistic update
+    setIsLiked(shouldLike);
+    setLikesCount(shouldLike ? likesCount + 1 : likesCount - 1);
+    console.log(`Optimistic update - new isLiked: ${shouldLike}, new likesCount: ${shouldLike ? likesCount + 1 : likesCount - 1}`);
+
+    try {
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Request timeout')), 15000)
+      );
+
+      if (shouldLike) {
+        console.log(`Liking post ${post._id}`);
+        await Promise.race([likePost(post._id), timeoutPromise]);
+        console.log(`Successfully liked post ${post._id}`);
+      } else {
+        console.log(`Unliking post ${post._id}`);
+        try {
+          await Promise.race([unlikePost(post._id), timeoutPromise]);
+          console.log(`Successfully unliked post ${post._id}`);
+        } catch (unlikeError: any) {
+          // Handle specific "Like not found" error or timeout
+          if (unlikeError?.response?.data?.message === 'Like not found for this post' || 
+              unlikeError?.message?.includes('timeout') ||
+              unlikeError?.code === 'ECONNABORTED') {
+            console.log(`Unlike failed (${unlikeError?.message || 'Like not found'}) - treating as successful unlike`);
+            // Don't revert the optimistic update since the post is effectively "unliked"
+            return;
+          }
+          // Re-throw other errors to be handled by outer catch
+          throw unlikeError;
+        }
+      }
+    } catch (error: any) {
+      // Revert optimistic update on error
+      console.error(`Error ${shouldLike ? 'liking' : 'unliking'} post:`, error);
+      console.error('Error details:', error?.response?.data || error?.message);
+      console.error('Full error object:', error);
+      setIsLiked(previousIsLiked);
+      setLikesCount(previousLikesCount);
+    } finally {
+      console.log(`=== LIKE TOGGLE END - Expected final state: isLiked: ${shouldLike}, loading: false ===`);
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200 relative">
@@ -95,9 +164,17 @@ export default function PostCard({ post }: PostCardProps) {
           <div className="px-2 py-1 absolute bottom-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-6">
-            <button className="flex items-center space-x-2 text-gray-600 hover:text-red-500 transition-colors">
-              <Heart className="w-5 h-5" />
-              <span className="text-sm font-medium">{post.engagement.likes || 0}</span>
+            <button 
+              onClick={handleLikeToggle}
+              disabled={isLoading}
+              className={`flex items-center space-x-2 transition-colors ${
+                isLiked 
+                  ? 'text-red-500' 
+                  : 'text-gray-600 hover:text-red-500'
+              } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
+              <span className="text-sm font-medium">{likesCount}</span>
             </button>
             <button className="flex items-center space-x-2 text-gray-600 hover:text-blue-500 transition-colors">
               <MessageCircle className="w-5 h-5" />
