@@ -46,4 +46,13 @@ export const searchUsers = async (query: string): Promise<SearchResponse> => {
   return response.data;
 };
 
+// Get popular searches
+export interface PopularSearch {
+  keyword: string;
+  searchCount: number;
+}
 
+export const getPopularSearches = async (limit: number = 10) => {
+  const response = await axios.get(`/users/popular-searches?limit=${limit}`);
+  return response.data;
+};
