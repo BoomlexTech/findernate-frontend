@@ -33,6 +33,15 @@ export default function StoryViewer({
   const [isPaused, setIsPaused] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [viewerCount, setViewerCount] = useState(0);
+
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map(n => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  };
   
   const progressRef = useRef<NodeJS.Timeout | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -320,13 +329,21 @@ export default function StoryViewer({
         {/* User Info Header */}
         <div className="absolute top-8 left-4 right-4 flex items-center justify-between z-20">
           <div className="flex items-center space-x-3">
-            <Image
-              src={currentUser.profileImageUrl || '/default-avatar.png'}
-              alt={currentUser.username}
-              width={32}
-              height={32}
-              className="rounded-full border-2 border-white"
-            />
+            {currentUser.profileImageUrl ? (
+              <Image
+                src={currentUser.profileImageUrl}
+                alt={currentUser.username}
+                width={32}
+                height={32}
+                className="rounded-full border-2 border-white"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-full border-2 border-white bg-button-gradient flex items-center justify-center">
+                <span className="text-white text-xs font-bold">
+                  {getInitials(currentUser.username)}
+                </span>
+              </div>
+            )}
             <div>
               <p className="text-white font-semibold text-base">{currentUser.username}</p>
               <p className="text-gray-200 text-sm">

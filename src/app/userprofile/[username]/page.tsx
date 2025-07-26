@@ -1,7 +1,7 @@
 'use client'
 
 import { getOtherUserProfile } from '@/api/user';
-import { getPostsByUserid } from '@/api/homeFeed';
+import { getUserPosts, getUserReels, getUserVideos } from '@/api/homeFeed';
 import FloatingHeader from '@/components/FloatingHeader';
 import PostCard from '@/components/PostCard';
 import ProfilePostsSection from '@/components/ProfilePostsSection';
@@ -12,8 +12,11 @@ import React, { useEffect, useState } from 'react'
 
 const UserProfilePage = () => {
   const [posts, setPosts] = useState<FeedPost[]>([]);
+  const [reels, setReels] = useState<FeedPost[]>([]);
+  const [videos, setVideos] = useState<FeedPost[]>([]);
   const [profileData, setProfileData] = useState<UserProfileType | null>(null);
   const [loading, setLoading] = useState(true);
+  const [postsLoading, setPostsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const params = useParams();
   const username = params.username as string; // Assuming dynamic route is [username]
@@ -31,9 +34,9 @@ const UserProfilePage = () => {
         if (profileResponse.userId) {
           setProfileData(profileResponse.userId);
           
-          // Fetch user posts if needed
+          // Fetch user posts by default (photos)
           if (profileResponse.userId._id) {
-            const postsResponse = await getPostsByUserid(profileResponse.userId._id);
+            const postsResponse = await getUserPosts(profileResponse.userId._id);
             setPosts(postsResponse.data?.posts || []);
           }
         } else {
@@ -52,6 +55,38 @@ const UserProfilePage = () => {
       fetchData();
     }
   }, [username]);
+
+  const handleTabChange = async (tab: string) => {
+    if (!profileData?._id) return;
+    
+    setPostsLoading(true);
+    try {
+      switch (tab) {
+        case 'posts':
+          if (posts.length === 0) {
+            const postsResponse = await getUserPosts(profileData._id);
+            setPosts(postsResponse.data?.posts || []);
+          }
+          break;
+        case 'reels':
+          if (reels.length === 0) {
+            const reelsResponse = await getUserReels(profileData._id);
+            setReels(reelsResponse.data?.posts || []);
+          }
+          break;
+        case 'videos':
+          if (videos.length === 0) {
+            const videosResponse = await getUserVideos(profileData._id);
+            setVideos(videosResponse.data?.posts || []);
+          }
+          break;
+      }
+    } catch (error) {
+      console.error(`Error fetching ${tab}:`, error);
+    } finally {
+      setPostsLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -89,26 +124,24 @@ const UserProfilePage = () => {
   }
 
   return (
-    <div className='bg-gray-50 max-w-6xl mx-auto'>
-      <FloatingHeader
-        paragraph={`Viewing ${profileData.username}'s profile`}
-        heading="User Profile"
-        username={profileData.fullName || profileData.username || "User"}
-        accountBadge={false}
-      />
-
-      <div className='flex flex-col gap-6'>
+    <div className='bg-gray-50 w-full mx-auto pt-2 px-4'>
+      <div className='flex flex-col gap-6 mt-2'>
         <UserProfile 
           userData={profileData}
           isCurrentUser={false} // Important to distinguish between current user and others
         />
         
-        {/* <div className='w-full'>
+        <div className='w-full'>
           <ProfilePostsSection
             PostCard={PostCard}
             posts={posts}  
+            reels={reels}
+            videos={videos}
+            isOtherUser={true}
+            loading={postsLoading}
+            onTabChange={handleTabChange}
           />
-        </div> */}
+        </div>
       </div>
     </div>
   )

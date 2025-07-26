@@ -52,6 +52,15 @@ export default function StoriesBar({ onCreateStory }: StoriesBarProps) {
   const [viewedStories, setViewedStories] = useState<Set<string>>(loadViewedStoriesFromStorage);
   
   const { user, token } = useUserStore();
+
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map(n => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  };
   
   // Always call useStories - hooks must be called unconditionally
   const { storyUsers, loading, hasActiveStories, uploadStory } = useStories();
@@ -223,9 +232,9 @@ export default function StoriesBar({ onCreateStory }: StoriesBarProps) {
                     className="object-cover w-full h-full rounded-full"
                   />
                 ) : (
-                  <div className="w-full h-full bg-gray-300 rounded-full flex items-center justify-center">
-                    <span className="text-gray-600 text-sm font-medium">
-                      {storyUser.username.charAt(0).toUpperCase()}
+                  <div className="w-full h-full bg-button-gradient rounded-full flex items-center justify-center">
+                    <span className="text-white text-sm font-bold">
+                      {getInitials(storyUser.username)}
                     </span>
                   </div>
                 )}
