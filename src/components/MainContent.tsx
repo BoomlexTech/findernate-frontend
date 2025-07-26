@@ -17,6 +17,8 @@ type RawFeedItem = {
   postType: string;
   createdAt: string;
   media: MediaItem[];
+  isLikedBy: boolean;
+  likedBy: string[];
   engagement?: {
     comments: number;
     impressions: number;
@@ -86,6 +88,8 @@ export default function MainContent() {
         postType: item.postType,
         createdAt: item.createdAt,
         media: item.media as MediaItem[],
+        isLikedBy: item.isLikedBy,
+        likedBy: item.likedBy,
         engagement: item.engagement || {
           comments: 0,
           impressions: 0,
