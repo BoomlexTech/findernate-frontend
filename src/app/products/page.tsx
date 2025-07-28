@@ -5,6 +5,7 @@ import { Search, Plus, Bell } from 'lucide-react';
 import PostCard from '@/components/PostCard';
 import { getExploreFeed } from '@/api/exploreFeed';
 import { transformExploreFeedToFeedPost, shuffleArray } from '@/utils/transformExploreFeed';
+import { searchAllContent } from '@/api/search';
 import { FeedPost } from '@/types';
 
 const ProductsPage = () => {
@@ -18,6 +19,7 @@ const ProductsPage = () => {
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [hasNextPage, setHasNextPage] = useState(true);
+  const [isSearchMode, setIsSearchMode] = useState(false);
 
   const categories = [
     "Electronics",
@@ -38,6 +40,7 @@ const ProductsPage = () => {
     setSelectedLocation("");
     setSelectedPrice("");
     setSortBy("time"); // Reset to default sort
+    setIsSearchMode(false);
   };
 
   const fetchProducts = async (pageNum: number = 1, reset: boolean = false) => {
@@ -75,10 +78,61 @@ const ProductsPage = () => {
     setPage(1);
   }, []);
 
+  // Handle search functionality
+  const handleSearch = async () => {
+    if (!searchTerm.trim()) {
+      setIsSearchMode(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setIsSearchMode(true);
+      
+      const response = await searchAllContent(
+        searchTerm,
+        selectedLocation || undefined,
+        20,
+        "product", // Default to product content type
+        undefined,
+        undefined,
+        undefined
+      );
+
+      const flattenedResults = response.data.results.map((post) => ({
+        ...post,
+        username: post.userId?.username,
+        profileImageUrl: post.userId?.profileImageUrl,
+      }));
+      
+      setProducts(flattenedResults);
+    } catch (error) {
+      console.error('Search error:', error);
+      setProducts([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Apply filters whenever filter criteria or data changes
   useEffect(() => {
+    if (isSearchMode) return; // Don't apply local filters in search mode
     applyFilters();
-  }, [searchTerm, selectedCategory, selectedLocation, selectedPrice, sortBy, allProducts]);
+  }, [searchTerm, selectedCategory, selectedLocation, selectedPrice, sortBy, allProducts, isSearchMode]);
+
+  // Auto-trigger search when search term changes
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchTerm.trim()) {
+        handleSearch();
+      } else {
+        setIsSearchMode(false);
+        applyFilters();
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm, selectedLocation]);
 
   const applyFilters = () => {
     let filtered = [...allProducts];
