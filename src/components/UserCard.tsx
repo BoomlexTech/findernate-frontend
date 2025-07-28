@@ -1,7 +1,10 @@
 import { SearchUser } from "@/types";
 import Image from "next/image";
-import { MapPin, User, Plus } from "lucide-react";
+import { MapPin, User, Plus, MessageCircle } from "lucide-react";
 import { useState } from "react";
+import { messageAPI } from "@/api/message";
+import { useRouter } from "next/navigation";
+import { useUserStore } from "@/store/useUserStore";
 
 interface UserCardProps {
   user: SearchUser;
@@ -11,6 +14,8 @@ interface UserCardProps {
 const UserCard: React.FC<UserCardProps> = ({ user, onFollow }) => {
   const [isFollowing, setIsFollowing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [creatingChat, setCreatingChat] = useState(false);
+  const router = useRouter();
 
   const handleFollowClick = async () => {
     if (isLoading) return;
@@ -23,6 +28,41 @@ const UserCard: React.FC<UserCardProps> = ({ user, onFollow }) => {
       console.error("Follow action failed:", error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleMessageClick = async () => {
+    if (creatingChat) return;
+    
+    setCreatingChat(true);
+    try {
+      // Get current user from store
+      const currentUser = useUserStore.getState().user;
+      
+      if (!currentUser) {
+        alert('Please log in to send messages');
+        return;
+      }
+      
+      // Create a direct chat with both users (current user + target user)
+      const participants = [currentUser._id, user._id];
+      console.log('Creating chat with participants:', participants);
+      
+      const chat = await messageAPI.createChat(participants, 'direct');
+      
+      // Navigate to the chat page with the created chat selected
+      router.push(`/chats?chatId=${chat._id}`);
+    } catch (error: any) {
+      console.error('Error creating chat:', error);
+      
+      if (error.response?.status === 404) {
+        alert('Chat functionality is not available on this server yet. Please contact the administrator.');
+      } else {
+        const errorMessage = error.response?.data?.message || error.message || 'Failed to create chat';
+        alert(errorMessage);
+      }
+    } finally {
+      setCreatingChat(false);
     }
   };
 
@@ -106,25 +146,39 @@ const UserCard: React.FC<UserCardProps> = ({ user, onFollow }) => {
                
               </div>
 
-              {/* Follow Button */}
-              <button
-                onClick={handleFollowClick}
-                disabled={isLoading}
-                className={`ml-3 px-4 py-1.5 rounded-md text-sm font-medium transition-all duration-200 flex items-center gap-1.5 ${
-                  isFollowing
-                    ? "bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300"
-                    : "bg-button-gradient text-white hover:bg-blue-700"
-                } disabled:opacity-50 disabled:cursor-not-allowed`}
-              >
-                {isLoading ? (
-                  <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-md animate-spin" />
-                ) : (
-                  <>
-                    {!isFollowing && <Plus size={14} />}
-                    {isFollowing ? "Following" : "Follow"}
-                  </>
-                )}
-              </button>
+              {/* Action Buttons */}
+              <div className="ml-3 flex gap-2">
+                <button
+                  onClick={handleFollowClick}
+                  disabled={isLoading}
+                  className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all duration-200 flex items-center gap-1.5 ${
+                    isFollowing
+                      ? "bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300"
+                      : "bg-button-gradient text-white hover:bg-blue-700"
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+                >
+                  {isLoading ? (
+                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-md animate-spin" />
+                  ) : (
+                    <>
+                      {!isFollowing && <Plus size={14} />}
+                      {isFollowing ? "Following" : "Follow"}
+                    </>
+                  )}
+                </button>
+
+                <button
+                  onClick={handleMessageClick}
+                  disabled={creatingChat}
+                  className="px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200 flex items-center gap-1.5 bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {creatingChat ? (
+                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-md animate-spin" />
+                  ) : (
+                    <MessageCircle size={14} />
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>

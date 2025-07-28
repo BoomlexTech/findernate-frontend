@@ -10,6 +10,8 @@ import { followUser, unfollowUser, editProfile } from "@/api/user";
 import { storyAPI } from "@/api/story";
 import { Story } from "@/types/story";
 import StoryViewer from "./StoryViewer";
+import { messageAPI } from "@/api/message";
+import { useRouter } from "next/navigation";
 
 interface UserProfileProps {
   userData: UserProfileType;
@@ -29,6 +31,8 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
   const [userStories, setUserStories] = useState<Story[]>([]);
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const [storiesLoading, setStoriesLoading] = useState(false);
+  const [creatingChat, setCreatingChat] = useState(false);
+  const router = useRouter();
   const [formData, setFormData] = useState({
     fullName: userData.fullName,
     username: userData.username,
@@ -318,6 +322,41 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
     }
   };
 
+  const handleMessageClick = async () => {
+    if (creatingChat) return;
+    
+    setCreatingChat(true);
+    try {
+      // Get current user from store
+      const currentUser = useUserStore.getState().user;
+      
+      if (!currentUser) {
+        alert('Please log in to send messages');
+        return;
+      }
+      
+      // Create a direct chat with both users (current user + target user)
+      const participants = [currentUser._id, profile._id];
+      console.log('Creating chat with participants:', participants);
+      
+      const chat = await messageAPI.createChat(participants, 'direct');
+      
+      // Navigate to the chat page with the created chat selected
+      router.push(`/chats?chatId=${chat._id}`);
+    } catch (error: any) {
+      console.error('Error creating chat:', error);
+      
+      if (error.response?.status === 404) {
+        alert('Chat functionality is not available on this server yet. Please contact the administrator.');
+      } else {
+        const errorMessage = error.response?.data?.message || error.message || 'Failed to create chat';
+        alert(errorMessage);
+      }
+    } finally {
+      setCreatingChat(false);
+    }
+  };
+
   return (
     <div className="bg-white rounded-xl overflow-hidden shadow-sm w-full">
       {/* Banner */}
@@ -575,11 +614,17 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
                 </Button>
                 
                 <Button
-                  onClick={() => console.log('Message button clicked')}
+                  onClick={handleMessageClick}
+                  disabled={creatingChat}
                   variant="outline"
                   className="border px-3 sm:px-4 py-1.5 rounded-md text-sm sm:text-md font-medium text-gray-700 hover:bg-gray-100 flex items-center gap-1"
                 >
-                  <MessageCircle className="w-4 h-4" /> <span className="hidden sm:inline">Message</span>
+                  {creatingChat ? (
+                    <div className="w-4 h-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  ) : (
+                    <MessageCircle className="w-4 h-4" />
+                  )}
+                  <span className="hidden sm:inline">{creatingChat ? 'Creating...' : 'Message'}</span>
                 </Button>
               </>
             )}
