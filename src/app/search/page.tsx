@@ -516,7 +516,7 @@ export default function SearchPage() {
 
         <div className="w-[23rem] fixed p-5 right-0 top-0 h-full bg-white border-l border-gray-200 overflow-y-auto">
           <div className="mb-5">
-            <TrendingTopics />
+            <TrendingTopics isSearchPage={true} />
           </div>
           <TrendingBusiness />
         </div>
