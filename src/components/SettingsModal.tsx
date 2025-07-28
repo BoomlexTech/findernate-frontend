@@ -2,11 +2,41 @@
 
 import { ChevronLeft, Globe, Bell, Volume2, User, HelpCircle, LogOut, Shield, MapPin, Phone, ChevronRight, ChevronDown, Layers } from "lucide-react";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { logout } from "@/api/auth";
+import { useUserStore } from "@/store/useUserStore";
 
 const SettingsModal = ({ onClose }: { onClose: () => void }) => {
   const [muteNotifications, setMuteNotifications] = useState(false);
   const [hideAddress, setHideAddress] = useState(false);
   const [hideNumber, setHideNumber] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const router = useRouter();
+  const { logout: logoutUser } = useUserStore();
+
+  const handleLogout = async () => {
+    try {
+      setIsLoggingOut(true);
+      // Call the logout API
+      await logout();
+      // Clear user store
+      logoutUser();
+      localStorage.removeItem('token');
+      // Close the modal
+      onClose();
+      // Redirect to login page
+      router.push('/signin');
+    } catch (error) {
+      console.error('Logout failed:', error);
+      // Even if API fails, clear local state and redirect
+      logoutUser();
+      localStorage.removeItem('token');
+      onClose();
+      router.push('/signin');
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center">
@@ -72,13 +102,23 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
         <div className="h-px bg-gray-200 mx-4"></div>
 
         <div className="px-4 py-2">
-          <div className="flex items-center justify-between py-4">
+          <button 
+            onClick={handleLogout}
+            disabled={isLoggingOut}
+            className="w-full flex items-center justify-between py-4 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+          >
             <div className="flex items-center gap-3">
               <LogOut className="w-5 h-5 text-red-500" />
-              <span className="text-red-500 font-medium">Logout</span>
+              <span className="text-red-500 font-medium">
+                {isLoggingOut ? 'Logging out...' : 'Logout'}
+              </span>
             </div>
-            <ChevronRight className="w-5 h-5 text-gray-400" />
-          </div>
+            {isLoggingOut ? (
+              <div className="w-5 h-5 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+            ) : (
+              <ChevronRight className="w-5 h-5 text-gray-400" />
+            )}
+          </button>
         </div>
       </div>
     </div>

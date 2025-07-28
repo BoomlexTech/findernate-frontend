@@ -1,6 +1,6 @@
 'use client'
 import React, { useState } from 'react';
-import { X, Camera, MapPin, Hash, ShoppingBag, BriefcaseBusiness, Building2  } from 'lucide-react';
+import { X, Camera, MapPin, ShoppingBag, BriefcaseBusiness, Building2  } from 'lucide-react';
 import Image from 'next/image';
 import { Button } from './ui/button';
 import ProductDetailsForm from './posting/ProductDetailsForm';
@@ -9,6 +9,8 @@ import BusinessDetailsForm from './posting/BusinessDetailsForm';
 import { createProductPost, createRegularPost, createServicePost, createBusinessPost } from '@/api/post';
 import { ProductDetailsFormProps, RegularPostPayload, ServiceDetailsFormProps, BusinessPostFormProps } from '@/types';
 import RegularPostForm from './posting/RegularDetailsForm';
+import { useUserStore } from '@/store/useUserStore';
+import TagInput from './TagInput';
 
 interface createPostModalProps {
     closeModal: () => void;
@@ -17,7 +19,7 @@ interface createPostModalProps {
 const CreatePostModal = ({closeModal}: createPostModalProps ) => {
   const [postType, setPostType] = useState('Regular');
   const [loading, setLoading] = useState(false);
-
+  const { user } = useUserStore();
 
   const [sharedForm, setSharedForm] = useState({
   description: '',
@@ -352,11 +354,11 @@ const handleProductChange = (
           {/* User Info */}
           <div className="flex items-center mb-6">
             <div className="w-12 h-12 bg-button-gradient rounded-full flex items-center justify-center text-white font-semibold">
-              PS
+              {user?.profileImageUrl ? <Image src={user?.profileImageUrl} alt="Profile" width={48} height={48} className="rounded-full" /> : user?.fullName?.charAt(0)}
             </div>
             <div className="ml-3">
-              <h3 className="font-semibold text-gray-800">Priya Sharma</h3>
-              <p className="text-sm text-gray-500">@priya_enterprises</p>
+              <h3 className="font-semibold text-gray-800">{user?.fullName}</h3>
+              <p className="text-sm text-gray-500">{user?.username}</p>
             </div>
           </div>
 
@@ -528,24 +530,7 @@ const handleProductChange = (
 
           {/* Hashtags Input */}
           <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <Hash className="inline mr-2" size={16} />
-              Hashtags (Optional)
-            </label>
-            <input
-              type="text"
-              value={sharedForm.tags.map(tag => tag.startsWith('#') ? tag : `#${tag}`).join(', ')}
-              onChange={(e) => {
-                const updatedTags = e.target.value
-                .split(',')
-                .map(tag => tag.trim().replace(/^#*/, '')) // remove any existing #
-                .filter(Boolean); // remove empty strings
-                setSharedForm({...sharedForm, tags: updatedTags})
-                }
-              }
-              placeholder="Add hashtags...(without #)"
-              className="w-full p-3 border border-gray-300 placeholder:text-gray-500 text-black rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
-            />
+            <TagInput tags={sharedForm.tags} setTags={(tags) => setSharedForm({...sharedForm, tags})} />
           </div>
         </div>
 

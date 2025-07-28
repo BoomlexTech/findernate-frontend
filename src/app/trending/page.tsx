@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import TrendingTopics from '@/components/TrendingTopics';
+// import TrendingTopics from '@/components/TrendingTopics';
 import PostCard from '@/components/PostCard';
 import TrendingBusiness from '@/components/TrendingBusiness';
 import { TrendingUp, Flame, Star, Clock } from 'lucide-react';
