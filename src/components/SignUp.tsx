@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { countryCodes } from '@/constants/uiItems';
 import { signUp } from '@/api/auth';
 import axios from 'axios';
-import OTPStep from './OtpStep';
 import { Button } from './ui/button';
 import Input from './ui/Input';
 
@@ -22,7 +21,6 @@ export default function SignupComponent() {
   const [showPassword, setShowPassword] = useState(false);
   const [usernameAvailable, setUsernameAvailable] = useState<boolean>(false);
   const [showCountryDropdown, setShowCountryDropdown] = useState(false);
-  const [step, setStep] = useState<'signup' | 'otp'>('signup');
   const [error, setError] = useState('');
   const router = useRouter();
 
@@ -60,7 +58,7 @@ export default function SignupComponent() {
     try {
       const response = await signUp(formData);
       console.log(response);
-      setStep('otp');
+      router.push('/signin');
     } catch (err) {
         if (axios.isAxiosError(err)) {
             setError(err.response?.data?.message || 'Signup failed');
@@ -73,7 +71,6 @@ export default function SignupComponent() {
   return (
     <>
     
-    {step === 'signup' && (
     <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-orange-50 flex items-center justify-center p-4" onClick={() => setShowCountryDropdown(false)}>
       <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
         {/* Logo and Header */}
@@ -268,13 +265,7 @@ export default function SignupComponent() {
           </p>
         </div>
       </div>
-    </div>)}
-
-    {step === 'otp' && (
-      <div>
-        <OTPStep/>
-      </div>
-    )}
+    </div>
     </>
   );
 }

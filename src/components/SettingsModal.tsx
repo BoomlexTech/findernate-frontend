@@ -7,6 +7,7 @@ import { logout } from "@/api/auth";
 import { useUserStore } from "@/store/useUserStore";
 import { PaymentMethodsModal } from "./business/PaymentMethodModal";
 import PlanSelectionModal from "./business/PlanSelectionModal";
+import BusinessDetailsModal from "./business/BusinessDetailsModal";
 
 const SettingsModal = ({ onClose }: { onClose: () => void }) => {
   const [muteNotifications, setMuteNotifications] = useState(false);
@@ -15,6 +16,7 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [showBusinessPlans, setShowBusinessPlans] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showBusinessDetailsModal, setShowBusinessDetailsModal] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const router = useRouter();
   const { logout: logoutUser } = useUserStore();
@@ -59,6 +61,18 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
   const handlePaymentModalClose = () => {
     setShowPaymentModal(false);
     setSelectedPlan(null);
+  };
+
+  // Show business details modal after payment option is clicked
+  const handlePaymentOptionClick = () => {
+    setShowPaymentModal(false);
+    setShowBusinessDetailsModal(true);
+  };
+
+  const handleBusinessDetailsSubmit = (data: any) => {
+    // TODO: Upload data to API
+    setShowBusinessDetailsModal(false);
+    // Optionally show a success message
   };
 
   return (
@@ -159,6 +173,13 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
       <PaymentMethodsModal
         isOpen={showPaymentModal}
         onClose={handlePaymentModalClose}
+        onPaymentOptionClick={handlePaymentOptionClick}
+      />
+      {/* Business Details Modal */}
+      <BusinessDetailsModal
+        isOpen={showBusinessDetailsModal}
+        onClose={() => setShowBusinessDetailsModal(false)}
+        onSubmit={handleBusinessDetailsSubmit}
       />
     </div>
   );
