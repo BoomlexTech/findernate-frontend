@@ -5,12 +5,14 @@ import { useParams, useSearchParams } from 'next/navigation';
 import { FeedPost } from '@/types';
 import PostCard from '@/components/PostCard';
 import CommentsSection from '@/components/CommentsSection';
+import ProductServiceDetails from '@/components/ProductServiceDetails';
 
 const PostPage = () => {
   const [post, setPost] = useState<FeedPost | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [commentCount, setCommentCount] = useState(0);
+  const [showProductServiceDetails, setShowProductServiceDetails] = useState(false);
   const params = useParams();
   const searchParams = useSearchParams();
   const postId = params.postId as string;
@@ -94,6 +96,22 @@ const PostPage = () => {
         {/* Post Content */}
         <div className="mb-6">
           <PostCard post={post} />
+          
+          {/* Product/Service Details Button */}
+          {(post.contentType === 'product' || post.contentType === 'service') && (
+            <div className="mt-4 bg-white rounded-xl shadow-sm p-4">
+              <button
+                onClick={() => setShowProductServiceDetails(true)}
+                className={`w-full py-3 px-6 rounded-lg font-semibold text-white transition-all duration-200 hover:scale-[1.02] shadow-md hover:shadow-lg ${
+                  post.contentType === 'product'
+                    ? 'bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800'
+                    : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800'
+                }`}
+              >
+                {post.contentType === 'product' ? '🛍️ View Product Details' : '🔧 View Service Details'}
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Comments Section */}
@@ -104,6 +122,14 @@ const PostPage = () => {
           />
         </div>
       </div>
+
+      {/* Product/Service Details Modal */}
+      {showProductServiceDetails && post && (
+        <ProductServiceDetails 
+          post={post}
+          onClose={() => setShowProductServiceDetails(false)}
+        />
+      )}
     </div>
   );
 };
