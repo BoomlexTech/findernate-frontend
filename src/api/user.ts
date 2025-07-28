@@ -16,6 +16,17 @@ export const getOtherUserProfile = async (username: string) => {
     return response.data.data;
 }
 
+export const editProfile = async (data: {
+    fullName?: string;
+    bio?: string;
+    location?: string;
+    link?: string;
+    profileImageUrl?: string;
+}) => {
+    const response = await axios.put('/users/profile', data);
+    return response.data.data;
+}
+
 export const followUser = async (userId: string) => {
     try {
         const response = await axios.post('/users/follow', { userId });

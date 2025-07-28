@@ -5,12 +5,17 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { logout } from "@/api/auth";
 import { useUserStore } from "@/store/useUserStore";
+import { PaymentMethodsModal } from "./business/PaymentMethodModal";
+import PlanSelectionModal from "./business/PlanSelectionModal";
 
 const SettingsModal = ({ onClose }: { onClose: () => void }) => {
   const [muteNotifications, setMuteNotifications] = useState(false);
   const [hideAddress, setHideAddress] = useState(false);
   const [hideNumber, setHideNumber] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [showBusinessPlans, setShowBusinessPlans] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const router = useRouter();
   const { logout: logoutUser } = useUserStore();
 
@@ -38,6 +43,24 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
     }
   };
 
+  const handleUpgradeClick = () => {
+    setShowBusinessPlans(true);
+  };
+
+  const handlePlanSelect = (plan: string) => {
+    setSelectedPlan(plan);
+    setShowBusinessPlans(false);
+    if (plan === "Small Business" || plan === "Corporate") {
+      setShowPaymentModal(true);
+    }
+    // If "Free", handle free upgrade logic here if needed
+  };
+
+  const handlePaymentModalClose = () => {
+    setShowPaymentModal(false);
+    setSelectedPlan(null);
+  };
+
   return (
     <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center">
       <div className="bg-white w-full max-w-md h-[90vh] rounded-xl shadow-lg overflow-y-scroll relative">
@@ -52,7 +75,11 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
 
         {/* Content */}
         <div className="px-4 py-2">
-          <SettingItem icon={<Shield />} title="Upgrade Business Profile" />
+          <SettingItem
+            icon={<Shield />}
+            title="Upgrade Business Profile"
+            onClick={handleUpgradeClick}
+          />
           <SettingItem
             icon={<Globe />}
             title="Language"
@@ -121,6 +148,18 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
           </button>
         </div>
       </div>
+      {/* Plan Selection Modal */}
+      <PlanSelectionModal
+        isOpen={showBusinessPlans}
+        onClose={() => setShowBusinessPlans(false)}
+        onSelectPlan={handlePlanSelect}
+        currentPlan={selectedPlan || "Free"}
+      />
+      {/* Payment Modal */}
+      <PaymentMethodsModal
+        isOpen={showPaymentModal}
+        onClose={handlePaymentModalClose}
+      />
     </div>
   );
 };
@@ -129,12 +168,17 @@ const SettingItem = ({
   icon,
   title,
   right,
+  onClick,
 }: {
   icon: React.ReactNode;
   title: string;
   right?: React.ReactNode;
+  onClick?: () => void;
 }) => (
-  <div className="flex items-center justify-between py-4">
+  <div
+    className="flex items-center justify-between py-4 cursor-pointer"
+    onClick={onClick}
+  >
     <div className="flex items-center gap-3">
       <span className="text-gray-600">{icon}</span>
       <span className="text-gray-900 font-medium">{title}</span>

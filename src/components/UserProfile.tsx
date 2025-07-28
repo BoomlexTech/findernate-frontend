@@ -6,9 +6,9 @@ import { BadgeCheck, Settings, Pencil, Shield, Check, X, UserPlus, UserMinus, Me
 import { Button } from "./ui/button";
 import SettingsModal from "./SettingsModal";
 import { UserProfile as UserProfileType } from "@/types";
-import { followUser, unfollowUser } from "@/api/user";
+import { followUser, unfollowUser, editProfile } from "@/api/user";
 import { storyAPI } from "@/api/story";
-import { Story, StoryUser } from "@/types/story";
+import { Story } from "@/types/story";
 import StoryViewer from "./StoryViewer";
 
 interface UserProfileProps {
@@ -69,7 +69,7 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
   };
 
   // Debug the createdAt value
-  console.log('Profile createdAt:', profile?.createdAt);
+  //console.log('Profile createdAt:', profile?.createdAt);
 
   const getJoinedDate = (dateString: string) => {
     if (!dateString) return 'N/A';
@@ -90,24 +90,9 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
     }
   };
 
-  const getJoinedYear = (dateString: string) => {
-    if (!dateString) return null;
-    
-    try {
-      const date = new Date(dateString);
-      // Check if the date is valid
-      if (isNaN(date.getTime())) {
-        return null;
-      }
-      return date.getFullYear();
-    } catch (error) {
-      console.error('Error parsing year:', error);
-      return null;
-    }
-  };
+
 
   const joinedDate = getJoinedDate(profile?.createdAt);
-  const joinedYear = getJoinedYear(profile?.createdAt);
 
   const getInitials = (name: string) => {
     return name
@@ -153,30 +138,123 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
     }
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const compressImage = (file: File): Promise<string> => {
+    return new Promise((resolve) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d')!;
+      const img = document.createElement('img') as HTMLImageElement;
+      
+      img.onload = () => {
+        // Set maximum dimensions
+        const maxWidth = 400;
+        const maxHeight = 400;
+        
+        let { width, height } = img;
+        
+        // Calculate new dimensions
+        if (width > height) {
+          if (width > maxWidth) {
+            height = (height * maxWidth) / width;
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width = (width * maxHeight) / height;
+            height = maxHeight;
+          }
+        }
+        
+        // Set canvas dimensions
+        canvas.width = width;
+        canvas.height = height;
+        
+        // Draw and compress image
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // Convert to base64 with compression
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+        resolve(compressedDataUrl);
+      };
+      
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
+    if (file) {   
+      try {
+        // Compress the image first
+        const compressedDataUrl = await compressImage(file);
+        //console.log('Compressed image data URL length:', compressedDataUrl.length);
+        
         setFormData((prev) => ({
           ...prev,
-          profileImageUrl: reader.result as string,
+          profileImageUrl: compressedDataUrl,
         }));
-      };
-      reader.readAsDataURL(file);
+      } catch (error) {
+        console.error('Error compressing image:', error);
+        alert('Error processing image. Please try again.');
+      }
     }
   };
 
-  const handleSave = () => {
-    if (onProfileUpdate) {
-      onProfileUpdate(formData);
+  const handleSave = async () => {
+    try {
+      // Prepare data for API - only include fields that the API expects
+      const profileData = {
+        fullName: formData.fullName,
+        bio: formData.bio,
+        location: formData.location,
+        link: formData.link,
+        profileImageUrl: formData.profileImageUrl,
+      };
+      
+      // Debug: Log what we're sending to the API
+      console.log('Sending profile data to API:', {
+        fullName: profileData.fullName,
+        bio: profileData.bio,
+        location: profileData.location,
+        link: profileData.link,
+        profileImageUrlLength: profileData.profileImageUrl ? profileData.profileImageUrl.length : 0,
+        profileImageUrlStart: profileData.profileImageUrl ? profileData.profileImageUrl.substring(0, 100) : 'No image URL'
+      });
+      
+      // Call the editProfile API
+      const updatedProfile = await editProfile(profileData);
+      
+      // Debug: Log the response
+      console.log('API Response:', updatedProfile);
+      
+      // Update local profile state with the response from API
+      setProfile(prev => ({
+        ...prev,
+        ...updatedProfile
+      }));
+      
+      // Call the parent's onProfileUpdate if provided
+      if (onProfileUpdate) {
+        onProfileUpdate(updatedProfile);
+      }
+      
+      // Exit editing mode
+      setIsEditing(false);
+      
+      // Show success feedback (optional)
+      console.log('Profile updated successfully');
+      
+    } catch (error: unknown) {
+      console.error('Error updating profile:', error);
+      
+      // Show user-friendly error message
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'Failed to update profile';
+      alert(errorMessage);
+      
+      // Keep editing mode active so user can try again
+      // Don't exit editing mode on error
     }
-    setIsEditing(false);
-    // Update local profile state with new data
-    setProfile(prev => ({
-      ...prev,
-      ...formData
-    }));
   };
 
   const handleCancel = () => {
@@ -213,10 +291,10 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
         setIsFollowing(true);
         setFollowersCount(prev => prev + 1);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error toggling follow status:', error);
       
-      const errorMessage = error.response?.data?.message;
+      const errorMessage = error instanceof Error ? error.message : '';
       
       // Handle specific error cases
       if (errorMessage === 'Already following') {
