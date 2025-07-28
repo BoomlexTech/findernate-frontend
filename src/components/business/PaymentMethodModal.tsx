@@ -2,8 +2,8 @@ import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import Image from 'next/image';
 
 // A single payment method item component
-const PaymentMethodItem = ({ icon, name }: { icon: React.ReactNode, name: string }) => (
-  <div className="flex items-center justify-between py-4 px-1 hover:bg-gray-50 cursor-pointer transition-colors duration-200">
+const PaymentMethodItem = ({ icon, name, onClick }: { icon: React.ReactNode, name: string, onClick?: () => void }) => (
+  <div className="flex items-center justify-between py-4 px-1 hover:bg-gray-50 cursor-pointer transition-colors duration-200" onClick={onClick}>
     <div className="flex items-center space-x-4">
       {icon}
       <span className="text-base font-medium text-gray-800">{name}</span>
@@ -13,7 +13,7 @@ const PaymentMethodItem = ({ icon, name }: { icon: React.ReactNode, name: string
 );
 
 // The main modal component
-export const PaymentMethodsModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) => {
+export const PaymentMethodsModal = ({ isOpen, onClose, onPaymentOptionClick }: { isOpen: boolean, onClose: () => void, onPaymentOptionClick?: () => void }) => {
   if (!isOpen) return null;
 
   return (
@@ -39,10 +39,10 @@ export const PaymentMethodsModal = ({ isOpen, onClose }: { isOpen: boolean, onCl
         {/* Modal Body */}
         <main className="flex-grow p-4 overflow-y-auto">
           <div className="divide-y divide-gray-200">
-            <PaymentMethodItem icon={<Image width={20} height={20} src="/payment/visa-3-svgrepo-com.svg" alt="Visa" className="w-10 h-6 rounded-md" />} name="Visa" />
-            <PaymentMethodItem icon={<Image width={20} height={20} src="/payment/mastercard-svgrepo-com.svg" alt="MasterCard" className="w-10 h-6 rounded-md" />} name="MasterCard" />
-            <PaymentMethodItem icon={<Image width={20} height={20} src="/payment/pay-pal-paypal-payments-platform-svgrepo-com.svg" alt="PayPal" className="w-10 h-6 rounded-md" />} name="PayPal" />
-            <PaymentMethodItem icon={<Image width={20} height={20} src="/payment/google-pay-primary-logo-logo-svgrepo-com.svg" alt="Google Pay" className="w-10 h-6 rounded-md" />} name="Google Pay" />
+            <PaymentMethodItem icon={<Image width={20} height={20} src="/payment/visa-3-svgrepo-com.svg" alt="Visa" className="w-10 h-6 rounded-md" />} name="Visa" onClick={onPaymentOptionClick} />
+            <PaymentMethodItem icon={<Image width={20} height={20} src="/payment/mastercard-svgrepo-com.svg" alt="MasterCard" className="w-10 h-6 rounded-md" />} name="MasterCard" onClick={onPaymentOptionClick} />
+            <PaymentMethodItem icon={<Image width={20} height={20} src="/payment/pay-pal-paypal-payments-platform-svgrepo-com.svg" alt="PayPal" className="w-10 h-6 rounded-md" />} name="PayPal" onClick={onPaymentOptionClick} />
+            <PaymentMethodItem icon={<Image width={20} height={20} src="/payment/google-pay-primary-logo-logo-svgrepo-com.svg" alt="Google Pay" className="w-10 h-6 rounded-md" />} name="Google Pay" onClick={onPaymentOptionClick} />
           </div>
         </main>
       </div>

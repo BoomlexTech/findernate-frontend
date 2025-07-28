@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { discoverItems, navigationItems } from '@/constants/uiItems';
@@ -15,6 +15,13 @@ interface leftSidebarProps {
 export default function LeftSidebar({togglePost}: leftSidebarProps) {
 
 	const [isActive, setIsActive] = useState(0);
+	useEffect(() => {
+	  const saved = localStorage.getItem('sidebarActiveIndex');
+	  if (saved !== null) {
+		setIsActive(Number(saved));
+	  }
+	}, []);
+
 	const router = useRouter();
 
   return (
@@ -43,8 +50,11 @@ export default function LeftSidebar({togglePost}: leftSidebarProps) {
 			{navigationItems.map((item, index) => (
 			  <li key={index}>
 				<button
-				  onClick={()=> {setIsActive(index);
-						  router.push(item.route)}}
+				  onClick={()=> {
+                   setIsActive(index);
+                   localStorage.setItem('sidebarActiveIndex', String(index));
+                   router.push(item.route)
+                 }}
 				  className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-all duration-200 ${
 					index===isActive
 					  ? 'bg-yellow-50 text-yellow-600 border border-yellow-400 font-medium'
@@ -79,8 +89,9 @@ export default function LeftSidebar({togglePost}: leftSidebarProps) {
 			  <li key={index}>
 				<button 
 				  onClick={()=> {
-					  setIsActive(index)
-					  router.push(item.route)
+ 					  setIsActive(index);
+                     localStorage.setItem('sidebarActiveIndex', String(index));
+                     router.push(item.route);
 				  }}
 					className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-all duration-200
 							  ${index===isActive
