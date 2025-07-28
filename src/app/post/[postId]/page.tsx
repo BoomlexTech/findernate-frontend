@@ -6,6 +6,8 @@ import { FeedPost } from '@/types';
 import PostCard from '@/components/PostCard';
 import CommentsSection from '@/components/CommentsSection';
 import ProductServiceDetails from '@/components/ProductServiceDetails';
+import { getPostById } from '@/api/post';
+import { getUserById } from '@/api/user';
 
 const PostPage = () => {
   const [post, setPost] = useState<FeedPost | null>(null);
@@ -16,6 +18,7 @@ const PostPage = () => {
   const params = useParams();
   const searchParams = useSearchParams();
   const postId = params.postId as string;
+  const shouldFocusComment = searchParams.get('focus') === 'comment';
 
   const handleCommentCountChange = useCallback((newCount: number) => {
     setCommentCount(newCount);
@@ -35,24 +38,46 @@ const PostPage = () => {
   }, []);
 
   useEffect(() => {
-    const loadPost = () => {
+    const loadPost = async () => {
       try {
         setLoading(true);
         setError(null);
         
-        // Get post data from URL params
-        const postData = searchParams.get('data');
-        if (postData) {
-          const decodedPost = JSON.parse(decodeURIComponent(postData));
-          setPost(decodedPost);
-          setCommentCount(decodedPost.engagement?.comments || 0);
+        // Fetch post data from API using post ID
+        const postData = await getPostById(postId);
+        console.log('Post data loaded:', postData);
+        
+        // Fetch user details if userId is available
+        if (postData.userId) {
+          try {
+            console.log('Fetching user with ID:', postData.userId);
+            const userData = await getUserById(postData.userId);
+            console.log('User data received:', userData);
+            console.log('Available user fields:', Object.keys(userData));
+            console.log('userData.userId:', userData.userId);
+            console.log('userData.userId.username:', userData.userId?.username);
+            console.log('userData.userId.fullName:', userData.userId?.fullName);
+            
+            // Add username and profile image to post data
+            postData.username = userData.userId?.username || userData.userId?.fullName || 'User';
+            postData.profileImageUrl = userData.userId?.profileImageUrl || '';
+            
+            console.log('Final username set to:', postData.username);
+          } catch (userError: any) {
+            console.error('Failed to fetch user data:', userError);
+            postData.username = 'Unknown User';
+          }
         } else {
-          setError('Post data not found. Please go back and click on the post again.');
+          console.log('No userId found in post data');
+          postData.username = 'No User ID';
         }
+        
+        setPost(postData);
+        setCommentCount(postData.engagement?.comments || 0);
         
       } catch (error) {
         console.error('Error loading post:', error);
-        setError('Failed to load post');
+        setError('Failed to load post. Please try again.');
       } finally {
         setLoading(false);
       }
@@ -61,7 +86,7 @@ const PostPage = () => {
     if (postId) {
       loadPost();
     }
-  }, [postId, searchParams]);
+  }, [postId]);
 
   if (loading) {
     return (
@@ -119,6 +144,8 @@ const PostPage = () => {
           <CommentsSection 
             postId={postId} 
             onCommentCountChange={handleCommentCountChange}
+            initialCommentCount={post.engagement?.comments || 0}
+            shouldFocusComment={shouldFocusComment}
           />
         </div>
       </div>

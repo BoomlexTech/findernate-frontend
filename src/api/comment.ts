@@ -28,10 +28,10 @@ export interface CreateCommentData {
   parentCommentId?: string;
 }
 
-// Get comments for a post
-export const getCommentsByPost = async (postId: string) => {
+// Get comments for a post  
+export const getCommentsByPost = async (postId: string, page: number = 1, limit: number = 20) => {
   const response = await axios.get('/posts/comments', {
-    params: { postId }
+    params: { postId, page, limit }
   });
   return response.data.data;
 };

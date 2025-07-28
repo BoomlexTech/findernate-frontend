@@ -66,3 +66,8 @@ export const getFollowing = async (userId: string) => {
     const response = await axios.get(`/users/following/${userId}`);
     return response.data.data;
 }
+
+export const getUserById = async (userId: string) => {
+    const response = await axios.get(`/users/profile/other?identifier=${userId}`);
+    return response.data.data;
+}

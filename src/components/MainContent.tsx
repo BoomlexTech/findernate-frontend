@@ -78,30 +78,46 @@ export default function MainContent() {
       setLoading(true);
       const res = await getHomeFeed({ page: pageNum, limit: 10 });
       
-      const mappedFeed: FeedPost[] = res.data.feed.map((item: RawFeedItem) => ({
-        _id: item._id,
-        username: item.userId.username,
-        profileImageUrl: item.userId.profileImageUrl,
-        description: item.description,
-        caption: item.caption,
-        contentType: item.contentType,
-        postType: item.postType,
-        createdAt: item.createdAt,
-        media: item.media as MediaItem[],
-        isLikedBy: item.isLikedBy,
-        likedBy: item.likedBy,
-        engagement: item.engagement || {
-          comments: 0,
-          impressions: 0,
-          likes: 0,
-          reach: 0,
-          saves: 0,
-          shares: 0,
-          views: 0,
-        },
-        location: item.customization?.normal?.location || null,
-        tags: item.customization?.normal?.tags || [],
-      }));
+      const mappedFeed: FeedPost[] = res.data.feed.map((item: RawFeedItem & { comments?: any[] }) => {
+        // Calculate actual comment count from comments array
+        let actualCommentCount = 0;
+        if (item.comments && Array.isArray(item.comments)) {
+          // Count top-level comments + replies
+          actualCommentCount = item.comments.reduce((total, comment) => {
+            const repliesCount = comment.replies ? comment.replies.length : 0;
+            return total + 1 + repliesCount; // 1 for the comment itself + replies
+          }, 0);
+        }
+        
+        // Debug logging for engagement data
+        console.log(`Post ${item._id} - Original engagement:`, item.engagement, `- Calculated comments: ${actualCommentCount}`);
+        
+        return {
+          _id: item._id,
+          username: item.userId.username,
+          profileImageUrl: item.userId.profileImageUrl,
+          description: item.description,
+          caption: item.caption,
+          contentType: item.contentType,
+          postType: item.postType,
+          createdAt: item.createdAt,
+          media: item.media as MediaItem[],
+          isLikedBy: item.isLikedBy,
+          likedBy: item.likedBy,
+          engagement: {
+            ...(item.engagement || {}),
+            comments: actualCommentCount, // Use calculated count
+            impressions: item.engagement?.impressions || 0,
+            likes: item.engagement?.likes || 0,
+            reach: item.engagement?.reach || 0,
+            saves: item.engagement?.saves || 0,
+            shares: item.engagement?.shares || 0,
+            views: item.engagement?.views || 0,
+          },
+          location: item.customization?.normal?.location || null,
+          tags: item.customization?.normal?.tags || [],
+        };
+      });
 
       const newPosts = mappedFeed.filter(
         newPost => !feed.some(existingPost => existingPost._id === newPost._id)

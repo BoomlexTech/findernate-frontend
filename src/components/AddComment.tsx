@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { Send } from 'lucide-react';
 import { Button } from './ui/button';
@@ -12,17 +12,31 @@ interface AddCommentProps {
   parentCommentId?: string;
   onCommentAdded: (comment: Comment) => void;
   placeholder?: string;
+  shouldFocus?: boolean;
 }
 
 const AddComment = ({ 
   postId, 
   parentCommentId, 
   onCommentAdded, 
-  placeholder = "Add a comment..." 
+  placeholder = "Add a comment...",
+  shouldFocus = false
 }: AddCommentProps) => {
   const { user } = useUserStore();
   const [content, setContent] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-focus the input when shouldFocus is true
+  useEffect(() => {
+    if (shouldFocus && inputRef.current) {
+      // Use setTimeout to ensure the component is fully rendered
+      setTimeout(() => {
+        inputRef.current?.focus();
+        inputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
+    }
+  }, [shouldFocus]);
 
   const getInitials = (name: string) => {
     return name
@@ -103,6 +117,7 @@ const AddComment = ({
       {/* Comment Input */}
       <div className="flex-1 flex gap-2">
         <input
+          ref={inputRef}
           type="text"
           value={content}
           onChange={(e) => setContent(e.target.value)}

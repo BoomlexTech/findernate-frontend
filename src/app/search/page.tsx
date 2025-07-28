@@ -39,7 +39,7 @@ export default function SearchPage() {
   const [showAllUsers, setShowAllUsers] = useState(false);
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
-  const [selectedContentType, setSelectedContentType] = useState<string | null>(null);
+  const [selectedContentType, setSelectedContentType] = useState<string | null>("business");
   const [selectedPostType, setSelectedPostType] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -91,7 +91,7 @@ export default function SearchPage() {
 
   const clearAllFilters = () => {
     setSelectedLocation("All Locations");
-    setSelectedContentType(null);
+    setSelectedContentType("business");
     setSelectedPostType(null);
     setStartDate(null);
     setEndDate(null);
@@ -101,7 +101,7 @@ export default function SearchPage() {
   const hasActiveFilters = () => {
     return (
       selectedLocation !== "All Locations" ||
-      selectedContentType !== null ||
+      selectedContentType !== "business" ||
       selectedPostType !== null ||
       startDate !== null ||
       endDate !== null ||

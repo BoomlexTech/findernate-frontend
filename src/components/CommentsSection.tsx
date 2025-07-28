@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { MessageCircle, Heart, ChevronDown, Filter } from 'lucide-react';
+import { MessageCircle, Heart, ChevronDown, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from './ui/button';
 import CommentItem from './CommentItem';
 import AddComment from './AddComment';
@@ -11,22 +11,31 @@ import { postEvents } from '@/utils/postEvents';
 interface CommentsSectionProps {
   postId: string;
   onCommentCountChange?: (count: number) => void;
+  initialCommentCount?: number;
+  shouldFocusComment?: boolean;
 }
 
 type SortOption = 'latest' | 'likes';
 
-const CommentsSection = ({ postId, onCommentCountChange }: CommentsSectionProps) => {
+const CommentsSection = ({ postId, onCommentCountChange, initialCommentCount = 0, shouldFocusComment = false }: CommentsSectionProps) => {
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState<SortOption>('latest');
   const [showSortOptions, setShowSortOptions] = useState(false);
+  const [totalCommentCount, setTotalCommentCount] = useState(initialCommentCount);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [commentsPerPage] = useState(10);
+  const [paginationLoading, setPaginationLoading] = useState(false);
   
   // Store user-created comments that should persist across refreshes
   const userCommentsRef = useRef<{ [commentId: string]: Comment }>({});
 
   useEffect(() => {
     fetchComments();
-  }, [postId]);
+  }, [postId, currentPage]);
 
   // Close sort dropdown when clicking outside
   useEffect(() => {
@@ -43,31 +52,43 @@ const CommentsSection = ({ postId, onCommentCountChange }: CommentsSectionProps)
     }
   }, [showSortOptions]);
 
-  // Update comment count whenever comments array changes
+  // Update comment count whenever total changes (not just current page)
   useEffect(() => {
-    if (Array.isArray(comments)) {
-      const newCount = comments.length;
-      onCommentCountChange?.(newCount);
+    if (totalCommentCount !== initialCommentCount) {
+      onCommentCountChange?.(totalCommentCount);
       // Emit event for cross-tab/component communication
-      postEvents.emit(postId, 'commentCountChange', newCount);
+      postEvents.emit(postId, 'commentCountChange', totalCommentCount);
     }
-  }, [comments, postId]); // Removed onCommentCountChange from deps to prevent infinite loop
+  }, [totalCommentCount, postId]); // Removed onCommentCountChange from deps to prevent infinite loop
 
-  const fetchComments = async () => {
+  const fetchComments = async (page: number = currentPage) => {
     try {
-      setLoading(true);
-      const commentsData = await getCommentsByPost(postId);
-      console.log('Comments data received:', commentsData);
-      
-      // Ensure we always set an array
-      let rawComments: Comment[] = [];
-      if (Array.isArray(commentsData)) {
-        rawComments = commentsData;
-      } else if (commentsData && Array.isArray(commentsData.comments)) {
-        rawComments = commentsData.comments;
+      if (page === 1) {
+        setLoading(true);
+      } else {
+        setPaginationLoading(true);
       }
       
-      // Process comments and extract user data properly
+      console.log(`Fetching comments for post: ${postId}, page: ${page}`);
+      const commentsData = await getCommentsByPost(postId, page, commentsPerPage);
+      console.log('Comments data received:', commentsData);
+      
+      // Handle pagination response
+      if (commentsData) {
+        // Update pagination info
+        setTotalCommentCount(commentsData.totalComments || 0);
+        setCurrentPage(commentsData.page || 1);
+        setTotalPages(commentsData.totalPages || 1);
+        
+        // Get comments array
+        let rawComments: Comment[] = [];
+        if (Array.isArray(commentsData.comments)) {
+          rawComments = commentsData.comments;
+        } else if (Array.isArray(commentsData)) {
+          rawComments = commentsData;
+        }
+      
+      // Process comments and extract user data properly 
       const processedComments = rawComments.map((comment) => {
         // Check if we already have user data for this comment in cache
         const cachedComment = userCommentsRef.current[comment._id];
@@ -100,14 +121,23 @@ const CommentsSection = ({ postId, onCommentCountChange }: CommentsSectionProps)
             profileImageUrl: ''
           }
         };
-      });
-      
-      setComments(processedComments);
+        });
+        
+        setComments(processedComments);
+      } else {
+        setComments([]);
+        setTotalCommentCount(0);
+        setTotalPages(1);
+      }
     } catch (error) {
       console.error('Error fetching comments:', error);
+      // If we can't fetch comments, start with empty array but don't fail
       setComments([]);
+      setTotalCommentCount(0);
+      setTotalPages(1);
     } finally {
       setLoading(false);
+      setPaginationLoading(false);
     }
   };
 
@@ -115,7 +145,22 @@ const CommentsSection = ({ postId, onCommentCountChange }: CommentsSectionProps)
     // Store this comment with full user data in our ref
     userCommentsRef.current[newComment._id] = newComment;
     
-    setComments(prev => [newComment, ...prev]);
+    // Add to current page if we're on page 1, otherwise refetch
+    if (currentPage === 1) {
+      setComments(prev => [newComment, ...prev]);
+      setTotalCommentCount(prev => prev + 1);
+    } else {
+      // Go to first page to see the new comment
+      setCurrentPage(1);
+      fetchComments(1);
+    }
+  };
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages && newPage !== currentPage) {
+      setCurrentPage(newPage);
+      fetchComments(newPage);
+    }
   };
 
   const handleCommentUpdate = (updatedComment: Comment) => {
@@ -128,6 +173,7 @@ const CommentsSection = ({ postId, onCommentCountChange }: CommentsSectionProps)
 
   const handleCommentDelete = (commentId: string) => {
     setComments(prev => prev.filter(comment => comment._id !== commentId));
+    setTotalCommentCount(prev => Math.max(0, prev - 1));
   };
 
   const sortedComments = Array.isArray(comments) ? [...comments].sort((a, b) => {
@@ -153,7 +199,7 @@ const CommentsSection = ({ postId, onCommentCountChange }: CommentsSectionProps)
         <div className="flex items-center gap-2">
           <MessageCircle className="w-5 h-5 text-gray-600" />
           <h3 className="text-lg font-semibold text-gray-900">
-            Comments ({comments?.length || 0})
+            Comments ({totalCommentCount})
           </h3>
         </div>
 
@@ -214,6 +260,7 @@ const CommentsSection = ({ postId, onCommentCountChange }: CommentsSectionProps)
         <AddComment 
           postId={postId} 
           onCommentAdded={handleNewComment}
+          shouldFocus={shouldFocusComment}
         />
       </div>
 
@@ -231,16 +278,91 @@ const CommentsSection = ({ postId, onCommentCountChange }: CommentsSectionProps)
             <p className="text-gray-400">Be the first to comment on this post!</p>
           </div>
         ) : (
-          sortedComments?.map((comment) => (
-            <CommentItem
-              key={comment._id}
-              comment={comment}
-              onUpdate={handleCommentUpdate}
-              onDelete={handleCommentDelete}
-            />
-          ))
+          <>
+            {sortedComments?.map((comment) => (
+              <CommentItem
+                key={comment._id}
+                comment={comment}
+                onUpdate={handleCommentUpdate}
+                onDelete={handleCommentDelete}
+              />
+            ))}
+            
+            {paginationLoading && (
+              <div className="text-center py-4">
+                <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-yellow-500 mx-auto mb-2"></div>
+                <p className="text-gray-500 text-sm">Loading more comments...</p>
+              </div>
+            )}
+          </>
         )}
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && !loading && (
+        <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200">
+          <div className="text-sm text-gray-500">
+            Page {currentPage} of {totalPages} • {totalCommentCount} total comments
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1 || paginationLoading}
+              className="flex items-center gap-1"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              Previous
+            </Button>
+            
+            <div className="flex items-center space-x-1">
+              {/* Show page numbers */}
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum;
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = currentPage - 2 + i;
+                }
+                
+                return (
+                  <Button
+                    key={pageNum}
+                    variant={currentPage === pageNum ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => handlePageChange(pageNum)}
+                    disabled={paginationLoading}
+                    className={`w-8 h-8 p-0 ${
+                      currentPage === pageNum 
+                        ? 'bg-yellow-500 hover:bg-yellow-600 text-white' 
+                        : 'text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    {pageNum}
+                  </Button>
+                );
+              })}
+            </div>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages || paginationLoading}
+              className="flex items-center gap-1"
+            >
+              Next
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
