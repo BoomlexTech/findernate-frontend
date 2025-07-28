@@ -18,6 +18,7 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showBusinessDetailsModal, setShowBusinessDetailsModal] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
+  const [showEditBusinessDetails, setShowEditBusinessDetails] = useState(false);
   const router = useRouter();
   const { logout: logoutUser } = useUserStore();
 
@@ -124,7 +125,11 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
             <SettingItem icon={<Shield />} title="View Your Business Details" />
             <SettingItem icon={<Shield />} title="Complete your KYC" />
             <SettingItem icon={<Shield />} title="Promote Your Business" />
-            <SettingItem icon={<Shield />} title="Edit Your Business Details" />
+            <SettingItem
+              icon={<Shield />}
+              title="Edit Your Business Details"
+              onClick={() => setShowEditBusinessDetails(true)}
+            />
             <SettingToggle
               icon={<MapPin />}
               title="Hide Address"
@@ -180,6 +185,15 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
         isOpen={showBusinessDetailsModal}
         onClose={() => setShowBusinessDetailsModal(false)}
         onSubmit={handleBusinessDetailsSubmit}
+      />
+      {/* Edit Business Details Modal */}
+      <BusinessDetailsModal
+        isOpen={showEditBusinessDetails}
+        onClose={() => setShowEditBusinessDetails(false)}
+        onSubmit={(data) => {
+          // handle update logic here (e.g., send to API)
+          setShowEditBusinessDetails(false);
+        }}
       />
     </div>
   );

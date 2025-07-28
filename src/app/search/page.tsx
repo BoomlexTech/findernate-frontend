@@ -200,6 +200,11 @@ export default function SearchPage() {
   const displayedUsers = showAllUsers ? users : users.slice(0, 2);
   const hasMoreUsers = users.length > 2;
 
+  // Handler for trending search click
+  const handleTrendingClick = (term: string) => {
+    setSearchQuery(term);
+  };
+
   return (
     <>
       <div className="min-h-screen flex flex-col gap-10 hide-scrollbar">
@@ -516,7 +521,7 @@ export default function SearchPage() {
 
         <div className="w-[23rem] fixed p-5 right-0 top-0 h-full bg-white border-l border-gray-200 overflow-y-auto">
           <div className="mb-5">
-            <TrendingTopics isSearchPage={true} />
+            <TrendingTopics isSearchPage={true} onTrendingClick={handleTrendingClick} />
           </div>
           <TrendingBusiness />
         </div>

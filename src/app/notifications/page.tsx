@@ -118,7 +118,7 @@ const Notifications = () => {
   }, []);
 
   return (
-    <div className="w-[50rem] min-h-screen overflow-y-auto bg-white border border-gray-300 rounded-lg shadow-lg p-4 ml-50 mt-5 space-y-2">
+    <div className="w-[50rem] min-h-screen overflow-y-auto bg-white border border-gray-300 rounded-lg shadow-lg p-4 ml-50 space-y-2">
       {/* Loading State */}
       {loading && (
         <div className="flex items-center justify-center py-12">
