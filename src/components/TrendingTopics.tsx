@@ -19,9 +19,10 @@ const fallbackTopics = [
 
 interface TrendingTopicsProps {
   isSearchPage?: boolean;
+  onTrendingClick?: (term: string) => void;
 }
 
-export default function TrendingTopics({ isSearchPage = false }: TrendingTopicsProps) {
+export default function TrendingTopics({ isSearchPage = false, onTrendingClick }: TrendingTopicsProps) {
   const [searches, setSearches] = useState<PopularSearch[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -75,6 +76,7 @@ export default function TrendingTopics({ isSearchPage = false }: TrendingTopicsP
                 <div
                   key={index}
                   className="flex justify-between items-center p-2 rounded-lg hover:bg-gray-50 transition-colors border cursor-pointer"
+                  onClick={() => onTrendingClick?.(item.keyword)}
                 >
                   <div>
                     <p className="font-medium text-yellow-600 hover:text-yellow-800 transition-colors">
