@@ -5,11 +5,12 @@ import Image from "next/image";
 import { X, Upload, Camera, Image as ImageIcon, Video, Send, Play, Pause, RotateCcw } from "lucide-react";
 
 interface CreateStoryModalProps {
+  isOpen: boolean;
   onClose: () => void;
   onUpload: (media: File, caption?: string) => Promise<boolean>;
 }
 
-export default function CreateStoryModal({ onClose, onUpload }: CreateStoryModalProps) {
+export default function CreateStoryModal({ isOpen, onClose, onUpload }: CreateStoryModalProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [caption, setCaption] = useState("");
@@ -127,7 +128,20 @@ export default function CreateStoryModal({ onClose, onUpload }: CreateStoryModal
       const success = await onUpload(selectedFile, caption || undefined);
       
       if (success) {
-        onClose();
+        // Reset form for another upload instead of closing
+        cleanup();
+        setSelectedFile(null);
+        setPreviewUrl(null);
+        setCaption("");
+        setError(null);
+        setShowCaptionInput(false);
+        setImageScrollable(false);
+        setIsVideoPlaying(false);
+        setVideoCurrentTime(0);
+        // Reset file input
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
       } else {
         setError("Failed to upload story. Please try again.");
       }
@@ -152,9 +166,29 @@ export default function CreateStoryModal({ onClose, onUpload }: CreateStoryModal
     onClose();
   };
 
+  // Don't render if not open
+  if (!isOpen) {
+    return null;
+  }
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl max-w-sm w-full max-h-[90vh] overflow-hidden shadow-2xl flex flex-col">
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4"
+      onClick={(e) => {
+        // Prevent modal from closing when clicking backdrop
+        if (e.target === e.currentTarget) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      }}
+    >
+      <div 
+        className="bg-white rounded-2xl max-w-sm w-full max-h-[90vh] overflow-hidden shadow-2xl flex flex-col"
+        onClick={(e) => {
+          // Prevent clicks inside modal from bubbling up
+          e.stopPropagation();
+        }}
+      >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-100">
           <div className="flex items-center space-x-3">
@@ -193,24 +227,14 @@ export default function CreateStoryModal({ onClose, onUpload }: CreateStoryModal
                 {/* File Type Buttons */}
                 <div className="flex gap-4 mt-4">
                   <button
-                    onClick={() => {
-                      if (fileInputRef.current) {
-                        fileInputRef.current.accept = "image/*";
-                        fileInputRef.current.click();
-                      }
-                    }}
+                    onClick={() => fileInputRef.current?.click()}
                     className="flex-1 flex items-center justify-center gap-2 p-3 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
                   >
                     <ImageIcon size={20} />
                     <span>Photo</span>
                   </button>
                   <button
-                    onClick={() => {
-                      if (fileInputRef.current) {
-                        fileInputRef.current.accept = "video/*";
-                        fileInputRef.current.click();
-                      }
-                    }}
+                    onClick={() => fileInputRef.current?.click()}
                     className="flex-1 flex items-center justify-center gap-2 p-3 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 transition-colors"
                   >
                     <Video size={20} />
@@ -353,8 +377,8 @@ export default function CreateStoryModal({ onClose, onUpload }: CreateStoryModal
                 {/* Caption Overlay (if exists) */}
                 {caption && (
                   <div className="absolute bottom-16 left-4 right-4">
-                    <div className="bg-black bg-opacity-60 rounded-lg p-3">
-                      <p className="text-white text-sm font-medium">{caption}</p>
+                    <div className="bg-white bg-opacity-90 rounded-lg p-3">
+                      <p className="text-black text-sm font-medium">{caption}</p>
                     </div>
                   </div>
                 )}
@@ -391,7 +415,7 @@ export default function CreateStoryModal({ onClose, onUpload }: CreateStoryModal
                       value={caption}
                       onChange={(e) => setCaption(e.target.value)}
                       placeholder="Write a caption..."
-                      className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                      className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm text-black"
                       rows={3}
                       maxLength={500}
                       disabled={isUploading}
