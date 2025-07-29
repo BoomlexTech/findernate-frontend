@@ -33,6 +33,7 @@ export default function StoryViewer({
   const [isPaused, setIsPaused] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [viewerCount, setViewerCount] = useState(0);
+  const [shouldAdvance, setShouldAdvance] = useState(false);
 
   const getInitials = (name: string) => {
     return name
@@ -48,13 +49,7 @@ export default function StoryViewer({
   const { markStoryAsSeen, uploadStory } = useStories();
 
   const currentUser = allStoryUsers[currentUserIndex];
-  
-  // Ensure we have valid data before proceeding
-  if (!currentUser || !currentUser.stories || currentUser.stories.length === 0) {
-    return null;
-  }
-  
-  const currentStory = currentUser.stories[currentStoryIndex];
+  const currentStory = currentUser?.stories?.[currentStoryIndex];
   const isVideo = currentStory?.mediaType === 'video' || currentStory?.postType === 'video';
 
   // Calculate duration based on media type
@@ -81,8 +76,8 @@ export default function StoryViewer({
     progressRef.current = setInterval(() => {
       setProgress(prev => {
         if (prev >= 100) {
-          nextStory();
-          return 0;
+          setShouldAdvance(true);
+          return 100;
         }
         return prev + increment;
       });
@@ -97,13 +92,6 @@ export default function StoryViewer({
     }
   }, []);
 
-  // Reset and restart progress
-  const resetProgress = useCallback(() => {
-    stopProgress();
-    setProgress(0);
-    setTimeout(startProgress, 100);
-  }, [stopProgress, startProgress]);
-
   // Next story logic
   const nextStory = useCallback(() => {
     // Mark current story as viewed before moving to next
@@ -114,7 +102,10 @@ export default function StoryViewer({
     if (currentStoryIndex < currentUser.stories.length - 1) {
       // Next story in same user
       setCurrentStoryIndex(prev => prev + 1);
-      resetProgress();
+      stopProgress();
+      setProgress(0);
+      setShouldAdvance(false);
+      setTimeout(startProgress, 100);
     } else {
       // Next user
       const nextUserIndex = currentUserIndex + 1;
@@ -123,7 +114,10 @@ export default function StoryViewer({
         if (nextUser && nextUser.stories && nextUser.stories.length > 0) {
           setCurrentUserIndex(nextUserIndex);
           setCurrentStoryIndex(0);
-          resetProgress();
+          stopProgress();
+          setProgress(0);
+          setShouldAdvance(false);
+          setTimeout(startProgress, 100);
         } else {
           onClose();
         }
@@ -131,14 +125,33 @@ export default function StoryViewer({
         onClose();
       }
     }
-  }, [currentUser, currentStory, currentStoryIndex, currentUserIndex, allStoryUsers, onClose, resetProgress, onStoryViewed]);
+  }, [currentUser, currentStory, currentStoryIndex, currentUserIndex, allStoryUsers, onClose, onStoryViewed, stopProgress, startProgress]);
+
+  // Reset and restart progress  
+  const resetProgress = useCallback(() => {
+    stopProgress();
+    setProgress(0);
+    setShouldAdvance(false);
+    setTimeout(startProgress, 100);
+  }, [stopProgress, startProgress]);
+
+  // Handle story advancement when progress completes
+  useEffect(() => {
+    if (shouldAdvance) {
+      setShouldAdvance(false);
+      nextStory();
+    }
+  }, [shouldAdvance, nextStory]);
 
   // Previous story logic
   const prevStory = useCallback(() => {
     if (currentStoryIndex > 0) {
       // Previous story in same user
       setCurrentStoryIndex(prev => prev - 1);
-      resetProgress();
+      stopProgress();
+      setProgress(0);
+      setShouldAdvance(false);
+      setTimeout(startProgress, 100);
     } else {
       // Previous user
       const prevUserIndex = currentUserIndex - 1;
@@ -147,11 +160,14 @@ export default function StoryViewer({
         if (prevUser && prevUser.stories && prevUser.stories.length > 0) {
           setCurrentUserIndex(prevUserIndex);
           setCurrentStoryIndex(prevUser.stories.length - 1);
-          resetProgress();
+          stopProgress();
+          setProgress(0);
+          setShouldAdvance(false);
+          setTimeout(startProgress, 100);
         }
       }
     }
-  }, [currentStoryIndex, currentUserIndex, allStoryUsers, resetProgress]);
+  }, [currentStoryIndex, currentUserIndex, allStoryUsers, stopProgress, startProgress]);
 
   // Handle close with story marking
   const handleClose = useCallback(() => {
@@ -242,7 +258,7 @@ export default function StoryViewer({
           try {
             const analytics = await storyAPI.fetchStoryViewers(currentStory._id, 1, 1);
             setViewerCount(analytics.pagination.total);
-          } catch (error) {
+          } catch {
             // Fallback to story viewers array length
             setViewerCount(currentStory.viewers?.length || 0);
           }
@@ -290,8 +306,8 @@ export default function StoryViewer({
     return `${diffInHours}h ago`;
   };
 
-  // Additional safety check for currentStory
-  if (!currentStory) {
+  // Ensure we have valid data before proceeding
+  if (!currentUser || !currentUser.stories || currentUser.stories.length === 0 || !currentStory) {
     return null;
   }
 
@@ -435,12 +451,11 @@ export default function StoryViewer({
       </div>
 
       {/* Create Story Modal */}
-      {showCreateModal && (
-        <CreateStoryModal
-          onClose={handleCreateModalClose}
-          onUpload={handleStoryUpload}
-        />
-      )}
+      <CreateStoryModal
+        isOpen={showCreateModal}
+        onClose={handleCreateModalClose}
+        onUpload={handleStoryUpload}
+      />
     </div>
   );
 }

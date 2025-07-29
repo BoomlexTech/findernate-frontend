@@ -52,15 +52,6 @@ export const useStories = () => {
     // Sort stories within each user by creation time (oldest first, newest last)
     Array.from(userMap.values()).forEach(storyUser => {
       storyUser.stories.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-      
-      // Debug logging for story sorting
-      if (storyUser.stories.length > 1) {
-        console.log(`Stories for ${storyUser.username} (oldest to newest):`, storyUser.stories.map(s => ({
-          id: s._id,
-          createdAt: s.createdAt,
-          caption: s.caption
-        })));
-      }
     });
 
     // Convert to array and sort: current user first, then by most recent story

@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useStories } from "@/hooks/useStories";
 import { useUserStore } from "@/store/useUserStore";
 import { StoryUser, Story } from "@/types/story";
@@ -46,10 +46,17 @@ const saveViewedStoriesToStorage = (viewedStories: Set<string>) => {
 export default function StoriesBar({ onCreateStory }: StoriesBarProps) {
   const [selectedUser, setSelectedUser] = useState<StoryUser | null>(null);
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(() => {
+    // Check if modal should be open from localStorage
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('create-story-modal-open') === 'true';
+    }
+    return false;
+  });
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [analyticsStory, setAnalyticsStory] = useState<Story | null>(null);
   const [viewedStories, setViewedStories] = useState<Set<string>>(loadViewedStoriesFromStorage);
+  const modalStateRef = useRef(false);
   
   const { user, token } = useUserStore();
 
@@ -64,6 +71,16 @@ export default function StoriesBar({ onCreateStory }: StoriesBarProps) {
   
   // Always call useStories - hooks must be called unconditionally
   const { storyUsers, loading, hasActiveStories, uploadStory } = useStories();
+
+  // Sync modal state with localStorage on state changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedState = localStorage.getItem('create-story-modal-open') === 'true';
+      if (storedState && !showCreateModal) {
+        setShowCreateModal(true);
+      }
+    }
+  }, [storyUsers, showCreateModal]);
 
   // Clean up expired stories from viewed list
   useEffect(() => {
@@ -89,14 +106,6 @@ export default function StoriesBar({ onCreateStory }: StoriesBarProps) {
       });
     }
   }, [storyUsers]);
-  
-  console.log('StoriesBar - User data:', user); // Debug log
-  console.log('StoriesBar - Token:', token); // Debug token
-  if (typeof window !== 'undefined') {
-    console.log('StoriesBar - LocalStorage user-storage:', localStorage.getItem('user-storage')); // Debug localStorage
-    console.log('StoriesBar - LocalStorage token:', localStorage.getItem('token')); // Debug token key
-    console.log('StoriesBar - All localStorage keys:', Object.keys(localStorage)); // Show all keys
-  }
 
   // Always render something - don't return null
   if (!user) {
@@ -116,8 +125,6 @@ export default function StoriesBar({ onCreateStory }: StoriesBarProps) {
   }
 
   const openStoryModal = (storyUser: StoryUser) => {
-    console.log('Clicked on story user:', storyUser); // Debug log
-    
     // If current user has no stories, show create modal
     if (storyUser.isCurrentUser && (!storyUser.stories || storyUser.stories.length === 0)) {
       handleCreateStory();
@@ -163,14 +170,14 @@ export default function StoriesBar({ onCreateStory }: StoriesBarProps) {
   };
 
   const handleCreateStory = () => {
+    modalStateRef.current = true;
+    localStorage.setItem('create-story-modal-open', 'true');
     setShowCreateModal(true);
   };
 
   const handleStoryUpload = async (media: File, caption?: string) => {
     const success = await uploadStory(media, caption);
-    if (success) {
-      setShowCreateModal(false);
-    }
+    // Don't auto-close modal to allow multiple story uploads
     return success;
   };
 
@@ -184,8 +191,6 @@ export default function StoriesBar({ onCreateStory }: StoriesBarProps) {
     setAnalyticsStory(null);
   };
 
-  console.log('StoriesBar - storyUsers from API:', storyUsers); // Debug stories from API
-  console.log('StoriesBar - loading:', loading); // Debug loading state
 
   // Use actual story users from API, or create current user if no stories
   let displayUsers = [...storyUsers];
@@ -216,9 +221,9 @@ export default function StoriesBar({ onCreateStory }: StoriesBarProps) {
                 areAllStoriesViewed(storyUser)
                   ? "border-gray-400"
                   : storyUser.hasNewStories
-                  ? "border-2 bg-gradient-to-r from-pink-500 to-purple-500 p-[2px]"
+                  ? "border-2 bg-gradient-to-r from-yellow-400 to-yellow-600 p-[2px]"
                   : "border-gray-300"
-              } overflow-hidden cursor-pointer transition-transform hover:scale-105`}
+              } cursor-pointer transition-transform hover:scale-105`}
             >
               <div className={`w-full h-full rounded-full overflow-hidden ${
                 storyUser.hasNewStories && !areAllStoriesViewed(storyUser) ? 'bg-white p-[2px]' : ''
@@ -240,16 +245,20 @@ export default function StoriesBar({ onCreateStory }: StoriesBarProps) {
                 )}
               </div>
               
-              {/* Add story plus icon for current user with no stories */}
+              {/* Instagram-style add story plus icon for current user with no stories */}
               {storyUser.isCurrentUser && (!storyUser.stories || storyUser.stories.length === 0) && (
-                <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-blue-500 rounded-full border-2 border-white flex items-center justify-center">
-                  <Plus size={12} className="text-white" />
+                <div 
+                  className="absolute bottom-0 right-0 w-5 h-5 bg-yellow-500 rounded-full border-2 border-white shadow-lg flex items-center justify-center cursor-pointer hover:bg-yellow-600 transition-all hover:scale-110 z-20"
+                  onClick={(e) => {
+                    e.stopPropagation(); // Prevent the parent click handler
+                    handleCreateStory();
+                  }}
+                  style={{
+                    transform: 'translate(30%, 30%)'
+                  }}
+                >
+                  <Plus size={10} className="text-white" strokeWidth={3} />
                 </div>
-              )}
-              
-              {/* New story indicator for others */}
-              {storyUser.hasNewStories && storyUser.stories && storyUser.stories.length > 0 && !storyUser.isCurrentUser && (
-                <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
               )}
             </div>
             <p className="text-xs mt-2 text-center text-gray-700 font-medium max-w-[64px] truncate">
@@ -272,12 +281,16 @@ export default function StoriesBar({ onCreateStory }: StoriesBarProps) {
       )}
 
       {/* Create Story Modal */}
-      {showCreateModal && (
-        <CreateStoryModal
-          onClose={() => setShowCreateModal(false)}
-          onUpload={handleStoryUpload}
-        />
-      )}
+      <CreateStoryModal
+        key="create-story-modal"
+        isOpen={showCreateModal}
+        onClose={() => {
+          modalStateRef.current = false;
+          localStorage.removeItem('create-story-modal-open');
+          setShowCreateModal(false);
+        }}
+        onUpload={handleStoryUpload}
+      />
 
       {/* Story Analytics Modal - Independent of StoryViewer */}
       {showAnalytics && analyticsStory && (

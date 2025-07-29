@@ -13,6 +13,7 @@ import { Badge } from './ui/badge';
 import ProductCard from './post-window/ProductCard';
 import BusinessPostCard from './post-window/BusinessCard';
 import { likePost, unlikePost } from '@/api/post';
+import { createComment } from '@/api/comment';
 import { postEvents } from '@/utils/postEvents';
 
 export interface PostCardProps {
@@ -27,9 +28,12 @@ export default function PostCard({ post }: PostCardProps) {
   const [commentsCount, setCommentsCount] = useState(post.engagement.comments);
   const [isLoading, setIsLoading] = useState(false);
   const [hasRefreshed, setHasRefreshed] = useState(false);
+  const [isClient, setIsClient] = useState(false);
   const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const [comment, setComment] = useState('');
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
 
   // Sync local state with prop changes (important for page refreshes)
   useEffect(() => {
@@ -44,16 +48,22 @@ export default function PostCard({ post }: PostCardProps) {
   }, [post._id]);
 
 
+  // Set client-side flag to prevent hydration issues
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   // For debugging - log the initial state including comments
   useEffect(() => {
     console.log(`PostCard loaded for post ${post._id}: isLikedBy=${post.isLikedBy}, likes=${post.engagement.likes}, comments=${post.engagement.comments}`);
   }, [post._id]);
 
-  // Load like status from localStorage on component mount (for persistence across refreshes)
+  // Load like status and comment count from localStorage on component mount (for persistence across refreshes)
   useEffect(() => {
-    if (!hasRefreshed && typeof window !== 'undefined') {
+    if (!hasRefreshed && isClient) {
       const savedLikeStatus = localStorage.getItem(`post_like_${post._id}`);
       const savedLikesCount = localStorage.getItem(`post_likes_count_${post._id}`);
+      const savedCommentsCount = localStorage.getItem(`post_comments_count_${post._id}`);
       
       if (savedLikeStatus !== null) {
         const isLikedFromStorage = savedLikeStatus === 'true';
@@ -63,9 +73,19 @@ export default function PostCard({ post }: PostCardProps) {
         setIsLiked(isLikedFromStorage);
         setLikesCount(likesCountFromStorage);
       }
+      
+      if (savedCommentsCount !== null) {
+        const commentsCountFromStorage = parseInt(savedCommentsCount);
+        // Only use saved count if it's higher than the server count (to account for new comments)
+        if (commentsCountFromStorage > post.engagement.comments) {
+          console.log(`Loading comment count from localStorage for post ${post._id}: ${commentsCountFromStorage}`);
+          setCommentsCount(commentsCountFromStorage);
+        }
+      }
+      
       setHasRefreshed(true);
     }
-  }, [post._id, post.engagement.likes, hasRefreshed]);
+  }, [post._id, post.engagement.likes, post.engagement.comments, hasRefreshed, isClient]);
 
   // Listen for comment count changes from other tabs/components
   useEffect(() => {
@@ -130,8 +150,10 @@ export default function PostCard({ post }: PostCardProps) {
     setLikesCount(newLikesCount);
     
     // Save to localStorage for persistence
-    localStorage.setItem(`post_like_${post._id}`, shouldLike.toString());
-    localStorage.setItem(`post_likes_count_${post._id}`, newLikesCount.toString());
+    if (isClient) {
+      localStorage.setItem(`post_like_${post._id}`, shouldLike.toString());
+      localStorage.setItem(`post_likes_count_${post._id}`, newLikesCount.toString());
+    }
     
     console.log(`Optimistic update - new isLiked: ${shouldLike}, new likesCount: ${newLikesCount}`);
 
@@ -182,8 +204,10 @@ export default function PostCard({ post }: PostCardProps) {
       setLikesCount(previousLikesCount);
       
       // Revert localStorage as well
-      localStorage.setItem(`post_like_${post._id}`, previousIsLiked.toString());
-      localStorage.setItem(`post_likes_count_${post._id}`, previousLikesCount.toString());
+      if (isClient) {
+        localStorage.setItem(`post_like_${post._id}`, previousIsLiked.toString());
+        localStorage.setItem(`post_likes_count_${post._id}`, previousLikesCount.toString());
+      }
     } finally {
       console.log(`=== LIKE TOGGLE END - Expected final state: isLiked: ${shouldLike}, loading: false ===`);
       setIsLoading(false);
@@ -243,6 +267,55 @@ export default function PostCard({ post }: PostCardProps) {
     
     // Open post page in new tab with only post ID
     window.open(`/post/${post._id}`, '_blank');
+  };
+
+  const handleCommentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!comment.trim() || isSubmittingComment) return;
+    
+    setIsSubmittingComment(true);
+    try {
+      console.log(`Adding comment to post ${post._id}:`, comment);
+      
+      // Call the actual API to create comment
+      const newComment = await createComment({
+        postId: post._id,
+        content: comment.trim()
+      });
+      
+      console.log('Comment created successfully:', newComment);
+      
+      // Update comments count optimistically and clear input
+      const newCount = commentsCount + 1;
+      setCommentsCount(newCount);
+      setComment('');
+      
+      // Save the updated comment count to localStorage for persistence
+      if (isClient) {
+        localStorage.setItem(`post_comments_count_${post._id}`, newCount.toString());
+      }
+      
+      // Emit event for comment count change to sync across components
+      postEvents.emit(post._id, 'commentCountChange', newCount);
+      
+      // Note: The backend automatically updates the post's comment count
+      // The saved count will persist until the server provides a higher count
+      
+    } catch (error: any) {
+      console.error('Error adding comment:', error);
+      
+      // Revert the comment count on error
+      setCommentsCount(commentsCount);
+      if (isClient) {
+        localStorage.setItem(`post_comments_count_${post._id}`, commentsCount.toString());
+      }
+      
+      // Show user-friendly error message
+      const errorMessage = error?.response?.data?.message || 'Failed to add comment. Please try again.';
+      alert(errorMessage);
+    } finally {
+      setIsSubmittingComment(false);
+    }
   };
 
 
@@ -332,7 +405,7 @@ export default function PostCard({ post }: PostCardProps) {
         </div>
 
         {/* Profile + Info */}
-        <div className="flex flex-col justify-start flex-1 space-y-3 relative pb-16">
+        <div className="flex flex-col justify-start flex-1 space-y-1 relative pb-16">
           <div className="flex items-start gap-3">
             <Link href={`/userprofile/${post.username}`}>
               <Image
@@ -366,16 +439,37 @@ export default function PostCard({ post }: PostCardProps) {
 
           <p className="text-gray-900 leading-relaxed">{post.caption}</p>
 
-          {post.contentType === 'service' && <ServiceCard />}
-          {post.contentType === 'product' && <ProductCard />}
-          {post.contentType === 'business' && <BusinessPostCard />}
-
-          
+          {post.contentType === 'service' && <ServiceCard post={post} />}
+          {post.contentType === 'product' && <ProductCard post={post} />}
+          {post.contentType === 'business' && <BusinessPostCard post={post} />}
 
         {/* Hashtags (Empty for now) */}
       <div className="px-1 pb-4">
         <div className="flex flex-wrap gap-2"><p className='text-black'>{post?.tags || "test tags, tag, nike"}</p></div>
       </div>
+
+          {/* Comment Box - Only show for normal/regular posts and not on single post pages */}
+          {(!post.contentType || post.contentType === 'normal' || post.contentType === 'regular') && !pathname.includes('/post/') && (
+            <div className="px-2 pb-3">
+              <form onSubmit={handleCommentSubmit} className="flex gap-2">
+                <input
+                  type="text"
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  placeholder="Add a comment..."
+                  className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 text-gray-900 placeholder-gray-500"
+                  disabled={isSubmittingComment}
+                />
+                <button
+                  type="submit"
+                  disabled={!comment.trim() || isSubmittingComment}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {isSubmittingComment ? 'Posting...' : 'Post'}
+                </button>
+              </form>
+            </div>
+          )}
 
           <div className="px-2 py-1 absolute bottom-0">
             <div className="flex items-center justify-between">

@@ -53,7 +53,7 @@ const CommentItem = ({ comment, onUpdate, onDelete, isReply = false }: CommentIt
         try {
           await likeComment(comment._id);
         } catch (likeError: any) {
-          // Handle "already liked" error or self-like restriction
+              // Handle "already liked" error or self-like restriction
           if (likeError?.response?.status === 409) {
             console.log(`Comment ${comment._id} already liked or self-like not allowed - treating as successful`);
             return; // Keep the optimistic update

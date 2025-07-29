@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, Plus, Bell } from 'lucide-react';
 import PostCard from '@/components/PostCard';
 import { getExploreFeed } from '@/api/exploreFeed';
-import { transformExploreFeedToFeedPost, shuffleArray } from '@/utils/transformExploreFeed';
+import { transformExploreFeedToFeedPost } from '@/utils/transformExploreFeed';
 import { searchAllContent } from '@/api/search';
 import { FeedPost } from '@/types';
 

@@ -13,7 +13,8 @@ import {
   Users,
   Shield,
   ArrowLeft,
-  X
+  X,
+  Building2
 } from 'lucide-react';
 import { FeedPost } from '@/types';
 import { Badge } from './ui/badge';
@@ -58,15 +59,37 @@ const ProductServiceDetails = ({ post, onClose }: ProductServiceDetailsProps) =>
     link: "#"
   };
 
+  const mockBusinessData = {
+    name: post.caption || "Local Business",
+    price: "Contact for pricing",
+    duration: "Business hours",
+    category: "Food & Dining",
+    type: "Physical Location",
+    location: post.location?.name || "Delhi, India",
+    timing: "9 AM - 10 PM",
+    availability: "Open",
+    requirements: ["No special requirements"],
+    whatYouGet: ["Quality service", "Customer support", "Satisfaction guarantee"],
+    businessType: "Restaurant",
+    link: "#"
+  };
+
   const isProduct = post.contentType === 'product';
-  const data = isProduct ? mockProductData : mockServiceData;
+  const isBusiness = post.contentType === 'business';
+  const data = isProduct ? mockProductData : isBusiness ? mockBusinessData : mockServiceData;
 
   const handleBooking = () => {
     setIsBooking(true);
     // Simulate booking process
     setTimeout(() => {
       setIsBooking(false);
-      alert(isProduct ? 'Product added to cart!' : 'Service booking request sent!');
+      if (isProduct) {
+        alert('Product added to cart!');
+      } else if (isBusiness) {
+        alert('Contact information shared!');
+      } else {
+        alert('Service booking request sent!');
+      }
     }, 2000);
   };
 
@@ -80,6 +103,8 @@ const ProductServiceDetails = ({ post, onClose }: ProductServiceDetailsProps) =>
               <div className="flex items-center gap-2">
                 {isProduct ? (
                   <Package className="w-6 h-6 text-yellow-600" />
+                ) : isBusiness ? (
+                  <Building2 className="w-6 h-6 text-yellow-600" />
                 ) : (
                   <User className="w-6 h-6 text-yellow-600" />
                 )}
@@ -91,7 +116,7 @@ const ProductServiceDetails = ({ post, onClose }: ProductServiceDetailsProps) =>
                 className="bg-yellow-100 text-yellow-800 border-yellow-200 px-3 py-1"
                 variant="outline"
               >
-                {isProduct ? 'Product' : 'Service'}
+                {isProduct ? 'Product' : isBusiness ? 'Business' : 'Service'}
               </Badge>
               <button 
                 onClick={onClose}
@@ -217,16 +242,18 @@ const ProductServiceDetails = ({ post, onClose }: ProductServiceDetailsProps) =>
               className={`w-full py-4 px-6 rounded-xl font-bold text-white text-lg transition-all duration-200 shadow-lg hover:shadow-xl ${
                 isProduct
                   ? 'bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800'
+                  : isBusiness
+                  ? 'bg-gradient-to-r from-violet-600 to-purple-700 hover:from-violet-700 hover:to-purple-800'
                   : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800'
               } ${isBooking ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.02]'}`}
             >
               {isBooking ? (
                 <div className="flex items-center justify-center gap-2">
                   <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
-                  {isProduct ? 'Adding to Cart...' : 'Booking...'}
+                  {isProduct ? 'Adding to Cart...' : isBusiness ? 'Getting Contact Info...' : 'Booking...'}
                 </div>
               ) : (
-                isProduct ? 'Add to Cart' : 'Book Now'
+                isProduct ? 'Add to Cart' : isBusiness ? 'Get Contact Info' : 'Book Now'
               )}
             </button>
           </div>
