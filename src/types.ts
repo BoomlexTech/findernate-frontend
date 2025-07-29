@@ -105,7 +105,7 @@ export interface ServiceDetailsFormProps {
     currency: string;
     category: string;
     subcategory: string;
-    duration: string; // Keep as string for input, convert to number for API
+    duration: number; // Keep as string for input, convert to number for API
     serviceType: string; // 'in-person', 'online', 'hybrid'
     availability: {
       schedule: Array<{
@@ -144,9 +144,6 @@ export interface ServiceDetailsFormProps {
 export interface BusinessPostFormProps {
   formData: {
   postType: string;
-  caption: string;
-  description: string;
-  image: File[]; // Array of File objects
   mentions: string[]; // Array of user IDs
   settings: {
     visibility: string;

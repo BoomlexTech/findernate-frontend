@@ -1,4 +1,3 @@
-
 import axios from './base';
 import { BusinessPostFormProps, ProductDetailsFormProps, ServiceDetailsFormProps } from '@/types';
 import buildFormData from '@/utils/formDataBuilder';
@@ -76,6 +75,9 @@ export const createServicePost = async ({formData}: {formData: ServiceDetailsFor
 export const createBusinessPost = async ({formData}: {formData: BusinessPostFormProps['formData'] }) => {
   const fd = new FormData();
   buildFormData(fd, formData);
+  for (const pair of fd.entries()) {
+    console.log(pair[0]+ ', ' + pair[1]);
+  }
   const response = await axios.post('/posts/create/business', fd, {
     headers: {
       'Content-Type': 'multipart/form-data',

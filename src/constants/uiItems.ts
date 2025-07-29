@@ -1,8 +1,9 @@
-import { Home, Search, MessageCircle, User, TrendingUp, Building, Package, Settings, Bookmark, Bell} from 'lucide-react';
+import { Home,Clapperboard, Search, MessageCircle, User, TrendingUp, Building, Package, Settings, Bookmark, Bell} from 'lucide-react';
 
 
 export const navigationItems = [
   { icon: Home, label: 'Home', route: '/'},
+  { icon: Clapperboard, label: 'Reels', route: '/reels'},
   { icon: Search, label: 'Search', route: '/search'},
   { icon: MessageCircle, label: 'Messages', route: '/chats'},
   { icon: Bell, label: 'Notifications', route: '/notifications'},

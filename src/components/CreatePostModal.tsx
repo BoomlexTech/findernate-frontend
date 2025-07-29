@@ -11,6 +11,7 @@ import { ProductDetailsFormProps, RegularPostPayload, ServiceDetailsFormProps, B
 import RegularPostForm from './posting/RegularDetailsForm';
 import { useUserStore } from '@/store/useUserStore';
 import TagInput from './TagInput';
+import SuccessToast from './SuccessToast';
 
 interface createPostModalProps {
     closeModal: () => void;
@@ -19,6 +20,8 @@ interface createPostModalProps {
 const CreatePostModal = ({closeModal}: createPostModalProps ) => {
   const [postType, setPostType] = useState('Regular');
   const [loading, setLoading] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+
   const { user } = useUserStore();
 
   const [sharedForm, setSharedForm] = useState({
@@ -81,7 +84,7 @@ const [serviceForm, setServiceForm] = useState({
     currency: 'INR',
     category: '',
     subcategory: '',
-    duration: '',
+    duration: 0,
     serviceType: '', // 'in-person', 'online', 'hybrid'
     availability: {
       schedule: [], // [{ day: 'Monday', timeSlots: [{ startTime: '', endTime: '' }] }]
@@ -104,52 +107,66 @@ const [serviceForm, setServiceForm] = useState({
   }
 });
 
-const [businessForm, setBusinessForm] = useState<BusinessPostFormProps>({
+const [businessForm, setBusinessForm] = useState({
   formData: {
-  postType: 'photo',
-  caption: '',
-  description: '',
-  image: [],
-  mentions: [],
-  settings: {
-    visibility: 'public',
-    allowComments: true,
-    allowLikes: true,
+    postType: 'photo',
+    caption: 'Grand Opening!',
+    description: 'Welcome to our new business.',
+    image: [],
+    mentions: [],
+    settings: {
+      visibility: 'public',
+      allowComments: true,
+      allowLikes: true,
+    },
+    status: 'scheduled',
+    business: {
+      businessName: 'Sample Business',
+      businessType: 'Cafe', // REQUIRED
+      description: 'A trendy new cafe with artisan coffee and snacks.',
+      category: 'Food & Beverage', // REQUIRED
+      subcategory: 'Cafe',
+      contact: {
+        phone: '+91-9876543210', // REQUIRED
+        email: 'info@samplebusiness.com', // REQUIRED
+        website: 'https://samplebusiness.com',
+        socialMedia: [
+          { platform: 'Instagram', url: 'https://instagram.com/samplebusiness' }
+        ],
+      },
+      location: {
+        address: '123 Main Street',
+        city: 'Delhi', // REQUIRED
+        state: 'Delhi', // REQUIRED
+        country: 'India', // REQUIRED
+        postalCode: '110001', // REQUIRED
+      },
+      hours: [
+        { day: 'Monday', openTime: '08:00', closeTime: '22:00', isClosed: false },
+        { day: 'Tuesday', openTime: '08:00', closeTime: '22:00', isClosed: false },
+        { day: 'Wednesday', openTime: '08:00', closeTime: '22:00', isClosed: false },
+        { day: 'Thursday', openTime: '08:00', closeTime: '22:00', isClosed: false },
+        { day: 'Friday', openTime: '08:00', closeTime: '23:00', isClosed: false },
+        { day: 'Saturday', openTime: '09:00', closeTime: '23:00', isClosed: false },
+        { day: 'Sunday', openTime: '09:00', closeTime: '21:00', isClosed: false }
+      ],
+      features: ['Free WiFi', 'Outdoor Seating', 'Live Music'],
+      priceRange: '₹₹',
+      rating: 4.8,
+      tags: ['cafe', 'coffee', 'delhi', 'grandopening'],
+      announcement: 'Grand opening this weekend! Free coffee for the first 50 guests.',
+      promotions: [
+        {
+          title: 'Opening Offer',
+          description: 'Buy 1 Get 1 Free on all coffees.',
+          discount: 50,
+          validUntil: '2025-08-01T23:59:59.000Z',
+          isActive: true
+        }
+      ],
+      link: 'https://samplebusiness.com',
+    }
   },
-  status: 'scheduled',
-  business: {
-    businessName: '',
-    businessType: '',
-    description: '',
-    category: '',
-    subcategory: '',
-    contact: {
-      phone: '',
-      email: '',
-      website: '',
-      socialMedia: [],
-    },
-    location: {
-      address: '',
-      city: '',
-      state: '',
-      country: '',
-      postalCode: '',
-    },
-    hours: [
-      // Example: { day: 'Monday', openTime: '', closeTime: '', isClosed: false }
-    ],
-    features: [],
-    priceRange: '',
-    rating: 0,
-    tags: [],
-    announcement: '',
-    promotions: [
-      { title: '', description: '', discount: 0, validUntil: '', isActive: false }
-    ],
-    link: '',
-  }
-},
 });
 
   const handleRegularChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -330,7 +347,11 @@ const handleProductChange = (
       console.error(err);
     } finally{
       setLoading(false);
-      closeModal();
+      setShowSuccess(true);
+      setTimeout(() => {
+        setShowSuccess(false);
+        closeModal();
+      }, 2000);
     }
   };
 
@@ -536,21 +557,22 @@ const handleProductChange = (
 
         {/* Footer */}
         <div className="flex justify-end space-x-3 p-6 border-t bg-gray-50">
-          <button
+          <Button
             onClick={closeModal}
             className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={handlePost}
             className="px-6 py-2 bg-button-gradient text-white rounded-lg hover:bg-yellow-700 transition-colors cursor-pointer"
             disabled={loading}
           >
             {loading ? 'Posting...': 'Post'}
-          </button>
+          </Button>
         </div>
       </div>
+      <SuccessToast show={showSuccess} message="Post created successfully!" />
     </div>
   );
 };
