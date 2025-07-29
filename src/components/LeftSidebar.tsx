@@ -59,7 +59,11 @@ export default function LeftSidebar({togglePost}: leftSidebarProps) {
 					index===isActive
 					  ? 'bg-yellow-50 text-yellow-600 border border-yellow-400 font-medium'
 					  : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}`}>
-				  <item.icon className="w-6 h-6" />
+				  {item.label === 'Reels' ? (
+					<item.icon className="w-6 h-6 border-0" />
+				  ) : (
+					<item.icon className="w-6 h-6" />
+				  )}
 				  <span>{item.label}</span>
 				</button>
 			  </li>
