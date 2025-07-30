@@ -103,10 +103,11 @@ export const likePost = async (postId: string) => {
 
 export const unlikePost = async (postId: string) => {
   console.log('API: Calling unlikePost with postId:', postId);
-  const response = await axios.post('/posts/unlike', { postId }, { timeout: 500 });
+  const response = await axios.post('/posts/unlike', { postId }, { timeout: 10000 });
   console.log('API: unlikePost response:', response.data);
   return response.data;
 };
+
   
   
   

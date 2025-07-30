@@ -1,8 +1,16 @@
 // components/YogaSessionCard.jsx
 
 import { MapPin, Clock, User, Bell, IndianRupee } from 'lucide-react';
+import { useState } from 'react';
+import ProductServiceDetails from '../ProductServiceDetails';
+import { FeedPost } from '@/types';
 
-const ServiceCard = () => {
+interface ServiceCardProps {
+  post?: FeedPost;
+}
+
+const ServiceCard = ({ post }: ServiceCardProps) => {
+  const [showDetails, setShowDetails] = useState(false);
   return (
     // Main card container
     <div className="max-w-sm rounded-xl bg-blue-100 p-4 shadow-md font-sans border border-blue-500">
@@ -42,6 +50,27 @@ const ServiceCard = () => {
           <span className='text-xs'>in-person</span>
         </div>
       </div>
+      
+      {/* Book Now Button */}
+      <div className="mt-3 px-2">
+        <button 
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowDetails(true);
+          }}
+          className="w-full rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 px-4 py-2 text-sm font-bold text-white shadow-md hover:opacity-90"
+        >
+          BOOK NOW
+        </button>
+      </div>
+      
+      {/* Service Details Modal */}
+      {showDetails && post && (
+        <ProductServiceDetails 
+          post={post} 
+          onClose={() => setShowDetails(false)} 
+        />
+      )}
     </div>
   );
 };

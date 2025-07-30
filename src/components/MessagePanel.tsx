@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
-import { MessageSquare, Bell, Phone, Video, MoreHorizontal, Search, Send, Paperclip, Smile, Trash2, MoreVertical, Check, CheckCheck } from "lucide-react";
+import { MessageSquare, Bell, Phone, Video, MoreHorizontal, Search, Send, Paperclip, Smile, Trash2, MoreVertical, Check, CheckCheck, Users, MessageCircle } from "lucide-react";
 import { useUserStore } from "@/store/useUserStore";
 import { messageAPI, Chat, Message } from "@/api/message";
 import socketManager from "@/utils/socket";
@@ -23,6 +23,12 @@ export default function MessagePanel() {
   const [followingUsers, setFollowingUsers] = useState<any[]>([]);
   const [loadingFollowing, setLoadingFollowing] = useState(false);
   const [showContextMenu, setShowContextMenu] = useState<{messageId: string, x: number, y: number} | null>(null);
+  const [activeTab, setActiveTab] = useState<'direct' | 'group'>('direct');
+  const [showGroupModal, setShowGroupModal] = useState(false);
+  const [groupName, setGroupName] = useState("");
+  const [groupDescription, setGroupDescription] = useState("");
+  const [selectedGroupMembers, setSelectedGroupMembers] = useState<string[]>([]);
+  const [showGroupDetails, setShowGroupDetails] = useState(false);
   const user = useUserStore((state) => state.user);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messageInputRef = useRef<HTMLInputElement>(null);
@@ -509,8 +515,13 @@ export default function MessagePanel() {
     return otherParticipant?.profileImageUrl || '/placeholderimg.png';
   };
 
-  // Filter chats based on search query
+  // Filter chats based on search query and tab
   const filteredChats = chats.filter(chat => {
+    // Filter by tab
+    if (activeTab === 'direct' && chat.chatType !== 'direct') return false;
+    if (activeTab === 'group' && chat.chatType !== 'group') return false;
+    
+    // Filter by search query
     if (!searchQuery.trim()) return true;
     
     const searchLower = searchQuery.toLowerCase();
@@ -519,6 +530,15 @@ export default function MessagePanel() {
     
     return chatName.includes(searchLower) || lastMessage.includes(searchLower);
   });
+
+  // Calculate unread counts for each tab
+  const directUnreadCount = chats
+    .filter(chat => chat.chatType === 'direct')
+    .reduce((total, chat) => total + (chat.unreadCount || 0), 0);
+  
+  const groupUnreadCount = chats
+    .filter(chat => chat.chatType === 'group')
+    .reduce((total, chat) => total + (chat.unreadCount || 0), 0);
 
   // Load following users for new chat
   const loadFollowingUsers = async () => {
@@ -570,6 +590,42 @@ export default function MessagePanel() {
     }
   };
 
+  // Create group chat
+  const createGroupChat = async () => {
+    try {
+      if (!user || !groupName.trim() || selectedGroupMembers.length === 0) return;
+      
+      const participants = [user._id, ...selectedGroupMembers];
+      const chat = await messageAPI.createChat(participants, 'group', groupName.trim(), groupDescription.trim() || undefined);
+      
+      // Add new group chat to the list
+      setChats(prev => [chat, ...prev]);
+      
+      // Select the new group chat
+      setSelectedChat(chat._id);
+      
+      // Reset group creation form
+      setGroupName("");
+      setGroupDescription("");
+      setSelectedGroupMembers([]);
+      setShowGroupModal(false);
+      
+      // Switch to group tab
+      setActiveTab('group');
+    } catch (error) {
+      console.error('Failed to create group chat:', error);
+    }
+  };
+
+  // Toggle group member selection
+  const toggleGroupMember = (userId: string) => {
+    setSelectedGroupMembers(prev => 
+      prev.includes(userId) 
+        ? prev.filter(id => id !== userId)
+        : [...prev, userId]
+    );
+  };
+
   return (
     <div className="flex w-full h-screen">
       {/* Left Panel */}
@@ -596,13 +652,60 @@ export default function MessagePanel() {
           </div>
         </div>
 
+        {/* Tabs */}
         <div className="px-6 pt-4">
-          <button 
-            onClick={handleNewChat}
-            className="w-full bg-button-gradient text-white py-2.5 rounded-lg font-medium shadow hover:bg-yellow-500 transition cursor-pointer"
-          >
-            + New Chat
-          </button>
+          <div className="flex bg-gray-100 rounded-lg p-1 mb-4">
+            <button
+              onClick={() => setActiveTab('direct')}
+              className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-md text-sm font-medium transition-colors ${
+                activeTab === 'direct'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <MessageCircle className="w-4 h-4" />
+              Direct
+              {directUnreadCount > 0 && (
+                <span className="bg-red-500 text-white text-xs min-w-[18px] h-4 flex items-center justify-center rounded-full px-1">
+                  {directUnreadCount > 99 ? '99+' : directUnreadCount}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => setActiveTab('group')}
+              className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-md text-sm font-medium transition-colors ${
+                activeTab === 'group'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              Groups
+              {groupUnreadCount > 0 && (
+                <span className="bg-red-500 text-white text-xs min-w-[18px] h-4 flex items-center justify-center rounded-full px-1">
+                  {groupUnreadCount > 99 ? '99+' : groupUnreadCount}
+                </span>
+              )}
+            </button>
+          </div>
+
+          <div className="flex gap-2">
+            <button 
+              onClick={handleNewChat}
+              className="flex-1 bg-button-gradient text-white py-2.5 rounded-lg font-medium shadow hover:bg-yellow-500 transition cursor-pointer"
+            >
+              + New Chat
+            </button>
+            <button 
+              onClick={() => {
+                setShowGroupModal(true);
+                loadFollowingUsers();
+              }}
+              className="flex-1 bg-green-500 text-white py-2.5 rounded-lg font-medium shadow hover:bg-green-600 transition cursor-pointer"
+            >
+              + New Group
+            </button>
+          </div>
         </div>
 
         <div className="px-6 py-4 relative">
@@ -664,7 +767,10 @@ export default function MessagePanel() {
             {/* Chat Header */}
             <div className="p-6 border-b border-gray-200 bg-white">
               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
+                <div 
+                  className={`flex items-center space-x-4 ${selected.chatType === 'group' ? 'cursor-pointer hover:bg-gray-50 -m-2 p-2 rounded-lg transition-colors' : ''}`}
+                  onClick={() => selected.chatType === 'group' && setShowGroupDetails(true)}
+                >
                   <Image width={12} height={12} src={getChatAvatar(selected)} alt={getChatDisplayName(selected)} className="w-12 h-12 rounded-full object-cover" />
                   <div>
                     <div className="flex items-center space-x-2">
@@ -676,7 +782,11 @@ export default function MessagePanel() {
                         typingUsers.size === 1 
                           ? `${Array.from(typingUsers.values())[0]} is typing...`
                           : `${typingUsers.size} users are typing...`
-                      ) : 'Online'}
+                      ) : (
+                        selected.chatType === 'group' 
+                          ? `${selected.participants.length} members • Click to view`
+                          : 'Online'
+                      )}
                     </p>
                   </div>
                 </div>
@@ -712,8 +822,10 @@ export default function MessagePanel() {
                         ? "bg-[#DBB42C] text-white" 
                         : "bg-gray-100 text-gray-900"
                     }`}>
-                      {msg.sender._id !== user?._id && (
-                        <p className="text-xs font-medium mb-1">{msg.sender.fullName || msg.sender.username}</p>
+                      {(msg.sender._id !== user?._id || selected?.chatType === 'group') && (
+                        <p className="text-xs font-medium mb-1 opacity-80">
+                          {msg.sender._id === user?._id ? 'You' : (msg.sender.fullName || msg.sender.username)}
+                        </p>
                       )}
                       <p>{msg.message}</p>
                       <div className={`flex items-center justify-between mt-1 text-xs ${
@@ -886,6 +998,226 @@ export default function MessagePanel() {
                   ))}
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Group Chat Modal */}
+      {showGroupModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 max-h-[80vh] flex flex-col">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b">
+              <h2 className="text-xl font-semibold text-gray-900">Create Group Chat</h2>
+              <button
+                onClick={() => {
+                  setShowGroupModal(false);
+                  setGroupName("");
+                  setGroupDescription("");
+                  setSelectedGroupMembers([]);
+                }}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="flex-1 overflow-y-auto">
+              {/* Group Details Form */}
+              <div className="p-6 border-b">
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Group Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={groupName}
+                      onChange={(e) => setGroupName(e.target.value)}
+                      placeholder="Enter group name"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-black placeholder-gray-400"
+                      maxLength={50}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Description (Optional)
+                    </label>
+                    <textarea
+                      value={groupDescription}
+                      onChange={(e) => setGroupDescription(e.target.value)}
+                      placeholder="Enter group description"
+                      rows={3}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-black placeholder-gray-400"
+                      maxLength={200}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Member Selection */}
+              <div className="p-6">
+                <h3 className="text-sm font-medium text-gray-700 mb-3">
+                  Select Members ({selectedGroupMembers.length} selected)
+                </h3>
+                {loadingFollowing ? (
+                  <div className="flex justify-center items-center py-8">
+                    <div className="text-gray-500">Loading your following...</div>
+                  </div>
+                ) : followingUsers.length === 0 ? (
+                  <div className="flex justify-center items-center py-8">
+                    <div className="text-gray-500">You're not following anyone yet</div>
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {followingUsers.map((followingUser) => (
+                      <label
+                        key={followingUser._id}
+                        className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedGroupMembers.includes(followingUser._id)}
+                          onChange={() => toggleGroupMember(followingUser._id)}
+                          className="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500"
+                        />
+                        <Image
+                          src={followingUser.profileImageUrl || '/placeholderimg.png'}
+                          alt={followingUser.fullName || followingUser.username}
+                          width={32}
+                          height={32}
+                          className="rounded-full object-cover"
+                        />
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-900 text-sm">
+                            {followingUser.fullName || followingUser.username}
+                          </p>
+                          {followingUser.username && followingUser.fullName && (
+                            <p className="text-xs text-gray-500">@{followingUser.username}</p>
+                          )}
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex items-center justify-end gap-3 p-6 border-t bg-gray-50">
+              <button
+                onClick={() => {
+                  setShowGroupModal(false);
+                  setGroupName("");
+                  setGroupDescription("");
+                  setSelectedGroupMembers([]);
+                }}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={createGroupChat}
+                disabled={!groupName.trim() || selectedGroupMembers.length === 0}
+                className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Create Group
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Group Details Modal */}
+      {showGroupDetails && selected && selected.chatType === 'group' && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 max-h-[80vh] flex flex-col">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b">
+              <h2 className="text-xl font-semibold text-gray-900">Group Details</h2>
+              <button
+                onClick={() => setShowGroupDetails(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="flex-1 overflow-y-auto">
+              {/* Group Info */}
+              <div className="p-6 border-b">
+                <div className="flex items-center space-x-4 mb-4">
+                  <Image
+                    src={getChatAvatar(selected)}
+                    alt={getChatDisplayName(selected)}
+                    width={60}
+                    height={60}
+                    className="rounded-full object-cover"
+                  />
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">{getChatDisplayName(selected)}</h3>
+                    <p className="text-sm text-gray-500">{selected.participants.length} members</p>
+                  </div>
+                </div>
+                {selected.groupDescription && (
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-700 mb-2">Description</h4>
+                    <p className="text-sm text-gray-600">{selected.groupDescription}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Group Members */}
+              <div className="p-6">
+                <h4 className="text-sm font-medium text-gray-700 mb-4">Members ({selected.participants.length})</h4>
+                <div className="space-y-3">
+                  {selected.participants.map((participant) => (
+                    <div key={participant._id} className="flex items-center gap-3">
+                      <Image
+                        src={participant.profileImageUrl || '/placeholderimg.png'}
+                        alt={participant.fullName || participant.username}
+                        width={40}
+                        height={40}
+                        className="rounded-full object-cover"
+                      />
+                      <div className="flex-1">
+                        <p className="font-medium text-gray-900">
+                          {participant.fullName || participant.username}
+                          {participant._id === user?._id && (
+                            <span className="text-xs text-gray-500 ml-2">(You)</span>
+                          )}
+                          {selected.admins?.includes(participant._id) && (
+                            <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full ml-2">Admin</span>
+                          )}
+                          {participant._id === selected.createdBy._id && (
+                            <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full ml-2">Creator</span>
+                          )}
+                        </p>
+                        {participant.username && participant.fullName && (
+                          <p className="text-sm text-gray-500">@{participant.username}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex items-center justify-end gap-3 p-6 border-t bg-gray-50">
+              <button
+                onClick={() => setShowGroupDetails(false)}
+                className="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>

@@ -1,11 +1,19 @@
 // components/BusinessPostCard.jsx
 
 import { Building2, Megaphone, Ticket } from 'lucide-react';
+import { useState } from 'react';
+import ProductServiceDetails from '../ProductServiceDetails';
+import { FeedPost } from '@/types';
 
-const BusinessPostCard = () => {
+interface BusinessPostCardProps {
+  post?: FeedPost;
+}
+
+const BusinessPostCard = ({ post }: BusinessPostCardProps) => {
+  const [showDetails, setShowDetails] = useState(false);
   return (
     // Main card container
-    <div className="max-w-sm mr-3 rounded-2xl border border-violet-500 bg-violet-200 p-2 shadow-md font-sans">
+    <div className="max-w-sm rounded-2xl border border-violet-500 bg-violet-200 p-2 shadow-md font-sans">
       
       {/* Header section: Business Post Name */}
       <div className="flex items-center justify-between px-1 py-2">
@@ -45,8 +53,29 @@ const BusinessPostCard = () => {
         <div className="mt-2">
           <p className="font-bold text-gray-800">No Title or test</p>
           <p className="mt-1 text-sm text-gray-600">Test description</p>
+          
+          {/* View Details Button */}
+          <div className="mt-3 flex justify-end">
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowDetails(true);
+              }}
+              className="rounded-lg bg-gradient-to-r from-violet-500 to-purple-600 px-4 py-2 text-sm font-bold text-white shadow-md hover:opacity-90 transition-opacity"
+            >
+              VIEW DETAILS
+            </button>
+          </div>
         </div>
       </div>
+      
+      {/* Business Details Modal */}
+      {showDetails && post && (
+        <ProductServiceDetails 
+          post={post} 
+          onClose={() => setShowDetails(false)} 
+        />
+      )}
     </div>
   );
 };

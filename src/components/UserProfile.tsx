@@ -252,7 +252,7 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
       // Show success feedback (optional)
       console.log('Profile updated successfully');
       
-    } catch (error: unknown) {
+    } catch (error: any) {
       console.error('Error updating profile:', error);
       
       // Show user-friendly error message
@@ -300,7 +300,7 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
         setIsFollowing(true);
         setFollowersCount(prev => prev + 1);
       }
-    } catch (error: unknown) {
+    } catch (error: any) {
       console.error('Error toggling follow status:', error);
       
       const errorMessage = error instanceof Error ? error.message : '';

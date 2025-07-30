@@ -122,7 +122,7 @@ const PostPage = () => {
         <div className="mb-6">
           <PostCard post={post} />
           
-          {/* Product/Service Details Button */}
+          {/* Product/Service Details Button
           {(post.contentType === 'product' || post.contentType === 'service') && (
             <div className="mt-4 bg-white rounded-xl shadow-sm p-4">
               <button
@@ -136,7 +136,7 @@ const PostPage = () => {
                 {post.contentType === 'product' ? '🛍️ View Product Details' : '🔧 View Service Details'}
               </button>
             </div>
-          )}
+          )} */}
         </div>
 
         {/* Comments Section */}

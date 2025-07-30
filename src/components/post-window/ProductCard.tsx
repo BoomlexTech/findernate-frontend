@@ -1,8 +1,16 @@
 // components/ProductCard.jsx
 
 import { MapPin, ShoppingBag, Star } from 'lucide-react';
+import { useState } from 'react';
+import ProductServiceDetails from '../ProductServiceDetails';
+import { FeedPost } from '@/types';
 
-const ProductCard = () => {
+interface ProductCardProps {
+  post?: FeedPost;
+}
+
+const ProductCard = ({ post }: ProductCardProps) => {
+  const [showDetails, setShowDetails] = useState(false);
   return (
     // Main card container
     <div className="max-w-sm rounded-2xl border border-violet-500 bg-violet-200 p-2 shadow-lg font-sans">
@@ -37,11 +45,25 @@ const ProductCard = () => {
             <Star size={18} className="text-orange-500 fill-orange-500" />
             <span className="text-sm font-bold text-orange-600">NEW ARRIVAL</span>
           </div>
-          <button className="rounded-lg bg-gradient-to-r from-orange-500 to-red-500 px-4 py-2 text-sm font-bold text-white shadow-md hover:opacity-90">
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowDetails(true);
+            }}
+            className="rounded-lg bg-gradient-to-r from-orange-500 to-red-500 px-4 py-2 text-sm font-bold text-white shadow-md hover:opacity-90"
+          >
             SHOP NOW
           </button>
         </div>
       </div>
+      
+      {/* Product Details Modal */}
+      {showDetails && post && (
+        <ProductServiceDetails 
+          post={post} 
+          onClose={() => setShowDetails(false)} 
+        />
+      )}
     </div>
   );
 };
