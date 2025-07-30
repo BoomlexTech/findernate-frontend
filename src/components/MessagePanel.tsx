@@ -7,6 +7,7 @@ import { messageAPI, Chat, Message } from "@/api/message";
 import socketManager from "@/utils/socket";
 import { useSearchParams } from "next/navigation";
 import { getFollowing } from "@/api/user";
+import { AxiosError } from "axios";
 
 export default function MessagePanel() {
   const [chats, setChats] = useState<Chat[]>([]);
@@ -68,11 +69,12 @@ export default function MessagePanel() {
           new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
         );
         setChats(sortedChats);
-      } catch (error: any) {
+      } catch (error) {
         console.error('Failed to load chats:', error);
-        
+        const axiosError = error as AxiosError;
+        console.log(axiosError.response?.status);
         // If it's a 404, the route might not exist on the server
-        if (error.response?.status === 404) {
+        if (axiosError.response?.status === 404) {
           console.error('Chat routes not found on the server. This might be a deployment issue.');
           // For now, initialize with empty chats to prevent crashes
           setChats([]);
@@ -223,7 +225,7 @@ export default function MessagePanel() {
       }
     };
 
-    const handleMessagesRead = (data: { chatId: string; readBy: any; messageIds?: string[] }) => {
+    const handleMessagesRead = (data: { chatId: string; readBy: {_id: string}; messageIds?: string[] }) => {
       if (data.chatId === selectedChatRef.current) {
         setMessages(prev => prev.map(msg => {
           if (data.messageIds) {
@@ -646,7 +648,7 @@ export default function MessagePanel() {
                 </div>
                 {(chat.unreadCount ?? 0) > 0 && (
                   <div className="ml-2 bg-yellow-500 text-white text-xs min-w-[20px] h-5 flex items-center justify-center rounded-full px-1 animate-pulse">
-                    {chat.unreadCount > 99 ? '99+' : chat.unreadCount}
+                    {chat?.unreadCount && chat.unreadCount > 99 ? '99+' : chat.unreadCount}
                   </div>
                 )}
               </div>
@@ -723,9 +725,9 @@ export default function MessagePanel() {
                         {msg.sender._id === user?._id && (
                           <span className="ml-2 flex items-center">
                             {msg.readBy.length > 1 ? ( // More than just sender (means someone else read it)
-                              <CheckCheck className="w-3 h-3" title={`Read by ${msg.readBy.length - 1} user(s)`} />
+                              <CheckCheck className="w-3 h-3" />
                             ) : (
-                              <Check className="w-3 h-3" title="Sent" />
+                              <Check className="w-3 h-3"  />
                             )}
                           </span>
                         )}
@@ -854,7 +856,7 @@ export default function MessagePanel() {
                 </div>
               ) : followingUsers.length === 0 ? (
                 <div className="flex justify-center items-center py-8">
-                  <div className="text-gray-500">You're not following anyone yet</div>
+                  <div className="text-gray-500">You&apos;re not following anyone yet</div>
                 </div>
               ) : (
                 <div className="space-y-3">

@@ -313,7 +313,11 @@ const handleProductChange = (
     case 'Service':
       return { ...sharedForm, ...serviceForm };
     case 'Business':
-      return { ...sharedForm, ...businessForm };
+      return {
+        ...businessForm.formData,  // Get the business form data
+        ...sharedForm,             // Override with shared form data (images, etc.)
+        business: businessForm.formData.business  // Keep the business object
+      };
     default:
       return { ...sharedForm };
   }
@@ -338,20 +342,21 @@ const handleProductChange = (
         const res = await createServicePost({formData:servicePayload} as unknown as ServiceDetailsFormProps);
         console.log(res);
        } else if (postType === 'Business') {
-        console.log('Business Post Data:', businessForm);
-        const res = await createBusinessPost({formData:businessForm} as unknown as BusinessPostFormProps);
+        console.log('Business Post Data:',sharedForm, businessForm);
+        const businessPayload = finalPayload;
+        const res = await createBusinessPost({formData:businessPayload} as unknown as BusinessPostFormProps);
         console.log(res);
        }
+      setShowSuccess(true);
+      setTimeout(() => {
+      setShowSuccess(false);
+        closeModal();
+      }, 2000);
     }
     catch (err) {
       console.error(err);
     } finally{
       setLoading(false);
-      setShowSuccess(true);
-      setTimeout(() => {
-        setShowSuccess(false);
-        closeModal();
-      }, 2000);
     }
   };
 

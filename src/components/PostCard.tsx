@@ -14,6 +14,7 @@ import ProductCard from './post-window/ProductCard';
 import BusinessPostCard from './post-window/BusinessCard';
 import { likePost, unlikePost } from '@/api/post';
 import { postEvents } from '@/utils/postEvents';
+import { AxiosError } from 'axios';
 
 export interface PostCardProps {
   post: FeedPost;
@@ -136,59 +137,66 @@ export default function PostCard({ post }: PostCardProps) {
     console.log(`Optimistic update - new isLiked: ${shouldLike}, new likesCount: ${newLikesCount}`);
 
     try {
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Request timeout')), 15000)
-      );
+  const timeoutPromise = new Promise((_, reject) => 
+    setTimeout(() => reject(new Error('Request timeout')), 15000)
+  );
 
-      if (shouldLike) {
-        console.log(`Liking post ${post._id}`);
-        try {
-          await Promise.race([likePost(post._id), timeoutPromise]);
-          console.log(`Successfully liked post ${post._id}`);
-        } catch (likeError: any) {
-          // Handle "already liked" error
-          if (likeError?.response?.status === 409) {
-            console.log(`Post ${post._id} already liked - treating as successful like`);
-            // Don't revert the optimistic update since the post is effectively "liked"
-            return;
-          }
-          // Re-throw other errors to be handled by outer catch
-          throw likeError;
-        }
-      } else {
-        console.log(`Unliking post ${post._id}`);
-        try {
-          await Promise.race([unlikePost(post._id), timeoutPromise]);
-          console.log(`Successfully unliked post ${post._id}`);
-        } catch (unlikeError: any) {
-          // Handle specific "Like not found" error or timeout
-          if (unlikeError?.response?.data?.message === 'Like not found for this post' || 
-              unlikeError?.message?.includes('timeout') ||
-              unlikeError?.code === 'ECONNABORTED') {
-            console.log(`Unlike failed (${unlikeError?.message || 'Like not found'}) - treating as successful unlike`);
-            // Don't revert the optimistic update since the post is effectively "unliked"
-            return;
-          }
-          // Re-throw other errors to be handled by outer catch
-          throw unlikeError;
-        }
+  if (shouldLike) {
+    console.log(`Liking post ${post._id}`);
+    try {
+      await Promise.race([likePost(post._id), timeoutPromise]);
+      console.log(`Successfully liked post ${post._id}`);
+    } catch (likeError) {
+      // Handle "already liked" error
+      if ((likeError as AxiosError)?.response?.status === 409) {
+        console.log(`Post ${post._id} already liked - treating as successful like`);
+        // Don't revert the optimistic update since the post is effectively "liked"
+        return;
       }
-    } catch (error: any) {
-      // Revert optimistic update on error
-      console.error(`Error ${shouldLike ? 'liking' : 'unliking'} post:`, error);
-      console.error('Error details:', error?.response?.data || error?.message);
-      console.error('Full error object:', error);
-      setIsLiked(previousIsLiked);
-      setLikesCount(previousLikesCount);
-      
-      // Revert localStorage as well
-      localStorage.setItem(`post_like_${post._id}`, previousIsLiked.toString());
-      localStorage.setItem(`post_likes_count_${post._id}`, previousLikesCount.toString());
-    } finally {
-      console.log(`=== LIKE TOGGLE END - Expected final state: isLiked: ${shouldLike}, loading: false ===`);
-      setIsLoading(false);
+      // Re-throw other errors to be handled by outer catch
+      throw likeError;
     }
-  };
+  } else {
+    console.log(`Unliking post ${post._id}`);
+    try {
+      await Promise.race([unlikePost(post._id), timeoutPromise]);
+      console.log(`Successfully unliked post ${post._id}`);
+    } catch (unlikeError) {
+      // Handle specific "Like not found" error or timeout
+      const axiosError = unlikeError as AxiosError;
+      const errorMessage = (unlikeError as Error)?.message;
+      
+      if (axiosError?.response?.data as unknown === 'Like not found for this post' || 
+          errorMessage?.includes('timeout') ||
+          axiosError?.code === 'ECONNABORTED') {
+        console.log(`Unlike failed (${errorMessage || 'Like not found'}) - treating as successful unlike`);
+        // Don't revert the optimistic update since the post is effectively "unliked"
+        return;
+      }
+      // Re-throw other errors to be handled by outer catch
+      throw unlikeError;
+    }
+  }
+} catch (error) {
+  // Revert optimistic update on error
+  const axiosError = error as AxiosError;
+  const errorMessage = (error as Error)?.message;
+  
+  console.error(`Error ${shouldLike ? 'liking' : 'unliking'} post:`, error);
+  console.error('Error details:', axiosError?.response?.data || errorMessage);
+  console.error('Full error object:', error);
+  setIsLiked(previousIsLiked);
+  setLikesCount(previousLikesCount);
+  
+  // Revert localStorage as well
+  localStorage.setItem(`post_like_${post._id}`, previousIsLiked.toString());
+  localStorage.setItem(`post_likes_count_${post._id}`, previousLikesCount.toString());
+} finally {
+  console.log(`=== LIKE TOGGLE END - Expected final state: isLiked: ${shouldLike}, loading: false ===`);
+  setIsLoading(false);
+}
+};
+
 
   const handlePrevMedia = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -374,7 +382,7 @@ export default function PostCard({ post }: PostCardProps) {
 
         {/* Hashtags (Empty for now) */}
       <div className="px-1 pb-4">
-        <div className="flex flex-wrap gap-2"><p className='text-black'>{post?.tags || "test tags, tag, nike"}</p></div>
+        <div className="flex flex-wrap gap-2"><p className='text-yellow-600'>{ post.tags? "#" + post?.tags : null}</p></div>
       </div>
 
           <div className="px-2 py-1 absolute bottom-0">

@@ -8,6 +8,9 @@ import { useUserStore } from "@/store/useUserStore";
 import { PaymentMethodsModal } from "./business/PaymentMethodModal";
 import PlanSelectionModal from "./business/PlanSelectionModal";
 import BusinessDetailsModal from "./business/BusinessDetailsModal";
+import SuccessToast from "@/components/SuccessToast"; // Update path as needed
+import { CreateBusinessRequest, UpdateBusinessRequest } from "@/types";
+
 
 const SettingsModal = ({ onClose }: { onClose: () => void }) => {
   const [muteNotifications, setMuteNotifications] = useState(false);
@@ -19,6 +22,7 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
   const [showBusinessDetailsModal, setShowBusinessDetailsModal] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [showEditBusinessDetails, setShowEditBusinessDetails] = useState(false);
+  const [successToast, setSuccessToast] = useState({ show: false, message: "" });
   const router = useRouter();
   const { logout: logoutUser } = useUserStore();
 
@@ -70,10 +74,26 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
     setShowBusinessDetailsModal(true);
   };
 
-  const handleBusinessDetailsSubmit = (data: any) => {
-    // TODO: Upload data to API
+  const handleBusinessDetailsSubmit = (data: CreateBusinessRequest) => {
+    // API call will be handled inside the modal component
     setShowBusinessDetailsModal(false);
-    // Optionally show a success message
+    setSuccessToast({ show: true, message: "Business details created successfully!" });
+    setTimeout(() => setSuccessToast({ show: false, message: "" }), 3000); // Hide after 3 seconds
+    onClose()
+    // Optionally show a success message or refresh data
+    console.log('Business details created:', data);
+  };
+
+  const handleEditBusinessDetailsSubmit = (data: UpdateBusinessRequest) => {
+    // API call will be handled inside the modal component  
+    setShowEditBusinessDetails(false);
+    setSuccessToast({ show: true, message: "Business details updated successfully!" });
+    setTimeout(() => {setSuccessToast({ show: false, message: "" });
+     onClose()
+    }, 3000);
+   
+    // Optionally show a success message or refresh data
+    console.log('Business details updated:', data);
   };
 
   return (
@@ -167,6 +187,7 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
           </button>
         </div>
       </div>
+      
       {/* Plan Selection Modal */}
       <PlanSelectionModal
         isOpen={showBusinessPlans}
@@ -174,27 +195,31 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
         onSelectPlan={handlePlanSelect}
         currentPlan={selectedPlan || "Free"}
       />
+      
       {/* Payment Modal */}
       <PaymentMethodsModal
         isOpen={showPaymentModal}
         onClose={handlePaymentModalClose}
         onPaymentOptionClick={handlePaymentOptionClick}
       />
-      {/* Business Details Modal */}
+      
+      {/* Business Details Modal - CREATE MODE (after payment) */}
       <BusinessDetailsModal
         isOpen={showBusinessDetailsModal}
         onClose={() => setShowBusinessDetailsModal(false)}
         onSubmit={handleBusinessDetailsSubmit}
+        // isEdit is false by default, so it will use POST API
       />
-      {/* Edit Business Details Modal */}
+      
+      {/* Edit Business Details Modal - EDIT MODE */}
       <BusinessDetailsModal
         isOpen={showEditBusinessDetails}
         onClose={() => setShowEditBusinessDetails(false)}
-        onSubmit={(data) => {
-          // handle update logic here (e.g., send to API)
-          setShowEditBusinessDetails(false);
-        }}
+        onSubmit={handleEditBusinessDetailsSubmit}
+        isEdit={true} // This will fetch data on mount and use PATCH API
       />
+
+       <SuccessToast show={successToast.show} message={successToast.message} />
     </div>
   );
 };

@@ -12,6 +12,10 @@ import { Story } from "@/types/story";
 import StoryViewer from "./StoryViewer";
 import { messageAPI } from "@/api/message";
 import { useRouter } from "next/navigation";
+import Cropper from 'react-easy-crop';
+import { Area } from 'react-easy-crop';
+import { useUserStore } from "@/store/useUserStore";
+import { AxiosError } from "axios";
 
 interface UserProfileProps {
   userData: UserProfileType;
@@ -41,6 +45,11 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
     bio: userData.bio,
     profileImageUrl: userData.profileImageUrl,
   });
+  const [showCropper, setShowCropper] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
 
   // Update internal state if userData prop changes
   useEffect(() => {
@@ -142,65 +151,61 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
     }
   };
 
-  const compressImage = (file: File): Promise<string> => {
-    return new Promise((resolve) => {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d')!;
-      const img = document.createElement('img') as HTMLImageElement;
-      
-      img.onload = () => {
-        // Set maximum dimensions
-        const maxWidth = 400;
-        const maxHeight = 400;
-        
-        let { width, height } = img;
-        
-        // Calculate new dimensions
-        if (width > height) {
-          if (width > maxWidth) {
-            height = (height * maxWidth) / width;
-            width = maxWidth;
-          }
-        } else {
-          if (height > maxHeight) {
-            width = (width * maxHeight) / height;
-            height = maxHeight;
-          }
-        }
-        
-        // Set canvas dimensions
-        canvas.width = width;
-        canvas.height = height;
-        
-        // Draw and compress image
-        ctx.drawImage(img, 0, 0, width, height);
-        
-        // Convert to base64 with compression
-        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
-        resolve(compressedDataUrl);
-      };
-      
-      img.src = URL.createObjectURL(file);
-    });
-  };
-
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {   
-      try {
-        // Compress the image first
-        const compressedDataUrl = await compressImage(file);
-        //console.log('Compressed image data URL length:', compressedDataUrl.length);
-        
-        setFormData((prev) => ({
-          ...prev,
-          profileImageUrl: compressedDataUrl,
-        }));
-      } catch (error) {
-        console.error('Error compressing image:', error);
-        alert('Error processing image. Please try again.');
-      }
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setSelectedImage(reader.result as string);
+        setShowCropper(true);
+      };
+      reader.readAsDataURL(file);
     }
+  };
+
+  const onCropComplete = (croppedArea: Area, croppedAreaPixels: Area) => {
+    setCroppedAreaPixels(croppedAreaPixels);
+  };
+
+  // Utility to crop the image using canvas
+  async function getCroppedImg(imageSrc: string, crop: Area): Promise<string> {
+    const image = new window.Image();
+    image.src = imageSrc;
+    await new Promise((resolve) => { image.onload = resolve; });
+    const canvas = document.createElement('canvas');
+    canvas.width = crop.width;
+    canvas.height = crop.height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('No 2d context');
+    ctx.drawImage(
+      image,
+      crop.x,
+      crop.y,
+      crop.width,
+      crop.height,
+      0,
+      0,
+      crop.width,
+      crop.height
+    );
+    return canvas.toDataURL('image/jpeg', 0.9);
+  }
+
+  const handleCropSave = async () => {
+    if (selectedImage && croppedAreaPixels) {
+      const croppedImg = await getCroppedImg(selectedImage, croppedAreaPixels);
+      setFormData((prev) => ({
+        ...prev,
+        profileImageUrl: croppedImg,
+      }));
+      setShowCropper(false);
+      setSelectedImage(null);
+    }
+  };
+
+  const handleCropCancel = () => {
+    setShowCropper(false);
+    setSelectedImage(null);
   };
 
   const handleSave = async () => {
@@ -343,13 +348,14 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
       
       // Navigate to the chat page with the created chat selected
       router.push(`/chats?chatId=${chat._id}`);
-    } catch (error: any) {
-      console.error('Error creating chat:', error);
+    } catch (error) {
+      const axiosError = error as AxiosError;
+      console.error('Error creating chat:', axiosError);
       
-      if (error.response?.status === 404) {
+      if (axiosError.response?.status === 404) {
         alert('Chat functionality is not available on this server yet. Please contact the administrator.');
       } else {
-        const errorMessage = error.response?.data?.message || error.message || 'Failed to create chat';
+        const errorMessage = axiosError.response?.data as string || 'Failed to create chat';
         alert(errorMessage);
       }
     } finally {
@@ -359,10 +365,44 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
 
   return (
     <div className="bg-white rounded-xl overflow-hidden shadow-sm w-full">
+      {/* Cropper Modal */}
+      {showCropper && selectedImage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
+          <div className="bg-white p-6 rounded-xl shadow-lg relative w-[90vw] max-w-xs flex flex-col items-center">
+            <div className="w-64 h-64 relative bg-gray-100">
+              <Cropper
+                image={selectedImage}
+                crop={crop}
+                zoom={zoom}
+                aspect={1}
+                onCropChange={setCrop}
+                onZoomChange={setZoom}
+                onCropComplete={onCropComplete}
+                cropShape="round"
+                showGrid={false}
+              />
+            </div>
+            <div className="flex gap-4 mt-4">
+              <button
+                onClick={handleCropCancel}
+                className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 text-gray-700"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCropSave}
+                className="px-4 py-2 rounded bg-yellow-500 hover:bg-yellow-600 text-white"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Banner */}
       <div className="bg-gradient-to-r from-yellow-400 to-yellow-600 h-32 w-full relative">
         <div className="absolute -bottom-12 left-4 sm:left-6">
-          <div className="relative cursor-pointer" onClick={handleImageClick}>
+          <div className={`relative ${isCurrentUser && isEditing ? 'cursor-pointer' : ''}`} onClick={isCurrentUser && isEditing ? handleImageClick : undefined}>
             {/* Story ring wrapper for other users with stories */}
             <div className={`w-24 h-24 sm:w-32 sm:h-32 rounded-full ${
               !isCurrentUser && userStories.length > 0 
@@ -374,7 +414,21 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
                   ? 'bg-white p-1' 
                   : ''
               }`}>
-                {profile?.profileImageUrl ? (
+                {formData.profileImageUrl ? (
+                  <>
+                    <Image
+                      src={formData.profileImageUrl}
+                      alt={profile.fullName}
+                      width={128}
+                      height={128}
+                      className={`rounded-full w-full h-full object-cover ${
+                        !isCurrentUser && userStories.length > 0 
+                          ? 'border-0' 
+                          : 'border-2 sm:border-4 border-white'
+                      }`}
+                    />
+                  </>
+                ) : profile?.profileImageUrl ? (
                   <>
                     <Image
                       src={profile.profileImageUrl}
@@ -404,8 +458,8 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
               </div>
             </div>
             
-            {/* Camera icon for current user */}
-            {isCurrentUser && (
+            {/* Camera icon for current user, only when editing */}
+            {isCurrentUser && isEditing && (
               <div className="absolute bottom-0 right-0 bg-yellow-500 rounded-full p-1 shadow">
                 <CameraIcon className="w-4 h-4 text-white" />
               </div>
@@ -417,7 +471,7 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
                 <div className="w-6 h-6 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
               </div>
             )}
-            {isCurrentUser && (
+            {isCurrentUser && isEditing && (
               <input
                 ref={fileInputRef}
                 type="file"

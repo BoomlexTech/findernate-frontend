@@ -7,6 +7,7 @@ import { signUp } from '@/api/auth';
 import axios from 'axios';
 import { Button } from './ui/button';
 import Input from './ui/Input';
+import { useUserStore } from '@/store/useUserStore';
 
 export default function SignupComponent() {
   const [formData, setFormData] = useState({
@@ -24,6 +25,7 @@ export default function SignupComponent() {
   const [error, setError] = useState('');
   const router = useRouter();
 
+  const {setUser, setToken} = useUserStore()
 
   const handleCountryCodeSelect = (code:string) => {
     setFormData(prev => ({
@@ -58,7 +60,10 @@ export default function SignupComponent() {
     try {
       const response = await signUp(formData);
       console.log(response);
-      router.push('/signin');
+      setUser(response.data.user);
+      setToken(response.data.accessToken);
+      localStorage.setItem('token', response.data.accessToken);
+      router.push('/');
     } catch (err) {
         if (axios.isAxiosError(err)) {
             setError(err.response?.data?.message || 'Signup failed');
