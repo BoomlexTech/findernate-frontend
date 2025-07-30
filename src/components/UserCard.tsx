@@ -5,6 +5,7 @@ import { useState } from "react";
 import { messageAPI } from "@/api/message";
 import { useRouter } from "next/navigation";
 import { useUserStore } from "@/store/useUserStore";
+import { AxiosError } from "axios";
 
 interface UserCardProps {
   user: SearchUser;
@@ -52,13 +53,14 @@ const UserCard: React.FC<UserCardProps> = ({ user, onFollow }) => {
       
       // Navigate to the chat page with the created chat selected
       router.push(`/chats?chatId=${chat._id}`);
-    } catch (error: any) {
-      console.error('Error creating chat:', error);
-      
-      if (error.response?.status === 404) {
+    } catch (error) {
+      const axiosError = error as AxiosError;
+      console.error('Error creating chat:', axiosError);
+
+      if (axiosError.response?.status === 404) {
         alert('Chat functionality is not available on this server yet. Please contact the administrator.');
       } else {
-        const errorMessage = error.response?.data?.message || error.message || 'Failed to create chat';
+        const errorMessage = axiosError.response?.data as string || 'Failed to create chat';
         alert(errorMessage);
       }
     } finally {
@@ -81,7 +83,14 @@ const UserCard: React.FC<UserCardProps> = ({ user, onFollow }) => {
   };
 
   return (
-    <div className="w-full max-w-2xl bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden group">
+    <div
+      className="w-full max-w-2xl bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden group cursor-pointer"
+      onClick={(e) => {
+        // Prevent navigation if clicking the follow or message button
+        if ((e.target as HTMLElement).closest('button')) return;
+        router.push(`/userprofile/${user.username}`);
+      }}
+    >
       {/* Header with profile image and basic info */}
       <div className="p-4 pb-3">
         <div className="flex items-start gap-3">
@@ -103,7 +112,6 @@ const UserCard: React.FC<UserCardProps> = ({ user, onFollow }) => {
               </div>
             )}
           </div>
-
           {/* User Info */}
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between">
@@ -112,14 +120,12 @@ const UserCard: React.FC<UserCardProps> = ({ user, onFollow }) => {
                 <h3 className="font-semibold text-gray-900 text-base leading-tight">
                   {user.fullName || user.username || "Unknown User"}
                 </h3>
-                
                 {/* Username (if different from display name) */}
                 {user.username && user.fullName && user.username !== user.fullName && (
                   <p className="text-sm text-gray-500 mt-0.5">
                     @{user.username}
                   </p>
                 )}
-
                 {/* Professional Title/Description */}
                 {user.bio && (
                   <p className="text-sm text-gray-600 mt-1 leading-relaxed">
@@ -129,8 +135,6 @@ const UserCard: React.FC<UserCardProps> = ({ user, onFollow }) => {
                  <p className="text-sm text-gray-600 mt-1 leading-relaxed truncate">
                     {truncateText("I am a software engineer with a passion for building scalable and efficient systems. I am a quick learner and I am always looking for new challenges.", 80)}
                   </p>
-             
-
                 {/* Location */}
                 {user.location && (
                   <div className="flex items-center gap-1 mt-2 text-xs text-gray-500">
@@ -142,14 +146,11 @@ const UserCard: React.FC<UserCardProps> = ({ user, onFollow }) => {
                     <MapPin size={12} className="flex-shrink-0" />
                     <span className="truncate">{"Mumbai, India"}</span>
                   </div>
-
-               
               </div>
-
               {/* Action Buttons */}
               <div className="ml-3 flex gap-2">
                 <button
-                  onClick={handleFollowClick}
+                  onClick={(e) => { e.stopPropagation(); handleFollowClick(); }}
                   disabled={isLoading}
                   className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all duration-200 flex items-center gap-1.5 ${
                     isFollowing
@@ -166,9 +167,8 @@ const UserCard: React.FC<UserCardProps> = ({ user, onFollow }) => {
                     </>
                   )}
                 </button>
-
                 <button
-                  onClick={handleMessageClick}
+                  onClick={(e) => { e.stopPropagation(); handleMessageClick(); }}
                   disabled={creatingChat}
                   className="px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200 flex items-center gap-1.5 bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
@@ -183,8 +183,6 @@ const UserCard: React.FC<UserCardProps> = ({ user, onFollow }) => {
           </div>
         </div>
       </div>
-
-    
     </div>
   );
 };

@@ -9,23 +9,21 @@ interface TagInputProps {
 const TagInput: React.FC<TagInputProps> = ({ tags, setTags }) => {
     const [tagInput, setTagInput] = useState('')
 
-  const handleAddTag = () => {
-    if (!tagInput.trim()) return;
-  
-    const rawTags = tagInput.split(/[\s,]+/); // split by space or comma
-  
-    const formattedTags = rawTags
-      .filter(tag => tag.trim() !== '') // ignore empty values
-      .map(tag => {
-        tag = tag.trim();
-        return tag.startsWith('#') ? tag : '#' + tag;
-      });
-  
-    const uniqueTags = Array.from(new Set([...tags, ...formattedTags]));
-  
-    setTags(uniqueTags);
-    setTagInput('');
-  };
+    const handleAddTag = () => {
+      if (!tagInput.trim()) return;
+    
+      const rawTags = tagInput.split(/[\s,]+/); // split by space or comma
+    
+      const formattedTags = rawTags
+        .filter(tag => tag.trim() !== '') // ignore empty values
+        .map(tag => tag.trim()); // DO NOT prepend #
+    
+      const uniqueTags = Array.from(new Set([...tags, ...formattedTags]));
+    
+      setTags(uniqueTags);
+      setTagInput('');
+    };
+    
 
   const handleRemove = (i: number) => {
     const updated = [...tags]

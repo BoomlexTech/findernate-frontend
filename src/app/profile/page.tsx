@@ -119,7 +119,11 @@ const Page = () => {
         <div className='w-full'>
           <ProfilePostsSection
             PostCard={PostCard}
-            posts={posts}  
+            posts={posts.map((post) => ({
+              ...post,
+              username: post.userId?.username || '',
+              profileImageUrl: post.userId?.profileImageUrl || '',
+            }))}  
           />
         </div>
       </div>

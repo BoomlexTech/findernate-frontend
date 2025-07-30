@@ -212,6 +212,11 @@ export type MediaItem = {
 
 export interface FeedPost {
   _id: string;
+  userId?: {
+    _id: string;
+    username: string;
+    profileImageUrl: string;
+  };
   username: string
   profileImageUrl: string
   description: string
@@ -282,4 +287,75 @@ export interface UserProfile {
   followingCount: number;
   postsCount: number;
   isFollowing?: boolean;
+}
+
+// Below are the types for create,and update business details
+
+// Social Media interface
+export interface SocialMedia {
+  platform: string;
+  url: string;
+}
+
+// Contact interface for CREATE request
+export interface CreateContactInfo {
+  phone: string;
+  email: string;
+  website: string;
+  socialMedia: SocialMedia[];
+}
+
+// Contact interface for UPDATE request
+export interface UpdateContactInfo {
+  email: string;
+  phone: string;
+  website: string;
+}
+
+// Location interface for CREATE request
+export interface CreateBusinessLocation {
+  address: string;
+  city: string;
+  state: string;
+  country: string;
+  pincode: string;
+}
+
+// Location interface for UPDATE request
+export interface UpdateBusinessLocation {
+  address: string;
+  city: string;
+  state: string;
+  country: string;
+  pincode: string;
+  coordinates?: {
+    latitude: number;
+    longitude: number;
+  };
+}
+
+// Create Business Request Type
+export interface CreateBusinessRequest {
+  businessName: string;
+  businessType: string;
+  description: string;
+  category: string;
+  contact: CreateContactInfo;
+  location: CreateBusinessLocation;
+  tags: string[];
+  website: string;
+  gstNumber: string;
+  aadhaarNumber: string;
+}
+
+// Update Business Request Type  
+export interface UpdateBusinessRequest {
+  businessName: string;
+  businessType: string;
+  description: string;
+  category: string;
+  contact: UpdateContactInfo;
+  location: UpdateBusinessLocation;
+  website: string;
+  tags: string[];
 }

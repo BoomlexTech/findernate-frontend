@@ -15,6 +15,7 @@ import BusinessPostCard from './post-window/BusinessCard';
 import { likePost, unlikePost } from '@/api/post';
 import { createComment } from '@/api/comment';
 import { postEvents } from '@/utils/postEvents';
+import { AxiosError } from 'axios';
 
 export interface PostCardProps {
   post: FeedPost;
@@ -167,9 +168,9 @@ export default function PostCard({ post }: PostCardProps) {
         try {
           await Promise.race([likePost(post._id), timeoutPromise]);
           console.log(`Successfully liked post ${post._id}`);
-        } catch (likeError: any) {
+        } catch (likeError) {
           // Handle "already liked" error
-          if (likeError?.response?.status === 409) {
+          if ((likeError as AxiosError)?.response?.status === 409) {
             console.log(`Post ${post._id} already liked - treating as successful like`);
             // Don't revert the optimistic update since the post is effectively "liked"
             return;
@@ -182,12 +183,15 @@ export default function PostCard({ post }: PostCardProps) {
         try {
           await Promise.race([unlikePost(post._id), timeoutPromise]);
           console.log(`Successfully unliked post ${post._id}`);
-        } catch (unlikeError: any) {
+        } catch (unlikeError) {
           // Handle specific "Like not found" error or timeout
-          if (unlikeError?.response?.data?.message === 'Like not found for this post' || 
-              unlikeError?.message?.includes('timeout') ||
-              unlikeError?.code === 'ECONNABORTED') {
-            console.log(`Unlike failed (${unlikeError?.message || 'Like not found'}) - treating as successful unlike`);
+          const axiosError = unlikeError as AxiosError;
+          const errorMessage = (unlikeError as Error)?.message;
+          
+          if ((axiosError?.response?.data as any)?.message === 'Like not found for this post' || 
+              errorMessage?.includes('timeout') ||
+              axiosError?.code === 'ECONNABORTED') {
+            console.log(`Unlike failed (${errorMessage || 'Like not found'}) - treating as successful unlike`);
             // Don't revert the optimistic update since the post is effectively "unliked"
             return;
           }
@@ -195,10 +199,13 @@ export default function PostCard({ post }: PostCardProps) {
           throw unlikeError;
         }
       }
-    } catch (error: any) {
+    } catch (error) {
       // Revert optimistic update on error
+      const axiosError = error as AxiosError;
+      const errorMessage = (error as Error)?.message;
+      
       console.error(`Error ${shouldLike ? 'liking' : 'unliking'} post:`, error);
-      console.error('Error details:', error?.response?.data || error?.message);
+      console.error('Error details:', axiosError?.response?.data || errorMessage);
       console.error('Full error object:', error);
       setIsLiked(previousIsLiked);
       setLikesCount(previousLikesCount);
@@ -445,7 +452,7 @@ export default function PostCard({ post }: PostCardProps) {
 
         {/* Hashtags (Empty for now) */}
       <div className="px-1 pb-4">
-        <div className="flex flex-wrap gap-2"><p className='text-black'>{post?.tags || "test tags, tag, nike"}</p></div>
+        <div className="flex flex-wrap gap-2"><p className='text-yellow-600'>{ post.tags? "#" + post?.tags : null}</p></div>
       </div>
 
           {/* Comment Box - Only show for normal/regular posts and not on single post pages */}

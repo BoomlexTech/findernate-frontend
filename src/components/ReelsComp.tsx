@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Play, Volume2, VolumeX, Heart, MessageCircle, Share, MoreVertical, ChevronUp, ChevronDown } from 'lucide-react';
 import Image from 'next/image';
+import { getReels } from '@/api/reels';
 
 interface Reel {
   id: number;
@@ -27,7 +28,9 @@ const ReelsComponent: React.FC<ReelsComponentProps> = ({ reelsData = [] }) => {
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMuted, setIsMuted] = useState(true);
   const [likes, setLikes] = useState<Record<number, boolean>>({});
-  
+  const [reels, setReels] = useState<Reel[]>([]);
+  const [loading, setLoading] = useState(false);
+
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
   const touchStartY = useRef(0);
@@ -79,7 +82,40 @@ const ReelsComponent: React.FC<ReelsComponentProps> = ({ reelsData = [] }) => {
     }
   ];
 
-  const reels = reelsData.length > 0 ? reelsData : defaultReelsData;
+  useEffect(() => {
+    async function fetchReels() {
+      setLoading(true);
+      try {
+        const res = await getReels();
+        const apiReels = res?.reels;
+        console.log('API reels response:', apiReels);
+        // Map API response to Reel interface
+        const mappedReels: Reel[] = Array.isArray(apiReels)
+          ? apiReels.map((item: any, idx: number) => ({
+              id: idx + 1,
+              videoUrl: item.secure_url || item.url,
+              thumbnail: '', // No thumbnail in API, can use a placeholder or generate from video
+              user: {
+                name: 'Unknown', // No user info in API, can update if available
+                avatar: '/placeholderimg.png',
+              },
+              description: item.display_name || '',
+              likes: Math.floor(Math.random() * 1000), // Placeholder
+              comments: Math.floor(Math.random() * 100), // Placeholder
+              shares: Math.floor(Math.random() * 50), // Placeholder
+              music: '', // No music info in API
+            }))
+          : [];
+        setReels(mappedReels.length > 0 ? mappedReels : defaultReelsData);
+      } catch (err) {
+        console.log(err);
+        setReels(defaultReelsData);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchReels();
+  }, []);
 
   // Handle video play/pause based on current index
   useEffect(() => {
@@ -181,7 +217,12 @@ const ReelsComponent: React.FC<ReelsComponentProps> = ({ reelsData = [] }) => {
   };
 
   return (
-    <div className="relative w-full max-w-md mx-auto rounded-2xl bg-black overflow-hidden">
+    <div className="relative w-full max-w-sm mx-auto h-[98vh] rounded-2xl bg-black overflow-hidden">
+      {loading && reels.length === 0 && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-60 z-30">
+          <div className="text-white text-lg">Loading reels...</div>
+        </div>
+      )}
       {/* Navigation arrows */}
       <div className="absolute top-4 right-4 z-20 flex flex-col gap-2">
         <button
@@ -225,6 +266,8 @@ const ReelsComponent: React.FC<ReelsComponentProps> = ({ reelsData = [] }) => {
               loop
               playsInline
               muted={isMuted}
+              autoPlay={index === currentIndex}
+              style={{ display: index === currentIndex ? 'block' : 'none' }}
               onClick={() => setIsPlaying(!isPlaying)}
             />
 
@@ -251,7 +294,7 @@ const ReelsComponent: React.FC<ReelsComponentProps> = ({ reelsData = [] }) => {
                   {/* User info */}
                   <div className="flex items-center mb-3">
                     <Image
-                      src={reel.user.avatar}
+                      src={reel.user.avatar || '/placeholderimg.png'}
                       alt={reel.user.name}
                       className="w-8 h-8 rounded-full mr-2 object-cover"
                       width={32}

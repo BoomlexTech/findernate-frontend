@@ -71,3 +71,9 @@ export const getUserById = async (userId: string) => {
     const response = await axios.get(`/users/profile/other?identifier=${userId}`);
     return response.data.data;
 }
+
+export const getSuggestedUsers = async () => {
+    const response = await axios.get('/suggestions/suggested-for-you');
+    // Return the suggestions array, not the whole data object
+    return response.data.data?.suggestions || [];
+}

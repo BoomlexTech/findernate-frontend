@@ -6,6 +6,7 @@ import { FeedPost } from '@/types';
 interface ProfilePostsSectionProps {
   PostCard: React.ComponentType<{post: FeedPost}>
   posts?: FeedPost[];
+  username?: string;
   savedPosts?: FeedPost[];
   taggedPosts?: FeedPost[];
   reels?: FeedPost[];

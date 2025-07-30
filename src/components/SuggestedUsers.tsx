@@ -3,9 +3,10 @@
 
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
-import { useState } from 'react';
-import { followUser, unfollowUser } from '@/api/user';
+import { useState, useEffect } from 'react';
+import { followUser, getSuggestedUsers, unfollowUser } from '@/api/user';
 import { UserPlus, UserMinus } from 'lucide-react';
+import { AxiosError } from 'axios';
 
 interface SuggestedUser {
   _id: string;
@@ -55,17 +56,55 @@ const defaultSuggestedUsers: SuggestedUser[] = [
   }
 ];
 
-export default function SuggestedUsers({ users = defaultSuggestedUsers }: SuggestedUsersProps) {
-  const [userStates, setUserStates] = useState<{[key: string]: {isFollowing: boolean, followersCount: number, isLoading: boolean}}>(
-    users.reduce((acc, user) => ({
+export default function SuggestedUsers({ users: initialUsers = defaultSuggestedUsers }: SuggestedUsersProps) {
+  const [users, setUsers] = useState<SuggestedUser[]>(Array.isArray(initialUsers) ? initialUsers : []);
+  const [userStates, setUserStates] = useState<{[key: string]: {isFollowing: boolean, followersCount: number, isLoading: boolean}}>(() => {
+    return (Array.isArray(initialUsers) ? initialUsers : []).reduce((acc, user) => ({
       ...acc,
       [user._id]: {
         isFollowing: user.isFollowing || false,
         followersCount: user.followersCount,
         isLoading: false
       }
-    }), {})
-  );
+    }), {});
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchSuggestedUsers() {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await getSuggestedUsers();
+        const safeUsers = Array.isArray(res) ? res : [];
+        setUsers(safeUsers);
+        setUserStates(safeUsers.reduce((acc, user) => ({
+          ...acc,
+          [user._id]: {
+            isFollowing: user.isFollowing || false,
+            followersCount: user.followersCount,
+            isLoading: false
+          }
+        }), {}));
+      } catch (err) {
+        console.log(err);
+        setError('Could not load suggestions.');
+        setUsers(defaultSuggestedUsers);
+        setUserStates(defaultSuggestedUsers.reduce((acc, user) => ({
+          ...acc,
+          [user._id]: {
+            isFollowing: user.isFollowing || false,
+            followersCount: user.followersCount,
+            isLoading: false
+          }
+        }), {}));
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchSuggestedUsers();
+  }, []);
 
   const formatFollowers = (count: number) => {
     if (count >= 1000) {
@@ -105,10 +144,10 @@ export default function SuggestedUsers({ users = defaultSuggestedUsers }: Sugges
           }
         }));
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error toggling follow status:', error);
-      
-      const errorMessage = error.response?.data?.message;
+      const axiosError = error as AxiosError;
+      const errorMessage = axiosError.response?.data as string;
       
       // Handle specific error cases
       if (errorMessage === 'Already following') {
@@ -174,56 +213,78 @@ export default function SuggestedUsers({ users = defaultSuggestedUsers }: Sugges
   <h3 className="text-lg font-semibold text-gray-900">Suggested for You</h3>
 </div>
 
-      <div className="space-y-4">
-        {users.map((user) => {
-          const userState = userStates[user._id];
-          return (
-            <div key={user._id} className="flex items-center justify-between">
-              <div className='flex gap-4 justify-center items-center'>
-                <Image
-                  width={20}
-                  height={20}
-                  src={user.profileImageUrl || '/placeholderimg.png'}
-                  alt='profile_image'
-                  className="w-10 h-10 rounded-full object-cover"
-                />
-                <div>    
-                  <p className="font-medium text-gray-900 text-sm">{user.fullName}</p>
-                  <p className="text-xs text-gray-600">@{user.username}</p>
-                  <p className="text-xs text-gray-500">
-                    {formatFollowers(userState?.followersCount || user.followersCount)} followers
-                  </p>
-                </div>  
-              </div>
-              <Button
-                size="sm"
-                variant="custom"
-                onClick={() => handleFollowToggle(user._id)}
-                disabled={userState?.isLoading}
-                className={`text-xs px-4 py-1 cursor-pointer flex items-center gap-1 ${
-                  userState?.isFollowing 
-                    ? 'bg-gray-500 hover:bg-gray-600 text-white border-gray-500' 
-                    : 'bg-button-gradient border-[#FCD45C] text-white hover:bg-[#FCD45C]'
-                }`}
+      {loading ? (
+        <div className="py-8 text-center text-gray-500">Loading suggestions...</div>
+      ) : error ? (
+        <div className="py-8 text-center text-red-500">{error}</div>
+      ) : (
+        <div className="space-y-4">
+          {users.map((user) => {
+            const userState = userStates[user._id];
+            const truncatedFullName = user.fullName
+              .split(' ')
+              .slice(0, 7)
+              .join(' ') + (user.fullName.split(' ').length > 7 ? '...' : '');
+
+            return (
+              <div
+                key={user._id}
+                className="flex items-center justify-between cursor-pointer hover:bg-gray-200 rounded-lg transition-colors duration-150"
+                onClick={(e) => {
+                  // Prevent navigation if clicking the follow/unfollow button
+                  if ((e.target as HTMLElement).closest('button')) return;
+                  window.location.href = `/userprofile/${user.username}`;
+                }}
               >
-                {userState?.isLoading ? (
-                  <div className="w-3 h-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                ) : userState?.isFollowing ? (
-                  <>
-                    <UserMinus className="w-3 h-3" />
-                    Unfollow
-                  </>
-                ) : (
-                  <>
-                    <UserPlus className="w-3 h-3" />
-                    Follow
-                  </>
-                )}
-              </Button>
-            </div>
-          );
-        })}
-      </div>
+                <div className='flex gap-4 p-3 justify-center items-center flex-grow min-w-0'>
+                  <Image
+                    width={20}
+                    height={20}
+                    src={user.profileImageUrl || '/placeholderimg.png'}
+                    alt='profile_image'
+                    className="w-10 h-10 rounded-full object-cover"
+                  />
+                  <div>    
+                    <p className="font-medium text-gray-900 text-sm">{truncatedFullName}</p>
+                    <p className="text-xs text-gray-600">@{user.username}</p>
+                    <p className="text-xs text-gray-500">
+                      {formatFollowers(userState?.followersCount || user.followersCount)} followers
+                    </p>
+                  </div>  
+                </div>
+                <Button
+                  size="sm"
+                  variant="custom"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleFollowToggle(user._id);
+                  }}
+                  disabled={userState?.isLoading}
+                  className={`text-xs px-4 py-1 cursor-pointer flex items-center gap-1 mr-1 ${
+                    userState?.isFollowing 
+                      ? 'bg-gray-500 hover:bg-gray-600 text-white border-gray-500' 
+                      : 'bg-button-gradient border-[#FCD45C] text-white hover:bg-[#FCD45C]'
+                  }`}
+                >
+                  {userState?.isLoading ? (
+                    <div className="w-3 h-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  ) : userState?.isFollowing ? (
+                    <>
+                      <UserMinus className="w-3 h-3" />
+                      Unfollow
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="w-3 h-3" />
+                      Follow
+                    </>
+                  )}
+                </Button>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
