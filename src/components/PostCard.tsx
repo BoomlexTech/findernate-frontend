@@ -450,22 +450,32 @@ export default function PostCard({ post }: PostCardProps) {
 
           {/* Comment Box - Only show for normal/regular posts and not on single post pages */}
           {(!post.contentType || post.contentType === 'normal' || post.contentType === 'regular') && !pathname.includes('/post/') && (
-            <div className="px-2 pb-3">
-              <form onSubmit={handleCommentSubmit} className="flex gap-2">
-                <input
-                  type="text"
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                  placeholder="Add a comment..."
-                  className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 text-gray-900 placeholder-gray-500"
-                  disabled={isSubmittingComment}
-                />
+            <div className="px-2 -mb-5 mt-auto">
+              <form onSubmit={handleCommentSubmit} className="flex items-center gap-3 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-full border border-yellow-200 px-4 py-2 shadow-sm hover:shadow-md transition-all duration-200">
+                <div className="flex-1 relative">
+                  <input
+                    type="text"
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    placeholder="Add a comment..."
+                    className="w-full py-2 px-4 text-sm bg-transparent border-none focus:outline-none text-gray-800 placeholder-gray-500 font-medium"
+                    disabled={isSubmittingComment}
+                  />
+                </div>
                 <button
                   type="submit"
                   disabled={!comment.trim() || isSubmittingComment}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className={`flex items-center justify-center p-2 rounded-full transition-all duration-200 ${
+                    comment.trim() && !isSubmittingComment
+                      ? 'bg-gradient-to-r from-yellow-400 to-orange-400 hover:from-yellow-500 hover:to-orange-500 text-white shadow-md hover:shadow-lg transform hover:scale-105'
+                      : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  }`}
                 >
-                  {isSubmittingComment ? 'Posting...' : 'Post'}
+                  {isSubmittingComment ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <MessageCircle className="w-4 h-4" />
+                  )}
                 </button>
               </form>
             </div>
