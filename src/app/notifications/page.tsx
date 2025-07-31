@@ -3,6 +3,7 @@ import Image from 'next/image';
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getNotifications } from '@/api/notification';
+import { Bell, User, Heart, MessageCircle, FileText, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 
 interface Notification {
   _id: string;
@@ -91,6 +92,54 @@ const Notifications = () => {
     // }
   };
 
+  const getNotificationIcon = (type: string) => {
+    const iconClass = "w-4 h-4";
+    switch (type) {
+      case 'follow':
+        return <User className={`${iconClass} text-blue-500`} />;
+      case 'like':
+        return <Heart className={`${iconClass} text-red-500 fill-current`} />;
+      case 'comment':
+        return <MessageCircle className={`${iconClass} text-green-500`} />;
+      case 'post':
+        return <FileText className={`${iconClass} text-purple-500`} />;
+      default:
+        return <Bell className={`${iconClass} text-gray-500`} />;
+    }
+  };
+
+  const getNotificationColor = (type: string) => {
+    switch (type) {
+      case 'follow':
+        return 'bg-blue-50 border-blue-200';
+      case 'like':
+        return 'bg-red-50 border-red-200';
+      case 'comment':
+        return 'bg-green-50 border-green-200';
+      case 'post':
+        return 'bg-purple-50 border-purple-200';
+      default:
+        return 'bg-gray-50 border-gray-200';
+    }
+  };
+
+  const formatTimeAgo = (dateString: string) => {
+    const now = new Date();
+    const notificationDate = new Date(dateString);
+    const diffInSeconds = Math.floor((now.getTime() - notificationDate.getTime()) / 1000);
+    
+    if (diffInSeconds < 60) return 'just now';
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
+    
+    return notificationDate.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: notificationDate.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+    });
+  };
+
   useEffect(() => {
     const fetchNotifications = async () => {
       try {
@@ -118,84 +167,138 @@ const Notifications = () => {
   }, []);
 
   return (
-    <div className="w-[50rem] min-h-screen overflow-y-auto bg-white border border-gray-300 rounded-lg shadow-lg p-4 ml-50 space-y-2">
-      {/* Loading State */}
-      {loading && (
-        <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-600"></div>
-          <span className="ml-3 text-gray-600">Loading notifications...</span>
-        </div>
-      )}
-
-      {/* Error State */}
-      {error && !loading && (
-        <div className="text-center py-8">
-          <div className="text-red-500 mb-2">⚠️</div>
-          <p className="text-gray-600 mb-4">{error}</p>
-          <button 
-            onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors"
-          >
-            Try Again
-          </button>
-        </div>
-      )}
-
-      {/* Notifications List */}
-      {!loading && !error && notifications.length === 0 && (
-        <div className="text-center py-12">
-          <div className="text-6xl mb-4">🔔</div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">No Notifications</h2>
-          <p className="text-gray-600">You&apos;re all caught up! Check back later for new updates.</p>
-        </div>
-      )}
-
-      {!loading && !error && notifications.length > 0 && notifications.map((notification, index) => (
-        <div
-          key={notification._id || `notification-${index}`}
-          onClick={() => handleNotificationClick(notification)}
-          className={`flex items-start space-x-4 p-2 rounded-lg shadow-md hover:bg-gray-200 transition-colors duration-200 cursor-pointer ${
-            !notification.isRead ? 'bg-blue-50 border-l-4 border-yellow-500' : ''
-          }`}
-        >
-          {/* Profile Image */}
-          <div className="flex-shrink-0 mt-1">
-            <Image
-              className="h-10 w-10 rounded-full object-cover"
-              src={notification.senderId.profileImageUrl || '/placeholderimg.png'}
-              alt={`${notification.senderId.username} profile`}
-              width={48}
-              height={48}
-            />
-          </div>
-
-          {/* Notification Text and Timestamp */}
-          <div className="flex-1 min-w-0">
-            <p className="text-black text-sm leading-relaxed">
-              <span className="font-semibold text-yellow-600">{notification.senderId.username}</span> {notification.message}
-            </p>
-            <p className="text-yellow-600 text-xs mt-1">
-              {new Date(notification.createdAt).toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-              })}
-            </p>
-          </div>
-
-          {/* Notification Type Icon */}
-          <div className="flex items-center space-x-2 ml-4">
-            <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
-              {notification.type === 'follow' && <span className="text-yellow-600 text-xs">👥</span>}
-              {notification.type === 'like' && <span className="text-yellow-600 text-xs">❤️</span>}
-              {notification.type === 'comment' && <span className="text-yellow-600 text-xs">💬</span>}
-              {notification.type === 'post' && <span className="text-yellow-600 text-xs">📝</span>}
-              {!['follow', 'like', 'comment', 'post'].includes(notification.type) && <span className="text-yellow-600 text-xs">🔔</span>}
+    <div className="w-[50rem] min-h-screen mx-auto bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+      {/* Header */}
+      <div className="bg-button-gradient px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+              <Bell className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-white">Notifications</h1>
+              <p className="text-white/80 text-sm">Stay updated with your activity</p>
             </div>
           </div>
+          {!loading && notifications.length > 0 && (
+            <div className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full">
+              <span className="text-white text-sm font-medium">{notifications.length}</span>
+            </div>
+          )}
         </div>
-      ))}
+      </div>
+
+      <div className="overflow-y-auto max-h-[calc(100vh-120px)]">
+        {/* Loading State */}
+        {loading && (
+          <div className="flex flex-col items-center justify-center py-16">
+            <Loader2 className="w-8 h-8 text-yellow-500 animate-spin mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Loading notifications</h3>
+            <p className="text-gray-500">Please wait while we fetch your updates...</p>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && !loading && (
+          <div className="flex flex-col items-center justify-center py-16 px-6">
+            <div className="bg-red-100 p-4 rounded-full mb-4">
+              <AlertCircle className="w-8 h-8 text-red-500" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Something went wrong</h3>
+            <p className="text-gray-500 text-center mb-6">{error}</p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="flex items-center gap-2 px-6 py-3 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors font-medium"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Try Again
+            </button>
+          </div>
+        )}
+
+        {/* Empty State */}
+        {!loading && !error && notifications.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-16 px-6">
+            <div className="bg-gray-100 p-6 rounded-full mb-6">
+              <Bell className="w-12 h-12 text-gray-400" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">All caught up!</h3>
+            <p className="text-gray-500 text-center">You have no new notifications right now. Check back later for updates.</p>
+          </div>
+        )}
+
+        {/* Notifications List */}
+        {!loading && !error && notifications.length > 0 && (
+          <div className="divide-y divide-gray-100">
+            {notifications.map((notification, index) => (
+              <div
+                key={notification._id || `notification-${index}`}
+                onClick={() => handleNotificationClick(notification)}
+                className={`relative flex items-start p-4 hover:bg-gray-50 transition-all duration-200 cursor-pointer group ${
+                  !notification.isRead ? 'bg-blue-50/50' : ''
+                }`}
+              >
+                {/* // Unread indicator
+                {!notification.isRead && (
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-yellow-500 rounded-r-full"></div>
+                )} */}
+
+                {/* Profile Image with Status Ring */}
+                <div className="flex-shrink-0 relative">
+                  <div className={`p-0.5 rounded-full ${!notification.isRead ? 'bg-gradient-to-r from-yellow-400 to-orange-500' : 'bg-gray-200'}`}>
+                    <Image
+                      className="h-12 w-12 rounded-full object-cover bg-white p-0.5"
+                      src={notification.senderId.profileImageUrl || '/placeholderimg.png'}
+                      alt={`${notification.senderId.username} profile`}
+                      width={48}
+                      height={48}
+                    />
+                  </div>
+                  
+                  {/* Notification type badge */}
+                  <div className={`absolute -bottom-1 -right-1 p-1.5 rounded-full border-2 border-white ${getNotificationColor(notification.type)}`}>
+                    {getNotificationIcon(notification.type)}
+                  </div>
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 min-w-0 ml-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <p className="text-gray-900 text-sm leading-relaxed">
+                        <span className="font-semibold text-gray-900 hover:text-yellow-600 transition-colors">
+                          {notification.senderId.username}
+                        </span>
+                        <span className="text-gray-600">{notification.message}</span>
+                      </p>
+                      <div className="flex items-center mt-1 space-x-2">
+                        <span className="text-xs text-gray-500">
+                          {formatTimeAgo(notification.createdAt)}
+                        </span>
+                        {!notification.isRead && (
+                          <div className="flex items-center space-x-1">
+                            <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
+                            <span className="text-xs text-yellow-600 font-medium">New</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Hover arrow */}
+                <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 ml-2">
+                  <div className="w-6 h-6 flex items-center justify-center">
+                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

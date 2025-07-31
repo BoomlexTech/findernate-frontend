@@ -671,7 +671,7 @@ export default function SearchPage() {
                     )}
                   </p>
                 ) : (
-                  <p>No results found for "{searchQuery}"
+                  <p>No results found for {searchQuery}
                     {selectedLocation !== "All Locations" && !useCurrentLocation && (
                       <span> in {selectedLocation}</span>
                     )}
