@@ -266,9 +266,11 @@ export default function PostCard({ post }: PostCardProps) {
       return; // Don't open new tab if already on post page
     }
     
-    // Prevent opening if clicking on interactive elements
+    // Prevent opening if clicking on interactive elements or modal content
     const target = e.target as HTMLElement;
-    if (target.closest('button') || target.closest('a') || target.closest('input')) {
+    if (target.closest('button') || target.closest('a') || target.closest('input') || 
+        target.closest('.fixed') || target.closest('[role="dialog"]') || 
+        target.classList.contains('fixed')) {
       return;
     }
     
