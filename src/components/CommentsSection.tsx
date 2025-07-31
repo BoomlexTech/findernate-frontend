@@ -96,9 +96,9 @@ const CommentsSection = ({ postId, onCommentCountChange, initialCommentCount = 0
           return { ...comment, user: cachedComment.user };
         }
         
-        // Extract user data from the userId field (which is actually an object)
+        // Extract user data from the userId field (which can be string or user object)
         const userData = comment.userId;
-        if (userData && typeof userData === 'object' && userData._id) {
+        if (userData && typeof userData === 'object' && '_id' in userData && userData._id) {
           return {
             ...comment,
             userId: userData._id, // Convert userId back to string for compatibility
