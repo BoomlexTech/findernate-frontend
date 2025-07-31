@@ -1,87 +1,139 @@
 'use client';
+import { getTrendingBusinessOwners } from '@/api/user';
 import Image from 'next/image';
+import { useEffect, useState } from 'react';
 
-const trendingBusinesses = [
-  {
-    id: 1,
-    name: 'Green Leaf Cafe',
-    username: '@greenleafcafe',
-    category: 'Food & Beverage',
-    followers: 25400
-  },
-  {
-    id: 2,
-    name: 'TechHub Solutions',
-    username: '@techhubsol',
-    category: 'Technology',
-    followers: 18600
-  },
-  {
-    id: 3,
-    name: 'Fitness Plus',
-    username: '@fitnessplus',
-    category: 'Health & Fitness',
-    followers: 32100
-  },
-];
+// Type definitions
+interface Business {
+  _id: string;
+  businessName: string;
+  category: string;
+  description: string;
+  logoUrl: string;
+  followersCount: number;
+  isFollowing: boolean;
+}
+
+// Axios response wrapper type
+interface AxiosResponse {
+  data: {
+    data: {
+      businesses: Business[];
+    };
+  };
+  status: number;
+  statusText: string;
+  headers: any;
+  config: any;
+}
 
 export default function TrendingBusiness() {
-  const formatFollowers = (count: number) => {
+  const [businessOwners, setBusinessOwners] = useState<Business[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const formatFollowers = (count: number): string => {
     if (count >= 1000) {
       return `${(count / 1000).toFixed(1)}k`;
     }
     return count.toString();
   };
 
+  useEffect(() => {
+    const fetchBusinessOwners = async (): Promise<void> => {
+      try {
+        setLoading(true);
+        const response: AxiosResponse = await getTrendingBusinessOwners();
+        console.log("trending business owners", response);
+        
+        // Extract businesses array from the Axios response structure
+        // response.data.data.businesses (because of Axios wrapper)
+        if (response && response.data && response.data.data && response.data.data.businesses) {
+          setBusinessOwners(response.data.data.businesses);
+        } else {
+          setBusinessOwners([]);
+        }
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching business owners:', err);
+        setError("Failed to load business owners");
+        setBusinessOwners([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchBusinessOwners();
+  }, []);
+
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>): void => {
+    const target = e.target as HTMLImageElement;
+    target.src = "https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150";
+  };
+
   return (
     <div className="bg-yellow-100 rounded-xl shadow-sm border border-gray-200 p-6 cursor-pointer">
       {/* SVG and Heading aligned */}
-    <div className="flex items-center gap-2 mb-4">
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="20"
-    height="20"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className="lucide lucide-building2 text-yellow-700"
-  >
-    <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"></path>
-    <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"></path>
-    <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"></path>
-    <path d="M10 6h4"></path>
-    <path d="M10 10h4"></path>
-    <path d="M10 14h4"></path>
-    <path d="M10 18h4"></path>
-  </svg>
-  <h3 className="text-lg font-semibold text-gray-900">Trending Business Owners</h3>
-</div>
-
+      <div className="flex items-center gap-2 mb-4">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="lucide lucide-building2 text-yellow-700"
+        >
+          <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"></path>
+          <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"></path>
+          <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"></path>
+          <path d="M10 6h4"></path>
+          <path d="M10 10h4"></path>
+          <path d="M10 14h4"></path>
+          <path d="M10 18h4"></path>
+        </svg>
+        <h3 className="text-lg font-semibold text-gray-900">Trending Business Owners</h3>
+      </div>
 
       {/* Business List */}
       <div className="space-y-1 max-h-80 overflow-y-auto pr-2">
-        {trendingBusinesses.map((business) => (
-          <div
-            key={business.id}
-            className="flex items-center justify-start gap-6 p-2 rounded-lg hover:bg-yellow-200 transition-colors"
-          >
-            <Image
-              src="https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150"
-              alt="profile_pic"
-              width={25}
-              height={25}
-              className="w-12 h-12 rounded-full object-cover"
-            />
-            <div className="flex flex-col">
-              <p className="font-semibold text-gray-900 text-sm">{business.name}</p>
-              <span className="text-yellow-600 text-xs">{business.category}</span>
-              <p className="text-xs text-gray-500">{formatFollowers(business.followers)} followers</p>
-            </div>
+        {loading ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="text-gray-500 text-sm">Loading...</div>
           </div>
-        ))}
+        ) : error ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="text-red-500 text-sm">{error}</div>
+          </div>
+        ) : businessOwners.length === 0 ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="text-gray-500 text-sm">No business owners found</div>
+          </div>
+        ) : (
+          businessOwners.map((business: Business) => (
+            <div
+              key={business._id}
+              className="flex items-center justify-start gap-6 p-2 rounded-lg hover:bg-yellow-200 transition-colors"
+            >
+              <Image
+                src={business.logoUrl || "https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150"}
+                alt={`${business.businessName} logo`}
+                width={25}
+                height={25}
+                className="w-12 h-12 rounded-full object-cover"
+                onError={handleImageError}
+              />
+              <div className="flex flex-col">
+                <p className="font-semibold text-gray-900 text-sm">{business.businessName}</p>
+                <span className="text-yellow-600 text-xs capitalize">{business.category}</span>
+                <p className="text-xs text-gray-500">{formatFollowers(business.followersCount)} followers</p>
+              </div>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );

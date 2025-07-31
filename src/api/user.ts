@@ -77,3 +77,8 @@ export const getSuggestedUsers = async () => {
     // Return the suggestions array, not the whole data object
     return response.data.data?.suggestions || [];
 }
+
+export const getTrendingBusinessOwners = async () => {
+    const response = await axios.get('/business-owners/trending-business-owners')
+    return response
+}
