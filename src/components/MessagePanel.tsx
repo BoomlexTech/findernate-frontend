@@ -1,13 +1,17 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
-import { MessageSquare, Bell, Phone, Video, MoreHorizontal, Search, Send, Paperclip, Smile, Trash2, MoreVertical, Check, CheckCheck, Users, MessageCircle } from "lucide-react";
+import { MessageSquare, Bell, Phone, Video, MoreHorizontal, Search, Send, Paperclip, Smile, Trash2, MoreVertical, Check, CheckCheck, Users, MessageCircle, Mail } from "lucide-react";
 import { useUserStore } from "@/store/useUserStore";
 import { messageAPI, Chat, Message } from "@/api/message";
 import socketManager from "@/utils/socket";
 import { useSearchParams } from "next/navigation";
 import { getFollowing } from "@/api/user";
 import { AxiosError } from "axios";
+import { followEvents } from "@/utils/followEvents";
+
+// Constants
+const REQUEST_DECISIONS_KEY = 'message_request_decisions';
 
 export default function MessagePanel() {
   const [chats, setChats] = useState<Chat[]>([]);
@@ -23,12 +27,16 @@ export default function MessagePanel() {
   const [followingUsers, setFollowingUsers] = useState<any[]>([]);
   const [loadingFollowing, setLoadingFollowing] = useState(false);
   const [showContextMenu, setShowContextMenu] = useState<{messageId: string, x: number, y: number} | null>(null);
-  const [activeTab, setActiveTab] = useState<'direct' | 'group'>('direct');
+  const [activeTab, setActiveTab] = useState<'direct' | 'group' | 'requests'>('direct');
+  const [messageRequests, setMessageRequests] = useState<Chat[]>([]);
+  const [userFollowingList, setUserFollowingList] = useState<string[]>([]);
+  const [requestDecisionCache, setRequestDecisionCache] = useState<Map<string, 'accepted' | 'declined'>>(new Map());
   const [showGroupModal, setShowGroupModal] = useState(false);
   const [groupName, setGroupName] = useState("");
   const [groupDescription, setGroupDescription] = useState("");
   const [selectedGroupMembers, setSelectedGroupMembers] = useState<string[]>([]);
   const [showGroupDetails, setShowGroupDetails] = useState(false);
+  const [allChatsCache, setAllChatsCache] = useState<Chat[]>([]); // Keep track of all chats
   const user = useUserStore((state) => state.user);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messageInputRef = useRef<HTMLInputElement>(null);
@@ -60,40 +68,158 @@ export default function MessagePanel() {
     };
   }, []);
 
+  // Load cached decisions and user following list on mount
+  useEffect(() => {
+    // Load cached decisions from localStorage
+    const savedDecisions = localStorage.getItem(REQUEST_DECISIONS_KEY);
+    if (savedDecisions) {
+      try {
+        const decisionsArray = JSON.parse(savedDecisions);
+        setRequestDecisionCache(new Map(decisionsArray));
+      } catch (error) {
+        console.error('Error loading cached decisions:', error);
+      }
+    }
+
+    // Load user's following list
+    const loadUserFollowing = async () => {
+      if (user) {
+        try {
+          console.log('Loading following list for user:', user.username);
+          const following = await messageAPI.getUserFollowing(user._id);
+          const followingIds = following.map(u => u._id);
+          console.log('Following list loaded:', {
+            count: followingIds.length,
+            users: following.map(u => ({ id: u._id, username: u.username }))
+          });
+          console.log('Following IDs array:', followingIds);
+          setUserFollowingList(followingIds);
+        } catch (error) {
+          console.error('Failed to load user following:', error);
+          setUserFollowingList([]);
+        }
+      }
+    };
+
+    loadUserFollowing();
+  }, [user]);
+
   // Load chats on mount
   useEffect(() => {
-    const loadChats = async () => {
+    const loadChatsAndRequests = async () => {
       try {
         setLoading(true);
         
-        // Test if the endpoint exists
-        console.log('Attempting to load chats from:', process.env.NEXT_PUBLIC_API_BASE_URL);
+        console.log('Loading active chats and requests from:', process.env.NEXT_PUBLIC_API_BASE_URL);
         
-        const response = await messageAPI.getUserChats();
+        // Load both active chats and message requests in parallel
+        const [activeChatsResponse, requestsResponse] = await Promise.all([
+          messageAPI.getActiveChats(),
+          messageAPI.getMessageRequests()
+        ]);
+        
+        console.log('Active chats from server:', activeChatsResponse.chats.length);
+        activeChatsResponse.chats.forEach((chat, index) => {
+          console.log(`Active chat ${index + 1}:`, {
+            id: chat._id,
+            type: chat.chatType,
+            participants: chat.participants.map(p => ({ id: p._id, username: p.username })),
+            lastMessage: chat.lastMessage?.message || 'No message',
+            lastMessageAt: chat.lastMessageAt
+          });
+        });
+        
+        console.log('Message requests from server:', requestsResponse.chats.length);
+        requestsResponse.chats.forEach((chat, index) => {
+          console.log(`Request ${index + 1}:`, {
+            id: chat._id,
+            type: chat.chatType,
+            participants: chat.participants.map(p => ({ id: p._id, username: p.username })),
+            lastMessage: chat.lastMessage?.message || 'No message',
+            lastMessageAt: chat.lastMessageAt
+          });
+        });
+        
         // Sort chats by most recent message
-        const sortedChats = response.chats.sort((a, b) => 
+        const sortedActiveChats = activeChatsResponse.chats.sort((a, b) => 
           new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
         );
-        setChats(sortedChats);
+        
+        const sortedRequests = requestsResponse.chats.sort((a, b) => 
+          new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
+        );
+        
+        // Set the chats directly from server response
+        setChats(sortedActiveChats);
+        setMessageRequests(sortedRequests);
+        setAllChatsCache([...sortedActiveChats, ...sortedRequests]);
+        
       } catch (error) {
         console.error('Failed to load chats:', error);
         const axiosError = error as AxiosError;
         console.log(axiosError.response?.status);
-        // If it's a 404, the route might not exist on the server
-        if (axiosError.response?.status === 404) {
-          console.error('Chat routes not found on the server. This might be a deployment issue.');
-          // For now, initialize with empty chats to prevent crashes
-          setChats([]);
-        }
+        // Initialize with empty chats to prevent crashes
+        setChats([]);
+        setMessageRequests([]);
       } finally {
         setLoading(false);
       }
     };
 
     if (user) {
-      loadChats();
+      loadChatsAndRequests();
     }
   }, [user]);
+
+  // Simple categorization for when we need to update chats locally
+  const categorizeChats = (allChats: Chat[]) => {
+    // This is now mainly used for updating chats after socket events
+    // The server handles the main categorization
+    console.log('Local categorization called with:', allChats.length, 'chats');
+    
+    const regularChats: Chat[] = [];
+    const requestChats: Chat[] = [];
+
+    allChats.forEach((chat) => {
+      // Check if this chat is already in requests or decisions cache
+      const decision = requestDecisionCache.get(chat._id);
+      
+      if (decision === 'declined') {
+        // Hide declined requests
+        return;
+      } else if (decision === 'accepted') {
+        // Accepted requests go to regular chats
+        regularChats.push(chat);
+      } else {
+        // Let server categorization be the primary source
+        // This is mainly for local updates after socket events
+        const existsInRequests = messageRequests.some(r => r._id === chat._id);
+        const existsInRegular = chats.some(c => c._id === chat._id);
+        
+        if (existsInRequests) {
+          requestChats.push(chat);
+        } else {
+          regularChats.push(chat);
+        }
+      }
+    });
+
+    console.log('Local categorization result:', {
+      regularChats: regularChats.length,
+      requestChats: requestChats.length
+    });
+
+    setChats(regularChats);
+    setMessageRequests(requestChats);
+  };
+
+  // Recategorize chats when following list or decisions change
+  useEffect(() => {
+    if (allChatsCache.length > 0 && userFollowingList.length >= 0) {
+      console.log('Recategorizing due to following list change');
+      categorizeChats(allChatsCache);
+    }
+  }, [userFollowingList, requestDecisionCache, allChatsCache, user]);
 
   // Handle chatId from URL parameters
   useEffect(() => {
@@ -160,48 +286,86 @@ export default function MessagePanel() {
   // Socket event listeners
   useEffect(() => {
     const handleNewMessage = (data: { chatId: string; message: Message }) => {
+      // Find the chat in both regular chats and requests
+      const chatInRegular = chats.find(c => c._id === data.chatId);
+      const chatInRequests = messageRequests.find(r => r._id === data.chatId);
+      const chat = chatInRegular || chatInRequests;
+      
+      if (!chat) {
+        // If chat doesn't exist, it might be a new chat - reload both lists
+        console.log('New message from unknown chat, reloading chats...');
+        if (user) {
+          Promise.all([
+            messageAPI.getActiveChats(),
+            messageAPI.getMessageRequests()
+          ]).then(([activeChatsResponse, requestsResponse]) => {
+            const sortedActiveChats = activeChatsResponse.chats.sort((a, b) => 
+              new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
+            );
+            const sortedRequests = requestsResponse.chats.sort((a, b) => 
+              new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
+            );
+            setChats(sortedActiveChats);
+            setMessageRequests(sortedRequests);
+            setAllChatsCache([...sortedActiveChats, ...sortedRequests]);
+          }).catch(error => console.error('Failed to reload chats:', error));
+        }
+        return;
+      }
+
+      // Update messages if this is the selected chat
       if (data.chatId === selectedChatRef.current) {
         console.log('Socket: Received new message', data.message._id);
-        // Check if message already exists to prevent duplicates
         setMessages(prev => {
           const messageExists = prev.some(msg => msg._id === data.message._id);
-          console.log('Socket: Message exists?', messageExists, 'Message ID:', data.message._id);
           if (messageExists) {
             console.log('Socket: Skipping duplicate message');
-            return prev; // Don't add duplicate
+            return prev;
           }
           console.log('Socket: Adding new message to state');
           return [...prev, data.message];
         });
         scrollToBottom();
       }
-      
-      // Update chat list with new message and reorder by most recent
-      setChats(prev => {
-        console.log('Socket: Updating chat list for chatId:', data.chatId);
-        const updatedChats = prev.map(chat => {
-          if (chat._id === data.chatId) {
-            console.log('Socket: Moving chat to top:', data.chatId);
-            return {
-              ...chat, 
-              lastMessage: { 
-                sender: data.message.sender._id, 
-                message: data.message.message, 
-                timestamp: data.message.timestamp 
-              }, 
-              lastMessageAt: data.message.timestamp,
-              // Increment unread count if not the selected chat
-              unreadCount: data.chatId !== selectedChatRef.current ? (chat.unreadCount || 0) + 1 : 0
-            };
-          }
-          return chat;
+
+      // Update the appropriate chat list (regular or requests)
+      if (chatInRegular) {
+        setChats(prev => {
+          const updatedChats = prev.map(chat => {
+            if (chat._id === data.chatId) {
+              return {
+                ...chat,
+                lastMessage: {
+                  sender: data.message.sender._id,
+                  message: data.message.message,
+                  timestamp: data.message.timestamp
+                },
+                lastMessageAt: data.message.timestamp,
+                unreadCount: data.chatId !== selectedChatRef.current ? (chat.unreadCount || 0) + 1 : 0
+              };
+            }
+            return chat;
+          });
+
+          return updatedChats.sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime());
         });
-        
-        // Sort chats by lastMessageAt to bring the most recent to top
-        const sortedChats = updatedChats.sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime());
-        console.log('Socket: Chats reordered, top chat:', sortedChats[0]?.lastMessage?.message);
-        return sortedChats;
-      });
+      } else if (chatInRequests) {
+        setMessageRequests(prev => {
+          return prev.map(request =>
+            request._id === data.chatId
+              ? {
+                  ...request,
+                  lastMessage: {
+                    sender: data.message.sender._id,
+                    message: data.message.message,
+                    timestamp: data.message.timestamp
+                  },
+                  lastMessageAt: data.message.timestamp
+                }
+              : request
+          );
+        });
+      }
     };
 
 
@@ -516,20 +680,30 @@ export default function MessagePanel() {
   };
 
   // Filter chats based on search query and tab
-  const filteredChats = chats.filter(chat => {
-    // Filter by tab
-    if (activeTab === 'direct' && chat.chatType !== 'direct') return false;
-    if (activeTab === 'group' && chat.chatType !== 'group') return false;
+  const filteredChats = (() => {
+    // Get the appropriate chat list based on active tab
+    let chatList: Chat[] = [];
+    
+    if (activeTab === 'requests') {
+      chatList = messageRequests;
+    } else {
+      chatList = chats.filter(chat => {
+        if (activeTab === 'direct' && chat.chatType !== 'direct') return false;
+        if (activeTab === 'group' && chat.chatType !== 'group') return false;
+        return true;
+      });
+    }
     
     // Filter by search query
-    if (!searchQuery.trim()) return true;
+    if (!searchQuery.trim()) return chatList;
     
     const searchLower = searchQuery.toLowerCase();
-    const chatName = getChatDisplayName(chat).toLowerCase();
-    const lastMessage = chat.lastMessage?.message?.toLowerCase() || '';
-    
-    return chatName.includes(searchLower) || lastMessage.includes(searchLower);
-  });
+    return chatList.filter(chat => {
+      const chatName = getChatDisplayName(chat).toLowerCase();
+      const lastMessage = chat.lastMessage?.message?.toLowerCase() || '';
+      return chatName.includes(searchLower) || lastMessage.includes(searchLower);
+    });
+  })();
 
   // Calculate unread counts for each tab
   const directUnreadCount = chats
@@ -626,6 +800,104 @@ export default function MessagePanel() {
     );
   };
 
+  // Accept message request with auto-follow
+  const handleAcceptRequest = async (chatId: string) => {
+    const request = messageRequests.find(r => r._id === chatId);
+    if (!request || !user) return;
+
+    try {
+      // Get the other participant
+      const otherParticipant = request.participants.find(p => p._id !== user._id);
+      if (!otherParticipant) return;
+
+      // Accept the request on the server
+      await messageAPI.acceptMessageRequest(chatId);
+      
+      // Auto-follow the user
+      await messageAPI.followUser(otherParticipant._id);
+      
+      // Update local following list
+      setUserFollowingList(prev => [...prev, otherParticipant._id]);
+
+      // Move from requests to regular chats
+      setChats(prev => [request, ...prev]);
+      setMessageRequests(prev => prev.filter(r => r._id !== chatId));
+
+      // Cache decision
+      const newDecisions = new Map(requestDecisionCache);
+      newDecisions.set(chatId, 'accepted');
+      setRequestDecisionCache(newDecisions);
+
+      // Persist decision
+      localStorage.setItem(REQUEST_DECISIONS_KEY, 
+        JSON.stringify(Array.from(newDecisions.entries())));
+
+      // Load messages for this chat and select it
+      try {
+        const response = await messageAPI.getChatMessages(chatId);
+        setMessages(response.messages);
+        setSelectedChat(chatId);
+        setActiveTab('direct');
+      } catch (error) {
+        console.error('Failed to load messages:', error);
+      }
+
+      console.log(`Accepted request from ${otherParticipant.fullName} and followed them`);
+    } catch (error) {
+      console.error('Failed to accept request:', error);
+    }
+  };
+
+  // Decline message request
+  const handleDeclineRequest = async (chatId: string) => {
+    try {
+      // Decline the request on the server
+      await messageAPI.declineMessageRequest(chatId);
+      
+      // Remove from local requests
+      setMessageRequests(prev => prev.filter(r => r._id !== chatId));
+
+      // Cache decline decision
+      const newDecisions = new Map(requestDecisionCache);
+      newDecisions.set(chatId, 'declined');
+      setRequestDecisionCache(newDecisions);
+
+      // Persist decision
+      localStorage.setItem(REQUEST_DECISIONS_KEY, 
+        JSON.stringify(Array.from(newDecisions.entries())));
+
+      console.log('Declined message request');
+    } catch (error) {
+      console.error('Failed to decline request:', error);
+    }
+  };
+
+  // Handle when user follows/unfollows someone from other parts of the app
+  const handleUserFollowUpdate = (userId: string, isFollowing: boolean) => {
+    console.log(`Follow update: ${userId}, following: ${isFollowing}`);
+    
+    // Update the following list
+    setUserFollowingList(prev => {
+      const newList = isFollowing 
+        ? (prev.includes(userId) ? prev : [...prev, userId])
+        : prev.filter(id => id !== userId);
+      
+      console.log('Updated following list:', newList);
+      return newList;
+    });
+
+    // The recategorization will happen automatically via useEffect
+    // when userFollowingList changes
+  };
+
+  // Expose the follow update handler globally for other components to use
+  useEffect(() => {
+    // Subscribe to follow events
+    const unsubscribe = followEvents.subscribe(handleUserFollowUpdate);
+    
+    return unsubscribe;
+  }, [userFollowingList, chats, messageRequests, requestDecisionCache]);
+
   return (
     <div className="flex w-full h-screen">
       {/* Left Panel */}
@@ -687,6 +959,22 @@ export default function MessagePanel() {
                 </span>
               )}
             </button>
+            <button
+              onClick={() => setActiveTab('requests')}
+              className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-md text-sm font-medium transition-colors ${
+                activeTab === 'requests'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <Mail className="w-4 h-4" />
+              Requests
+              {messageRequests.length > 0 && (
+                <span className="bg-orange-500 text-white text-xs min-w-[18px] h-4 flex items-center justify-center rounded-full px-1">
+                  {messageRequests.length > 99 ? '99+' : messageRequests.length}
+                </span>
+              )}
+            </button>
           </div>
 
           <div className="flex gap-2">
@@ -727,29 +1015,72 @@ export default function MessagePanel() {
           ) : filteredChats.length === 0 ? (
             <div className="flex justify-center items-center py-8">
               <div className="text-gray-500">
-                {searchQuery.trim() ? 'No chats found matching your search' : 'No chats available'}
+                {searchQuery.trim() 
+                  ? `No ${activeTab === 'requests' ? 'requests' : 'chats'} found matching your search` 
+                  : activeTab === 'requests' 
+                    ? 'No message requests'
+                    : activeTab === 'group'
+                      ? 'No group chats available'
+                      : 'No direct chats available'
+                }
               </div>
             </div>
           ) : (
             filteredChats.map((chat) => (
               <div 
                 key={chat._id} 
-                className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer hover:bg-yellow-50 transition ${selectedChat === chat._id ? "bg-yellow-50 border border-yellow-300" : ""}`} 
+                className={`flex items-start gap-3 p-3 rounded-lg transition ${
+                  activeTab === 'requests' 
+                    ? "hover:bg-orange-50" 
+                    : `cursor-pointer hover:bg-yellow-50 ${selectedChat === chat._id ? "bg-yellow-50 border border-yellow-300" : ""}`
+                }`} 
                 onClick={() => {
-                  console.log('Selecting chat:', chat._id);
-                  setSelectedChat(chat._id);
+                  if (activeTab !== 'requests') {
+                    console.log('Selecting chat:', chat._id);
+                    setSelectedChat(chat._id);
+                  }
                 }}
               >
                 <Image src={getChatAvatar(chat)} alt={getChatDisplayName(chat)} width={48} height={48} className="rounded-full" />
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <span className="font-semibold text-black">{getChatDisplayName(chat)}</span>
-                    <span className="bg-yellow-100 text-yellow-700 text-xs px-2 py-0.5 rounded-full">{chat.chatType === 'group' ? 'Group' : 'Direct'}</span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${
+                      activeTab === 'requests' 
+                        ? 'bg-orange-100 text-orange-700'
+                        : 'bg-yellow-100 text-yellow-700'
+                    }`}>
+                      {activeTab === 'requests' ? 'Request' : (chat.chatType === 'group' ? 'Group' : 'Direct')}
+                    </span>
                     <span className="ml-auto text-xs text-gray-400">{formatTime(chat.lastMessageAt)}</span>
                   </div>
                   <p className="text-sm text-gray-600 truncate">{chat.lastMessage?.message || 'No messages yet'}</p>
+                  
+                  {/* Request Actions */}
+                  {activeTab === 'requests' && (
+                    <div className="flex gap-2 mt-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAcceptRequest(chat._id);
+                        }}
+                        className="px-3 py-1 bg-green-500 hover:bg-green-600 text-white text-xs rounded-full transition-colors"
+                      >
+                        Accept
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeclineRequest(chat._id);
+                        }}
+                        className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white text-xs rounded-full transition-colors"
+                      >
+                        Decline
+                      </button>
+                    </div>
+                  )}
                 </div>
-                {(chat.unreadCount ?? 0) > 0 && (
+                {activeTab !== 'requests' && (chat.unreadCount ?? 0) > 0 && (
                   <div className="ml-2 bg-yellow-500 text-white text-xs min-w-[20px] h-5 flex items-center justify-center rounded-full px-1 animate-pulse">
                     {chat?.unreadCount && chat.unreadCount > 99 ? '99+' : chat.unreadCount}
                   </div>
