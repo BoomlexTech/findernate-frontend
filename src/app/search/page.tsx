@@ -48,7 +48,6 @@ export default function SearchPage() {
   const [useCurrentLocation, setUseCurrentLocation] = useState(false);
   const [currentCoordinates, setCurrentCoordinates] = useState<string | null>(null);
   const [searchRadius, setSearchRadius] = useState<number>(5);
-  const [radiusDropdownOpen, setRadiusDropdownOpen] = useState(false);
 
   const tabs = [
     { id: "All", label: "All", icon: Search },
@@ -89,7 +88,6 @@ export default function SearchPage() {
     "Pune, India",
   ];
 
-  const radiusOptions = [1, 2, 5, 10, 20, 50];
 
   const getCurrentLocation = () => {
     if (navigator.geolocation) {
@@ -124,10 +122,6 @@ export default function SearchPage() {
     setLocationDropdownOpen(false);
   };
 
-  const handleRadiusSelect = (radius: number) => {
-    setSearchRadius(radius);
-    setRadiusDropdownOpen(false);
-  };
 
   const handleContentTypeSelect = (type: string) => {
     if (type === "all") {
@@ -417,7 +411,6 @@ export default function SearchPage() {
                     setLocationDropdownOpen(!locationDropdownOpen);
                     setContentTypeDropdownOpen(false);
                     setPostTypeDropdownOpen(false);
-                    setRadiusDropdownOpen(false);
                   }}
                   disabled={loading}
                   className={`flex items-center justify-between w-48 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors ${
@@ -475,46 +468,27 @@ export default function SearchPage() {
                 )}
               </div>
 
-              {/* Radius Dropdown - Only show when using current location */}
+              {/* Radius Slider - Only show when using current location */}
               {useCurrentLocation && (
-                <div className="relative">
-                  <button
-                    onClick={() => {
-                      setRadiusDropdownOpen(!radiusDropdownOpen);
-                      setLocationDropdownOpen(false);
-                      setContentTypeDropdownOpen(false);
-                      setPostTypeDropdownOpen(false);
-                    }}
-                    disabled={loading}
-                    className={`flex items-center justify-between w-32 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors ${
-                      loading ? "opacity-50 cursor-not-allowed" : ""
-                    }`}
-                  >
-                    <span className="truncate">{searchRadius} km</span>
-                    <ChevronDown
-                      className={`w-4 h-4 transition-transform ${
-                        radiusDropdownOpen ? "rotate-180" : ""
+                <div className="flex items-center gap-4 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 min-w-[200px]">
+                  <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Radius:</span>
+                  <div className="flex-1 flex items-center gap-3">
+                    <input
+                      type="range"
+                      min="1"
+                      max="50"
+                      value={searchRadius}
+                      onChange={(e) => setSearchRadius(Number(e.target.value))}
+                      disabled={loading}
+                      className={`flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider ${
+                        loading ? "opacity-50 cursor-not-allowed" : ""
                       }`}
+                      style={{
+                        background: `linear-gradient(to right, #eab308 0%, #eab308 ${((searchRadius - 1) / 49) * 100}%, #e5e7eb ${((searchRadius - 1) / 49) * 100}%, #e5e7eb 100%)`
+                      }}
                     />
-                  </button>
-
-                  {radiusDropdownOpen && (
-                    <div className="absolute top-full left-0 mt-2 w-32 bg-white border border-gray-200 rounded-xl shadow-lg z-50 max-h-60 overflow-y-auto">
-                      {radiusOptions.map((radius) => (
-                        <button
-                          key={radius}
-                          onClick={() => handleRadiusSelect(radius)}
-                          className={`w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors ${
-                            searchRadius === radius
-                              ? "bg-yellow-50 text-yellow-800"
-                              : "text-gray-700"
-                          }`}
-                        >
-                          {radius} km
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                    <span className="text-sm font-medium text-gray-900 min-w-[40px] text-right">{searchRadius} km</span>
+                  </div>
                 </div>
               )}
 
@@ -526,7 +500,6 @@ export default function SearchPage() {
                       setContentTypeDropdownOpen(!contentTypeDropdownOpen);
                       setLocationDropdownOpen(false);
                       setPostTypeDropdownOpen(false);
-                      setRadiusDropdownOpen(false);
                     }}
                     disabled={loading}
                     className={`flex items-center justify-between w-48 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors ${
@@ -574,7 +547,6 @@ export default function SearchPage() {
                       setPostTypeDropdownOpen(!postTypeDropdownOpen);
                       setLocationDropdownOpen(false);
                       setContentTypeDropdownOpen(false);
-                      setRadiusDropdownOpen(false);
                     }}
                     disabled={loading}
                     className={`flex items-center justify-between w-48 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors ${
@@ -645,14 +617,13 @@ export default function SearchPage() {
             </div>
 
             {/* Click outside to close dropdowns */}
-            {(locationDropdownOpen || contentTypeDropdownOpen || postTypeDropdownOpen || radiusDropdownOpen) && (
+            {(locationDropdownOpen || contentTypeDropdownOpen || postTypeDropdownOpen) && (
               <div
                 className="fixed inset-0 z-40"
                 onClick={() => {
                   setLocationDropdownOpen(false);
                   setContentTypeDropdownOpen(false);
                   setPostTypeDropdownOpen(false);
-                  setRadiusDropdownOpen(false);
                 }}
               />
             )}
