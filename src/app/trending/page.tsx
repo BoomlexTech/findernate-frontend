@@ -4,10 +4,11 @@ import React, { useState, useEffect } from 'react';
 // import TrendingTopics from '@/components/TrendingTopics';
 import PostCard from '@/components/PostCard';
 import TrendingBusiness from '@/components/TrendingBusiness';
-import { TrendingUp, Flame, Star, Clock } from 'lucide-react';
+import { TrendingUp, Flame, Star } from 'lucide-react';
 import { getExploreFeed } from '@/api/exploreFeed';
 import { transformExploreFeedToFeedPost } from '@/utils/transformExploreFeed';
 import { FeedPost } from '@/types';
+import TimeTracker from '@/utils/TimeTracker';
 
 const Page = () => {
   const [activeFilter, setActiveFilter] = useState('All Posts');
@@ -150,10 +151,11 @@ const Page = () => {
                   <Star className="w-4 h-4 text-yellow-500" />
                   <span className="text-gray-600">Most liked</span>
                 </div>
-                <div className="flex items-center gap-2">
+                <TimeTracker/>
+                {/* <div className="flex items-center gap-2">
                   <Clock className="w-4 h-4 text-blue-500" />
                   <span className="text-gray-600">Updated 2 min ago</span>
-                </div>
+                </div> */}
               </div>
               
               {/* Filter tabs */}
