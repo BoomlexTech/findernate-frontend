@@ -132,20 +132,13 @@ const UserCard: React.FC<UserCardProps> = ({ user, onFollow }) => {
                     {truncateText(user.bio, 80)}
                   </p>
                 )}
-                 <p className="text-sm text-gray-600 mt-1 leading-relaxed truncate">
-                    {truncateText("I am a software engineer with a passion for building scalable and efficient systems. I am a quick learner and I am always looking for new challenges.", 80)}
-                  </p>
                 {/* Location */}
                 {user.location && (
                   <div className="flex items-center gap-1 mt-2 text-xs text-gray-500">
                     <MapPin size={12} className="flex-shrink-0" />
                     <span className="truncate">{user.location}</span>
                   </div>
-                )}
-                <div className="flex items-center gap-1 mt-2 text-xs text-gray-500">
-                    <MapPin size={12} className="flex-shrink-0" />
-                    <span className="truncate">{"Mumbai, India"}</span>
-                  </div>
+                )} 
               </div>
               {/* Action Buttons */}
               <div className="ml-3 flex gap-2">

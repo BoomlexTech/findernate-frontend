@@ -129,6 +129,7 @@ export default function SearchPage() {
         startDate ? startDate.toISOString().split('T')[0] : undefined,
         endDate ? endDate.toISOString().split('T')[0] : undefined
       );
+      console.log(response)
 
       const flattenedResults = response.data.results.map((post) => ({
         ...post,
