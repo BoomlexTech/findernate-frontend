@@ -30,7 +30,7 @@ const ProductServiceDetails = ({ post, onClose }: ProductServiceDetailsProps) =>
 
   // Mock data - replace with actual post data when available
   const mockProductData = {
-    name: post.caption || "Premium Product",
+    name: post.customization?.product?.name || post.caption || "Premium Product",
     price: "₹1,299",
     duration: "Immediate",
     category: "Electronics",
@@ -45,7 +45,7 @@ const ProductServiceDetails = ({ post, onClose }: ProductServiceDetailsProps) =>
   };
 
   const mockServiceData = {
-    name: post.caption || "Professional Service",
+    name: post.customization?.service?.name || post.caption || "Professional Service",
     price: "₹500/hour",
     duration: "60 minutes",
     category: "Health & Wellness",
@@ -60,7 +60,7 @@ const ProductServiceDetails = ({ post, onClose }: ProductServiceDetailsProps) =>
   };
 
   const mockBusinessData = {
-    name: post.caption || "Local Business",
+    name: post.customization?.business?.businessName || post.caption || "Local Business",
     price: "Contact for pricing",
     duration: "Business hours",
     category: "Food & Dining",
@@ -94,8 +94,21 @@ const ProductServiceDetails = ({ post, onClose }: ProductServiceDetailsProps) =>
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto hide-scrollbar shadow-2xl border border-gray-200">
+    <div 
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      onClick={(e) => {
+        // Close modal if clicking on backdrop
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+        // Prevent event bubbling
+        e.stopPropagation();
+      }}
+    >
+      <div 
+        className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto hide-scrollbar shadow-2xl border border-gray-200"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="sticky top-0 bg-gradient-to-r from-yellow-50 to-amber-50 border-b border-gray-200 p-4 rounded-t-3xl">
           <div className="flex items-center justify-between">

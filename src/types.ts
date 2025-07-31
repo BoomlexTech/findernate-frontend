@@ -246,6 +246,46 @@ export interface FeedPost {
   } | null;
 
   tags: string[];
+  customization?: {
+    product?: {
+      name: string;
+      price: string;
+      currency: string;
+      inStock: boolean;
+      link: string;
+      location?: {
+        name: string;
+      };
+    };
+    service?: {
+      name: string;
+      description: string;
+      price: string;
+      currency: string;
+      category: string;
+      subcategory: string;
+      duration: number;
+      serviceType: string;
+      location?: {
+        name: string;
+      };
+    };
+    business?: {
+      businessName: string;
+      businessType: string;
+      description: string;
+      category: string;
+      subcategory: string;
+      location?: {
+        name: string;
+      };
+    };
+    normal?: {
+      location?: {
+        name: string;
+      };
+    };
+  };
 }
 
 
