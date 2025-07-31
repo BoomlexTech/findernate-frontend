@@ -147,6 +147,8 @@ export function transformExploreFeedToFeedPost(items: RawExploreFeedItem[]): Fee
         },
         location: null,
         tags: item.hashtags || [],
+        isLikedBy: false,
+        likedBy: [],
       };
     }
     
@@ -181,6 +183,8 @@ export function transformExploreFeedToFeedPost(items: RawExploreFeedItem[]): Fee
       },
       location: item.customization?.normal?.location || null,
       tags: getTags(),
+      isLikedBy: false,
+      likedBy: [],
     };
   });
 }

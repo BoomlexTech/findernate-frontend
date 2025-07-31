@@ -3,7 +3,12 @@ import axios from './base';
 export interface Comment {
   _id: string;
   postId: string;
-  userId: string;
+  userId: string | {
+    _id: string;
+    username: string;
+    fullName: string;
+    profileImageUrl?: string;
+  };
   content: string;
   parentCommentId?: string;
   likes: string[];
