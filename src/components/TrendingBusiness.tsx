@@ -23,8 +23,6 @@ interface AxiosResponse {
   };
   status: number;
   statusText: string;
-  headers: any;
-  config: any;
 }
 
 export default function TrendingBusiness() {
@@ -99,7 +97,7 @@ export default function TrendingBusiness() {
       </div>
 
       {/* Business List */}
-      <div className="space-y-1 max-h-80 overflow-y-auto pr-2">
+      <div className="space-y-1 max-h-80 overflow-y-auto pr-2 hide-scrollbar">
         {loading ? (
           <div className="flex items-center justify-center py-8">
             <div className="text-gray-500 text-sm">Loading...</div>
@@ -119,7 +117,7 @@ export default function TrendingBusiness() {
               className="flex items-center justify-start gap-6 p-2 rounded-lg hover:bg-yellow-200 transition-colors"
             >
               <Image
-                src={business.logoUrl || "https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150"}
+                src={business.logoUrl || "/placeholderimg.png"}
                 alt={`${business.businessName} logo`}
                 width={25}
                 height={25}
