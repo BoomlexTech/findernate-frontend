@@ -1,4 +1,5 @@
 import axios from "./base";
+import { followEvents } from "@/utils/followEvents";
 
 export const getUserProfile = async () => {
     const response = await axios.get('/users/profile')
@@ -30,6 +31,10 @@ export const editProfile = async (data: {
 export const followUser = async (userId: string) => {
     try {
         const response = await axios.post('/users/follow', { userId });
+        
+        // Emit follow event for message panel integration
+        followEvents.emit(userId, true);
+        
         return response.data;
     } catch (error: any) {
         console.error('Follow user error:', {
@@ -45,6 +50,10 @@ export const followUser = async (userId: string) => {
 export const unfollowUser = async (userId: string) => {
     try {
         const response = await axios.post('/users/unfollow', { userId });
+        
+        // Emit unfollow event for message panel integration
+        followEvents.emit(userId, false);
+        
         return response.data;
     } catch (error: any) {
         console.error('Unfollow user error:', {

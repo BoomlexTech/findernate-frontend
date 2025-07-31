@@ -89,13 +89,24 @@ export interface MessagesResponse {
 
 // API functions
 export const messageAPI = {
-  // Get all chats for the current user
+  // Get all chats for the current user (legacy method - now gets active chats)
   getUserChats: async (page = 1, limit = 20): Promise<ChatResponse> => {
     try {
-      const response = await axiosInstance.get(`/chats?page=${page}&limit=${limit}`);
+      const response = await axiosInstance.get(`/chats?page=${page}&limit=${limit}&chatStatus=active`);
       return response.data.data;
     } catch (error: any) {
       console.error('Error fetching chats:', error.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  // Get active chats for the current user
+  getActiveChats: async (page = 1, limit = 20): Promise<ChatResponse> => {
+    try {
+      const response = await axiosInstance.get(`/chats?page=${page}&limit=${limit}&chatStatus=active`);
+      return response.data.data;
+    } catch (error: any) {
+      console.error('Error fetching active chats:', error.response?.data || error.message);
       throw error;
     }
   },
@@ -182,5 +193,62 @@ export const messageAPI = {
   }> => {
     const response = await axiosInstance.get(`/chats/${chatId}/search?query=${encodeURIComponent(query)}&page=${page}&limit=${limit}`);
     return response.data.data;
+  },
+
+  // Get user's following list
+  getUserFollowing: async (userId: string): Promise<Array<{
+    _id: string;
+    username: string;
+    fullName: string;
+    profileImageUrl?: string;
+  }>> => {
+    try {
+      const response = await axiosInstance.get(`/users/following/${userId}`);
+      return response.data.data;
+    } catch (error: any) {
+      console.error('Error fetching user following:', error.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  // Follow a user
+  followUser: async (userId: string): Promise<void> => {
+    try {
+      await axiosInstance.post('/users/follow', { userId });
+    } catch (error: any) {
+      console.error('Error following user:', error.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  // Accept message request
+  acceptMessageRequest: async (chatId: string): Promise<void> => {
+    try {
+      await axiosInstance.patch(`/chats/${chatId}/accept`);
+    } catch (error: any) {
+      console.error('Error accepting message request:', error.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  // Decline message request
+  declineMessageRequest: async (chatId: string): Promise<void> => {
+    try {
+      await axiosInstance.patch(`/chats/${chatId}/decline`);
+    } catch (error: any) {
+      console.error('Error declining message request:', error.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  // Get message requests
+  getMessageRequests: async (page = 1, limit = 20): Promise<ChatResponse> => {
+    try {
+      const response = await axiosInstance.get(`/chats?page=${page}&limit=${limit}&chatStatus=requested`);
+      return response.data.data;
+    } catch (error: any) {
+      console.error('Error fetching message requests:', error.response?.data || error.message);
+      throw error;
+    }
   }
 };
