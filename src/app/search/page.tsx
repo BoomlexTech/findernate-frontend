@@ -15,6 +15,8 @@ import {
   Film,
   Clapperboard,
   X,
+  MapPin,
+  Crosshair,
 } from "lucide-react";
 import FloatingHeader from "@/components/FloatingHeader";
 import { searchAllContent, searchUsers } from "@/api/search";
@@ -39,10 +41,14 @@ export default function SearchPage() {
   const [showAllUsers, setShowAllUsers] = useState(false);
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
-  const [selectedContentType, setSelectedContentType] = useState<string | null>("business");
+  const [selectedContentType, setSelectedContentType] = useState<string | null>(null);
   const [selectedPostType, setSelectedPostType] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [useCurrentLocation, setUseCurrentLocation] = useState(false);
+  const [currentCoordinates, setCurrentCoordinates] = useState<string | null>(null);
+  const [searchRadius, setSearchRadius] = useState<number>(5);
+  const [radiusDropdownOpen, setRadiusDropdownOpen] = useState(false);
 
   const tabs = [
     { id: "All", label: "All", icon: Search },
@@ -51,6 +57,7 @@ export default function SearchPage() {
   ];
 
   const contentTypes = [
+    { id: "all", label: "All", icon: Search },
     { id: "normal", label: "Normal", icon: Hash },
     { id: "product", label: "Product", icon: Package },
     { id: "service", label: "Service", icon: Building },
@@ -65,6 +72,14 @@ export default function SearchPage() {
 
   const locations = [
     "All Locations",
+    "Mumbai",
+    "Delhi", 
+    "Bangalore",
+    "Bengaluru",
+    "Chennai",
+    "Kolkata",
+    "Hyderabad",
+    "Pune",
     "Mumbai, India",
     "Delhi, India",
     "Bangalore, India",
@@ -74,13 +89,52 @@ export default function SearchPage() {
     "Pune, India",
   ];
 
+  const radiusOptions = [1, 2, 5, 10, 20, 50];
+
+  const getCurrentLocation = () => {
+    if (navigator.geolocation) {
+      setLoading(true);
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          setCurrentCoordinates(`${longitude}|${latitude}`);
+          setUseCurrentLocation(true);
+          setSelectedLocation("Current Location");
+          setLoading(false);
+        },
+        (error) => {
+          console.error("Error getting location:", error);
+          setError("Unable to get your current location. Please allow location access.");
+          setLoading(false);
+        }
+      );
+    } else {
+      setError("Geolocation is not supported by this browser.");
+    }
+  };
+
   const handleLocationSelect = (location: string) => {
-    setSelectedLocation(location);
+    if (location === "Current Location") {
+      getCurrentLocation();
+    } else {
+      setSelectedLocation(location);
+      setUseCurrentLocation(false);
+      setCurrentCoordinates(null);
+    }
     setLocationDropdownOpen(false);
   };
 
+  const handleRadiusSelect = (radius: number) => {
+    setSearchRadius(radius);
+    setRadiusDropdownOpen(false);
+  };
+
   const handleContentTypeSelect = (type: string) => {
-    setSelectedContentType(type === selectedContentType ? null : type);
+    if (type === "all") {
+      setSelectedContentType(null);
+    } else {
+      setSelectedContentType(type === selectedContentType ? null : type);
+    }
     setContentTypeDropdownOpen(false);
   };
 
@@ -91,21 +145,26 @@ export default function SearchPage() {
 
   const clearAllFilters = () => {
     setSelectedLocation("All Locations");
-    setSelectedContentType("business");
+    setSelectedContentType(null);
     setSelectedPostType(null);
     setStartDate(null);
     setEndDate(null);
     setActiveTab("All");
+    setUseCurrentLocation(false);
+    setCurrentCoordinates(null);
+    setSearchRadius(5);
   };
 
   const hasActiveFilters = () => {
     return (
       selectedLocation !== "All Locations" ||
-      selectedContentType !== "business" ||
+      selectedContentType !== null ||
       selectedPostType !== null ||
       startDate !== null ||
       endDate !== null ||
-      activeTab !== "All"
+      activeTab !== "All" ||
+      useCurrentLocation ||
+      searchRadius !== 5
     );
   };
 
@@ -120,24 +179,101 @@ export default function SearchPage() {
       setLoading(true);
       setError(null);
 
+      const locationParam = !useCurrentLocation && selectedLocation !== "All Locations" 
+        ? selectedLocation.split(',')[0].toLowerCase().trim() // Extract city name and lowercase it
+        : undefined;
+
       const response = await searchAllContent(
         searchQuery,
-        selectedLocation === "All Locations" ? undefined : selectedLocation,
+        locationParam,
         10,
-        selectedContentType || undefined,
+        selectedContentType === "all" ? undefined : selectedContentType || undefined,
         selectedPostType || undefined,
         startDate ? startDate.toISOString().split('T')[0] : undefined,
-        endDate ? endDate.toISOString().split('T')[0] : undefined
+        endDate ? endDate.toISOString().split('T')[0] : undefined,
+        useCurrentLocation && currentCoordinates ? searchRadius : undefined,
+        useCurrentLocation && currentCoordinates ? currentCoordinates : undefined
       );
-      console.log(response)
+      console.log("Search params:", {
+        query: searchQuery,
+        location: locationParam,
+        contentType: selectedContentType === "all" ? undefined : selectedContentType || undefined,
+        postType: selectedPostType || undefined,
+        useCurrentLocation,
+        coordinates: currentCoordinates,
+        radius: searchRadius
+      });
+      
+      console.log("API response:", response);
 
-      const flattenedResults = response.data.results.map((post) => ({
+      let filteredResults = response.data.results || [];
+      let filteredUsers = response.data.users || [];
+
+      // Client-side location filtering for posts if not using current location
+      if (!useCurrentLocation && selectedLocation !== "All Locations") {
+        console.log("Applying client-side location filtering for:", selectedLocation);
+        
+        filteredResults = filteredResults.filter((post) => {
+          // Check if post has location in customization for different content types
+          const postLocation = post.customization?.normal?.location?.name || 
+                               post.customization?.product?.location?.name ||
+                               post.customization?.service?.location?.name ||
+                               post.customization?.business?.location?.name;
+          
+          if (postLocation) {
+            // Normalize location names for comparison
+            const normalizedPostLocation = postLocation.toLowerCase().trim();
+            const normalizedSelectedLocation = selectedLocation.toLowerCase().trim();
+            const selectedCity = selectedLocation.split(',')[0].toLowerCase().trim();
+            
+            console.log("Comparing post location:", normalizedPostLocation, "with selected:", normalizedSelectedLocation);
+            
+            // Check for various matching patterns
+            const isMatch = normalizedPostLocation.includes(selectedCity) ||
+                           normalizedSelectedLocation.includes(normalizedPostLocation) ||
+                           normalizedPostLocation === normalizedSelectedLocation ||
+                           normalizedPostLocation.includes(normalizedSelectedLocation) ||
+                           selectedCity === normalizedPostLocation;
+            
+            return isMatch;
+          }
+          
+          // If post doesn't have location data, exclude it when location filter is applied
+          return false;
+        });
+
+        // Filter users by location as well
+        filteredUsers = filteredUsers.filter((user) => {
+          if (user.location) {
+            const normalizedUserLocation = user.location.toLowerCase().trim();
+            const normalizedSelectedLocation = selectedLocation.toLowerCase().trim();
+            const selectedCity = selectedLocation.split(',')[0].toLowerCase().trim();
+            
+            console.log("Comparing user location:", normalizedUserLocation, "with selected:", normalizedSelectedLocation);
+            
+            const isMatch = normalizedUserLocation.includes(selectedCity) ||
+                           normalizedSelectedLocation.includes(normalizedUserLocation) ||
+                           normalizedUserLocation === normalizedSelectedLocation ||
+                           selectedCity === normalizedUserLocation;
+            
+            return isMatch;
+          }
+          
+          // If user doesn't have location data, exclude them when location filter is applied
+          return false;
+        });
+        
+        console.log("Filtered results:", filteredResults.length, "posts,", filteredUsers.length, "users");
+      }
+
+      const flattenedResults = filteredResults.map((post) => ({
         ...post,
         username: post.userId?.username,
         profileImageUrl: post.userId?.profileImageUrl,
       }));
+      
       setResults(flattenedResults);
-      setUsers(response.data.users || []);
+      setUsers(filteredUsers);
       setShowAllUsers(false);
     } catch (err) {
       console.error("Search error:", err);
@@ -195,7 +331,10 @@ export default function SearchPage() {
     selectedContentType,
     selectedPostType,
     startDate,
-    endDate
+    endDate,
+    useCurrentLocation,
+    currentCoordinates,
+    searchRadius
   ]);
 
   const displayedUsers = showAllUsers ? users : users.slice(0, 2);
@@ -278,13 +417,26 @@ export default function SearchPage() {
                     setLocationDropdownOpen(!locationDropdownOpen);
                     setContentTypeDropdownOpen(false);
                     setPostTypeDropdownOpen(false);
+                    setRadiusDropdownOpen(false);
                   }}
                   disabled={loading}
                   className={`flex items-center justify-between w-48 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors ${
                     loading ? "opacity-50 cursor-not-allowed" : ""
                   }`}
                 >
-                  <span className="truncate">{selectedLocation}</span>
+                  <span className="truncate flex items-center gap-2">
+                    {useCurrentLocation ? (
+                      <>
+                        <Crosshair className="w-4 h-4" />
+                        Current Location
+                      </>
+                    ) : (
+                      <>
+                        <MapPin className="w-4 h-4" />
+                        {selectedLocation}
+                      </>
+                    )}
+                  </span>
                   <ChevronDown
                     className={`w-4 h-4 transition-transform ${
                       locationDropdownOpen ? "rotate-180" : ""
@@ -294,22 +446,77 @@ export default function SearchPage() {
 
                 {locationDropdownOpen && (
                   <div className="absolute top-full left-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-lg z-50 max-h-60 overflow-y-auto">
+                    <button
+                      onClick={() => handleLocationSelect("Current Location")}
+                      className={`w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors flex items-center gap-2 ${
+                        useCurrentLocation
+                          ? "bg-yellow-50 text-yellow-800"
+                          : "text-gray-700"
+                      }`}
+                    >
+                      <Crosshair className="w-4 h-4" />
+                      Current Location
+                    </button>
                     {locations.map((location) => (
                       <button
                         key={location}
                         onClick={() => handleLocationSelect(location)}
-                        className={`w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors ${
-                          selectedLocation === location
+                        className={`w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors flex items-center gap-2 ${
+                          selectedLocation === location && !useCurrentLocation
                             ? "bg-yellow-50 text-yellow-800"
                             : "text-gray-700"
                         }`}
                       >
+                        <MapPin className="w-4 h-4" />
                         {location}
                       </button>
                     ))}
                   </div>
                 )}
               </div>
+
+              {/* Radius Dropdown - Only show when using current location */}
+              {useCurrentLocation && (
+                <div className="relative">
+                  <button
+                    onClick={() => {
+                      setRadiusDropdownOpen(!radiusDropdownOpen);
+                      setLocationDropdownOpen(false);
+                      setContentTypeDropdownOpen(false);
+                      setPostTypeDropdownOpen(false);
+                    }}
+                    disabled={loading}
+                    className={`flex items-center justify-between w-32 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors ${
+                      loading ? "opacity-50 cursor-not-allowed" : ""
+                    }`}
+                  >
+                    <span className="truncate">{searchRadius} km</span>
+                    <ChevronDown
+                      className={`w-4 h-4 transition-transform ${
+                        radiusDropdownOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+
+                  {radiusDropdownOpen && (
+                    <div className="absolute top-full left-0 mt-2 w-32 bg-white border border-gray-200 rounded-xl shadow-lg z-50 max-h-60 overflow-y-auto">
+                      {radiusOptions.map((radius) => (
+                        <button
+                          key={radius}
+                          onClick={() => handleRadiusSelect(radius)}
+                          className={`w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors ${
+                            searchRadius === radius
+                              ? "bg-yellow-50 text-yellow-800"
+                              : "text-gray-700"
+                          }`}
+                        >
+                          {radius} km
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Content Type Dropdown */}
               {activeTab !== "Users" && (
@@ -319,6 +526,7 @@ export default function SearchPage() {
                       setContentTypeDropdownOpen(!contentTypeDropdownOpen);
                       setLocationDropdownOpen(false);
                       setPostTypeDropdownOpen(false);
+                      setRadiusDropdownOpen(false);
                     }}
                     disabled={loading}
                     className={`flex items-center justify-between w-48 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors ${
@@ -327,8 +535,8 @@ export default function SearchPage() {
                   >
                     <span className="truncate">
                       {selectedContentType 
-                        ? contentTypes.find(t => t.id === selectedContentType)?.label || "Content Type" 
-                        : "Content Type"}
+                        ? contentTypes.find(t => t.id === selectedContentType)?.label || "All" 
+                        : "All"}
                     </span>
                     <ChevronDown
                       className={`w-4 h-4 transition-transform ${
@@ -344,7 +552,7 @@ export default function SearchPage() {
                           key={type.id}
                           onClick={() => handleContentTypeSelect(type.id)}
                           className={`w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors flex items-center gap-2 ${
-                            selectedContentType === type.id
+                            (type.id === "all" && selectedContentType === null) || selectedContentType === type.id
                               ? "bg-yellow-50 text-yellow-800"
                               : "text-gray-700"
                           }`}
@@ -366,6 +574,7 @@ export default function SearchPage() {
                       setPostTypeDropdownOpen(!postTypeDropdownOpen);
                       setLocationDropdownOpen(false);
                       setContentTypeDropdownOpen(false);
+                      setRadiusDropdownOpen(false);
                     }}
                     disabled={loading}
                     className={`flex items-center justify-between w-48 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors ${
@@ -436,15 +645,39 @@ export default function SearchPage() {
             </div>
 
             {/* Click outside to close dropdowns */}
-            {(locationDropdownOpen || contentTypeDropdownOpen || postTypeDropdownOpen) && (
+            {(locationDropdownOpen || contentTypeDropdownOpen || postTypeDropdownOpen || radiusDropdownOpen) && (
               <div
                 className="fixed inset-0 z-40"
                 onClick={() => {
                   setLocationDropdownOpen(false);
                   setContentTypeDropdownOpen(false);
                   setPostTypeDropdownOpen(false);
+                  setRadiusDropdownOpen(false);
                 }}
               />
+            )}
+
+            {/* Search Results Info */}
+            {searchQuery.trim() && !loading && (
+              <div className="mb-4 text-sm text-gray-600">
+                {results.length > 0 || users.length > 0 ? (
+                  <p>
+                    Found {results.length} posts and {users.length} users
+                    {selectedLocation !== "All Locations" && !useCurrentLocation && (
+                      <span className="text-yellow-600"> in {selectedLocation}</span>
+                    )}
+                    {useCurrentLocation && (
+                      <span className="text-yellow-600"> within {searchRadius}km of your location</span>
+                    )}
+                  </p>
+                ) : (
+                  <p>No results found for "{searchQuery}"
+                    {selectedLocation !== "All Locations" && !useCurrentLocation && (
+                      <span> in {selectedLocation}</span>
+                    )}
+                  </p>
+                )}
+              </div>
             )}
 
             {/* Error Message */}

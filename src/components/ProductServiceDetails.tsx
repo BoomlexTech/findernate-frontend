@@ -95,7 +95,7 @@ const ProductServiceDetails = ({ post, onClose }: ProductServiceDetailsProps) =>
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-200">
+      <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto hide-scrollbar shadow-2xl border border-gray-200">
         {/* Header */}
         <div className="sticky top-0 bg-gradient-to-r from-yellow-50 to-amber-50 border-b border-gray-200 p-4 rounded-t-3xl">
           <div className="flex items-center justify-between">
@@ -209,7 +209,7 @@ const ProductServiceDetails = ({ post, onClose }: ProductServiceDetailsProps) =>
               <span className="text-sm font-semibold text-yellow-800 uppercase">Requirements</span>
             </div>
             <ul className="space-y-2">
-              {data.requirements.map((req, index) => (
+              {data.requirements.map((req: string, index: number) => (
                 <li key={index} className="flex items-center gap-2">
                   <CheckCircle className="w-4 h-4 text-yellow-600" />
                   <span className="text-gray-700">{req}</span>
@@ -225,7 +225,7 @@ const ProductServiceDetails = ({ post, onClose }: ProductServiceDetailsProps) =>
               <span className="text-sm font-semibold text-teal-800 uppercase">What You Get</span>
             </div>
             <ul className="space-y-2">
-              {data.whatYouGet.map((item, index) => (
+              {data.whatYouGet.map((item: string, index: number) => (
                 <li key={index} className="flex items-center gap-2">
                   <CheckCircle className="w-4 h-4 text-teal-600" />
                   <span className="text-gray-700">{item}</span>
