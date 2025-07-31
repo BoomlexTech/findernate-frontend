@@ -1,9 +1,40 @@
 import React, { useState } from 'react';
 import PlanSelectionModal from './business/PlanSelectionModal';
+import { ChevronDown } from 'lucide-react';
+
+const businessCategories = [
+  'Technology & Software',
+  'E-commerce & Retail',
+  'Health & Wellness',
+  'Education & Training',
+  'Finance & Accounting',
+  'Marketing & Advertising',
+  'Real Estate',
+  'Travel & Hospitality',
+  'Food & Beverage',
+  'Fashion & Apparel',
+  'Automotive',
+  'Construction & Engineering',
+  'Legal & Consulting',
+  'Entertainment & Media',
+  'Art & Design',
+  'Logistics & Transportation',
+  'Agriculture & Farming',
+  'Manufacturing & Industrial',
+  'Non-profit & NGOs',
+  'Telecommunications'
+];
 
 export default function AccountSettings() {
   const [showPlanModal, setShowPlanModal] = useState(false);
   const [isBusiness, setIsBusiness] = useState(true);
+  const [currentCategory, setCurrentCategory] = useState('Fashion & Apparel');
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+
+  const handleCategorySelect = (category: string) => {
+    setCurrentCategory(category);
+    setShowCategoryDropdown(false);
+  };
 
   return (
     <div className="w-full mx-auto p-6 bg-white">
@@ -33,11 +64,42 @@ export default function AccountSettings() {
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Business Category</h3>
-              <p className="text-blue-600">Current category: Fashion & Apparel</p>
+              <p className="text-blue-600">Current category: {currentCategory}</p>
             </div>
-            <button className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-              Update Category
-            </button>
+            <div className="relative">
+              <button 
+                onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+              >
+                Update Category
+                <ChevronDown className={`w-4 h-4 transition-transform ${showCategoryDropdown ? 'rotate-180' : ''}`} />
+              </button>
+              
+              {showCategoryDropdown && (
+                <>
+                  {/* Backdrop */}
+                  <div 
+                    className="fixed inset-0 z-10" 
+                    onClick={() => setShowCategoryDropdown(false)}
+                  />
+                  
+                  {/* Dropdown */}
+                  <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-20 max-h-60 overflow-y-auto">
+                    {businessCategories.map((category) => (
+                      <button
+                        key={category}
+                        onClick={() => handleCategorySelect(category)}
+                        className={`w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors border-b border-gray-100 last:border-b-0 ${
+                          currentCategory === category ? 'bg-blue-100 text-blue-800 font-medium' : 'text-gray-700'
+                        }`}
+                      >
+                        {category}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}
