@@ -447,15 +447,18 @@ const handleProductChange = (
             />
           </div>
 
-          <div className="mb-6">
-            <label className='text-black text-bold ml-2'>Add Caption</label> 
-            <textarea
-              value={sharedForm.caption}
-              onChange={(e) => setSharedForm({...sharedForm, caption: e.target.value})}
-              placeholder="enter the caption..."
-              className="w-full h-15 p-4 border border-gray-300 placeholder:text-gray-500 text-black rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
-            />
-          </div>
+               {/* Caption field - only render for Regular posts */}
+          {postType === 'Regular' && (
+            <div className="mb-6">
+              <label className='text-black text-bold ml-2'>Add Caption</label> 
+              <textarea
+                value={sharedForm.caption}
+                onChange={(e) => setSharedForm({...sharedForm, caption: e.target.value})}
+                placeholder="enter the caption..."
+                className="w-full h-15 p-4 border border-gray-300 placeholder:text-gray-500 text-black rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+              />
+            </div>
+          )}
 
           {postType === 'Regular' && (
             <RegularPostForm
