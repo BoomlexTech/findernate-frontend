@@ -402,7 +402,7 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
       {/* Banner */}
       <div className="bg-gradient-to-r from-yellow-400 to-yellow-600 h-32 w-full relative">
         <div className="absolute -bottom-12 left-4 sm:left-6">
-          <div className={`relative ${isCurrentUser && isEditing ? 'cursor-pointer' : ''}`} onClick={isCurrentUser && isEditing ? handleImageClick : undefined}>
+          <div className={`relative ${(isCurrentUser && isEditing) || (!isCurrentUser && userStories.length > 0) ? 'cursor-pointer' : ''}`} onClick={(isCurrentUser && isEditing) ? handleImageClick : (!isCurrentUser ? fetchAndShowStories : undefined)}>
             {/* Story ring wrapper for other users with stories */}
             <div className={`w-24 h-24 sm:w-32 sm:h-32 rounded-full ${
               !isCurrentUser && userStories.length > 0 

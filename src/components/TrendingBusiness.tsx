@@ -66,7 +66,7 @@ export default function TrendingBusiness() {
 
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>): void => {
     const target = e.target as HTMLImageElement;
-    target.src = "https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150";
+    target.src = "/placeholder.jpg";
   };
 
   return (
@@ -117,7 +117,7 @@ export default function TrendingBusiness() {
               className="flex items-center justify-start gap-6 p-2 rounded-lg hover:bg-yellow-200 transition-colors"
             >
               <Image
-                src={business.logoUrl || "/placeholderimg.png"}
+                src="/placeholder.jpg"
                 alt={`${business.businessName} logo`}
                 width={25}
                 height={25}

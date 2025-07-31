@@ -649,6 +649,22 @@ export default function MessagePanel() {
     }
   };
 
+  // Emoji handler for native picker
+  const handleEmojiClick = () => {
+    // Focus the input to trigger native emoji picker on mobile
+    messageInputRef.current?.focus();
+    
+    // For desktop, we can try to trigger the emoji picker
+    if (navigator.userAgent.includes('Windows')) {
+      // Windows: Win + . or Win + ;
+      // Can't programmatically trigger but focus input
+      messageInputRef.current?.focus();
+    } else if (navigator.userAgent.includes('Mac')) {
+      // Mac: Cmd + Control + Space (can't programmatically trigger)
+      messageInputRef.current?.focus();
+    }
+  };
+
   // Format time helper
   const formatTime = (timestamp: string) => {
     const date = new Date(timestamp);
@@ -1221,7 +1237,11 @@ export default function MessagePanel() {
                     disabled={sendingMessage}
                     className="w-full py-3 px-4 pr-10 border border-gray-300 rounded-full focus:ring-2 focus:ring-yellow-500 disabled:opacity-50 text-black placeholder-gray-400" 
                   />
-                  <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
+                  <button 
+                    type="button" 
+                    onClick={handleEmojiClick}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                  >
                     <Smile className="w-5 h-5" />
                   </button>
                 </div>
