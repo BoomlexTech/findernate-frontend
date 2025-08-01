@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { MessageSquare, Bell, Phone, Video, MoreHorizontal, Search, Send, Paperclip, Smile, Trash2, MoreVertical, Check, CheckCheck, Users, MessageCircle, Mail } from "lucide-react";
+import EmojiPicker, { EmojiClickData, EmojiStyle } from 'emoji-picker-react';
 import { useUserStore } from "@/store/useUserStore";
 import { messageAPI, Chat, Message } from "@/api/message";
 import socketManager from "@/utils/socket";
@@ -37,11 +38,13 @@ export default function MessagePanel() {
   const [selectedGroupMembers, setSelectedGroupMembers] = useState<string[]>([]);
   const [showGroupDetails, setShowGroupDetails] = useState(false);
   const [allChatsCache, setAllChatsCache] = useState<Chat[]>([]); // Keep track of all chats
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const user = useUserStore((state) => state.user);
   const router = useRouter();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messageInputRef = useRef<HTMLInputElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const emojiPickerRef = useRef<HTMLDivElement>(null);
   const searchParams = useSearchParams();
 
   const selected = chats.find((chat) => chat._id === selectedChat);
@@ -737,20 +740,14 @@ export default function MessagePanel() {
     }
   };
 
-  // Emoji handler for native picker
+  // Emoji picker handlers
   const handleEmojiClick = () => {
-    // Focus the input to trigger native emoji picker on mobile
+    setShowEmojiPicker(!showEmojiPicker);
+  };
+
+  const onEmojiClick = (emojiData: EmojiClickData) => {
+    setNewMessage(prev => prev + emojiData.emoji);
     messageInputRef.current?.focus();
-    
-    // For desktop, we can try to trigger the emoji picker
-    if (navigator.userAgent.includes('Windows')) {
-      // Windows: Win + . or Win + ;
-      // Can't programmatically trigger but focus input
-      messageInputRef.current?.focus();
-    } else if (navigator.userAgent.includes('Mac')) {
-      // Mac: Cmd + Control + Space (can't programmatically trigger)
-      messageInputRef.current?.focus();
-    }
   };
 
   // Format time helper
@@ -1043,6 +1040,23 @@ export default function MessagePanel() {
     
     return unsubscribe;
   }, [userFollowingList, chats, messageRequests, requestDecisionCache]);
+
+  // Close emoji picker when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target as Node)) {
+        setShowEmojiPicker(false);
+      }
+    };
+
+    if (showEmojiPicker) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showEmojiPicker]);
 
   return (
     <div className="flex w-full h-screen">
@@ -1351,7 +1365,7 @@ export default function MessagePanel() {
             </div>
 
             {/* Chat Input */}
-            <div className="p-4 border-t border-gray-200 bg-white">
+            <div className="p-4 border-t border-gray-200 bg-white relative">
               <form onSubmit={handleSendMessage} className="flex items-center space-x-2">
                 {/* <button type="button" className="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors">
                   <Paperclip className="w-5 h-5" />
@@ -1370,7 +1384,11 @@ export default function MessagePanel() {
                   <button 
                     type="button" 
                     onClick={handleEmojiClick}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                    className={`absolute right-3 top-1/2 -translate-y-1/2 transition-colors ${
+                      showEmojiPicker 
+                        ? 'text-yellow-500 hover:text-yellow-600' 
+                        : 'text-gray-400 hover:text-gray-600'
+                    }`}
                   >
                     <Smile className="w-5 h-5" />
                   </button>
@@ -1384,6 +1402,25 @@ export default function MessagePanel() {
                   <Send className="w-5 h-5" />
                 </button>
               </form>
+
+              {/* Emoji Picker */}
+              {showEmojiPicker && (
+                <div ref={emojiPickerRef} className="absolute bottom-full right-4 mb-2 z-50">
+                  <div className="bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+                    <EmojiPicker
+                      onEmojiClick={onEmojiClick}
+                      width={350}
+                      height={400}
+                      searchDisabled={false}
+                      skinTonesDisabled={false}
+                      previewConfig={{
+                        showPreview: true
+                      }}
+                      emojiStyle={EmojiStyle.GOOGLE}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         ) : (

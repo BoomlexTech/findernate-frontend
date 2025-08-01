@@ -46,6 +46,18 @@ const PostPage = () => {
         // Fetch post data from API using post ID
         const postData = await getPostById(postId);
         console.log('Post data loaded:', postData);
+        console.log('Post data fields:', Object.keys(postData));
+        console.log('Post location:', postData.location);
+        console.log('Post tags:', postData.tags);
+        console.log('Post hashtags:', postData.hashtags);
+        console.log('Post isLikedBy:', postData.isLikedBy);
+        console.log('Post engagement:', postData.engagement);
+        console.log('Post userId object:', postData.userId);
+        console.log('Post raw location field:', postData.location);
+        console.log('Post customization:', postData.customization);
+        console.log('Post customization.normal:', postData.customization?.normal);
+        console.log('Post customization.normal.location:', postData.customization?.normal?.location);
+        console.log('All location-related fields:', Object.keys(postData).filter(key => key.toLowerCase().includes('location')));
         
         // Fetch user details if userId is available
         if (postData.userId) {
@@ -57,12 +69,24 @@ const PostPage = () => {
             console.log('userData.userId:', userData.userId);
             console.log('userData.userId.username:', userData.userId?.username);
             console.log('userData.userId.fullName:', userData.userId?.fullName);
+            console.log('userData.userId.location:', userData.userId?.location);
+            console.log('userData.location:', userData.location);
             
             // Add username and profile image to post data
             postData.username = userData.userId?.username || userData.userId?.fullName || 'User';
             postData.profileImageUrl = userData.userId?.profileImageUrl || '';
             
+            // Check for location in multiple possible places
+            const userLocation = userData.userId?.location || userData.location || null;
+            console.log('Found user location:', userLocation);
+            
+            // Ensure location data is properly structured
+            if (userLocation && !postData.location) {
+              postData.location = userLocation;
+            }
+            
             console.log('Final username set to:', postData.username);
+            console.log('Final location set to:', postData.location);
           } catch (userError: any) {
             console.error('Failed to fetch user data:', userError);
             postData.username = 'Unknown User';
@@ -72,8 +96,44 @@ const PostPage = () => {
           postData.username = 'No User ID';
         }
         
-        setPost(postData);
-        setCommentCount(postData.engagement?.comments || 0);
+        // Check localStorage for existing like state to override server data
+        const savedLikeStatus = localStorage.getItem(`post_like_${postId}`);
+        const savedLikesCount = localStorage.getItem(`post_likes_count_${postId}`);
+        
+        // Ensure all necessary fields are properly structured for PostCard
+        const structuredPostData = {
+          ...postData,
+          // Handle tags/hashtags - check both fields
+          tags: Array.isArray(postData.tags) ? postData.tags : 
+                Array.isArray(postData.hashtags) ? postData.hashtags :
+                (postData.tags ? [postData.tags] : 
+                 postData.hashtags ? [postData.hashtags] : []),
+          // Ensure engagement object exists with localStorage override for likes
+          engagement: {
+            ...(postData.engagement || { likes: 0, comments: 0, shares: 0 }),
+            likes: savedLikesCount ? parseInt(savedLikesCount) : (postData.engagement?.likes || 0)
+          },
+          // Use localStorage like status if available, otherwise default to false
+          isLikedBy: savedLikeStatus !== null ? savedLikeStatus === 'true' : Boolean(postData.isLikedBy),
+          // Ensure location is properly structured - check multiple possible locations
+          location: postData.location || 
+                   postData.customization?.normal?.location ||
+                   (postData.userId && typeof postData.userId === 'object' ? postData.userId.location : null)
+        };
+        
+        console.log('Final structured post data:', structuredPostData);
+        console.log('Final tags array:', structuredPostData.tags);
+        console.log('Final location:', structuredPostData.location);
+        console.log('Final isLikedBy:', structuredPostData.isLikedBy);
+        console.log('Final likes count:', structuredPostData.engagement.likes);
+        console.log('LocalStorage like status:', savedLikeStatus);
+        console.log('LocalStorage likes count:', savedLikesCount);
+        console.log('Tags processing - original tags:', postData.tags);
+        console.log('Tags processing - original hashtags:', postData.hashtags);
+        console.log('Tags processing - final result:', structuredPostData.tags);
+        
+        setPost(structuredPostData);
+        setCommentCount(structuredPostData.engagement?.comments || 0);
         
       } catch (error) {
         console.error('Error loading post:', error);

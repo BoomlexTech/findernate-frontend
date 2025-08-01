@@ -2,6 +2,7 @@
 
 import { getOtherUserProfile } from '@/api/user';
 import { getUserPosts, getUserReels, getUserVideos } from '@/api/homeFeed';
+import { getCommentsByPost } from '@/api/comment';
 import FloatingHeader from '@/components/FloatingHeader';
 import PostCard from '@/components/PostCard';
 import ProfilePostsSection from '@/components/ProfilePostsSection';
@@ -20,6 +21,57 @@ const UserProfilePage = () => {
   const [error, setError] = useState<string | null>(null);
   const params = useParams();
   const username = params.username as string; // Assuming dynamic route is [username]
+
+  // Helper function to fetch comment counts for posts
+  const fetchCommentCounts = async (posts: any[]) => {
+    const postsWithComments = await Promise.all(
+      posts.map(async (post) => {
+        try {
+          // Check localStorage first for efficiency
+          const savedCommentsCount = localStorage.getItem(`post_comments_count_${post._id}`);
+          if (savedCommentsCount !== null) {
+            const localCount = parseInt(savedCommentsCount);
+            // Use localStorage if it exists and is greater than API count
+            if (localCount > (post.engagement?.comments || 0)) {
+              return {
+                ...post,
+                engagement: {
+                  ...post.engagement,
+                  comments: localCount
+                }
+              };
+            }
+          }
+
+          // Fetch actual comment count from API
+          const commentsData = await getCommentsByPost(post._id, 1, 1); // Only fetch first page to get total count
+          const actualCommentCount = commentsData.totalComments || 0;
+          
+          console.log(`Post ${post._id}: API comments=${actualCommentCount}, localStorage=${savedCommentsCount}`);
+          
+          return {
+            ...post,
+            engagement: {
+              ...post.engagement,
+              comments: actualCommentCount
+            }
+          };
+        } catch (error) {
+          console.error(`Error fetching comments for post ${post._id}:`, error);
+          // Fallback to localStorage or original count
+          const savedCommentsCount = localStorage.getItem(`post_comments_count_${post._id}`);
+          return {
+            ...post,
+            engagement: {
+              ...post.engagement,
+              comments: savedCommentsCount ? parseInt(savedCommentsCount) : (post.engagement?.comments || 0)
+            }
+          };
+        }
+      })
+    );
+    return postsWithComments;
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -43,12 +95,48 @@ const UserProfilePage = () => {
           // Fetch user posts by default (photos)
           if (profileResponse.userId._id) {
             const postsResponse = await getUserPosts(profileResponse.userId._id);
+            console.log('User posts API response:', postsResponse);
+            console.log('First post engagement data:', postsResponse.data?.posts?.[0]?.engagement);
+            console.log('First post tags/hashtags:', {
+              tags: postsResponse.data?.posts?.[0]?.tags,
+              hashtags: postsResponse.data?.posts?.[0]?.hashtags
+            });
+            console.log('First post location data:', {
+              location: postsResponse.data?.posts?.[0]?.location,
+              customizationLocation: postsResponse.data?.posts?.[0]?.customization?.normal?.location,
+              userLocation: profileResponse.userId?.location
+            });
+            
             const postsWithUserInfo = (postsResponse.data?.posts || []).map((post: any) => ({
               ...post,
               username: profileResponse.userId.username,
-              profileImageUrl: profileResponse.userId.profileImageUrl
+              profileImageUrl: profileResponse.userId.profileImageUrl,
+              // Handle tags/hashtags - check both fields
+              tags: Array.isArray(post.tags) ? post.tags : 
+                    Array.isArray(post.hashtags) ? post.hashtags :
+                    (post.tags ? [post.tags] : 
+                     post.hashtags ? [post.hashtags] : []),
+              // Ensure location is properly structured - check multiple possible locations
+              location: post.location || 
+                       post.customization?.normal?.location ||
+                       (profileResponse.userId?.location ? profileResponse.userId.location : null),
+              // Ensure engagement object has all required fields
+              engagement: {
+                likes: post.engagement?.likes || 0,
+                comments: post.engagement?.comments || 0,
+                shares: post.engagement?.shares || 0,
+                ...post.engagement
+              }
             }));
-            setPosts(postsWithUserInfo);
+
+            // Fetch actual comment counts for all posts
+            console.log('Fetching comment counts for posts...');
+            const postsWithCommentCounts = await fetchCommentCounts(postsWithUserInfo);
+            console.log('Posts with updated comment counts:', postsWithCommentCounts.map(p => ({ 
+              id: p._id, 
+              engagement: p.engagement 
+            })));
+            setPosts(postsWithCommentCounts);
           }
         } else {
           throw new Error("Profile data not found in response");
@@ -79,9 +167,25 @@ const UserProfilePage = () => {
             const postsWithUserInfo = (postsResponse.data?.posts || []).map((post: any) => ({
               ...post,
               username: profileData.username,
-              profileImageUrl: profileData.profileImageUrl
+              profileImageUrl: profileData.profileImageUrl,
+              // Handle tags/hashtags - check both fields
+              tags: Array.isArray(post.tags) ? post.tags : 
+                    Array.isArray(post.hashtags) ? post.hashtags :
+                    (post.tags ? [post.tags] : 
+                     post.hashtags ? [post.hashtags] : []),
+              // Ensure location is properly structured - check multiple possible locations
+              location: post.location || 
+                       post.customization?.normal?.location ||
+                       (profileData?.location ? profileData.location : null),
+              engagement: {
+                likes: post.engagement?.likes || 0,
+                comments: post.engagement?.comments || 0,
+                shares: post.engagement?.shares || 0,
+                ...post.engagement
+              }
             }));
-            setPosts(postsWithUserInfo);
+            const postsWithCommentCounts = await fetchCommentCounts(postsWithUserInfo);
+            setPosts(postsWithCommentCounts);
           }
           break;
         case 'reels':
@@ -90,9 +194,25 @@ const UserProfilePage = () => {
             const reelsWithUserInfo = (reelsResponse.data?.posts || []).map((post: any) => ({
               ...post,
               username: profileData.username,
-              profileImageUrl: profileData.profileImageUrl
+              profileImageUrl: profileData.profileImageUrl,
+              // Handle tags/hashtags - check both fields
+              tags: Array.isArray(post.tags) ? post.tags : 
+                    Array.isArray(post.hashtags) ? post.hashtags :
+                    (post.tags ? [post.tags] : 
+                     post.hashtags ? [post.hashtags] : []),
+              // Ensure location is properly structured - check multiple possible locations
+              location: post.location || 
+                       post.customization?.normal?.location ||
+                       (profileData?.location ? profileData.location : null),
+              engagement: {
+                likes: post.engagement?.likes || 0,
+                comments: post.engagement?.comments || 0,
+                shares: post.engagement?.shares || 0,
+                ...post.engagement
+              }
             }));
-            setReels(reelsWithUserInfo);
+            const reelsWithCommentCounts = await fetchCommentCounts(reelsWithUserInfo);
+            setReels(reelsWithCommentCounts);
           }
           break;
         case 'videos':
@@ -101,9 +221,25 @@ const UserProfilePage = () => {
             const videosWithUserInfo = (videosResponse.data?.posts || []).map((post: any) => ({
               ...post,
               username: profileData.username,
-              profileImageUrl: profileData.profileImageUrl
+              profileImageUrl: profileData.profileImageUrl,
+              // Handle tags/hashtags - check both fields
+              tags: Array.isArray(post.tags) ? post.tags : 
+                    Array.isArray(post.hashtags) ? post.hashtags :
+                    (post.tags ? [post.tags] : 
+                     post.hashtags ? [post.hashtags] : []),
+              // Ensure location is properly structured - check multiple possible locations
+              location: post.location || 
+                       post.customization?.normal?.location ||
+                       (profileData?.location ? profileData.location : null),
+              engagement: {
+                likes: post.engagement?.likes || 0,
+                comments: post.engagement?.comments || 0,
+                shares: post.engagement?.shares || 0,
+                ...post.engagement
+              }
             }));
-            setVideos(videosWithUserInfo);
+            const videosWithCommentCounts = await fetchCommentCounts(videosWithUserInfo);
+            setVideos(videosWithCommentCounts);
           }
           break;
       }

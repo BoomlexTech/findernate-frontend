@@ -25,6 +25,7 @@ interface UserProfileProps {
 
 
 const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserProfileProps) => {
+  const { user: currentUser } = useUserStore();
   const [isEditing, setIsEditing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [showSettings, setShowSettings] = useState(false);
@@ -50,6 +51,32 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
+
+  // Helper function to check if all stories have been viewed by current user
+  const areAllStoriesViewed = () => {
+    if (!currentUser || !userStories.length) return false;
+    
+    const allViewed = userStories.every(story => {
+      // Safety check: ensure viewers array exists
+      if (!story.viewers || !Array.isArray(story.viewers)) {
+        return false; // If viewers is undefined/null, treat as unviewed
+      }
+      return story.viewers.includes(currentUser._id);
+    });
+    
+    console.log('Stories viewed check:', {
+      currentUserId: currentUser._id,
+      storiesCount: userStories.length,
+      allViewed,
+      storiesWithViewers: userStories.map(story => ({
+        storyId: story._id,
+        viewers: story.viewers || [],
+        viewedByCurrentUser: story.viewers?.includes(currentUser._id) || false
+      }))
+    });
+    
+    return allViewed;
+  };
 
   // Update internal state if userData prop changes
   useEffect(() => {
@@ -406,7 +433,9 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
             {/* Story ring wrapper for other users with stories */}
             <div className={`w-24 h-24 sm:w-32 sm:h-32 rounded-full ${
               !isCurrentUser && userStories.length > 0 
-                ? 'bg-gradient-to-r from-pink-500 to-purple-500 p-1' 
+                ? areAllStoriesViewed() 
+                  ? 'bg-gray-400 p-[3px]'  // Grey for viewed stories
+                  : 'bg-gradient-to-r from-yellow-400 to-yellow-600 p-[2px]'  // Yellow gradient for unviewed stories
                 : ''
             }`}>
               <div className={`w-full h-full rounded-full ${
