@@ -5,7 +5,7 @@ import { MessageSquare, Bell, Phone, Video, MoreHorizontal, Search, Send, Paperc
 import { useUserStore } from "@/store/useUserStore";
 import { messageAPI, Chat, Message } from "@/api/message";
 import socketManager from "@/utils/socket";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { getFollowing } from "@/api/user";
 import { AxiosError } from "axios";
 import { followEvents } from "@/utils/followEvents";
@@ -38,12 +38,26 @@ export default function MessagePanel() {
   const [showGroupDetails, setShowGroupDetails] = useState(false);
   const [allChatsCache, setAllChatsCache] = useState<Chat[]>([]); // Keep track of all chats
   const user = useUserStore((state) => state.user);
+  const router = useRouter();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messageInputRef = useRef<HTMLInputElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const searchParams = useSearchParams();
 
   const selected = chats.find((chat) => chat._id === selectedChat);
+
+  // Handle profile navigation for direct chats
+  const handleProfileClick = (chat: Chat) => {
+    if (chat.chatType === 'direct') {
+      // Find the other participant (not the current user)
+      const otherParticipant = chat.participants.find(p => p && p._id && p._id !== user?._id);
+      if (otherParticipant && otherParticipant.username) {
+        router.push(`/userprofile/${otherParticipant.username}`);
+      }
+    } else if (chat.chatType === 'group') {
+      setShowGroupDetails(true);
+    }
+  };
 
   // Helper function to determine if a message request is incoming (should be shown) or outgoing (should be hidden)
   const isIncomingRequest = (chat: Chat, currentUserId: string): boolean => {
@@ -1231,8 +1245,8 @@ export default function MessagePanel() {
             <div className="p-6 border-b border-gray-200 bg-white">
               <div className="flex items-center justify-between">
                 <div 
-                  className={`flex items-center space-x-4 ${selected.chatType === 'group' ? 'cursor-pointer hover:bg-gray-50 -m-2 p-2 rounded-lg transition-colors' : ''}`}
-                  onClick={() => selected.chatType === 'group' && setShowGroupDetails(true)}
+                  className="flex items-center space-x-4 cursor-pointer hover:bg-gray-50 -m-2 p-2 rounded-lg transition-colors"
+                  onClick={() => handleProfileClick(selected)}
                 >
                   <Image width={12} height={12} src={getChatAvatar(selected)} alt={getChatDisplayName(selected)} className="w-12 h-12 rounded-full object-cover" />
                   <div>
@@ -1247,14 +1261,14 @@ export default function MessagePanel() {
                           : `${typingUsers.size} users are typing...`
                       ) : (
                         selected.chatType === 'group' 
-                          ? `${selected.participants.length} members • Click to view`
-                          : 'Online'
+                          ? `${selected.participants.length} members • Click to view details`
+                          : 'Click to view profile'
                       )}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center space-x-4 text-gray-500">
-                  <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                  {/* <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
                     <Phone className="w-5 h-5" />
                   </button>
                   <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
@@ -1262,7 +1276,7 @@ export default function MessagePanel() {
                   </button>
                   <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
                     <MoreHorizontal className="w-5 h-5" />
-                  </button>
+                  </button> */}
                 </div>
               </div>
             </div>
@@ -1339,9 +1353,9 @@ export default function MessagePanel() {
             {/* Chat Input */}
             <div className="p-4 border-t border-gray-200 bg-white">
               <form onSubmit={handleSendMessage} className="flex items-center space-x-2">
-                <button type="button" className="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors">
+                {/* <button type="button" className="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors">
                   <Paperclip className="w-5 h-5" />
-                </button>
+                </button> */}
 
                 <div className="relative flex-1">
                   <input 
