@@ -476,7 +476,7 @@ export default function SearchPage() {
                     <input
                       type="range"
                       min="1"
-                      max="50"
+                      max="200"
                       value={searchRadius}
                       onChange={(e) => setSearchRadius(Number(e.target.value))}
                       disabled={loading}
@@ -484,7 +484,7 @@ export default function SearchPage() {
                         loading ? "opacity-50 cursor-not-allowed" : ""
                       }`}
                       style={{
-                        background: `linear-gradient(to right, #eab308 0%, #eab308 ${((searchRadius - 1) / 49) * 100}%, #e5e7eb ${((searchRadius - 1) / 49) * 100}%, #e5e7eb 100%)`
+                        background: `linear-gradient(to right, #eab308 0%, #eab308 ${((searchRadius - 1) / 199) * 100}%, #e5e7eb ${((searchRadius - 1) / 199) * 100}%, #e5e7eb 100%)`
                       }}
                     />
                     <span className="text-sm font-medium text-gray-900 min-w-[40px] text-right">{searchRadius} km</span>

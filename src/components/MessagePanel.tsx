@@ -45,6 +45,60 @@ export default function MessagePanel() {
 
   const selected = chats.find((chat) => chat._id === selectedChat);
 
+  // Helper function to determine if a message request is incoming (should be shown) or outgoing (should be hidden)
+  const isIncomingRequest = (chat: Chat, currentUserId: string): boolean => {
+    // Check if this is a legitimate incoming request
+    
+    // 1. Must be a direct chat
+    if (chat.chatType !== 'direct') {
+      return false;
+    }
+    
+    // 2. Check participants - should have exactly 2 participants
+    const validParticipants = chat.participants.filter(p => p && p._id);
+    if (validParticipants.length !== 2) {
+      // If only 1 participant and it's the current user, this is an outgoing request
+      if (validParticipants.length === 1 && validParticipants[0]._id === currentUserId) {
+        console.log('Filtering out outgoing request (single participant is current user):', chat._id);
+        return false;
+      }
+      return false;
+    }
+    
+    // 3. Current user must be one of the participants
+    const isParticipant = validParticipants.some(p => p._id === currentUserId);
+    if (!isParticipant) {
+      return false;
+    }
+    
+    // 4. Check if the last message was sent by someone else (indicating incoming request)
+    if (chat.lastMessage?.sender) {
+      const lastMessageSender = typeof chat.lastMessage.sender === 'string' 
+        ? chat.lastMessage.sender 
+        : chat.lastMessage.sender._id;
+      
+      if (lastMessageSender === currentUserId) {
+        console.log('Filtering out outgoing request (last message from current user):', chat._id);
+        return false;
+      }
+    }
+    
+    // 5. Additional check: ensure there's another participant who is not the current user
+    const otherParticipant = validParticipants.find(p => p._id !== currentUserId);
+    if (!otherParticipant) {
+      console.log('Filtering out request with no other participant:', chat._id);
+      return false;
+    }
+    
+    console.log('Allowing incoming request:', {
+      chatId: chat._id,
+      otherParticipant: otherParticipant.username || otherParticipant.fullName,
+      lastMessageSender: chat.lastMessage?.sender
+    });
+    
+    return true;
+  };
+
   // Update ref when selectedChat changes
   useEffect(() => {
     console.log('selectedChat changed to:', selectedChat);
@@ -87,10 +141,10 @@ export default function MessagePanel() {
         try {
           console.log('Loading following list for user:', user.username);
           const following = await messageAPI.getUserFollowing(user._id);
-          const followingIds = following.map(u => u._id);
+          const followingIds = following.filter(u => u && u._id).map(u => u._id);
           console.log('Following list loaded:', {
             count: followingIds.length,
-            users: following.map(u => ({ id: u._id, username: u.username }))
+            users: following.filter(u => u && u._id).map(u => ({ id: u._id, username: u.username }))
           });
           console.log('Following IDs array:', followingIds);
           setUserFollowingList(followingIds);
@@ -134,8 +188,16 @@ export default function MessagePanel() {
           console.log(`Request ${index + 1}:`, {
             id: chat._id,
             type: chat.chatType,
-            participants: chat.participants.map(p => ({ id: p._id, username: p.username })),
+            participants: chat.participants,
+            participantsProcessed: chat.participants.map(p => ({ 
+              id: p?._id, 
+              username: p?.username, 
+              fullName: p?.fullName,
+              isNull: p === null,
+              isUndefined: p === undefined
+            })),
             lastMessage: chat.lastMessage?.message || 'No message',
+            lastMessageSender: chat.lastMessage?.sender,
             lastMessageAt: chat.lastMessageAt
           });
         });
@@ -145,7 +207,16 @@ export default function MessagePanel() {
           new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
         );
         
-        const sortedRequests = requestsResponse.chats.sort((a, b) => 
+        // Filter message requests to only show incoming requests (not outgoing ones)
+        const filteredRequests = requestsResponse.chats.filter(chat => {
+          if (!user?._id) return false;
+          return isIncomingRequest(chat, user._id);
+        });
+        
+        console.log('Original requests:', requestsResponse.chats.length);
+        console.log('Filtered requests (incoming only):', filteredRequests.length);
+        
+        const sortedRequests = filteredRequests.sort((a, b) => 
           new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
         );
         
@@ -302,7 +373,14 @@ export default function MessagePanel() {
             const sortedActiveChats = activeChatsResponse.chats.sort((a, b) => 
               new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
             );
-            const sortedRequests = requestsResponse.chats.sort((a, b) => 
+            
+            // Filter message requests to only show incoming requests
+            const filteredRequests = requestsResponse.chats.filter(chat => {
+              if (!user?._id) return false;
+              return isIncomingRequest(chat, user._id);
+            });
+            
+            const sortedRequests = filteredRequests.sort((a, b) => 
               new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
             );
             setChats(sortedActiveChats);
@@ -737,7 +815,7 @@ export default function MessagePanel() {
     setLoadingFollowing(true);
     try {
       const following = await getFollowing(user._id);
-      setFollowingUsers(following || []);
+      setFollowingUsers((following || []).filter(user => user && user._id));
     } catch (error) {
       console.error('Failed to load following users:', error);
       setFollowingUsers([]);
@@ -823,8 +901,52 @@ export default function MessagePanel() {
 
     try {
       // Get the other participant
-      const otherParticipant = request.participants.find(p => p._id !== user._id);
-      if (!otherParticipant) return;
+      const otherParticipant = request.participants.filter(p => p && p._id).find(p => p._id !== user._id);
+      
+      if (!otherParticipant) {
+        // Try to get participant from lastMessage sender as fallback
+        if (request.lastMessage?.sender && request.lastMessage.sender !== user._id) {
+          const senderID = typeof request.lastMessage.sender === 'string' 
+            ? request.lastMessage.sender 
+            : request.lastMessage.sender._id;
+          
+          // Accept the request on the server
+          await messageAPI.acceptMessageRequest(chatId);
+          
+          // Auto-follow the user
+          await messageAPI.followUser(senderID);
+          
+          // Update local following list
+          setUserFollowingList(prev => [...prev, senderID]);
+
+          // Move from requests to regular chats
+          setChats(prev => [request, ...prev]);
+          setMessageRequests(prev => prev.filter(r => r._id !== chatId));
+
+          // Cache decision
+          const newDecisions = new Map(requestDecisionCache);
+          newDecisions.set(chatId, 'accepted');
+          setRequestDecisionCache(newDecisions);
+
+          // Persist decision
+          localStorage.setItem(REQUEST_DECISIONS_KEY, 
+            JSON.stringify(Array.from(newDecisions.entries())));
+
+          // Load messages for this chat and select it
+          try {
+            const response = await messageAPI.getChatMessages(chatId);
+            setMessages(response.messages);
+            setSelectedChat(chatId);
+            setActiveTab('direct');
+          } catch (error) {
+            console.error('Failed to load messages:', error);
+          }
+
+          return;
+        }
+        
+        throw new Error('Cannot find the other participant to accept request');
+      }
 
       // Accept the request on the server
       await messageAPI.acceptMessageRequest(chatId);
@@ -858,9 +980,9 @@ export default function MessagePanel() {
         console.error('Failed to load messages:', error);
       }
 
-      console.log(`Accepted request from ${otherParticipant.fullName} and followed them`);
     } catch (error) {
       console.error('Failed to accept request:', error);
+      alert(`Failed to accept request: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -882,9 +1004,9 @@ export default function MessagePanel() {
       localStorage.setItem(REQUEST_DECISIONS_KEY, 
         JSON.stringify(Array.from(newDecisions.entries())));
 
-      console.log('Declined message request');
     } catch (error) {
       console.error('Failed to decline request:', error);
+      alert(`Failed to decline request: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -925,8 +1047,8 @@ export default function MessagePanel() {
           </div>
           <div className="flex items-center space-x-4">
             <button className="relative p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors">
-              <Bell className="w-5 h-5" />
-              <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></div>
+              {/* <Bell className="w-5 h-5" /> */}
+              {/* <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></div> */}
             </button>
             <div className="flex items-center space-x-3">
               <div className="text-right">
@@ -1323,7 +1445,7 @@ export default function MessagePanel() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {followingUsers.map((followingUser) => (
+                  {followingUsers.filter(followingUser => followingUser && followingUser._id).map((followingUser) => (
                     <div
                       key={followingUser._id}
                       onClick={() => createChatWithUser(followingUser)}
@@ -1425,7 +1547,7 @@ export default function MessagePanel() {
                   </div>
                 ) : (
                   <div className="space-y-2 max-h-64 overflow-y-auto">
-                    {followingUsers.map((followingUser) => (
+                    {followingUsers.filter(followingUser => followingUser && followingUser._id).map((followingUser) => (
                       <label
                         key={followingUser._id}
                         className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
@@ -1529,7 +1651,7 @@ export default function MessagePanel() {
               <div className="p-6">
                 <h4 className="text-sm font-medium text-gray-700 mb-4">Members ({selected.participants.length})</h4>
                 <div className="space-y-3">
-                  {selected.participants.map((participant) => (
+                  {selected.participants.filter(participant => participant && participant._id).map((participant) => (
                     <div key={participant._id} className="flex items-center gap-3">
                       <Image
                         src={participant.profileImageUrl || '/placeholderimg.png'}
@@ -1547,7 +1669,7 @@ export default function MessagePanel() {
                           {selected.admins?.includes(participant._id) && (
                             <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full ml-2">Admin</span>
                           )}
-                          {participant._id === selected.createdBy._id && (
+                          {participant._id === selected.createdBy?._id && (
                             <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full ml-2">Creator</span>
                           )}
                         </p>
