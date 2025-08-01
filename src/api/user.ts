@@ -8,13 +8,25 @@ export const getUserProfile = async () => {
 }
 
 export const getOtherUserProfile = async (username: string) => {
-    const response = await axios.get(`/users/profile/other`, {
-        params: {
-            identifier: username
-        },
-    });
-    
-    return response.data.data;
+    try {
+        const response = await axios.get(`/users/profile/other`, {
+            params: {
+                identifier: username
+            },
+        });
+        
+        return response.data.data;
+    } catch (error: any) {
+        console.error('Get other user profile error:', {
+            status: error.response?.status,
+            message: error.response?.data?.message,
+            username,
+            error: error.message,
+            url: error.config?.url,
+            params: error.config?.params
+        });
+        throw error;
+    }
 }
 
 export const editProfile = async (data: {
