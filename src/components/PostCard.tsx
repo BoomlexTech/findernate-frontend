@@ -488,7 +488,11 @@ export default function PostCard({ post }: PostCardProps) {
 
           {/* Hashtags */}
         <div className="px-1 pb-4">
-          <div className="flex flex-wrap gap-2"><p className='text-yellow-600'>{ post.tags? "#" + post?.tags : null}</p></div>
+          <div className="flex flex-wrap gap-2">
+            {post.tags && post.tags.length > 0 && post.tags.map((tag, index) => (
+              <span key={index} className='text-yellow-600'>#{tag}</span>
+            ))}
+          </div>
         </div>
 
             {/* Comment Box - Only show for normal/regular posts and not on single post pages */}
