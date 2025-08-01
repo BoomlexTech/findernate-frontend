@@ -95,17 +95,86 @@ export const getPostById = async (postId: string) => {
 
 // Like/Unlike functions
 export const likePost = async (postId: string) => {
-  console.log('API: Calling likePost with postId:', postId);
-  const response = await axios.post('/posts/like', { postId }, { timeout: 10000 });
-  console.log('API: likePost response:', response.data);
-  return response.data;
+  try {
+    console.log('API: Calling likePost with postId:', postId);
+    console.log('API: Base URL:', axios.defaults.baseURL);
+    console.log('API: Full URL will be:', `${axios.defaults.baseURL}/posts/like`);
+    
+    const response = await axios.post('/posts/like', { postId }, { timeout: 10000 });
+    console.log('API: likePost response:', response.data);
+    return response.data;
+  } catch (error: unknown) {
+    const err = error as Error;
+    const axiosError = error as { 
+      response?: { 
+        data?: unknown; 
+        status?: number; 
+        statusText?: string;
+      }; 
+      message?: string;
+      code?: string;
+      config?: { url?: string; method?: string };
+    };
+    
+    console.error('Error in likePost:', {
+      message: err.message,
+      status: axiosError.response?.status,
+      statusText: axiosError.response?.statusText,
+      data: axiosError.response?.data,
+      code: axiosError.code,
+      url: axiosError.config?.url,
+      method: axiosError.config?.method,
+      postId,
+      fullError: error
+    });
+    throw error;
+  }
 };
 
 export const unlikePost = async (postId: string) => {
-  console.log('API: Calling unlikePost with postId:', postId);
-  const response = await axios.post('/posts/unlike', { postId }, { timeout: 10000 });
-  console.log('API: unlikePost response:', response.data);
-  return response.data;
+  try {
+    console.log('API: Calling unlikePost with postId:', postId);
+    console.log('API: Base URL:', axios.defaults.baseURL);
+    console.log('API: Full URL will be:', `${axios.defaults.baseURL}/posts/unlike`);
+    
+    // Try the request with explicit JSON data
+    const requestData = { postId };
+    console.log('API: Request data:', requestData);
+    
+    const response = await axios.post('/posts/unlike', requestData, { 
+      timeout: 15000,  // Reduced timeout to fail faster
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    console.log('API: unlikePost response:', response.data);
+    return response.data;
+  } catch (error: unknown) {
+    const err = error as Error;
+    const axiosError = error as { 
+      response?: { 
+        data?: unknown; 
+        status?: number; 
+        statusText?: string;
+      }; 
+      message?: string;
+      code?: string;
+      config?: { url?: string; method?: string };
+    };
+    
+    console.error('Error in unlikePost:', {
+      message: err.message,
+      status: axiosError.response?.status,
+      statusText: axiosError.response?.statusText,
+      data: axiosError.response?.data,
+      code: axiosError.code,
+      url: axiosError.config?.url,
+      method: axiosError.config?.method,
+      postId,
+      fullError: error
+    });
+    throw error;
+  }
 };
 
   

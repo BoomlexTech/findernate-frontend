@@ -14,8 +14,10 @@ axiosInstance.interceptors.request.use(
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+      console.log('API Request:', config.method?.toUpperCase(), config.url, 'with auth token');
+    } else {
+      console.warn('API Request:', config.method?.toUpperCase(), config.url, 'NO AUTH TOKEN');
     }
-    console.log('API Request:', config.method?.toUpperCase(), config.url, config.baseURL);
     return config;
   },
   (error) => Promise.reject(error)
@@ -25,14 +27,25 @@ axiosInstance.interceptors.request.use(
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
-    console.error('API Error:', {
+    console.error('API Error Interceptor:', {
       url: error.config?.url,
       method: error.config?.method,
       status: error.response?.status,
       statusText: error.response?.statusText,
       data: error.response?.data,
-      baseURL: error.config?.baseURL
+      baseURL: error.config?.baseURL,
+      message: error.message,
+      code: error.code,
+      headers: error.response?.headers,
+      fullError: error
     });
+    
+    // Special logging for authentication errors
+    if (error.response?.status === 401) {
+      console.error('Authentication Error: Token may be expired or invalid');
+      console.log('Current token:', localStorage.getItem('token') ? 'Present' : 'Missing');
+    }
+    
     return Promise.reject(error);
   }
 );
