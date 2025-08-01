@@ -8,10 +8,19 @@ import { Button } from '@/components/ui/button';
 const OnboardingScreen = () => {
 
 const router = useRouter();
+ useEffect(() => {
+    // Check if user has already completed onboarding
+    const isOnboarded = localStorage.getItem('isOnboarded');
+    if (isOnboarded === 'true') {
+      // Redirect away from onboarding page
+      router.replace('/signin'); // or wherever you want to redirect
+      return;
+    }
+  }, [router]);
 
-useEffect(() => {
-  localStorage.setItem("isOnboarded", "true");
-}, []);
+  useEffect(() => {
+    localStorage.setItem("isOnboarded", "true");
+  }, []);
 
   const floatingIcons = [
     "emojisix.svg",

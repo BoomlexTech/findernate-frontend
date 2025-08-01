@@ -12,7 +12,7 @@ interface Notification {
     _id: string;
     username: string;
     profileImageUrl: string;
-  };
+  } | null;
   type: string;
   message: string;
   postId: string | null;
@@ -81,7 +81,7 @@ const Notifications = () => {
   const router = useRouter();
 
   const handleNotificationClick = (notification: Notification) => {
-    if (notification.type === 'follow') {
+    if (notification.type === 'follow' && notification.senderId) {
       // Navigate to the user's profile
       router.push(`/userprofile/${notification.senderId.username}`);
     }
@@ -149,10 +149,13 @@ const Notifications = () => {
         const response = await getNotifications();
         
         // Transform API response to match our interface
-        // Adjust this based on your actual API response structure
-        const transformedNotifications = response.data?.notifications || response.data || [];
+        // Filter out notifications with null senderId to prevent errors
+        const rawNotifications = response.data?.notifications || response.data || [];
+        const validNotifications = rawNotifications.filter((notification: Notification) => 
+          notification && notification.senderId && notification.senderId._id
+        );
         
-        setNotifications(transformedNotifications);
+        setNotifications(validNotifications);
       } catch (err) {
         console.error('Failed to fetch notifications:', err);
         setError('Failed to load notifications');
@@ -167,7 +170,7 @@ const Notifications = () => {
   }, []);
 
   return (
-    <div className="w-[50rem] min-h-screen mx-auto bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+    <div className="w-[50rem] min-h-screen mx-auto pt-2 bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
       {/* Header */}
       <div className="bg-button-gradient px-6 py-4">
         <div className="flex items-center justify-between">
@@ -230,72 +233,74 @@ const Notifications = () => {
         {/* Notifications List */}
         {!loading && !error && notifications.length > 0 && (
           <div className="divide-y divide-gray-100">
-            {notifications.map((notification, index) => (
-              <div
-                key={notification._id || `notification-${index}`}
-                onClick={() => handleNotificationClick(notification)}
-                className={`relative flex items-start p-4 hover:bg-gray-50 transition-all duration-200 cursor-pointer group ${
-                  !notification.isRead ? 'bg-blue-50/50' : ''
-                }`}
-              >
-                {/* // Unread indicator
-                {!notification.isRead && (
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-yellow-500 rounded-r-full"></div>
-                )} */}
+            {notifications.map((notification, index) => {
+              // Skip notifications with null senderId (extra safety check)
+              if (!notification.senderId) {
+                return null;
+              }
 
-                {/* Profile Image with Status Ring */}
-                <div className="flex-shrink-0 relative">
-                  <div className={`p-0.5 rounded-full ${!notification.isRead ? 'bg-gradient-to-r from-yellow-400 to-orange-500' : 'bg-gray-200'}`}>
-                    <Image
-                      className="h-12 w-12 rounded-full object-cover bg-white p-0.5"
-                      src={notification.senderId.profileImageUrl || '/placeholderimg.png'}
-                      alt={`${notification.senderId.username} profile`}
-                      width={48}
-                      height={48}
-                    />
+              return (
+                <div
+                  key={notification._id || `notification-${index}`}
+                  onClick={() => handleNotificationClick(notification)}
+                  className={`relative flex items-start p-4 hover:bg-gray-50 transition-all duration-200 cursor-pointer group ${
+                    !notification.isRead ? 'bg-blue-50/50' : ''
+                  }`}
+                >
+                  {/* Profile Image with Status Ring */}
+                  <div className="flex-shrink-0 relative">
+                    <div className={`p-0.5 rounded-full ${!notification.isRead ? 'bg-gradient-to-r from-yellow-400 to-orange-500' : 'bg-gray-200'}`}>
+                      <Image
+                        className="h-12 w-12 rounded-full object-cover bg-white p-0.5"
+                        src={notification.senderId?.profileImageUrl || '/placeholderimg.png'}
+                        alt={`${notification.senderId?.username || 'Unknown user'} profile`}
+                        width={48}
+                        height={48}
+                      />
+                    </div>
+                    
+                    {/* Notification type badge */}
+                    <div className={`absolute -bottom-1 -right-1 p-1.5 rounded-full border-2 border-white ${getNotificationColor(notification.type)}`}>
+                      {getNotificationIcon(notification.type)}
+                    </div>
                   </div>
-                  
-                  {/* Notification type badge */}
-                  <div className={`absolute -bottom-1 -right-1 p-1.5 rounded-full border-2 border-white ${getNotificationColor(notification.type)}`}>
-                    {getNotificationIcon(notification.type)}
-                  </div>
-                </div>
 
-                {/* Content */}
-                <div className="flex-1 min-w-0 ml-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <p className="text-gray-900 text-sm leading-relaxed">
-                        <span className="font-semibold text-gray-900 hover:text-yellow-600 transition-colors">
-                          {notification.senderId.username}
-                        </span>
-                        <span className="text-gray-600">{notification.message}</span>
-                      </p>
-                      <div className="flex items-center mt-1 space-x-2">
-                        <span className="text-xs text-gray-500">
-                          {formatTimeAgo(notification.createdAt)}
-                        </span>
-                        {!notification.isRead && (
-                          <div className="flex items-center space-x-1">
-                            <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
-                            <span className="text-xs text-yellow-600 font-medium">New</span>
-                          </div>
-                        )}
+                  {/* Content */}
+                  <div className="flex-1 min-w-0 ml-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <p className="text-gray-900 text-sm leading-relaxed">
+                          <span className="font-semibold text-gray-900 hover:text-yellow-600 transition-colors">
+                            {notification.senderId?.username || 'Unknown user'}
+                          </span>
+                          <span className="text-gray-600">{notification.message}</span>
+                        </p>
+                        <div className="flex items-center mt-1 space-x-2">
+                          <span className="text-xs text-gray-500">
+                            {formatTimeAgo(notification.createdAt)}
+                          </span>
+                          {!notification.isRead && (
+                            <div className="flex items-center space-x-1">
+                              <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
+                              <span className="text-xs text-yellow-600 font-medium">New</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Hover arrow */}
-                <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 ml-2">
-                  <div className="w-6 h-6 flex items-center justify-center">
-                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
+                  {/* Hover arrow */}
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 ml-2">
+                    <div className="w-6 h-6 flex items-center justify-center">
+                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

@@ -1,11 +1,10 @@
 'use client';
 
-import { Heart, MessageCircle, Share2, MapPin, ChevronLeft, ChevronRight } from 'lucide-react'; //Phone
+import { Heart, MessageCircle, Share2, MapPin, ChevronLeft, ChevronRight } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { FeedPost } from '@/types';
-// import { Button } from './ui/button';
 import formatPostDate from '@/utils/formatDate';
 import { useState, useEffect } from 'react';
 import ServiceCard from './post-window/ServiceCard';
@@ -16,6 +15,8 @@ import { likePost, unlikePost } from '@/api/post';
 import { createComment } from '@/api/comment';
 import { postEvents } from '@/utils/postEvents';
 import { AxiosError } from 'axios';
+import { useAuthGuard } from '@/hooks/useAuthGuard';
+import { AuthDialog } from '@/components/AuthDialog';
 
 export interface PostCardProps {
   post: FeedPost;
@@ -23,6 +24,8 @@ export interface PostCardProps {
 
 export default function PostCard({ post }: PostCardProps) {
   const pathname = usePathname();
+  const { requireAuth, showAuthDialog, closeAuthDialog } = useAuthGuard();
+  
   const [profileImageError, setProfileImageError] = useState(false);
   const [isLiked, setIsLiked] = useState(post.isLikedBy);
   const [likesCount, setLikesCount] = useState(post.engagement.likes);
@@ -47,7 +50,6 @@ export default function PostCard({ post }: PostCardProps) {
   useEffect(() => {
     setCurrentMediaIndex(0);
   }, [post._id]);
-
 
   // Set client-side flag to prevent hydration issues
   useEffect(() => {
@@ -132,93 +134,95 @@ export default function PostCard({ post }: PostCardProps) {
   }, [post._id, post.media.length]);
 
   const handleLikeToggle = async () => {
-    if (isLoading) return;
-    
-    console.log(`=== LIKE TOGGLE START for post ${post._id} ===`);
-    console.log(`Current state - isLiked: ${isLiked}, likesCount: ${likesCount}`);
-    
-    setIsLoading(true);
-    const previousIsLiked = isLiked;
-    const previousLikesCount = likesCount;
-    
-    // Determine the action BEFORE updating state
-    const shouldLike = !isLiked;
-    console.log(`Action determined: ${shouldLike ? 'LIKE' : 'UNLIKE'}`);
-
-    // Optimistic update
-    const newLikesCount = shouldLike ? likesCount + 1 : likesCount - 1;
-    setIsLiked(shouldLike);
-    setLikesCount(newLikesCount);
-    
-    // Save to localStorage for persistence
-    if (isClient) {
-      localStorage.setItem(`post_like_${post._id}`, shouldLike.toString());
-      localStorage.setItem(`post_likes_count_${post._id}`, newLikesCount.toString());
-    }
-    
-    console.log(`Optimistic update - new isLiked: ${shouldLike}, new likesCount: ${newLikesCount}`);
-
-    try {
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Request timeout')), 15000)
-      );
-
-      if (shouldLike) {
-        console.log(`Liking post ${post._id}`);
-        try {
-          await Promise.race([likePost(post._id), timeoutPromise]);
-          console.log(`Successfully liked post ${post._id}`);
-        } catch (likeError) {
-          // Handle "already liked" error
-          if ((likeError as AxiosError)?.response?.status === 409) {
-            console.log(`Post ${post._id} already liked - treating as successful like`);
-            // Don't revert the optimistic update since the post is effectively "liked"
-            return;
-          }
-          // Re-throw other errors to be handled by outer catch
-          throw likeError;
-        }
-      } else {
-        console.log(`Unliking post ${post._id}`);
-        try {
-          await Promise.race([unlikePost(post._id), timeoutPromise]);
-          console.log(`Successfully unliked post ${post._id}`);
-        } catch (unlikeError) {
-          // Handle specific "Like not found" error or timeout
-          const axiosError = unlikeError as AxiosError;
-          const errorMessage = (unlikeError as Error)?.message;
-          
-          if ((axiosError?.response?.data as any)?.message === 'Like not found for this post' || 
-              errorMessage?.includes('timeout') ||
-              axiosError?.code === 'ECONNABORTED') {
-            console.log(`Unlike failed (${errorMessage || 'Like not found'}) - treating as successful unlike`);
-            // Don't revert the optimistic update since the post is effectively "unliked"
-            return;
-          }
-          // Re-throw other errors to be handled by outer catch
-          throw unlikeError;
-        }
-      }
-    } catch (error) {
-      // Revert optimistic update on error
-      const axiosError = error as AxiosError;
-      const errorMessage = (error as Error)?.message;
+    requireAuth(async () => {
+      if (isLoading) return;
       
-      console.error(`Error ${shouldLike ? 'liking' : 'unliking'} post:`, error);
-      console.error('Error details:', axiosError?.response?.data || errorMessage);
-      console.error('Full error object:', error);
-      setIsLiked(previousIsLiked);
-      setLikesCount(previousLikesCount);
+      console.log(`=== LIKE TOGGLE START for post ${post._id} ===`);
+      console.log(`Current state - isLiked: ${isLiked}, likesCount: ${likesCount}`);
       
-      // Revert localStorage as well
+      setIsLoading(true);
+      const previousIsLiked = isLiked;
+      const previousLikesCount = likesCount;
+      
+      // Determine the action BEFORE updating state
+      const shouldLike = !isLiked;
+      console.log(`Action determined: ${shouldLike ? 'LIKE' : 'UNLIKE'}`);
+
+      // Optimistic update
+      const newLikesCount = shouldLike ? likesCount + 1 : likesCount - 1;
+      setIsLiked(shouldLike);
+      setLikesCount(newLikesCount);
+      
+      // Save to localStorage for persistence
       if (isClient) {
-        localStorage.setItem(`post_like_${post._id}`, previousIsLiked.toString());
-        localStorage.setItem(`post_likes_count_${post._id}`, previousLikesCount.toString());
+        localStorage.setItem(`post_like_${post._id}`, shouldLike.toString());
+        localStorage.setItem(`post_likes_count_${post._id}`, newLikesCount.toString());
       }
-    } finally {
-      console.log(`=== LIKE TOGGLE END - Expected final state: isLiked: ${shouldLike}, loading: false ===`);
-      setIsLoading(false);
-    }
+      
+      console.log(`Optimistic update - new isLiked: ${shouldLike}, new likesCount: ${newLikesCount}`);
+
+      try {
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Request timeout')), 15000)
+        );
+
+        if (shouldLike) {
+          console.log(`Liking post ${post._id}`);
+          try {
+            await Promise.race([likePost(post._id), timeoutPromise]);
+            console.log(`Successfully liked post ${post._id}`);
+          } catch (likeError) {
+            // Handle "already liked" error
+            if ((likeError as AxiosError)?.response?.status === 409) {
+              console.log(`Post ${post._id} already liked - treating as successful like`);
+              // Don't revert the optimistic update since the post is effectively "liked"
+              return;
+            }
+            // Re-throw other errors to be handled by outer catch
+            throw likeError;
+          }
+        } else {
+          console.log(`Unliking post ${post._id}`);
+          try {
+            await Promise.race([unlikePost(post._id), timeoutPromise]);
+            console.log(`Successfully unliked post ${post._id}`);
+          } catch (unlikeError) {
+            // Handle specific "Like not found" error or timeout
+            const axiosError = unlikeError as AxiosError;
+            const errorMessage = (unlikeError as Error)?.message;
+            
+            if ((axiosError?.response?.data as any)?.message === 'Like not found for this post' || 
+                errorMessage?.includes('timeout') ||
+                axiosError?.code === 'ECONNABORTED') {
+              console.log(`Unlike failed (${errorMessage || 'Like not found'}) - treating as successful unlike`);
+              // Don't revert the optimistic update since the post is effectively "unliked"
+              return;
+            }
+            // Re-throw other errors to be handled by outer catch
+            throw unlikeError;
+          }
+        }
+      } catch (error) {
+        // Revert optimistic update on error
+        const axiosError = error as AxiosError;
+        const errorMessage = (error as Error)?.message;
+        
+        console.error(`Error ${shouldLike ? 'liking' : 'unliking'} post:`, error);
+        console.error('Error details:', axiosError?.response?.data || errorMessage);
+        console.error('Full error object:', error);
+        setIsLiked(previousIsLiked);
+        setLikesCount(previousLikesCount);
+        
+        // Revert localStorage as well
+        if (isClient) {
+          localStorage.setItem(`post_like_${post._id}`, previousIsLiked.toString());
+          localStorage.setItem(`post_likes_count_${post._id}`, previousLikesCount.toString());
+        }
+      } finally {
+        console.log(`=== LIKE TOGGLE END - Expected final state: isLiked: ${shouldLike}, loading: false ===`);
+        setIsLoading(false);
+      }
+    });
   };
 
   const handlePrevMedia = (e: React.MouseEvent) => {
@@ -280,261 +284,289 @@ export default function PostCard({ post }: PostCardProps) {
 
   const handleCommentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!comment.trim() || isSubmittingComment) return;
-    
-    setIsSubmittingComment(true);
-    try {
-      console.log(`Adding comment to post ${post._id}:`, comment);
+    requireAuth(async () => {
+      if (!comment.trim() || isSubmittingComment) return;
       
-      // Call the actual API to create comment
-      const newComment = await createComment({
-        postId: post._id,
-        content: comment.trim()
-      });
-      
-      console.log('Comment created successfully:', newComment);
-      
-      // Update comments count optimistically and clear input
-      const newCount = commentsCount + 1;
-      setCommentsCount(newCount);
-      setComment('');
-      
-      // Save the updated comment count to localStorage for persistence
-      if (isClient) {
-        localStorage.setItem(`post_comments_count_${post._id}`, newCount.toString());
+      setIsSubmittingComment(true);
+      try {
+        console.log(`Adding comment to post ${post._id}:`, comment);
+        
+        // Call the actual API to create comment
+        const newComment = await createComment({
+          postId: post._id,
+          content: comment.trim()
+        });
+        
+        console.log('Comment created successfully:', newComment);
+        
+        // Update comments count optimistically and clear input
+        const newCount = commentsCount + 1;
+        setCommentsCount(newCount);
+        setComment('');
+        
+        // Save the updated comment count to localStorage for persistence
+        if (isClient) {
+          localStorage.setItem(`post_comments_count_${post._id}`, newCount.toString());
+        }
+        
+        // Emit event for comment count change to sync across components
+        postEvents.emit(post._id, 'commentCountChange', newCount);
+        
+        // Note: The backend automatically updates the post's comment count
+        // The saved count will persist until the server provides a higher count
+        
+      } catch (error: any) {
+        console.error('Error adding comment:', error);
+        
+        // Revert the comment count on error
+        setCommentsCount(commentsCount);
+        if (isClient) {
+          localStorage.setItem(`post_comments_count_${post._id}`, commentsCount.toString());
+        }
+        
+        // Show user-friendly error message
+        const errorMessage = error?.response?.data?.message || 'Failed to add comment. Please try again.';
+        alert(errorMessage);
+      } finally {
+        setIsSubmittingComment(false);
       }
-      
-      // Emit event for comment count change to sync across components
-      postEvents.emit(post._id, 'commentCountChange', newCount);
-      
-      // Note: The backend automatically updates the post's comment count
-      // The saved count will persist until the server provides a higher count
-      
-    } catch (error: any) {
-      console.error('Error adding comment:', error);
-      
-      // Revert the comment count on error
-      setCommentsCount(commentsCount);
-      if (isClient) {
-        localStorage.setItem(`post_comments_count_${post._id}`, commentsCount.toString());
-      }
-      
-      // Show user-friendly error message
-      const errorMessage = error?.response?.data?.message || 'Failed to add comment. Please try again.';
-      alert(errorMessage);
-    } finally {
-      setIsSubmittingComment(false);
-    }
+    });
   };
 
+  const handleCommentClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    requireAuth(() => {
+      window.open(`/post/${post._id}?focus=comment`, '_blank');
+    });
+  };
+
+  const handleShareClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    requireAuth(() => {
+      // Implement your share functionality here
+      console.log('Share post:', post._id);
+      
+      // Example: Copy link to clipboard
+      if (navigator.share) {
+        navigator.share({
+          title: `Check out this post by ${post.username}`,
+          text: post.caption,
+          url: `${window.location.origin}/post/${post._id}`
+        });
+      } else {
+        // Fallback: copy to clipboard
+        navigator.clipboard.writeText(`${window.location.origin}/post/${post._id}`);
+        alert('Link copied to clipboard!');
+      }
+    });
+  };
 
   return (
-    <div 
-      className={`bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200 relative ${
-        pathname.includes('/post/') ? 'cursor-default' : 'cursor-pointer'
-      }`}
-      onClick={handlePostClick}
-      data-post-id={post._id}
-    >
-      {/* Media + Info Side-by-Side */}
-      <div className="flex flex-row gap-4 p-3">
-        {/* Media */}
-        <div 
-          className="post-media relative w-[21rem] h-[24rem] overflow-hidden rounded-2xl group"
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-        >
-          {/* Current Media Display */}
-          {post.media[currentMediaIndex]?.type === 'video' ? (
-            <video
-              className="w-full h-full object-cover rounded-xl"
-              poster={post.media[currentMediaIndex]?.thumbnailUrl}
-              muted
-              loop
-              onMouseEnter={(e) => e.currentTarget.play()}
-              onMouseLeave={(e) => e.currentTarget.pause()}
-            >
-              <source src={post.media[currentMediaIndex]?.url} type="video/mp4" />
-              Your browser does not support the video tag.
-            </video>
-          ) : (
-            <Image
-              src={post.media[currentMediaIndex]?.url || post.media[0]?.url}
-              alt="Post content"
-              fill
-              className="rounded-xl object-cover"
-              unoptimized
-            />
-          )}
-
-          {/* Navigation Controls - Only show if more than 1 media item */}
-          {post.media.length > 1 && (
-            <>
-              {/* Previous Button */}
-              <button
-                onClick={handlePrevMedia}
-                className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10"
+    <>
+      <div 
+        className={`bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200 relative ${
+          pathname.includes('/post/') ? 'cursor-default' : 'cursor-pointer'
+        }`}
+        onClick={handlePostClick}
+        data-post-id={post._id}
+      >
+        {/* Media + Info Side-by-Side */}
+        <div className="flex flex-row gap-4 p-3">
+          {/* Media */}
+          <div 
+            className="post-media relative w-[21rem] h-[24rem] overflow-hidden rounded-2xl group"
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+          >
+            {/* Current Media Display */}
+            {post.media[currentMediaIndex]?.type === 'video' ? (
+              <video
+                className="w-full h-full object-cover rounded-xl"
+                poster={post.media[currentMediaIndex]?.thumbnailUrl}
+                muted
+                loop
+                onMouseEnter={(e) => e.currentTarget.play()}
+                onMouseLeave={(e) => e.currentTarget.pause()}
               >
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-
-              {/* Next Button */}
-              <button
-                onClick={handleNextMedia}
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10"
-              >
-                <ChevronRight className="w-5 h-5" />
-              </button>
-
-              {/* Media Count Indicator */}
-              <div className="absolute top-3 right-3 bg-black/50 text-white text-xs px-2 py-1 rounded-full">
-                {currentMediaIndex + 1} / {post.media.length}
-              </div>
-
-              {/* Dots Indicator */}
-              <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2 flex space-x-1">
-                {post.media.map((_, index) => (
-                  <button
-                    key={index}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setCurrentMediaIndex(index);
-                    }}
-                    className={`w-2 h-2 rounded-full transition-all duration-200 ${
-                      index === currentMediaIndex 
-                        ? 'bg-white' 
-                        : 'bg-white/50 hover:bg-white/75'
-                    }`}
-                  />
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Profile + Info */}
-        <div className="flex flex-col justify-start flex-1 space-y-1 relative pb-16">
-          <div className="flex items-start gap-3">
-            <Link href={`/userprofile/${post.username}`}>
+                <source src={post.media[currentMediaIndex]?.url} type="video/mp4" />
+                Your browser does not support the video tag.
+              </video>
+            ) : (
               <Image
-                width={40}
-                height={40}
-                src={
-                  profileImageError || !post.profileImageUrl
-                    ? '/placeholderimg.png'
-                    : post.profileImageUrl
-                }
-                alt={post.username || 'User Profile Image'}
-                className="w-10 h-10 rounded-full object-cover"
-                onError={() => setProfileImageError(true)}
+                src={post.media[currentMediaIndex]?.url || post.media[0]?.url}
+                alt="Post content"
+                fill
+                className="rounded-xl object-cover"
+                unoptimized
               />
-            </Link>
-            <div>
-                <div className='flex gap-2'>
-              <h3 className="font-semibold text-gray-900">
-                {post.username || 'No Username'}
-              </h3>
-              {post.contentType && <Badge className='bg-button-gradient' variant='outline'>{post.contentType}</Badge>}
+            )}
+
+            {/* Navigation Controls - Only show if more than 1 media item */}
+            {post.media.length > 1 && (
+              <>
+                {/* Previous Button */}
+                <button
+                  onClick={handlePrevMedia}
+                  className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+
+                {/* Next Button */}
+                <button
+                  onClick={handleNextMedia}
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+
+                {/* Media Count Indicator */}
+                <div className="absolute top-3 right-3 bg-black/50 text-white text-xs px-2 py-1 rounded-full">
+                  {currentMediaIndex + 1} / {post.media.length}
                 </div>
-            {post.location && (
-            <div className="flex items-center gap-1 text-gray-700">
-              <MapPin className="w-3 h-3 text-yellow-500" />
-              <p className="text-xs">{post.location.name}</p>
-            </div>
-              )}
-            </div>
+
+                {/* Dots Indicator */}
+                <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2 flex space-x-1">
+                  {post.media.map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCurrentMediaIndex(index);
+                      }}
+                      className={`w-2 h-2 rounded-full transition-all duration-200 ${
+                        index === currentMediaIndex 
+                          ? 'bg-white' 
+                          : 'bg-white/50 hover:bg-white/75'
+                      }`}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
           </div>
 
-          <p className="text-gray-900 leading-relaxed">{post.caption}</p>
-
-          {post.contentType === 'service' && <ServiceCard post={post} />}
-          {post.contentType === 'product' && <ProductCard post={post} />}
-          {post.contentType === 'business' && <BusinessPostCard post={post} />}
-
-        {/* Hashtags (Empty for now) */}
-      <div className="px-1 pb-4">
-        <div className="flex flex-wrap gap-2"><p className='text-yellow-600'>{ post.tags? "#" + post?.tags : null}</p></div>
-      </div>
-
-          {/* Comment Box - Only show for normal/regular posts and not on single post pages */}
-          {(!post.contentType || post.contentType === 'normal' || post.contentType === 'regular') && !pathname.includes('/post/') && (
-            <div className="px-2 -mb-5 mt-auto">
-              <form onSubmit={handleCommentSubmit} className="flex items-center gap-3 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-full border border-yellow-200 px-4 py-2 shadow-sm hover:shadow-md transition-all duration-200">
-                <div className="flex-1 relative">
-                  <input
-                    type="text"
-                    value={comment}
-                    onChange={(e) => setComment(e.target.value)}
-                    placeholder="Add a comment..."
-                    className="w-full py-2 px-4 text-sm bg-transparent border-none focus:outline-none text-gray-800 placeholder-gray-500 font-medium"
-                    disabled={isSubmittingComment}
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={!comment.trim() || isSubmittingComment}
-                  className={`flex items-center justify-center p-2 rounded-full transition-all duration-200 ${
-                    comment.trim() && !isSubmittingComment
-                      ? 'bg-gradient-to-r from-yellow-400 to-orange-400 hover:from-yellow-500 hover:to-orange-500 text-white shadow-md hover:shadow-lg transform hover:scale-105'
-                      : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                  }`}
-                >
-                  {isSubmittingComment ? (
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <MessageCircle className="w-4 h-4" />
-                  )}
-                </button>
-              </form>
+          {/* Profile + Info */}
+          <div className="flex flex-col justify-start flex-1 space-y-1 relative pb-16">
+            <div className="flex items-start gap-3">
+              <Link href={`/userprofile/${post.username}`}>
+                <Image
+                  width={40}
+                  height={40}
+                  src={
+                    profileImageError || !post.profileImageUrl
+                      ? '/placeholderimg.png'
+                      : post.profileImageUrl
+                  }
+                  alt={post.username || 'User Profile Image'}
+                  className="w-10 h-10 rounded-full object-cover"
+                  onError={() => setProfileImageError(true)}
+                />
+              </Link>
+              <div>
+                  <div className='flex gap-2'>
+                <h3 className="font-semibold text-gray-900">
+                  {post.username || 'No Username'}
+                </h3>
+                {post.contentType && <Badge className='bg-button-gradient' variant='outline'>{post.contentType}</Badge>}
+                  </div>
+              {post.location && (
+              <div className="flex items-center gap-1 text-gray-700">
+                <MapPin className="w-3 h-3 text-yellow-500" />
+                <p className="text-xs">{post.location.name}</p>
+              </div>
+                )}
+              </div>
             </div>
-          )}
 
-          <div className="px-2 py-1 absolute bottom-0">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-6">
-                <button 
-                  onClick={handleLikeToggle}
-                  disabled={isLoading}
-                  className={`flex items-center space-x-2 transition-colors ${
-                    isLiked 
-                      ? 'text-red-500' 
-                      : 'text-gray-600 hover:text-red-500'
-                  } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                >
-                  <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
-                  <span className="text-sm font-medium">{likesCount}</span>
-                </button>
-                <button 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    window.open(`/post/${post._id}?focus=comment`, '_blank');
-                  }}
-                  className="flex items-center space-x-2 text-gray-600 hover:text-blue-500 transition-colors"
-                >
-                  <MessageCircle className="w-5 h-5" />
-                  <span className="text-sm font-medium">{commentsCount || 0}</span>
-                </button>
-                <button 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    // You can implement share functionality here
-                  }}
-                  className="flex items-center space-x-2 text-gray-600 hover:text-green-500 transition-colors"
-                >
-                  <Share2 className="w-5 h-5" />
-                  <span className="text-sm font-medium">{post.engagement.shares || 0}</span>
-                </button>
+            <p className="text-gray-900 leading-relaxed">{post.caption}</p>
+
+            {post.contentType === 'service' && <ServiceCard post={post} />}
+            {post.contentType === 'product' && <ProductCard post={post} />}
+            {post.contentType === 'business' && <BusinessPostCard post={post} />}
+
+          {/* Hashtags */}
+        <div className="px-1 pb-4">
+          <div className="flex flex-wrap gap-2"><p className='text-yellow-600'>{ post.tags? "#" + post?.tags : null}</p></div>
+        </div>
+
+            {/* Comment Box - Only show for normal/regular posts and not on single post pages */}
+            {(!post.contentType || post.contentType === 'normal' || post.contentType === 'regular') && !pathname.includes('/post/') && (
+              <div className="px-2 -mb-5 mt-auto">
+                <form onSubmit={handleCommentSubmit} className="flex items-center gap-3 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-full border border-yellow-200 px-4 py-2 shadow-sm hover:shadow-md transition-all duration-200">
+                  <div className="flex-1 relative">
+                    <input
+                      type="text"
+                      value={comment}
+                      onChange={(e) => setComment(e.target.value)}
+                      placeholder="Add a comment..."
+                      className="w-full py-2 px-4 text-sm bg-transparent border-none focus:outline-none text-gray-800 placeholder-gray-500 font-medium"
+                      disabled={isSubmittingComment}
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={!comment.trim() || isSubmittingComment}
+                    className={`flex items-center justify-center p-2 rounded-full transition-all duration-200 ${
+                      comment.trim() && !isSubmittingComment
+                        ? 'bg-gradient-to-r from-yellow-400 to-orange-400 hover:from-yellow-500 hover:to-orange-500 text-white shadow-md hover:shadow-lg transform hover:scale-105'
+                        : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                    }`}
+                  >
+                    {isSubmittingComment ? (
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <MessageCircle className="w-4 h-4" />
+                    )}
+                  </button>
+                </form>
+              </div>
+            )}
+
+            <div className="px-2 py-1 absolute bottom-0">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-6">
+                  <button 
+                    onClick={handleLikeToggle}
+                    disabled={isLoading}
+                    className={`flex items-center space-x-2 transition-colors ${
+                      isLiked 
+                        ? 'text-red-500' 
+                        : 'text-gray-600 hover:text-red-500'
+                    } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
+                    <span className="text-sm font-medium">{likesCount}</span>
+                  </button>
+                  <button 
+                    onClick={handleCommentClick}
+                    className="flex items-center space-x-2 text-gray-600 hover:text-blue-500 transition-colors"
+                  >
+                    <MessageCircle className="w-5 h-5" />
+                    <span className="text-sm font-medium">{commentsCount || 0}</span>
+                  </button>
+                  <button 
+                    onClick={handleShareClick}
+                    className="flex items-center space-x-2 text-gray-600 hover:text-green-500 transition-colors"
+                  >
+                    <Share2 className="w-5 h-5" />
+                    <span className="text-sm font-medium">{post.engagement.shares || 0}</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Timestamp */}
-        <div className="absolute bottom-2 right-2 text-xs text-gray-500">
-          <p className="text-xs text-gray-700 p-2">{formatPostDate(post.createdAt)}</p>
+          {/* Timestamp */}
+          <div className="absolute bottom-2 right-2 text-xs text-gray-500">
+            <p className="text-xs text-gray-700 p-2">{formatPostDate(post.createdAt)}</p>
+          </div>
         </div>
       </div>
-    </div>
+      
+      {/* Auth Dialog */}
+      <AuthDialog isOpen={showAuthDialog} onClose={closeAuthDialog} />
+    </>
   );
 }

@@ -12,18 +12,21 @@ const TagInput: React.FC<TagInputProps> = ({ tags, setTags }) => {
     const handleAddTag = () => {
       if (!tagInput.trim()) return;
     
-      const rawTags = tagInput.split(/[\s,]+/); // split by space or comma
+      // Split by comma, semicolon, or whitespace and clean each tag
+      const rawTags = tagInput.split(/[,;\s]+/);
     
       const formattedTags = rawTags
-        .filter(tag => tag.trim() !== '') // ignore empty values
-        .map(tag => tag.trim()); // DO NOT prepend #
+        .map(tag => tag.trim()) // Remove whitespace
+        .map(tag => tag.replace(/^#+/, '')) // Remove any existing # symbols
+        .filter(tag => tag !== '') // Remove empty strings
+        .map(tag => tag.toLowerCase()); // Convert to lowercase for consistency
     
+      // Remove duplicates by combining with existing tags
       const uniqueTags = Array.from(new Set([...tags, ...formattedTags]));
     
       setTags(uniqueTags);
       setTagInput('');
     };
-    
 
   const handleRemove = (i: number) => {
     const updated = [...tags]
@@ -40,7 +43,7 @@ const TagInput: React.FC<TagInputProps> = ({ tags, setTags }) => {
           value={tagInput}
           onChange={(e) => setTagInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleAddTag()}
-          placeholder="Type tag (without #)"
+          placeholder="Add tags separated by commas or spaces"
           className="flex-1 px-4 py-2 border border-gray-300 text-black rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500"
         />
         <button

@@ -1,11 +1,12 @@
 'use client'
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { login } from '@/api/auth';
 import axios from 'axios';
 import { useUserStore } from '@/store/useUserStore';
 import Input from './ui/Input';
+import Image from 'next/image';
 
 interface LoginFormData {
   email: string;
@@ -35,6 +36,13 @@ const LoginComponent: React.FC = () => {
   const onCreateAccount = () => {
     router.push('/signup');
   }
+  
+  useEffect(() => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    window.location.href = '/';
+  }
+}, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,8 +75,14 @@ const LoginComponent: React.FC = () => {
       <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
         {/* Logo and Header */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-button-gradient rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-            <span className="text-white text-2xl font-bold">F</span>
+          <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+            <Image
+              src="/Findernate.png"
+              alt="FinderNate Logo"
+              width={40}
+              height={40}
+              priority // loads logo immediately, no lazy loading
+              />
           </div>
           <h1 className="text-3xl font-bold text-gray-800 mb-2">Findernate</h1>
           <p className="text-gray-600">Welcome back to your business network</p>

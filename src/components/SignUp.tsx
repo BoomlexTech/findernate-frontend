@@ -1,6 +1,6 @@
 'use client'
-import React, { useState } from 'react';
-import { UserPlus, Eye, EyeOff, Check, RefreshCw, ChevronDown, User } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Eye, EyeOff, Check, RefreshCw, ChevronDown, User } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { countryCodes } from '@/constants/uiItems';
 import { signUp } from '@/api/auth';
@@ -8,6 +8,7 @@ import axios from 'axios';
 import { Button } from './ui/button';
 import Input from './ui/Input';
 import { useUserStore } from '@/store/useUserStore';
+import Image from 'next/image';
 
 export default function SignupComponent() {
   const [formData, setFormData] = useState({
@@ -53,6 +54,12 @@ export default function SignupComponent() {
   const handleSigninClick = () => {
     router.push('/signin')
   }
+    useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      window.location.href = '/';
+    }
+  }, []);
 
   const handleSubmit = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
@@ -80,8 +87,14 @@ export default function SignupComponent() {
       <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
         {/* Logo and Header */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-            <UserPlus className="w-8 h-8 text-white" />
+          <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+            <Image
+              src="/Findernate.png"
+              alt="FinderNate Logo"
+              width={40}
+              height={40}
+              priority // loads logo immediately, no lazy loading
+            />
           </div>
           <h1 className="text-3xl font-bold text-gray-800 mb-2">Findernate</h1>
           <p className="text-gray-600">Join India&apos;s premier business platform</p>
@@ -94,7 +107,7 @@ export default function SignupComponent() {
               <Input
                 type="text"
                 name="fullName"
-                placeholder="Full Name (e.g., Priya Sharma)"
+                placeholder="Full Name (e.g., Gajanan Sharma)"
                 value={formData.fullName}
                 onChange={handleInputChange}
                 leftIcon={<User/>}
