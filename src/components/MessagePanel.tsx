@@ -73,11 +73,7 @@ export default function MessagePanel() {
     
     // 4. Check if the last message was sent by someone else (indicating incoming request)
     if (chat.lastMessage?.sender) {
-      const lastMessageSender = typeof chat.lastMessage.sender === 'string' 
-        ? chat.lastMessage.sender 
-        : chat.lastMessage.sender._id;
-      
-      if (lastMessageSender === currentUserId) {
+      if (chat.lastMessage.sender === currentUserId) {
         console.log('Filtering out outgoing request (last message from current user):', chat._id);
         return false;
       }
@@ -906,9 +902,7 @@ export default function MessagePanel() {
       if (!otherParticipant) {
         // Try to get participant from lastMessage sender as fallback
         if (request.lastMessage?.sender && request.lastMessage.sender !== user._id) {
-          const senderID = typeof request.lastMessage.sender === 'string' 
-            ? request.lastMessage.sender 
-            : request.lastMessage.sender._id;
+          const senderID = request.lastMessage.sender;
           
           // Accept the request on the server
           await messageAPI.acceptMessageRequest(chatId);
