@@ -7,8 +7,11 @@ import PostCard from '@/components/PostCard';
 import ProfilePostsSection from '@/components/ProfilePostsSection';
 import UserProfile from '@/components/UserProfile'
 import { useUserStore } from '@/store/useUserStore';
+import { useAuthGuard } from '@/hooks/useAuthGuard';
+import { AuthDialog } from '@/components/AuthDialog';
 import { FeedPost, UserProfile as UserProfileType } from '@/types';
 import React, { useEffect, useState } from 'react'
+import { LogIn, User } from 'lucide-react';
 
 const Page = () => {
   const [posts, setPosts] = useState<FeedPost[]>([]);
@@ -16,10 +19,12 @@ const Page = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user } = useUserStore();
+  const { requireAuth, showAuthDialog, closeAuthDialog, isAuthenticated } = useAuthGuard();
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!user?._id) {
+      // If user is not authenticated, don't fetch data, just stop loading
+      if (!isAuthenticated || !user?._id) {
         setLoading(false);
         return;
       }
@@ -52,7 +57,7 @@ const Page = () => {
     };
 
     fetchData();
-  }, [user?._id]);
+  }, [user?._id, isAuthenticated]);
 
   const handleProfileUpdate = async (updatedData: Partial<UserProfileType>) => {
     try {
@@ -65,7 +70,15 @@ const Page = () => {
     }
   };
 
-  if (loading) {
+  const handleLoginClick = () => {
+    requireAuth(() => {
+      // This will trigger a re-render once user is authenticated
+      console.log('User authenticated, profile will load');
+    });
+  };
+
+  // Show loading spinner while checking authentication
+  if (loading && isAuthenticated) {
     return (
       <div className="bg-gray-50 max-w-6xl mx-auto p-4 min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -76,14 +89,63 @@ const Page = () => {
     );
   }
 
+  // Show login prompt for unauthenticated users
+  if (!isAuthenticated) {
+    return (
+      <>
+        <div className="bg-gray-50 max-w-6xl mx-auto p-4 min-h-screen">
+          <FloatingHeader
+            paragraph="Sign in to access your profile"
+            heading="Profile"
+            username="Guest"
+            accountBadge={false}
+          />
+          
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="text-center bg-white rounded-2xl shadow-lg p-12 max-w-md w-full mx-4">
+              <div className="mb-6">
+                <div className="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <User className="w-10 h-10 text-yellow-600" />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">You&apos;re Not Logged In</h2>
+                <p className="text-gray-600 leading-relaxed">
+                  Sign in to view your profile, manage your posts, and access account settings.
+                </p>
+              </div>
+              
+              <button
+                onClick={handleLoginClick}
+                className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+              >
+                <LogIn className="w-5 h-5" />
+                Sign In to Continue
+              </button>
+              
+              <p className="text-sm text-gray-500 mt-4">
+                Don&apos;t have an account? Sign up to get started!
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <AuthDialog isOpen={showAuthDialog} onClose={closeAuthDialog} />
+      </>
+    );
+  }
+
+  // Show error state
   if (error) {
     return (
       <div className="bg-gray-50 max-w-6xl mx-auto p-4 min-h-screen flex items-center justify-center">
-        <div className="text-center text-red-500">
-          <p className="text-lg font-medium">{error}</p>
+        <div className="text-center text-red-500 bg-white rounded-2xl shadow-lg p-8 max-w-md w-full mx-4">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <User className="w-8 h-8 text-red-600" />
+          </div>
+          <p className="text-lg font-medium text-gray-900 mb-2">Oops! Something went wrong</p>
+          <p className="text-gray-600 mb-6">{error}</p>
           <button 
             onClick={() => window.location.reload()}
-            className="mt-4 px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
+            className="px-6 py-3 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors font-medium"
           >
             Try Again
           </button>
@@ -92,42 +154,60 @@ const Page = () => {
     );
   }
 
+  // Show "no profile data" state (fallback)
   if (!profileData) {
     return (
       <div className="bg-gray-50 max-w-6xl mx-auto p-4 min-h-screen flex items-center justify-center">
-        <p>No profile data available</p>
+        <div className="text-center bg-white rounded-2xl shadow-lg p-8 max-w-md w-full mx-4">
+          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <User className="w-8 h-8 text-gray-500" />
+          </div>
+          <p className="text-lg font-medium text-gray-900 mb-2">No Profile Data Available</p>
+          <p className="text-gray-600 mb-6">We couldn&apos;t load your profile information.</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="px-6 py-3 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors font-medium"
+          >
+            Refresh Page
+          </button>
+        </div>
       </div>
     );
   }
 
+  // Show authenticated profile page
   return (
-    <div className='bg-gray-50 max-w-6xl mx-auto'>
-      <FloatingHeader
-        paragraph="Manage your account and business settings"
-        heading="Profile"
-        username={profileData.fullName || "User"}
-        accountBadge={true}
-      />
-
-      <div className='flex flex-col gap-6'>
-        <UserProfile 
-          userData={profileData}
-          isCurrentUser={true}
-          onProfileUpdate={handleProfileUpdate}
+    <>
+      <div className='bg-gray-50 max-w-6xl mx-auto'>
+        <FloatingHeader
+          paragraph="Manage your account and business settings"
+          heading="Profile"
+          username={profileData.fullName || "User"}
+          accountBadge={true}
         />
-        <AccountSettings/>
-        <div className='w-full'>
-          <ProfilePostsSection
-            PostCard={PostCard}
-            posts={posts.map((post) => ({
-              ...post,
-              username: post.userId?.username || '',
-              profileImageUrl: post.userId?.profileImageUrl || '',
-            }))}  
+
+        <div className='flex flex-col gap-6'>
+          <UserProfile 
+            userData={profileData}
+            isCurrentUser={true}
+            onProfileUpdate={handleProfileUpdate}
           />
+          <AccountSettings/>
+          <div className='w-full'>
+            <ProfilePostsSection
+              PostCard={PostCard}
+              posts={posts.map((post) => ({
+                ...post,
+                username: post.userId?.username || '',
+                profileImageUrl: post.userId?.profileImageUrl || '',
+              }))}  
+            />
+          </div>
         </div>
       </div>
-    </div>
+      
+      <AuthDialog isOpen={showAuthDialog} onClose={closeAuthDialog} />
+    </>
   )
 }
 

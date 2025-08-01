@@ -77,6 +77,7 @@ export default function SuggestedUsers({ users: initialUsers = defaultSuggestedU
       setError(null);
       try {
         const res = await getSuggestedUsers();
+        console.log("suggested for you",res)
         const safeUsers = Array.isArray(res) ? res : [];
         setUsers(safeUsers);
         setUserStates(safeUsers.reduce((acc, user) => ({
@@ -89,7 +90,7 @@ export default function SuggestedUsers({ users: initialUsers = defaultSuggestedU
         }), {}));
       } catch (err) {
         console.log(err);
-        setError('Could not load suggestions.');
+        setError('suggestions not found.');
         setUsers(defaultSuggestedUsers);
         setUserStates(defaultSuggestedUsers.reduce((acc, user) => ({
           ...acc,
@@ -216,7 +217,7 @@ export default function SuggestedUsers({ users: initialUsers = defaultSuggestedU
       {loading ? (
         <div className="py-8 text-center text-gray-500">Loading suggestions...</div>
       ) : error ? (
-        <div className="py-8 text-center text-red-500">{error}</div>
+        <div className="py-8 text-center text-yellow-500">{error}</div>
       ) : (
         <div className="space-y-4">
           {users.map((user) => {

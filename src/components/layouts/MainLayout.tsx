@@ -39,7 +39,7 @@ const MainLayout = ({children}:{children:React.ReactNode}) => {
       {/* Success Toast */}
       <SuccessToast show={showSuccess} message="Post created successfully!" />
 
-      <div className={!isNoSidebar ? 'ml-64 ' : '' + 'mt-2 min-h-screen bg-gray-50'}>
+      <div className={`${!isNoSidebar ? 'ml-64' : ''} min-h-screen bg-gray-50`}>
         {children}
       </div>
     </>    
