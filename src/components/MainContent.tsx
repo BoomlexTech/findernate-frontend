@@ -77,7 +77,7 @@ export default function MainContent() {
     try {
       setLoading(true);
       const res = await getHomeFeed({ page: pageNum, limit: 10 });
-      
+      //console.log(res)
       const mappedFeed: FeedPost[] = res.data.feed.map((item: RawFeedItem & { comments?: any[] }) => {
         // Calculate actual comment count from comments array
         let actualCommentCount = 0;
