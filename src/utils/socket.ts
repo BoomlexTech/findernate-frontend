@@ -11,6 +11,11 @@ class SocketManager {
       return;
     }
 
+    if (!token) {
+      console.warn('Socket connection attempted without token');
+      return;
+    }
+
     const serverUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
     
     this.socket = io(serverUrl, {
@@ -21,6 +26,27 @@ class SocketManager {
     });
 
     this.setupEventListeners();
+  }
+
+  private reconnectWithFreshToken() {
+    console.log('Attempting to reconnect with fresh token...');
+    
+    // Disconnect current socket
+    if (this.socket) {
+      this.socket.disconnect();
+      this.socket = null;
+      this.isConnected = false;
+    }
+
+    // Get fresh token from localStorage
+    const freshToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    
+    if (freshToken) {
+      console.log('Fresh token found, reconnecting...');
+      this.connect(freshToken);
+    } else {
+      console.warn('No token available for reconnection');
+    }
   }
 
   private setupEventListeners() {
@@ -39,8 +65,27 @@ class SocketManager {
     });
 
     this.socket.on('connect_error', (error) => {
-      console.error('Connection error:', error);
+      console.error('Socket connection error:', error);
+      
+      // Handle authentication errors specifically
+      if (error.message?.includes('Authentication error') || error.message?.includes('Invalid token')) {
+        console.warn('Socket authentication failed - token may be expired');
+        // Try to reconnect with fresh token after a delay
+        setTimeout(() => {
+          this.reconnectWithFreshToken();
+        }, 2000);
+      }
+      
       this.emit('connection_error', error);
+    });
+
+    // Handle authentication errors that come through as regular socket events
+    this.socket.on('error', (error) => {
+      console.error('Socket error event:', error);
+      if (error.message?.includes('Authentication error') || error.message?.includes('Invalid token')) {
+        console.warn('Socket authentication error received');
+        this.reconnectWithFreshToken();
+      }
     });
 
     // Message events
@@ -188,6 +233,28 @@ class SocketManager {
 
   isSocketConnected() {
     return this.isConnected && this.socket?.connected;
+  }
+
+  isReady() {
+    return this.isSocketConnected();
+  }
+
+  // Check if a user is online (placeholder - would need backend implementation)
+  isUserOnline(userId: string): boolean {
+    // This would typically check against a list of online users from the server
+    // For now, return false as placeholder
+    return false;
+  }
+
+  // Emit events to specific chat room
+  emitToChat(chatId: string, event: string, data: any) {
+    if (this.socket?.connected) {
+      this.socket.emit('chat_event', {
+        chatId,
+        event,
+        data
+      });
+    }
   }
 }
 

@@ -74,11 +74,6 @@ export default function MessagePanel() {
     // 2. Check participants - should have exactly 2 participants
     const validParticipants = chat.participants.filter(p => p && p._id);
     if (validParticipants.length !== 2) {
-      // If only 1 participant and it's the current user, this is an outgoing request
-      if (validParticipants.length === 1 && validParticipants[0]._id === currentUserId) {
-        console.log('Filtering out outgoing request (single participant is current user):', chat._id);
-        return false;
-      }
       return false;
     }
     
@@ -88,15 +83,14 @@ export default function MessagePanel() {
       return false;
     }
     
-    // 4. Check if the last message was sent by someone else (indicating incoming request)
-    if (chat.lastMessage?.sender) {
-      if (chat.lastMessage.sender === currentUserId) {
-        console.log('Filtering out outgoing request (last message from current user):', chat._id);
-        return false;
-      }
+    // 4. Key fix: Check who created the chat, not who sent the last message
+    // If current user created the chat, it's an outgoing request (should be hidden)
+    if (chat.createdBy && chat.createdBy._id === currentUserId) {
+      console.log('Filtering out outgoing request (created by current user):', chat._id);
+      return false;
     }
     
-    // 5. Additional check: ensure there's another participant who is not the current user
+    // 5. Ensure there's another participant who is not the current user
     const otherParticipant = validParticipants.find(p => p._id !== currentUserId);
     if (!otherParticipant) {
       console.log('Filtering out request with no other participant:', chat._id);
@@ -106,7 +100,7 @@ export default function MessagePanel() {
     console.log('Allowing incoming request:', {
       chatId: chat._id,
       otherParticipant: otherParticipant.username || otherParticipant.fullName,
-      lastMessageSender: chat.lastMessage?.sender
+      createdBy: chat.createdBy?._id || 'unknown'
     });
     
     return true;
@@ -1428,7 +1422,10 @@ export default function MessagePanel() {
             <MessageSquare className="mx-auto mb-4 w-10 h-10 text-gray-400" />
             <h3 className="text-xl font-semibold text-gray-800">Select a conversation</h3>
             <p className="text-gray-500 mt-1">Choose a conversation to start messaging</p>
-            <button className="mt-4 bg-button-gradient text-white px-4 py-2 rounded-lg hover:bg-yellow-500">
+            <button 
+              onClick={handleNewChat}
+              className="mt-4 bg-button-gradient text-white px-4 py-2 rounded-lg hover:bg-yellow-500 cursor-pointer"
+            >
               Start New Chat
             </button>
           </div>
