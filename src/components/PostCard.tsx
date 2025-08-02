@@ -624,7 +624,16 @@ export default function PostCard({ post }: PostCardProps) {
                 {post.location && (
                 <div className="flex items-center gap-1 text-gray-700">
                   <MapPin className="w-3 h-3 text-yellow-500" />
-                  <p className="text-xs">{post.location.name}</p>
+                  <p className="text-xs">
+                    {typeof post.location === 'object' ? 
+                      (post.location.name || 
+                       (post.location as any).label || 
+                       (post.location as any).address || 
+                       String(post.location))
+                      : 
+                      String(post.location)
+                    }
+                  </p>
                 </div>
                   )}
                 </div>
@@ -694,8 +703,10 @@ export default function PostCard({ post }: PostCardProps) {
           {/* Hashtags */}
         <div className="px-1 pb-4">
           <div className="flex flex-wrap gap-2">
-            {post.tags && post.tags.length > 0 && post.tags.map((tag, index) => (
-              <span key={index} className='text-yellow-600'>#{tag}</span>
+            {post.tags && Array.isArray(post.tags) && post.tags.length > 0 && post.tags.map((tag, index) => (
+              <span key={index} className='text-yellow-600'>
+                #{typeof tag === 'string' ? tag : String(tag)}
+              </span>
             ))}
           </div>
         </div>
