@@ -2,7 +2,7 @@
 
 import { getOtherUserProfile } from '@/api/user';
 import { getUserPosts, getUserReels, getUserVideos } from '@/api/homeFeed';
-import FloatingHeader from '@/components/FloatingHeader';
+// import FloatingHeader from '@/components/FloatingHeader';
 import PostCard from '@/components/PostCard';
 import ProfilePostsSection from '@/components/ProfilePostsSection';
 import UserProfile from '@/components/UserProfile';
@@ -56,7 +56,7 @@ const UserProfilePage = () => {
         
       } catch (error) {
         console.error('Error fetching user profile data:', error);
-        setError('Failed to load user profile');
+        setError('Unable to load user profile');
       } finally {
         setLoading(false);
       }
@@ -128,7 +128,7 @@ const UserProfilePage = () => {
   if (error) {
     return (
       <div className="bg-gray-50 max-w-6xl mx-auto p-4 min-h-screen flex items-center justify-center">
-        <div className="text-center text-red-500">
+        <div className="text-center text-yellow-500">
           <p className="text-lg font-medium">{error}</p>
           <button 
             onClick={() => window.location.reload()}

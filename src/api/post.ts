@@ -108,6 +108,7 @@ export const unlikePost = async (postId: string) => {
   return response.data;
 };
 
-  
-  
-  
+export const getSavedPost = async () => {
+  const response = await axios.get('posts/saved')
+  return response.data
+}

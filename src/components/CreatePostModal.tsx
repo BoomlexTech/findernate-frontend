@@ -21,6 +21,7 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
   const [postType, setPostType] = useState('Regular');
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const { user } = useUserStore();
 
@@ -34,8 +35,8 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
 
   const [regularForm, setRegularForm] = useState({
     postType: 'photo',
-    mood: '',
-    activity: '',
+    mood: 'Content', // Default mood since UI field is hidden
+    activity: 'Chilling', // Default activity since UI field is hidden
     mentions: [] as string[],
     settings: {
       visibility: 'public',
@@ -322,44 +323,66 @@ const handleProductChange = (
       return { ...sharedForm };
   }
 };
+
   const handlePost = async () => {
     const finalPayload = buildPostPayload();
     setLoading(true);
+    setError(null);
+    
     try {
+      let response;
+      
       if (postType === 'Regular') {
         console.log("Payload being sent:", sharedForm, regularForm);
         const regularPayload = finalPayload as RegularPostPayload;
-        const res = await createRegularPost(regularPayload);
-        console.log(res);
+        response = await createRegularPost(regularPayload);
+        console.log(response);
       } else if (postType === 'Product') {
         console.log('Product Post Data:',sharedForm, productForm); 
         const productPayload = finalPayload;
-        const res = await createProductPost({formData:productPayload} as unknown as ProductDetailsFormProps);
-        console.log(res);
+        response = await createProductPost({formData:productPayload} as unknown as ProductDetailsFormProps);
+        console.log(response);
       } else if (postType === 'Service') {
         console.log('Service Post Data:',sharedForm, serviceForm);
         const servicePayload = finalPayload;
-        const res = await createServicePost({formData:servicePayload} as unknown as ServiceDetailsFormProps);
-        console.log(res);
+        response = await createServicePost({formData:servicePayload} as unknown as ServiceDetailsFormProps);
+        console.log(response);
        } else if (postType === 'Business') {
         console.log('Business Post Data:',sharedForm, businessForm);
         const businessPayload = finalPayload;
-        const res = await createBusinessPost({formData:businessPayload} as unknown as BusinessPostFormProps);
-        console.log(res);
+        response = await createBusinessPost({formData:businessPayload} as unknown as BusinessPostFormProps);
+        console.log(response);
        }
-      setShowSuccess(true);
-      setTimeout(() => {
-      setShowSuccess(false);
-        closeModal();
-      }, 2000);
-    }
-    catch (err) {
-      console.error(err);
-    } finally{
+
+      // Only show success toast if we actually got a successful response
+      if (response && (response.status === 200 || response.status === 201 || response.success)) {
+        setShowSuccess(true);
+        setTimeout(() => {
+          setShowSuccess(false);
+          closeModal();
+        }, 2000);
+      } else {
+        // Handle case where API doesn't return expected success response
+        throw new Error('Post creation failed - unexpected response');
+      }
+      
+    } catch (err: any) {
+      console.error('Error creating post:', err);
+      setError(err.response?.data?.message || err.message || 'Failed to create post. Please try again.');
+      
+      // Show error message to user (you can replace this with a toast or modal)
+      alert(err.response?.data?.message || err.message || 'Failed to create post. Please try again.');
+    } finally {
       setLoading(false);
     }
   };
 
+  // Reset success state when modal closes
+  const handleCloseModal = () => {
+    setShowSuccess(false);
+    setError(null);
+    closeModal();
+  };
 
   return (
     <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
@@ -368,7 +391,7 @@ const handleProductChange = (
         <div className="flex items-center justify-between p-6 border-b">
           <h2 className="text-xl font-semibold text-gray-800">Create Post</h2>
           <button
-            onClick={closeModal}
+            onClick={handleCloseModal}
             className="text-gray-500 hover:text-gray-700 transition-colors cursor-pointer"
           >
             <X size={24} />
@@ -378,15 +401,31 @@ const handleProductChange = (
         {/* Content */}
         <div className="p-6">
           {/* User Info */}
-          <div className="flex items-center mb-6">
-            <div className="w-12 h-12 bg-button-gradient rounded-full flex items-center justify-center text-white font-semibold">
-              {user?.profileImageUrl ? <Image src={user?.profileImageUrl} alt="Profile" width={48} height={48} className="rounded-full" /> : user?.fullName?.charAt(0)}
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center">
+              <div className="w-12 h-12 bg-button-gradient rounded-full flex items-center justify-center text-white font-semibold">
+                {user?.profileImageUrl ? <Image src={user?.profileImageUrl} alt="Profile" width={48} height={48} className="rounded-full" /> : user?.fullName?.charAt(0)}
+              </div>
+              <div className="ml-3">
+                <h3 className="font-semibold text-gray-800">{user?.fullName}</h3>
+                <p className="text-sm text-gray-500">{user?.username}</p>
+              </div>
             </div>
-            <div className="ml-3">
-              <h3 className="font-semibold text-gray-800">{user?.fullName}</h3>
-              <p className="text-sm text-gray-500">{user?.username}</p>
-            </div>
+            <Button
+              onClick={handlePost}
+              className="px-6 py-2 bg-button-gradient text-white rounded-lg hover:bg-yellow-700 transition-colors cursor-pointer"
+              disabled={loading}
+            >
+              {loading ? 'Posting...' : 'Submit Post'}
+            </Button>
           </div>
+
+          {/* Error Display */}
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-600 text-sm">{error}</p>
+            </div>
+          )}
 
           {/* Post Type Tabs */}
           <div className="flex space-x-4 mb-6">
@@ -394,7 +433,7 @@ const handleProductChange = (
               variant='custom'
               onClick={() => setPostType('Regular')}
               className={`px-4 py-2 rounded-lg border transition-colors ${
-                postType === 'Regular Post'
+                postType === 'Regular'
                   ? 'border-yellow-500 bg-yellow-50 text-yellow-700'
                   : 'border-gray-300 text-gray-600 hover:bg-gray-50'
               }`}
@@ -566,8 +605,9 @@ const handleProductChange = (
         {/* Footer */}
         <div className="flex justify-end space-x-3 p-6 border-t bg-gray-50">
           <Button
-            onClick={closeModal}
+            onClick={handleCloseModal}
             className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+            disabled={loading}
           >
             Cancel
           </Button>

@@ -524,7 +524,7 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
               />
             ) : (
               <p className="mt-2 text-sm text-gray-800">
-                {profile?.bio || (isCurrentUser ? "Add a bio to tell people about yourself" : "No bio available")}
+                {profile?.bio || (isCurrentUser ? "Add a bio to tell people about yourself" : null)}
               </p>
             )}
 

@@ -3,7 +3,6 @@ import React, { useState } from 'react'
 import { usePathname } from 'next/navigation';
 import LeftSidebar from "@/components/LeftSidebar";
 import CreatePostModal from "@/components/CreatePostModal";
-import SuccessToast from "@/components/SuccessToast";
 
 const MainLayout = ({children}:{children:React.ReactNode}) => {
 
@@ -11,13 +10,11 @@ const MainLayout = ({children}:{children:React.ReactNode}) => {
   const noSidebarRoutes = ['/onboarding','/signup', '/signin'];
   const isNoSidebar = noSidebarRoutes.some(path => pathname.startsWith(path));
   const [postToggle, setPostToggle] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
 
   const handlePostOpen = () => setPostToggle(true);
   const handlePostClose = () => {
     setPostToggle(false);
-    setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 2000);
+    // Removed automatic success toast - let CreatePostModal handle its own success state
   };
 
   return (
@@ -35,9 +32,6 @@ const MainLayout = ({children}:{children:React.ReactNode}) => {
           <CreatePostModal closeModal={handlePostClose}/>
         </div>
       )}
-
-      {/* Success Toast */}
-      <SuccessToast show={showSuccess} message="Post created successfully!" />
 
       <div className={`${!isNoSidebar ? 'ml-64' : ''} min-h-screen bg-gray-50`}>
         {children}
