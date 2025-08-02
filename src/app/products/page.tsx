@@ -156,9 +156,16 @@ const ProductsPage = () => {
 
     // Apply location filter
     if (selectedLocation) {
-      filtered = filtered.filter(product => 
-        product.location?.name.toLowerCase().includes(selectedLocation.toLowerCase())
-      );
+      filtered = filtered.filter(product => {
+        if (!product.location) return false;
+        
+        // Handle both string and object location types
+        const locationName = typeof product.location === 'string' 
+          ? product.location 
+          : product.location.name;
+          
+        return locationName?.toLowerCase().includes(selectedLocation.toLowerCase());
+      });
     }
 
     // Apply sorting
