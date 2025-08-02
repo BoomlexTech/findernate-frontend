@@ -102,9 +102,16 @@ const BusinessesPage = () => {
 
     // Apply location filter
     if (selectedLocation) {
-      filtered = filtered.filter(business => 
-        business.location?.name.toLowerCase().includes(selectedLocation.toLowerCase())
-      );
+      filtered = filtered.filter(business => {
+        if (!business.location) return false;
+        
+        // Handle both string and object location types
+        const locationName = typeof business.location === 'string' 
+          ? business.location 
+          : business.location.name;
+          
+        return locationName?.toLowerCase().includes(selectedLocation.toLowerCase());
+      });
     }
 
     // Apply sorting

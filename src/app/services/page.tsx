@@ -156,9 +156,16 @@ const ServicesPage = () => {
 
     // Apply location filter
     if (selectedLocation) {
-      filtered = filtered.filter(service => 
-        service.location?.name.toLowerCase().includes(selectedLocation.toLowerCase())
-      );
+      filtered = filtered.filter(service => {
+        if (!service.location) return false;
+        
+        // Handle both string and object location types
+        const locationName = typeof service.location === 'string' 
+          ? service.location 
+          : service.location.name;
+          
+        return locationName?.toLowerCase().includes(selectedLocation.toLowerCase());
+      });
     }
 
     // Apply sorting
