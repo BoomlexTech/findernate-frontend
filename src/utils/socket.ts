@@ -5,6 +5,13 @@ class SocketManager {
   private socket: Socket | null = null;
   private isConnected = false;
   private eventListeners: Map<string, Function[]> = new Map();
+  private reconnectAttempts = 0;
+  private maxReconnectAttempts = 5;
+  private reconnectDelay = 1000; // Start with 1 second
+  private maxReconnectDelay = 30000; // Max 30 seconds
+  private reconnectTimeoutId: NodeJS.Timeout | null = null;
+  private authFailureCount = 0;
+  private maxAuthFailures = 3;
 
   connect(token: string) {
     if (this.socket?.connected) {
@@ -16,7 +23,15 @@ class SocketManager {
       return;
     }
 
+    // Clear any pending reconnection attempts
+    if (this.reconnectTimeoutId) {
+      clearTimeout(this.reconnectTimeoutId);
+      this.reconnectTimeoutId = null;
+    }
+
     const serverUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+    
+    console.log(`Attempting socket connection (attempt ${this.reconnectAttempts + 1}/${this.maxReconnectAttempts})`);
     
     this.socket = io(serverUrl, {
       auth: {
@@ -29,8 +44,28 @@ class SocketManager {
   }
 
   private reconnectWithFreshToken() {
-    console.log('Attempting to reconnect with fresh token...');
+    this.authFailureCount++;
     
+    // Check if we've exceeded maximum authentication failures
+    if (this.authFailureCount >= this.maxAuthFailures) {
+      console.error(`Maximum authentication failures (${this.maxAuthFailures}) reached. Stopping reconnection attempts.`);
+      this.emit('auth_failure_permanent', { 
+        message: 'Authentication failed permanently. Please log in again.' 
+      });
+      this.reset();
+      return;
+    }
+
+    // Check if we've exceeded maximum reconnection attempts
+    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+      console.error(`Maximum reconnection attempts (${this.maxReconnectAttempts}) reached. Stopping reconnection.`);
+      this.emit('connection_failed_permanent', {
+        message: 'Failed to establish connection after multiple attempts'
+      });
+      this.reset();
+      return;
+    }
+
     // Disconnect current socket
     if (this.socket) {
       this.socket.disconnect();
@@ -38,23 +73,64 @@ class SocketManager {
       this.isConnected = false;
     }
 
-    // Get fresh token from localStorage
-    const freshToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-    
-    if (freshToken) {
-      console.log('Fresh token found, reconnecting...');
-      this.connect(freshToken);
-    } else {
-      console.warn('No token available for reconnection');
+    // Import userStore dynamically to avoid circular dependencies
+    import('@/store/useUserStore').then(({ useUserStore }) => {
+      const validToken = useUserStore.getState().validateAndGetToken();
+      
+      if (!validToken) {
+        console.error('No valid token available for reconnection. Stopping attempts.');
+        this.emit('auth_failure_permanent', { 
+          message: 'No valid authentication token available' 
+        });
+        this.reset();
+        return;
+      }
+
+      this.reconnectAttempts++;
+      const delay = Math.min(this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1), this.maxReconnectDelay);
+      
+      console.log(`Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+      
+      this.reconnectTimeoutId = setTimeout(() => {
+        this.connect(validToken);
+      }, delay);
+    }).catch(error => {
+      console.error('Failed to import userStore:', error);
+      this.reset();
+    });
+  }
+
+  private reset() {
+    this.reconnectAttempts = 0;
+    this.authFailureCount = 0;
+    if (this.reconnectTimeoutId) {
+      clearTimeout(this.reconnectTimeoutId);
+      this.reconnectTimeoutId = null;
     }
+    if (this.socket) {
+      this.socket.disconnect();
+      this.socket = null;
+    }
+    this.isConnected = false;
   }
 
   private setupEventListeners() {
     if (!this.socket) return;
 
     this.socket.on('connect', () => {
-      console.log('Connected to server');
+      console.log('Successfully connected to server');
       this.isConnected = true;
+      
+      // Reset counters on successful connection
+      this.reconnectAttempts = 0;
+      this.authFailureCount = 0;
+      this.reconnectDelay = 1000; // Reset delay
+      
+      if (this.reconnectTimeoutId) {
+        clearTimeout(this.reconnectTimeoutId);
+        this.reconnectTimeoutId = null;
+      }
+      
       this.emit('connection_status', { connected: true });
     });
 
@@ -70,10 +146,26 @@ class SocketManager {
       // Handle authentication errors specifically
       if (error.message?.includes('Authentication error') || error.message?.includes('Invalid token')) {
         console.warn('Socket authentication failed - token may be expired');
-        // Try to reconnect with fresh token after a delay
-        setTimeout(() => {
-          this.reconnectWithFreshToken();
-        }, 2000);
+        this.reconnectWithFreshToken();
+      } else {
+        // For non-auth errors, try regular reconnection with backoff
+        this.reconnectAttempts++;
+        if (this.reconnectAttempts < this.maxReconnectAttempts) {
+          const delay = Math.min(this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1), this.maxReconnectDelay);
+          console.log(`Reconnecting after connection error in ${delay}ms`);
+          
+          this.reconnectTimeoutId = setTimeout(() => {
+            import('@/store/useUserStore').then(({ useUserStore }) => {
+              const token = useUserStore.getState().validateAndGetToken();
+              if (token) {
+                this.connect(token);
+              }
+            });
+          }, delay);
+        } else {
+          console.error('Maximum connection attempts reached');
+          this.emit('connection_failed_permanent', { message: 'Connection failed permanently' });
+        }
       }
       
       this.emit('connection_error', error);
@@ -223,12 +315,8 @@ class SocketManager {
   }
 
   disconnect() {
-    if (this.socket) {
-      this.socket.disconnect();
-      this.socket = null;
-      this.isConnected = false;
-      this.eventListeners.clear();
-    }
+    this.reset();
+    this.eventListeners.clear();
   }
 
   isSocketConnected() {
