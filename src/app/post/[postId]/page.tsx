@@ -103,11 +103,34 @@ const PostPage = () => {
         // Ensure all necessary fields are properly structured for PostCard
         const structuredPostData = {
           ...postData,
-          // Handle tags/hashtags - check both fields
-          tags: Array.isArray(postData.tags) ? postData.tags : 
-                Array.isArray(postData.hashtags) ? postData.hashtags :
-                (postData.tags ? [postData.tags] : 
-                 postData.hashtags ? [postData.hashtags] : []),
+          // Handle tags/hashtags - check both fields and customization and ensure they're arrays
+          tags: (() => {
+            // Try different possible fields for tags, including nested customization
+            // Check for non-empty arrays or truthy values
+            const possibleTags = (postData.tags && postData.tags.length > 0 ? postData.tags : null) || 
+                                (postData.hashtags && postData.hashtags.length > 0 ? postData.hashtags : null) || 
+                                (postData.tag && postData.tag.length > 0 ? postData.tag : null) || 
+                                (postData.customization?.normal?.tags && postData.customization.normal.tags.length > 0 ? postData.customization.normal.tags : null) ||
+                                (postData.customization?.product?.tags && postData.customization.product.tags.length > 0 ? postData.customization.product.tags : null) ||
+                                (postData.customization?.service?.tags && postData.customization.service.tags.length > 0 ? postData.customization.service.tags : null) ||
+                                [];
+            
+            console.log('Inside tags function - possibleTags:', possibleTags);
+            console.log('Inside tags function - possibleTags type:', typeof possibleTags);
+            console.log('Inside tags function - possibleTags isArray:', Array.isArray(possibleTags));
+            
+            if (Array.isArray(possibleTags)) {
+              console.log('Returning array tags:', possibleTags);
+              return possibleTags;
+            } else if (typeof possibleTags === 'string') {
+              // If it's a string, split by comma or return as single item
+              const result = possibleTags.includes(',') ? possibleTags.split(',').map(tag => tag.trim()) : [possibleTags];
+              console.log('Returning string-converted tags:', result);
+              return result;
+            }
+            console.log('Returning empty array for tags');
+            return [];
+          })(),
           // Ensure engagement object exists with localStorage override for likes
           engagement: {
             ...(postData.engagement || { likes: 0, comments: 0, shares: 0 }),
@@ -116,9 +139,24 @@ const PostPage = () => {
           // Use localStorage like status if available, otherwise default to false
           isLikedBy: savedLikeStatus !== null ? savedLikeStatus === 'true' : Boolean(postData.isLikedBy),
           // Ensure location is properly structured - check multiple possible locations
-          location: postData.location || 
-                   postData.customization?.normal?.location ||
-                   (postData.userId && typeof postData.userId === 'object' ? postData.userId.location : null)
+          location: (() => {
+            // Try different possible locations
+            const possibleLocation = postData.location || 
+                                   postData.customization?.normal?.location ||
+                                   postData.customization?.product?.location ||
+                                   postData.customization?.service?.location ||
+                                   (postData.userId && typeof postData.userId === 'object' ? postData.userId.location : null);
+            
+            // Ensure location has the expected structure
+            if (possibleLocation) {
+              if (typeof possibleLocation === 'string') {
+                return { name: possibleLocation };
+              } else if (possibleLocation.name) {
+                return possibleLocation;
+              }
+            }
+            return null;
+          })()
         };
         
         console.log('Final structured post data:', structuredPostData);
@@ -130,7 +168,18 @@ const PostPage = () => {
         console.log('LocalStorage likes count:', savedLikesCount);
         console.log('Tags processing - original tags:', postData.tags);
         console.log('Tags processing - original hashtags:', postData.hashtags);
+        console.log('Tags processing - original tag (singular):', postData.tag);
+        console.log('Tags processing - customization.normal.tags:', postData.customization?.normal?.tags);
+        console.log('Tags processing - customization.product.tags:', postData.customization?.product?.tags);
+        console.log('Tags processing - customization.service.tags:', postData.customization?.service?.tags);
         console.log('Tags processing - final result:', structuredPostData.tags);
+        console.log('Location processing - postData.location:', postData.location);
+        console.log('Location processing - customization locations:', {
+          normal: postData.customization?.normal?.location,
+          product: postData.customization?.product?.location,
+          service: postData.customization?.service?.location
+        });
+        console.log('Location processing - final result:', structuredPostData.location);
         
         setPost(structuredPostData);
         setCommentCount(structuredPostData.engagement?.comments || 0);

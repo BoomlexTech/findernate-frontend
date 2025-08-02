@@ -239,13 +239,15 @@ export interface FeedPost {
   };
     location: {
     name: string;
-    coordinates: {
+    coordinates?: {
       type: string;
       coordinates: [number, number];
     };
-  } | null;
+  } | string | null;
 
   tags: string[];
+  hashtags?: string[] | string; // Allow both array and string
+  tag?: string[] | string; // Alternative field name
   customization?: {
     product?: {
       name: string;
