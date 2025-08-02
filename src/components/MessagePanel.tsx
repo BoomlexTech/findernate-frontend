@@ -39,12 +39,16 @@ export default function MessagePanel() {
   const [showGroupDetails, setShowGroupDetails] = useState(false);
   const [allChatsCache, setAllChatsCache] = useState<Chat[]>([]); // Keep track of all chats
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [filePreview, setFilePreview] = useState<string | null>(null);
+  const [uploadingFile, setUploadingFile] = useState(false);
   const user = useUserStore((state) => state.user);
   const router = useRouter();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messageInputRef = useRef<HTMLInputElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const searchParams = useSearchParams();
 
   const selected = chats.find((chat) => chat._id === selectedChat);
@@ -114,10 +118,32 @@ export default function MessagePanel() {
 
   // Initialize socket connection
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      socketManager.connect(token);
+    // Validate and get token using UserStore
+    const { validateAndGetToken, logout } = useUserStore.getState();
+    const validToken = validateAndGetToken();
+    
+    if (validToken) {
+      socketManager.connect(validToken);
+    } else {
+      console.warn('No valid token for socket connection');
     }
+
+    // Handle permanent authentication failures
+    const handleAuthFailure = (data: any) => {
+      console.error('Permanent authentication failure:', data.message);
+      alert('Your session has expired. Please log in again.');
+      logout();
+      router.push('/signin');
+    };
+
+    const handleConnectionFailure = (data: any) => {
+      console.error('Permanent connection failure:', data.message);
+      // Could show a user-friendly message here
+    };
+
+    // Listen for permanent failures
+    socketManager.on('auth_failure_permanent', handleAuthFailure);
+    socketManager.on('connection_failed_permanent', handleConnectionFailure);
 
     return () => {
       // Clean up typing indicators on unmount
@@ -125,9 +151,14 @@ export default function MessagePanel() {
         clearTimeout(typingTimeoutRef.current);
       }
       stopTypingIndicator();
+      
+      // Remove event listeners
+      socketManager.off('auth_failure_permanent', handleAuthFailure);
+      socketManager.off('connection_failed_permanent', handleConnectionFailure);
+      
       socketManager.disconnect();
     };
-  }, []);
+  }, [router]);
 
   // Load cached decisions and user following list on mount
   useEffect(() => {
@@ -562,6 +593,13 @@ export default function MessagePanel() {
   // Send message function
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // If there's a file selected, send file message instead
+    if (selectedFile) {
+      await handleSendFileMessage();
+      return;
+    }
+    
     if (!newMessage.trim() || !selectedChat || sendingMessage) return;
 
     const messageText = newMessage.trim();
@@ -744,6 +782,108 @@ export default function MessagePanel() {
     messageInputRef.current?.focus();
   };
 
+  // File handling functions
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Restrict to images and videos only
+    if (!(file.type.startsWith('image/') || file.type.startsWith('video/'))) {
+      alert('Only image and video files are allowed.');
+      return;
+    }
+
+    // Check file size (limit to 50MB)
+    const maxSize = 50 * 1024 * 1024; // 50MB
+    if (file.size > maxSize) {
+      alert('File size should not exceed 50MB');
+      return;
+    }
+
+    setSelectedFile(file);
+
+    // Create preview for images
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setFilePreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      setFilePreview(null);
+    }
+
+    // Clear the input value so the same file can be selected again
+    if (e.target) {
+      e.target.value = '';
+    }
+  };
+
+  const handleRemoveFile = () => {
+    setSelectedFile(null);
+    setFilePreview(null);
+  };
+
+  const handleFileUpload = () => {
+    fileInputRef.current?.click();
+  };
+
+  // Send file message
+  const handleSendFileMessage = async () => {
+    if (!selectedFile || !selectedChat || uploadingFile) return;
+
+    try {
+      setUploadingFile(true);
+      const message = await messageAPI.sendMessageWithFile(
+        selectedChat, 
+        selectedFile, 
+        newMessage.trim() || undefined
+      );
+      
+      // Add message immediately from API response
+      setMessages(prev => {
+        const messageExists = prev.some(msg => msg._id === message._id);
+        if (messageExists) return prev;
+        return [...prev, message];
+      });
+      
+      // Update chat list
+      setChats(prev => {
+        const updatedChats = prev.map(chat => 
+          chat._id === selectedChat 
+            ? { 
+                ...chat, 
+                lastMessage: { 
+                  sender: message.sender._id, 
+                  message: message.message, 
+                  timestamp: message.timestamp 
+                }, 
+                lastMessageAt: message.timestamp 
+              }
+            : chat
+        );
+        return updatedChats.sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime());
+      });
+      
+      // Clear file and message
+      setSelectedFile(null);
+      setFilePreview(null);
+      setNewMessage("");
+      
+      scrollToBottom();
+      
+    } catch (error: any) {
+      console.error('Failed to send file:', error);
+      console.error('Error response data:', error.response?.data);
+      console.error('Error status:', error.response?.status);
+      
+      const errorMessage = error.response?.data?.message || 'Failed to send file. Please try again.';
+      alert(`Failed to send file: ${errorMessage}`);
+    } finally {
+      setUploadingFile(false);
+    }
+  };
+
   // Format time helper
   const formatTime = (timestamp: string) => {
     const date = new Date(timestamp);
@@ -772,6 +912,256 @@ export default function MessagePanel() {
     }
     const otherParticipant = chat.participants.find(p => p._id !== user?._id);
     return otherParticipant?.profileImageUrl || '/placeholderimg.png';
+  };
+
+  // Render media content based on message type
+  const renderMediaContent = (msg: Message) => {
+    // For media messages, extract the Cloudinary URL from the message
+    if (!msg.message || msg.messageType === 'text') return null;
+
+    // Debug log to check message type
+    console.log('Rendering media content:', {
+      messageType: msg.messageType,
+      fileName: msg.fileName,
+      fileSize: msg.fileSize,
+      message: msg.message
+    });
+
+    // Use mediaUrl field if available, otherwise extract URL from message
+    let mediaUrl = msg.mediaUrl;
+    
+    if (!mediaUrl) {
+      // Fallback: Extract URL from message (could be just the URL or text + URL)
+      const urlRegex = /https?:\/\/[^\s]+/;
+      const urlMatch = msg.message.match(urlRegex);
+      
+      if (!urlMatch) return null;
+      
+      mediaUrl = urlMatch[0];
+    }
+    const commonClasses = "max-w-full rounded-lg border border-gray-200";
+
+    switch (msg.messageType) {
+      case 'image':
+        // Extra check to ensure PDFs don't get rendered as images
+        const isActuallyPDF = mediaUrl.includes('.pdf') || (msg.fileName && msg.fileName.toLowerCase().endsWith('.pdf'));
+        
+        if (isActuallyPDF) {
+          // Render as file if it's actually a PDF
+          const fileName = msg.fileName || 'Document.pdf';
+          return (
+            <div className="mb-2">
+              <div className="bg-white bg-opacity-20 p-3 rounded-lg border-l-4 border-blue-500 max-w-xs">
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">📄</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">
+                      {fileName}
+                    </p>
+                    <p className="text-xs opacity-75 uppercase">
+                      PDF file
+                    </p>
+                    {msg.fileSize && (
+                      <p className="text-xs opacity-75">
+                        {(msg.fileSize / (1024 * 1024)).toFixed(2)} MB
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div className="mt-2 flex gap-2">
+                  <button
+                    onClick={() => window.open(mediaUrl, '_blank')}
+                    className="text-xs bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition-colors"
+                  >
+                    View PDF
+                  </button>
+                  <a
+                    href={mediaUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs bg-gray-500 text-white px-3 py-1 rounded hover:bg-gray-600 transition-colors"
+                  >
+                    Open in New Tab
+                  </a>
+                </div>
+              </div>
+            </div>
+          );
+        }
+        
+        // Normal image rendering
+        return (
+          <div className="mb-2">
+            <img
+              src={mediaUrl}
+              alt={msg.fileName || 'Shared image'}
+              className={`${commonClasses} object-cover cursor-pointer hover:opacity-90 transition-opacity max-w-[300px] max-h-[200px]`}
+              onClick={() => window.open(mediaUrl, '_blank')}
+              onError={(e) => {
+                console.error('Image failed to load:', mediaUrl);
+                // If image fails to load, maybe it's actually a file
+                e.currentTarget.style.display = 'none';
+              }}
+            />
+          </div>
+        );
+
+      case 'video':
+        return (
+          <div className="mb-2">
+            <video
+              src={mediaUrl}
+              controls
+              className={`${commonClasses} max-h-64`}
+              preload="metadata"
+            >
+              Your browser does not support the video tag.
+            </video>
+          </div>
+        );
+
+      case 'audio':
+        return (
+          <div className="mb-2">
+            <audio
+              src={mediaUrl}
+              controls
+              className="w-full max-w-sm"
+            >
+              Your browser does not support the audio tag.
+            </audio>
+          </div>
+        );
+
+      case 'file':
+        // Extract filename from URL if not provided
+        let fileName = msg.fileName;
+        if (!fileName) {
+          const urlParts = mediaUrl.split('/');
+          const lastPart = urlParts[urlParts.length - 1];
+          // Try to extract a meaningful filename
+          if (lastPart.includes('.')) {
+            fileName = lastPart.split('.')[0] + '.' + lastPart.split('.').pop();
+          } else {
+            fileName = 'File';
+          }
+        }
+        
+        const fileExtension = fileName.split('.').pop()?.toLowerCase() || '';
+        const isPDF = fileExtension === 'pdf' || mediaUrl.includes('.pdf');
+        const isDoc = ['doc', 'docx'].includes(fileExtension);
+        const isExcel = ['xls', 'xlsx'].includes(fileExtension);
+        const isPowerPoint = ['ppt', 'pptx'].includes(fileExtension);
+        
+        // Choose appropriate icon
+        let fileIcon = '📄'; // Default document icon
+        if (isPDF) fileIcon = '📄';
+        else if (isDoc) fileIcon = '📝';
+        else if (isExcel) fileIcon = '📊';
+        else if (isPowerPoint) fileIcon = '📊';
+        else if (['zip', 'rar', '7z', 'tar', 'gz'].includes(fileExtension)) fileIcon = '🗜️';
+        else if (['txt', 'csv'].includes(fileExtension)) fileIcon = '📝';
+
+        return (
+          <div className="mb-2">
+            <div className="bg-white bg-opacity-20 p-3 rounded-lg border-l-4 border-blue-500 max-w-xs">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">{fileIcon}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">
+                    {fileName}
+                  </p>
+                  <p className="text-xs opacity-75 uppercase">
+                    {fileExtension} file
+                  </p>
+                  {msg.fileSize && (
+                    <p className="text-xs opacity-75">
+                      {(msg.fileSize / (1024 * 1024)).toFixed(2)} MB
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="mt-2 flex gap-2">
+                {isPDF ? (
+                  <>
+                    <button
+                      onClick={() => {
+                        // For PDFs, open in a new window/tab with proper headers
+                        const newWindow = window.open('', '_blank');
+                        if (newWindow) {
+                          newWindow.document.write(`
+                            <html>
+                              <head><title>${fileName}</title></head>
+                              <body style="margin:0;padding:0;">
+                                <iframe src="${mediaUrl}" width="100%" height="100%" style="border:none;"></iframe>
+                              </body>
+                            </html>
+                          `);
+                        } else {
+                          // Fallback: direct link
+                          window.location.href = mediaUrl;
+                        }
+                      }}
+                      className="text-xs bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition-colors"
+                    >
+                      View PDF
+                    </button>
+                    <button
+                      onClick={() => {
+                        // Create a temporary link to download
+                        const link = document.createElement('a');
+                        link.href = mediaUrl;
+                        link.target = '_blank';
+                        link.rel = 'noopener noreferrer';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                      }}
+                      className="text-xs bg-gray-500 text-white px-3 py-1 rounded hover:bg-gray-600 transition-colors"
+                    >
+                      Open in New Tab
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => {
+                        const link = document.createElement('a');
+                        link.href = mediaUrl;
+                        link.target = '_blank';
+                        link.rel = 'noopener noreferrer';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                      }}
+                      className="text-xs bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition-colors"
+                    >
+                      Open
+                    </button>
+                    <button
+                      onClick={() => {
+                        const link = document.createElement('a');
+                        link.href = mediaUrl;
+                        link.target = '_blank';
+                        link.rel = 'noopener noreferrer';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                      }}
+                      className="text-xs bg-gray-500 text-white px-3 py-1 rounded hover:bg-gray-600 transition-colors"
+                    >
+                      Open in New Tab
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+
+      default:
+        return null;
+    }
   };
 
   // Filter chats based on search query and tab
@@ -1208,7 +1598,63 @@ export default function MessagePanel() {
                     </span>
                     <span className="ml-auto text-xs text-gray-400">{formatTime(chat.lastMessageAt)}</span>
                   </div>
-                  <p className="text-sm text-gray-600 truncate">{chat.lastMessage?.message || 'No messages yet'}</p>
+                  <p className="text-sm text-gray-600 truncate">
+                    {(() => {
+                      const msg = chat.lastMessage?.message;
+                      if (!msg) return 'No messages yet';
+                      // Find the first URL in the message
+                      const urlRegex = /https?:\/\/[^\s]+/g;
+                      const urls = msg.match(urlRegex);
+                      if (urls && urls.length > 0) {
+                        const url = urls[0];
+                        // Check if it's a Cloudinary URL
+                        const isCloudinary = url.includes('res.cloudinary.com');
+                        const imageExt = /(\.jpg|\.jpeg|\.png|\.gif|\.webp|\.bmp|\.svg)$/i;
+                        const videoExt = /(\.mp4|\.mov|\.webm|\.avi|\.mkv|\.flv|\.wmv)$/i;
+                        if (isCloudinary) {
+                          if (imageExt.test(url)) return 'Image';
+                          if (videoExt.test(url)) return 'Video';
+                        } else {
+                          // YouTube preview
+                          const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/);
+                          if (ytMatch && ytMatch[1]) {
+                            const videoId = ytMatch[1];
+                            return (
+                              <span className="flex items-center gap-2">
+                                <img
+                                  src={`https://img.youtube.com/vi/${videoId}/default.jpg`}
+                                  alt="YouTube thumbnail"
+                                  className="w-8 h-8 rounded object-cover border"
+                                  style={{ display: 'inline-block' }}
+                                />
+                                <span className="truncate">YouTube Video</span>
+                              </span>
+                            );
+                          }
+                          // Generic link preview (favicon + domain)
+                          try {
+                            const { hostname } = new URL(url);
+                            return (
+                              <span className="flex items-center gap-2">
+                                <img
+                                  src={`https://www.google.com/s2/favicons?domain=${hostname}`}
+                                  alt="Favicon"
+                                  className="w-5 h-5 rounded"
+                                  style={{ display: 'inline-block' }}
+                                />
+                                <span className="truncate">{hostname}</span>
+                              </span>
+                            );
+                          } catch {
+                            return 'Attachment';
+                          }
+                        }
+                      }
+                      // If the message contains a URL, remove it for preview
+                      const textWithoutUrl = msg.replace(urlRegex, '').trim();
+                      return textWithoutUrl || 'No messages yet';
+                    })()}
+                  </p>
                   
                   {/* Request Actions */}
                   {activeTab === 'requests' && (
@@ -1312,7 +1758,45 @@ export default function MessagePanel() {
                           {msg.sender._id === user?._id ? 'You' : (msg.sender.fullName || msg.sender.username)}
                         </p>
                       )}
-                      <p>{msg.message}</p>
+                      
+                      {/* Render media content */}
+                      {renderMediaContent(msg)}
+                      
+                      {/* Render text message or video preview if YouTube link */}
+                      {msg.message && (() => {
+                        const urlRegex = /https?:\/\/[^\s]+/g;
+                        const urls = msg.message.match(urlRegex);
+                        if (urls && urls.length > 0) {
+                          const url = urls[0];
+                          // YouTube video embed
+                          const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/);
+                          if (ytMatch && ytMatch[1]) {
+                            const videoId = ytMatch[1];
+                            return (
+                              <div className="my-2">
+                                <iframe
+                                  width="320"
+                                  height="180"
+                                  src={`https://www.youtube.com/embed/${videoId}`}
+                                  title="YouTube video player"
+                                  frameBorder="0"
+                                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                  allowFullScreen
+                                  className="rounded-lg border"
+                                ></iframe>
+                              </div>
+                            );
+                          }
+                        }
+                        // For media messages, only show the caption text (not the URL)
+                        if (msg.messageType !== 'text') {
+                          const urlRegex = /https?:\/\/[^\s]+/;
+                          const textWithoutUrl = msg.message.replace(urlRegex, '').trim();
+                          return textWithoutUrl && <p>{textWithoutUrl}</p>;
+                        }
+                        // For text messages, show the full message
+                        return <p>{msg.message}</p>;
+                      })()}  
                       <div className={`flex items-center justify-between mt-1 text-xs ${
                         msg.sender._id === user?._id ? "text-yellow-100" : "text-gray-500"
                       }`}>
@@ -1360,25 +1844,78 @@ export default function MessagePanel() {
 
             {/* Chat Input */}
             <div className="p-4 border-t border-gray-200 bg-white relative">
+              {/* File Preview */}
+              {selectedFile && (
+                <div className="mb-3 p-3 bg-gray-50 rounded-lg border">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      {filePreview ? (
+                        <Image
+                          src={filePreview}
+                          alt="File preview"
+                          width={40}
+                          height={40}
+                          className="rounded object-cover"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 bg-gray-200 rounded flex items-center justify-center">
+                          <Paperclip className="w-5 h-5 text-gray-500" />
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-sm font-medium text-gray-900 truncate max-w-[200px]">
+                          {selectedFile.name}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={handleRemoveFile}
+                      className="p-1 text-gray-400 hover:text-red-500 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <form onSubmit={handleSendMessage} className="flex items-center space-x-2">
-                {/* <button type="button" className="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors">
+                {/* File Upload Button */}
+                <button 
+                  type="button" 
+                  onClick={handleFileUpload}
+                  disabled={uploadingFile}
+                  className="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors disabled:opacity-50"
+                >
                   <Paperclip className="w-5 h-5" />
-                </button> */}
+                </button>
+
+                {/* Hidden File Input */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                  accept="image/*,video/*"
+                />
 
                 <div className="relative flex-1">
                   <input 
                     ref={messageInputRef}
                     type="text" 
-                    placeholder="Type a message..." 
+                    placeholder={selectedFile ? "Add a caption (optional)..." : "Type a message..."} 
                     value={newMessage}
                     onChange={handleInputChange}
-                    disabled={sendingMessage}
+                    disabled={sendingMessage || uploadingFile}
                     className="w-full py-3 px-4 pr-10 border border-gray-300 rounded-full focus:ring-2 focus:ring-yellow-500 disabled:opacity-50 text-black placeholder-gray-400" 
                   />
                   <button 
                     type="button" 
                     onClick={handleEmojiClick}
-                    className={`absolute right-3 top-1/2 -translate-y-1/2 transition-colors ${
+                    disabled={uploadingFile}
+                    className={`absolute right-3 top-1/2 -translate-y-1/2 transition-colors disabled:opacity-50 ${
                       showEmojiPicker 
                         ? 'text-yellow-500 hover:text-yellow-600' 
                         : 'text-gray-400 hover:text-gray-600'
@@ -1390,10 +1927,14 @@ export default function MessagePanel() {
 
                 <button 
                   type="submit" 
-                  disabled={!newMessage.trim() || sendingMessage}
+                  disabled={(!newMessage.trim() && !selectedFile) || sendingMessage || uploadingFile}
                   className="p-3 bg-[#DBB42C] hover:bg-yellow-500 text-white rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <Send className="w-5 h-5" />
+                  {uploadingFile ? (
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Send className="w-5 h-5" />
+                  )}
                 </button>
               </form>
 

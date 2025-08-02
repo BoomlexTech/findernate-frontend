@@ -134,13 +134,126 @@ export const messageAPI = {
   },
 
   // Send a message
-  sendMessage: async (chatId: string, message: string, messageType = 'text', replyTo?: string): Promise<Message> => {
-    const response = await axiosInstance.post(`/chats/${chatId}/messages`, {
+  sendMessage: async (chatId: string, message: string, messageType = 'text', replyTo?: string, fileName?: string, fileSize?: number, mediaUrl?: string): Promise<Message> => {
+    const payload: any = {
       message,
       messageType,
       replyTo
-    });
+    };
+    
+    // Add file metadata if provided
+    if (fileName) payload.fileName = fileName;
+    if (fileSize) payload.fileSize = fileSize;
+    if (mediaUrl) payload.mediaUrl = mediaUrl;
+    
+    const response = await axiosInstance.post(`/chats/${chatId}/messages`, payload);
     return response.data.data;
+  },
+
+  // Upload file using upload-single-media API
+  uploadFileToMedia: async (file: File): Promise<{
+    secure_url: string;
+    resource_type: string;
+    format: string;
+    bytes: number;
+    original_name: string;
+    mimetype: string;
+  }> => {
+    const formData = new FormData();
+    formData.append('media', file);
+    
+    const response = await axiosInstance.post('/media/upload-single', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    
+    if (response.data.success && response.data.data) {
+      console.log('Media upload successful:', response.data.data.secure_url);
+      return {
+        secure_url: response.data.data.secure_url,
+        resource_type: response.data.data.resource_type,
+        format: response.data.data.format,
+        bytes: response.data.data.bytes,
+        original_name: response.data.data.original_name,
+        mimetype: response.data.data.mimetype,
+      };
+    }
+    
+    throw new Error('Failed to upload media: ' + (response.data.message || 'Unknown error'));
+  },
+
+  // Send a message with media file (upload using upload-single-media API first, then send URL as JSON message)
+  sendMessageWithFile: async (chatId: string, file: File, message?: string, messageType?: string, replyTo?: string): Promise<Message> => {
+    console.log('Uploading file using upload-single-media API:', {
+      fileName: file.name,
+      fileType: file.type,
+      fileSize: file.size,
+    });
+
+    try {
+      // Step 1: Upload file using upload-single-media API and get response
+      const uploadResponse = await messageAPI.uploadFileToMedia(file);
+      console.log('File uploaded successfully:', uploadResponse.secure_url);
+      
+      // Step 2: Determine message type based on file type and extension
+      let finalMessageType = messageType;
+      if (!finalMessageType) {
+        // Check file extension from original_name as additional safeguard
+        const fileExtension = uploadResponse.original_name.split('.').pop()?.toLowerCase();
+        
+        // Always use the original file.type, not Cloudinary's resource_type
+        // because Cloudinary sometimes categorizes PDFs as 'image' resource_type
+        if (file.type.startsWith('image/') && !['pdf'].includes(fileExtension || '')) {
+          finalMessageType = 'image';
+        } else if (file.type.startsWith('video/')) {
+          finalMessageType = 'video';
+        } else if (file.type.startsWith('audio/')) {
+          finalMessageType = 'audio';
+        } else if (
+          file.type === 'application/pdf' || 
+          fileExtension === 'pdf' ||
+          file.type.includes('document') ||
+          file.type.includes('word') ||
+          file.type.includes('excel') ||
+          file.type.includes('powerpoint') ||
+          file.type === 'text/plain' ||
+          file.type === 'text/csv' ||
+          ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'csv'].includes(fileExtension || '')
+        ) {
+          finalMessageType = 'file';
+        } else {
+          // Everything else is treated as a file (PDFs, documents, etc.)
+          finalMessageType = 'file';
+        }
+        
+        console.log('File type detection:', {
+          originalFileType: file.type,
+          fileExtension,
+          cloudinaryResourceType: uploadResponse.resource_type,
+          finalMessageType
+        });
+      }
+      
+      // Step 3: Send the media URL as a regular JSON message using existing sendMessage function
+      const finalMessage = message ? `${message}\n${uploadResponse.secure_url}` : uploadResponse.secure_url;
+      
+      // Use the existing sendMessage function with JSON format (not form data)
+      // Pass file metadata and mediaUrl for proper rendering
+      return await messageAPI.sendMessage(
+        chatId, 
+        finalMessage, 
+        finalMessageType, 
+        replyTo, 
+        uploadResponse.original_name, 
+        uploadResponse.bytes,
+        uploadResponse.secure_url // Pass the secure_url as mediaUrl
+      );
+      
+    } catch (error) {
+      console.error('Failed to upload file or send message:', error);
+      throw error;
+    }
   },
 
   // Mark messages as read
