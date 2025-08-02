@@ -3,7 +3,9 @@ import Image from 'next/image';
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getNotifications } from '@/api/notification';
-import { Bell, User, Heart, MessageCircle, FileText, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
+import { Bell, User, Heart, MessageCircle, FileText, Loader2, AlertCircle, RefreshCw, LogIn } from 'lucide-react';
+import { useAuthGuard } from '@/hooks/useAuthGuard';
+import { AuthDialog } from '@/components/AuthDialog';
 
 interface Notification {
   _id: string;
@@ -79,6 +81,7 @@ const Notifications = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const { requireAuth, showAuthDialog, closeAuthDialog, isAuthenticated } = useAuthGuard();
 
   const handleNotificationClick = (notification: Notification) => {
     if (notification.type === 'follow' && notification.senderId) {
@@ -97,6 +100,13 @@ const Notifications = () => {
       // Fallback: if no postId but there's a sender, navigate to their profile
       router.push(`/userprofile/${notification.senderId.username}`);
     }
+  };
+
+  const handleLoginClick = () => {
+    requireAuth(() => {
+      // This will trigger a re-render once user is authenticated
+      console.log('User authenticated, notifications will load');
+    });
   };
 
   const getNotificationIcon = (type: string) => {
@@ -149,6 +159,12 @@ const Notifications = () => {
 
   useEffect(() => {
     const fetchNotifications = async () => {
+      // Only fetch if user is authenticated
+      if (!isAuthenticated) {
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
         setError(null);
@@ -174,144 +190,223 @@ const Notifications = () => {
     };
 
     fetchNotifications();
-  }, []);
+  }, [isAuthenticated]);
 
-  return (
-    <div className="w-[50rem] min-h-screen mx-auto pt-2 bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-      {/* Header */}
-      <div className="bg-button-gradient px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
-              <Bell className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-white">Notifications</h1>
-              <p className="text-white/80 text-sm">Stay updated with your activity</p>
+  // Show login prompt for unauthenticated users
+  if (!isAuthenticated) {
+    return (
+      <>
+        <div className="w-[50rem] min-h-screen mx-auto pt-2 bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+          {/* Header */}
+          <div className="bg-button-gradient px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                  <Bell className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-xl font-bold text-white">Notifications</h1>
+                  <p className="text-white/80 text-sm">Sign in to see your activity</p>
+                </div>
+              </div>
             </div>
           </div>
-          {!loading && notifications.length > 0 && (
-            <div className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full">
-              <span className="text-white text-sm font-medium">{notifications.length}</span>
+
+          {/* Login prompt content */}
+          <div className="flex items-center justify-center min-h-[calc(100vh-120px)] p-6">
+            <div className="text-center bg-gray-50 rounded-2xl shadow-sm p-12 max-w-md w-full">
+              <div className="mb-6">
+                <div className="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Bell className="w-10 h-10 text-yellow-600" />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">Stay in the Loop</h2>
+                <p className="text-gray-600 leading-relaxed">
+                  Sign in to see who liked your posts, commented on your content, and started following you.
+                </p>
+              </div>
+              
+              <div className="space-y-4 mb-6">
+                <div className="flex items-center gap-3 text-sm text-gray-600">
+                  <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
+                    <Heart className="w-4 h-4 text-red-500 fill-current" />
+                  </div>
+                  <span>See who liked your posts</span>
+                </div>
+                <div className="flex items-center gap-3 text-sm text-gray-600">
+                  <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                    <MessageCircle className="w-4 h-4 text-green-600" />
+                  </div>
+                  <span>Get notified of new comments</span>
+                </div>
+                <div className="flex items-center gap-3 text-sm text-gray-600">
+                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                    <User className="w-4 h-4 text-blue-600" />
+                  </div>
+                  <span>Know when people follow you</span>
+                </div>
+              </div>
+              
+              <button
+                onClick={handleLoginClick}
+                className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+              >
+                <LogIn className="w-5 h-5" />
+                Sign In to See Notifications
+              </button>
+              
+              <p className="text-sm text-gray-500 mt-4">
+                New to our platform? Sign up to get started!
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <AuthDialog isOpen={showAuthDialog} onClose={closeAuthDialog} />
+      </>
+    );
+  }
+
+  // Show authenticated notifications page
+  return (
+    <>
+      <div className="w-[50rem] min-h-screen mx-auto pt-2 bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+        {/* Header */}
+        <div className="bg-button-gradient px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                <Bell className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-white">Notifications</h1>
+                <p className="text-white/80 text-sm">Stay updated with your activity</p>
+              </div>
+            </div>
+            {!loading && notifications.length > 0 && (
+              <div className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full">
+                <span className="text-white text-sm font-medium">{notifications.length}</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="overflow-y-auto max-h-[calc(100vh-120px)]">
+          {/* Loading State */}
+          {loading && (
+            <div className="flex flex-col items-center justify-center py-16">
+              <Loader2 className="w-8 h-8 text-yellow-500 animate-spin mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Loading notifications</h3>
+              <p className="text-gray-500">Please wait while we fetch your updates...</p>
+            </div>
+          )}
+
+          {/* Error State */}
+          {error && !loading && (
+            <div className="flex flex-col items-center justify-center py-16 px-6">
+              <div className="bg-red-100 p-4 rounded-full mb-4">
+                <AlertCircle className="w-8 h-8 text-red-500" />
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Something went wrong</h3>
+              <p className="text-gray-500 text-center mb-6">{error}</p>
+              <button 
+                onClick={() => window.location.reload()}
+                className="flex items-center gap-2 px-6 py-3 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors font-medium"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Try Again
+              </button>
+            </div>
+          )}
+
+          {/* Empty State */}
+          {!loading && !error && notifications.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-16 px-6">
+              <div className="bg-gray-100 p-6 rounded-full mb-6">
+                <Bell className="w-12 h-12 text-gray-400" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">All caught up!</h3>
+              <p className="text-gray-500 text-center">You have no new notifications right now. Check back later for updates.</p>
+            </div>
+          )}
+
+          {/* Notifications List */}
+          {!loading && !error && notifications.length > 0 && (
+            <div className="divide-y divide-gray-100">
+              {notifications.map((notification, index) => {
+                // Skip notifications with null senderId (extra safety check)
+                if (!notification.senderId) {
+                  return null;
+                }
+
+                return (
+                  <div
+                    key={notification._id || `notification-${index}`}
+                    onClick={() => handleNotificationClick(notification)}
+                    className={`relative flex items-start p-4 hover:bg-gray-50 transition-all duration-200 cursor-pointer group ${
+                      !notification.isRead ? 'bg-blue-50/50' : ''
+                    }`}
+                  >
+                    {/* Profile Image with Status Ring */}
+                    <div className="flex-shrink-0 relative">
+                      <div className={`p-0.5 rounded-full ${!notification.isRead ? 'bg-gradient-to-r from-yellow-400 to-orange-500' : 'bg-gray-200'}`}>
+                        <Image
+                          className="h-12 w-12 rounded-full object-cover bg-white p-0.5"
+                          src={notification.senderId?.profileImageUrl || '/placeholderimg.png'}
+                          alt={`${notification.senderId?.username || 'Unknown user'} profile`}
+                          width={48}
+                          height={48}
+                        />
+                      </div>
+                      
+                      {/* Notification type badge */}
+                      <div className={`absolute -bottom-1 -right-1 p-1.5 rounded-full border-2 border-white ${getNotificationColor(notification.type)}`}>
+                        {getNotificationIcon(notification.type)}
+                      </div>
+                    </div>
+
+                    {/* Content */}
+                    <div className="flex-1 min-w-0 ml-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <p className="text-gray-900 text-sm leading-relaxed">
+                            <span className="font-semibold text-gray-900 hover:text-yellow-600 transition-colors">
+                              {notification.senderId?.username || 'Unknown user'}
+                            </span>
+                            <span className="text-gray-600">{notification.message}</span>
+                          </p>
+                          <div className="flex items-center mt-1 space-x-2">
+                            <span className="text-xs text-gray-500">
+                              {formatTimeAgo(notification.createdAt)}
+                            </span>
+                            {!notification.isRead && (
+                              <div className="flex items-center space-x-1">
+                                <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
+                                <span className="text-xs text-yellow-600 font-medium">New</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Hover arrow */}
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 ml-2">
+                      <div className="w-6 h-6 flex items-center justify-center">
+                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
       </div>
-
-      <div className="overflow-y-auto max-h-[calc(100vh-120px)]">
-        {/* Loading State */}
-        {loading && (
-          <div className="flex flex-col items-center justify-center py-16">
-            <Loader2 className="w-8 h-8 text-yellow-500 animate-spin mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Loading notifications</h3>
-            <p className="text-gray-500">Please wait while we fetch your updates...</p>
-          </div>
-        )}
-
-        {/* Error State */}
-        {error && !loading && (
-          <div className="flex flex-col items-center justify-center py-16 px-6">
-            <div className="bg-red-100 p-4 rounded-full mb-4">
-              <AlertCircle className="w-8 h-8 text-red-500" />
-            </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Something went wrong</h3>
-            <p className="text-gray-500 text-center mb-6">{error}</p>
-            <button 
-              onClick={() => window.location.reload()}
-              className="flex items-center gap-2 px-6 py-3 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors font-medium"
-            >
-              <RefreshCw className="w-4 h-4" />
-              Try Again
-            </button>
-          </div>
-        )}
-
-        {/* Empty State */}
-        {!loading && !error && notifications.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-16 px-6">
-            <div className="bg-gray-100 p-6 rounded-full mb-6">
-              <Bell className="w-12 h-12 text-gray-400" />
-            </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">All caught up!</h3>
-            <p className="text-gray-500 text-center">You have no new notifications right now. Check back later for updates.</p>
-          </div>
-        )}
-
-        {/* Notifications List */}
-        {!loading && !error && notifications.length > 0 && (
-          <div className="divide-y divide-gray-100">
-            {notifications.map((notification, index) => {
-              // Skip notifications with null senderId (extra safety check)
-              if (!notification.senderId) {
-                return null;
-              }
-
-              return (
-                <div
-                  key={notification._id || `notification-${index}`}
-                  onClick={() => handleNotificationClick(notification)}
-                  className={`relative flex items-start p-4 hover:bg-gray-50 transition-all duration-200 cursor-pointer group ${
-                    !notification.isRead ? 'bg-blue-50/50' : ''
-                  }`}
-                >
-                  {/* Profile Image with Status Ring */}
-                  <div className="flex-shrink-0 relative">
-                    <div className={`p-0.5 rounded-full ${!notification.isRead ? 'bg-gradient-to-r from-yellow-400 to-orange-500' : 'bg-gray-200'}`}>
-                      <Image
-                        className="h-12 w-12 rounded-full object-cover bg-white p-0.5"
-                        src={notification.senderId?.profileImageUrl || '/placeholderimg.png'}
-                        alt={`${notification.senderId?.username || 'Unknown user'} profile`}
-                        width={48}
-                        height={48}
-                      />
-                    </div>
-                    
-                    {/* Notification type badge */}
-                    <div className={`absolute -bottom-1 -right-1 p-1.5 rounded-full border-2 border-white ${getNotificationColor(notification.type)}`}>
-                      {getNotificationIcon(notification.type)}
-                    </div>
-                  </div>
-
-                  {/* Content */}
-                  <div className="flex-1 min-w-0 ml-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <p className="text-gray-900 text-sm leading-relaxed">
-                          <span className="font-semibold text-gray-900 hover:text-yellow-600 transition-colors">
-                            {notification.senderId?.username || 'Unknown user'}
-                          </span>
-                          <span className="text-gray-600">{notification.message}</span>
-                        </p>
-                        <div className="flex items-center mt-1 space-x-2">
-                          <span className="text-xs text-gray-500">
-                            {formatTimeAgo(notification.createdAt)}
-                          </span>
-                          {!notification.isRead && (
-                            <div className="flex items-center space-x-1">
-                              <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
-                              <span className="text-xs text-yellow-600 font-medium">New</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Hover arrow */}
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 ml-2">
-                    <div className="w-6 h-6 flex items-center justify-center">
-                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    </div>
+      
+      <AuthDialog isOpen={showAuthDialog} onClose={closeAuthDialog} />
+    </>
   );
 };
 

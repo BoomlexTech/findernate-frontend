@@ -162,7 +162,7 @@ const PostPage = () => {
   if (error || !post) {
     return (
       <div className="bg-gray-50 min-h-screen flex items-center justify-center">
-        <div className="text-center text-red-500">
+        <div className="text-center text-yellow-500">
           <p className="text-lg font-medium">{error || 'Post not found'}</p>
           <button 
             onClick={() => window.history.back()}

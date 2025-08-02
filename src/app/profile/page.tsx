@@ -8,7 +8,6 @@ import ProfilePostsSection from '@/components/ProfilePostsSection';
 import UserProfile from '@/components/UserProfile'
 import { useUserStore } from '@/store/useUserStore';
 import { useAuthGuard } from '@/hooks/useAuthGuard';
-import { AuthDialog } from '@/components/AuthDialog';
 import { FeedPost, UserProfile as UserProfileType } from '@/types';
 import React, { useEffect, useState } from 'react'
 import { LogIn, User } from 'lucide-react';
@@ -19,7 +18,7 @@ const Page = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user } = useUserStore();
-  const { requireAuth, showAuthDialog, closeAuthDialog, isAuthenticated } = useAuthGuard();
+  const { isAuthenticated } = useAuthGuard();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -71,10 +70,8 @@ const Page = () => {
   };
 
   const handleLoginClick = () => {
-    requireAuth(() => {
-      // This will trigger a re-render once user is authenticated
-      console.log('User authenticated, profile will load');
-    });
+    // Direct redirect to signin page instead of showing popup
+    window.location.href = '/signin';
   };
 
   // Show loading spinner while checking authentication
@@ -122,13 +119,11 @@ const Page = () => {
               </button>
               
               <p className="text-sm text-gray-500 mt-4">
-                Don&apos;t have an account? Sign up to get started!
+                Don&apos;t have an account? <a href="/signup" className="text-yellow-600 hover:text-yellow-700 font-medium">Sign up to get started!</a>
               </p>
             </div>
           </div>
         </div>
-        
-        <AuthDialog isOpen={showAuthDialog} onClose={closeAuthDialog} />
       </>
     );
   }
@@ -205,8 +200,6 @@ const Page = () => {
           </div>
         </div>
       </div>
-      
-      <AuthDialog isOpen={showAuthDialog} onClose={closeAuthDialog} />
     </>
   )
 }

@@ -25,7 +25,7 @@ import UserCard from "@/components/UserCard";
 import TrendingTopics from "@/components/TrendingTopics";
 import TrendingBusiness from "@/components/TrendingBusiness";
 import PostCard from "@/components/PostCard";
-import { Button } from "@/components/ui/button";
+// import { Button } from "@/components/ui/button";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
@@ -358,14 +358,14 @@ export default function SearchPage() {
                 placeholder="Search businesses, products, services..."
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
               />
-              <Button
+              {/* <Button
                 variant="custom"
                 onClick={activeTab === "Users" ? handleUserSearch : handleSearch}
                 disabled={!searchQuery.trim() || loading}
                 className="absolute right-10 top-1/2 -translate-y-1/2 bg-button-gradient cursor-pointer disabled:bg-gray-300 text-white px-6 py-4 rounded-xl transition-colors flex items-center"
               >
                 {loading ? "Searching..." : "Search"}
-              </Button>
+              </Button> */}
             </div>
 
             {/* Clear Filters Button */}

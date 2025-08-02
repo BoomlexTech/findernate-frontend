@@ -12,7 +12,7 @@ import {
   Globe,
   Users,
   Shield,
-  ArrowLeft,
+  // ArrowLeft,
   X,
   Building2
 } from 'lucide-react';
@@ -23,9 +23,10 @@ import { useState } from 'react';
 interface ProductServiceDetailsProps {
   post: FeedPost;
   onClose: () => void;
+  isSidebar?: boolean;
 }
 
-const ProductServiceDetails = ({ post, onClose }: ProductServiceDetailsProps) => {
+const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServiceDetailsProps) => {
   const [isBooking, setIsBooking] = useState(false);
 
   // Mock data - replace with actual post data when available
@@ -92,6 +93,167 @@ const ProductServiceDetails = ({ post, onClose }: ProductServiceDetailsProps) =>
       }
     }, 2000);
   };
+
+  if (isSidebar) {
+    return (
+      <div className="bg-white h-full overflow-y-auto hide-scrollbar border-gray-200">
+        {/* Header */}
+        <div className="sticky top-0 bg-gradient-to-r from-yellow-50 to-amber-50 border-b border-gray-200 p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                {isProduct ? (
+                  <Package className="w-6 h-6 text-yellow-600" />
+                ) : isBusiness ? (
+                  <Building2 className="w-6 h-6 text-yellow-600" />
+                ) : (
+                  <User className="w-6 h-6 text-yellow-600" />
+                )}
+                <h2 className="text-xl font-bold text-gray-900">{data.name}</h2>
+              </div>
+            </div>
+            <Badge 
+              className="bg-yellow-100 text-yellow-800 border-yellow-200 px-3 py-1"
+              variant="outline"
+            >
+              {isProduct ? 'Product' : isBusiness ? 'Business' : 'Service'}
+            </Badge>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="p-4 space-y-4">
+          {/* Price and Duration */}
+          <div className="grid grid-cols-1 gap-3">
+            <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <IndianRupee className="w-4 h-4 text-yellow-600" />
+                <span className="text-xs font-semibold text-yellow-800 uppercase">Price</span>
+              </div>
+              <p className="text-lg font-bold text-gray-900">{data.price}</p>
+            </div>
+            
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <Clock className="w-4 h-4 text-amber-600" />
+                <span className="text-xs font-semibold text-amber-800 uppercase">Duration</span>
+              </div>
+              <p className="text-lg font-bold text-gray-900">{data.duration}</p>
+            </div>
+          </div>
+
+          {/* Category and Type */}
+          <div className="grid grid-cols-1 gap-3">
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <Star className="w-4 h-4 text-yellow-600" />
+                <span className="text-xs font-semibold text-gray-700 uppercase">Category</span>
+              </div>
+              <p className="text-sm font-medium text-gray-900">{data.category}</p>
+            </div>
+            
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-3">
+              <div className="flex items-center gap-2 mb-2">
+                {isProduct ? (
+                  <Package className="w-4 h-4 text-yellow-600" />
+                ) : data.type === 'In-person' ? (
+                  <Users className="w-4 h-4 text-orange-600" />
+                ) : (
+                  <Globe className="w-4 h-4 text-blue-600" />
+                )}
+                <span className="text-xs font-semibold text-gray-700 uppercase">Type</span>
+              </div>
+              <p className="text-sm font-medium text-gray-900">{data.type}</p>
+            </div>
+          </div>
+
+          {/* Location */}
+          <div className="bg-orange-50 border border-orange-200 rounded-xl p-3">
+            <div className="flex items-center gap-2 mb-2">
+              <MapPin className="w-4 h-4 text-orange-600" />
+              <span className="text-xs font-semibold text-orange-800 uppercase">Location</span>
+            </div>
+            <p className="text-sm font-medium text-gray-900">{data.location}</p>
+          </div>
+
+          {/* Timing and Availability */}
+          <div className="grid grid-cols-1 gap-3">
+            <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <Calendar className="w-4 h-4 text-indigo-600" />
+                <span className="text-xs font-semibold text-indigo-800 uppercase">Timing</span>
+              </div>
+              <p className="text-sm font-medium text-gray-900">{data.timing}</p>
+            </div>
+            
+            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <CheckCircle className="w-4 h-4 text-emerald-600" />
+                <span className="text-xs font-semibold text-emerald-800 uppercase">Availability</span>
+              </div>
+              <p className="text-sm font-medium text-gray-900">{data.availability}</p>
+            </div>
+          </div>
+
+          {/* Requirements */}
+          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3">
+            <div className="flex items-center gap-2 mb-2">
+              <Shield className="w-4 h-4 text-yellow-600" />
+              <span className="text-xs font-semibold text-yellow-800 uppercase">Requirements</span>
+            </div>
+            <ul className="space-y-1">
+              {data.requirements.map((req: string, index: number) => (
+                <li key={index} className="flex items-center gap-2">
+                  <CheckCircle className="w-3 h-3 text-yellow-600" />
+                  <span className="text-xs text-gray-700">{req}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* What You Get */}
+          <div className="bg-teal-50 border border-teal-200 rounded-xl p-3">
+            <div className="flex items-center gap-2 mb-2">
+              <Star className="w-4 h-4 text-teal-600" />
+              <span className="text-xs font-semibold text-teal-800 uppercase">What You Get</span>
+            </div>
+            <ul className="space-y-1">
+              {data.whatYouGet.map((item: string, index: number) => (
+                <li key={index} className="flex items-center gap-2">
+                  <CheckCircle className="w-3 h-3 text-teal-600" />
+                  <span className="text-xs text-gray-700">{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Book Button */}
+          <div className="pt-2">
+            <button
+              onClick={handleBooking}
+              disabled={isBooking}
+              className={`w-full py-3 px-4 rounded-xl font-bold text-white text-sm transition-all duration-200 shadow-lg hover:shadow-xl ${
+                isProduct
+                  ? 'bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800'
+                  : isBusiness
+                  ? 'bg-gradient-to-r from-violet-600 to-purple-700 hover:from-violet-700 hover:to-purple-800'
+                  : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800'
+              } ${isBooking ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.02]'}`}
+            >
+              {isBooking ? (
+                <div className="flex items-center justify-center gap-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                  {isProduct ? 'Adding...' : isBusiness ? 'Getting...' : 'Booking...'}
+                </div>
+              ) : (
+                isProduct ? 'Add to Cart' : isBusiness ? 'Get Contact' : 'Book Now'
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div 
