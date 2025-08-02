@@ -2,10 +2,11 @@
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { MessageSquare, Bell, Phone, Video, MoreHorizontal, Search, Send, Paperclip, Smile, Trash2, MoreVertical, Check, CheckCheck, Users, MessageCircle, Mail } from "lucide-react";
+import EmojiPicker, { EmojiClickData, EmojiStyle } from 'emoji-picker-react';
 import { useUserStore } from "@/store/useUserStore";
 import { messageAPI, Chat, Message } from "@/api/message";
 import socketManager from "@/utils/socket";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { getFollowing } from "@/api/user";
 import { AxiosError } from "axios";
 import { followEvents } from "@/utils/followEvents";
@@ -37,13 +38,29 @@ export default function MessagePanel() {
   const [selectedGroupMembers, setSelectedGroupMembers] = useState<string[]>([]);
   const [showGroupDetails, setShowGroupDetails] = useState(false);
   const [allChatsCache, setAllChatsCache] = useState<Chat[]>([]); // Keep track of all chats
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const user = useUserStore((state) => state.user);
+  const router = useRouter();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messageInputRef = useRef<HTMLInputElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const emojiPickerRef = useRef<HTMLDivElement>(null);
   const searchParams = useSearchParams();
 
   const selected = chats.find((chat) => chat._id === selectedChat);
+
+  // Handle profile navigation for direct chats
+  const handleProfileClick = (chat: Chat) => {
+    if (chat.chatType === 'direct') {
+      // Find the other participant (not the current user)
+      const otherParticipant = chat.participants.find(p => p && p._id && p._id !== user?._id);
+      if (otherParticipant && otherParticipant.username) {
+        router.push(`/userprofile/${otherParticipant.username}`);
+      }
+    } else if (chat.chatType === 'group') {
+      setShowGroupDetails(true);
+    }
+  };
 
   // Helper function to determine if a message request is incoming (should be shown) or outgoing (should be hidden)
   const isIncomingRequest = (chat: Chat, currentUserId: string): boolean => {
@@ -73,11 +90,7 @@ export default function MessagePanel() {
     
     // 4. Check if the last message was sent by someone else (indicating incoming request)
     if (chat.lastMessage?.sender) {
-      const lastMessageSender = typeof chat.lastMessage.sender === 'string' 
-        ? chat.lastMessage.sender 
-        : chat.lastMessage.sender._id;
-      
-      if (lastMessageSender === currentUserId) {
+      if (chat.lastMessage.sender === currentUserId) {
         console.log('Filtering out outgoing request (last message from current user):', chat._id);
         return false;
       }
@@ -727,20 +740,14 @@ export default function MessagePanel() {
     }
   };
 
-  // Emoji handler for native picker
+  // Emoji picker handlers
   const handleEmojiClick = () => {
-    // Focus the input to trigger native emoji picker on mobile
+    setShowEmojiPicker(!showEmojiPicker);
+  };
+
+  const onEmojiClick = (emojiData: EmojiClickData) => {
+    setNewMessage(prev => prev + emojiData.emoji);
     messageInputRef.current?.focus();
-    
-    // For desktop, we can try to trigger the emoji picker
-    if (navigator.userAgent.includes('Windows')) {
-      // Windows: Win + . or Win + ;
-      // Can't programmatically trigger but focus input
-      messageInputRef.current?.focus();
-    } else if (navigator.userAgent.includes('Mac')) {
-      // Mac: Cmd + Control + Space (can't programmatically trigger)
-      messageInputRef.current?.focus();
-    }
   };
 
   // Format time helper
@@ -906,9 +913,7 @@ export default function MessagePanel() {
       if (!otherParticipant) {
         // Try to get participant from lastMessage sender as fallback
         if (request.lastMessage?.sender && request.lastMessage.sender !== user._id) {
-          const senderID = typeof request.lastMessage.sender === 'string' 
-            ? request.lastMessage.sender 
-            : request.lastMessage.sender._id;
+          const senderID = request.lastMessage.sender;
           
           // Accept the request on the server
           await messageAPI.acceptMessageRequest(chatId);
@@ -1035,6 +1040,23 @@ export default function MessagePanel() {
     
     return unsubscribe;
   }, [userFollowingList, chats, messageRequests, requestDecisionCache]);
+
+  // Close emoji picker when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target as Node)) {
+        setShowEmojiPicker(false);
+      }
+    };
+
+    if (showEmojiPicker) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showEmojiPicker]);
 
   return (
     <div className="flex w-full h-screen">
@@ -1237,8 +1259,8 @@ export default function MessagePanel() {
             <div className="p-6 border-b border-gray-200 bg-white">
               <div className="flex items-center justify-between">
                 <div 
-                  className={`flex items-center space-x-4 ${selected.chatType === 'group' ? 'cursor-pointer hover:bg-gray-50 -m-2 p-2 rounded-lg transition-colors' : ''}`}
-                  onClick={() => selected.chatType === 'group' && setShowGroupDetails(true)}
+                  className="flex items-center space-x-4 cursor-pointer hover:bg-gray-50 -m-2 p-2 rounded-lg transition-colors"
+                  onClick={() => handleProfileClick(selected)}
                 >
                   <Image width={12} height={12} src={getChatAvatar(selected)} alt={getChatDisplayName(selected)} className="w-12 h-12 rounded-full object-cover" />
                   <div>
@@ -1253,14 +1275,14 @@ export default function MessagePanel() {
                           : `${typingUsers.size} users are typing...`
                       ) : (
                         selected.chatType === 'group' 
-                          ? `${selected.participants.length} members • Click to view`
-                          : 'Online'
+                          ? `${selected.participants.length} members • Click to view details`
+                          : 'Click to view profile'
                       )}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center space-x-4 text-gray-500">
-                  <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                  {/* <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
                     <Phone className="w-5 h-5" />
                   </button>
                   <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
@@ -1268,7 +1290,7 @@ export default function MessagePanel() {
                   </button>
                   <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
                     <MoreHorizontal className="w-5 h-5" />
-                  </button>
+                  </button> */}
                 </div>
               </div>
             </div>
@@ -1343,11 +1365,11 @@ export default function MessagePanel() {
             </div>
 
             {/* Chat Input */}
-            <div className="p-4 border-t border-gray-200 bg-white">
+            <div className="p-4 border-t border-gray-200 bg-white relative">
               <form onSubmit={handleSendMessage} className="flex items-center space-x-2">
-                <button type="button" className="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors">
+                {/* <button type="button" className="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors">
                   <Paperclip className="w-5 h-5" />
-                </button>
+                </button> */}
 
                 <div className="relative flex-1">
                   <input 
@@ -1362,7 +1384,11 @@ export default function MessagePanel() {
                   <button 
                     type="button" 
                     onClick={handleEmojiClick}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                    className={`absolute right-3 top-1/2 -translate-y-1/2 transition-colors ${
+                      showEmojiPicker 
+                        ? 'text-yellow-500 hover:text-yellow-600' 
+                        : 'text-gray-400 hover:text-gray-600'
+                    }`}
                   >
                     <Smile className="w-5 h-5" />
                   </button>
@@ -1376,6 +1402,25 @@ export default function MessagePanel() {
                   <Send className="w-5 h-5" />
                 </button>
               </form>
+
+              {/* Emoji Picker */}
+              {showEmojiPicker && (
+                <div ref={emojiPickerRef} className="absolute bottom-full right-4 mb-2 z-50">
+                  <div className="bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+                    <EmojiPicker
+                      onEmojiClick={onEmojiClick}
+                      width={350}
+                      height={400}
+                      searchDisabled={false}
+                      skinTonesDisabled={false}
+                      previewConfig={{
+                        showPreview: true
+                      }}
+                      emojiStyle={EmojiStyle.GOOGLE}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         ) : (

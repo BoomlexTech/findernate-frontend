@@ -87,12 +87,19 @@ const Notifications = () => {
     if (notification.type === 'follow' && notification.senderId) {
       // Navigate to the user's profile
       router.push(`/userprofile/${notification.senderId.username}`);
+    } else if ((notification.type === 'like' || notification.type === 'comment') && notification.postId) {
+      // Navigate to the specific post for likes and comments
+      router.push(`/post/${notification.postId}`);
+    } else if (notification.type === 'post' && notification.postId) {
+      // Navigate to the post for general post notifications
+      router.push(`/post/${notification.postId}`);
+    } else if (notification.postId) {
+      // Fallback: if there's a postId but type doesn't match above, still navigate to post
+      router.push(`/post/${notification.postId}`);
+    } else if (notification.senderId) {
+      // Fallback: if no postId but there's a sender, navigate to their profile
+      router.push(`/userprofile/${notification.senderId.username}`);
     }
-    // You can add more conditions for other notification types here
-    // For example:
-    // else if (notification.type === 'like' && notification.postId) {
-    //   router.push(`/post/${notification.postId}`);
-    // }
   };
 
   const handleLoginClick = () => {

@@ -62,8 +62,9 @@ export default function PostCard({ post }: PostCardProps) {
   }, [post._id]);
 
   // Load like status and comment count from localStorage on component mount (for persistence across refreshes)
+  // Skip this on individual post pages since the page level handles localStorage
   useEffect(() => {
-    if (!hasRefreshed && isClient) {
+    if (!hasRefreshed && isClient && !pathname.includes('/post/')) {
       const savedLikeStatus = localStorage.getItem(`post_like_${post._id}`);
       const savedLikesCount = localStorage.getItem(`post_likes_count_${post._id}`);
       const savedCommentsCount = localStorage.getItem(`post_comments_count_${post._id}`);
@@ -88,7 +89,7 @@ export default function PostCard({ post }: PostCardProps) {
       
       setHasRefreshed(true);
     }
-  }, [post._id, post.engagement.likes, post.engagement.comments, hasRefreshed, isClient]);
+  }, [post._id, hasRefreshed, isClient]);
 
   // Listen for comment count changes from other tabs/components
   useEffect(() => {
@@ -173,7 +174,15 @@ export default function PostCard({ post }: PostCardProps) {
             console.log(`Successfully liked post ${post._id}`);
           } catch (likeError) {
             // Handle "already liked" error
-            if ((likeError as AxiosError)?.response?.status === 409) {
+            const axiosError = likeError as AxiosError;
+            console.log('Like error details:', {
+              error: likeError,
+              responseData: axiosError?.response?.data,
+              responseStatus: axiosError?.response?.status,
+              code: axiosError?.code
+            });
+            
+            if (axiosError?.response?.status === 409) {
               console.log(`Post ${post._id} already liked - treating as successful like`);
               // Don't revert the optimistic update since the post is effectively "liked"
               return;
@@ -190,6 +199,15 @@ export default function PostCard({ post }: PostCardProps) {
             // Handle specific "Like not found" error or timeout
             const axiosError = unlikeError as AxiosError;
             const errorMessage = (unlikeError as Error)?.message;
+            
+            console.log('Unlike error details:', {
+              error: unlikeError,
+              axiosError: axiosError,
+              errorMessage: errorMessage,
+              responseData: axiosError?.response?.data,
+              responseStatus: axiosError?.response?.status,
+              code: axiosError?.code
+            });
             
             if ((axiosError?.response?.data as any)?.message === 'Like not found for this post' || 
                 errorMessage?.includes('timeout') ||
@@ -488,7 +506,11 @@ export default function PostCard({ post }: PostCardProps) {
 
           {/* Hashtags */}
         <div className="px-1 pb-4">
-          <div className="flex flex-wrap gap-2"><p className='text-yellow-600'>{ post.tags? "#" + post?.tags : null}</p></div>
+          <div className="flex flex-wrap gap-2">
+            {post.tags && post.tags.length > 0 && post.tags.map((tag, index) => (
+              <span key={index} className='text-yellow-600'>#{tag}</span>
+            ))}
+          </div>
         </div>
 
             {/* Comment Box - Only show for normal/regular posts and not on single post pages */}
@@ -526,29 +548,29 @@ export default function PostCard({ post }: PostCardProps) {
 
             <div className="px-2 py-1 absolute bottom-0">
               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-6">
+                <div className="flex items-center space-x-4">
                   <button 
                     onClick={handleLikeToggle}
                     disabled={isLoading}
-                    className={`flex items-center space-x-2 transition-colors ${
+                    className={`flex items-center space-x-2 p-2 rounded-lg transition-colors ${
                       isLiked 
                         ? 'text-red-500' 
                         : 'text-gray-600 hover:text-red-500'
-                    } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    } ${isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100'}`}
                   >
                     <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
                     <span className="text-sm font-medium">{likesCount}</span>
                   </button>
                   <button 
                     onClick={handleCommentClick}
-                    className="flex items-center space-x-2 text-gray-600 hover:text-blue-500 transition-colors"
+                    className="flex items-center space-x-2 p-2 rounded-lg text-gray-600 hover:text-blue-500 hover:bg-gray-100 transition-colors"
                   >
                     <MessageCircle className="w-5 h-5" />
                     <span className="text-sm font-medium">{commentsCount || 0}</span>
                   </button>
                   <button 
                     onClick={handleShareClick}
-                    className="flex items-center space-x-2 text-gray-600 hover:text-green-500 transition-colors"
+                    className="flex items-center space-x-2 p-2 rounded-lg text-gray-600 hover:text-green-500 hover:bg-gray-100 transition-colors"
                   >
                     <Share2 className="w-5 h-5" />
                     <span className="text-sm font-medium">{post.engagement.shares || 0}</span>
