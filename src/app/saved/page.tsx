@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react'
 import PostCard from '@/components/PostCard'
-import { FeedPost } from '@/types'
+import { FeedPost, SavedPostsResponse } from '@/types'
+import { getSavedPost } from '@/api/post'
 import { Bookmark, RefreshCw } from 'lucide-react'
 
 const SavedPage = () => {
@@ -10,97 +11,58 @@ const SavedPage = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // TODO: Replace with actual API call to fetch saved posts
   const fetchSavedPosts = async () => {
     try {
       setLoading(true)
       setError(null)
       
-      // Mock data - replace with actual API call
-      const mockSavedPosts: FeedPost[] = [
-        {
-          _id: 'saved_1',
-          userId: {
-            _id: 'user_1',
-            username: 'johndoe',
-            profileImageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face'
-          },
-          username: 'johndoe',
-          profileImageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face',
-          description: 'Beautiful sunset at the beach! Perfect end to a wonderful day.',
-          caption: 'Golden hour vibes ✨',
-          contentType: 'normal',
-          postType: 'photo',
-          createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-          media: [
-            {
-              url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&h=400&fit=crop',
-              type: 'image',
-            }
-          ],
-          isLikedBy: true,
-          likedBy: ['current_user'],
-          engagement: {
-            comments: 12,
-            impressions: 245,
-            likes: 89,
-            reach: 180,
-            saves: 23,
-            shares: 5,
-            views: 234
-          },
-          location: {
-            name: 'Malibu Beach, CA',
-            coordinates: {
-              type: 'Point',
-              coordinates: [-118.6919, 34.0259]
-            }
-          },
-          tags: ['#sunset', '#beach', '#photography', '#nature']
-        },
-        {
-          _id: 'saved_2',
-          userId: {
-            _id: 'user_2',
-            username: 'foodielover',
-            profileImageUrl: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=40&h=40&fit=crop&crop=face'
-          },
-          username: 'foodielover',
-          profileImageUrl: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=40&h=40&fit=crop&crop=face',
-          description: 'Homemade pasta with fresh herbs from my garden. Cooking is my passion!',
-          caption: 'Fresh pasta Sunday 🍝',
-          contentType: 'normal',
-          postType: 'photo',
-          createdAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
-          media: [
-            {
-              url: 'https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=600&h=600&fit=crop',
-              type: 'image',
-            }
-          ],
-          isLikedBy: false,
-          likedBy: [],
-          engagement: {
-            comments: 8,
-            impressions: 156,
-            likes: 45,
-            reach: 120,
-            saves: 15,
-            shares: 3,
-            views: 145
-          },
-          location: {
-            name: 'Home Kitchen',
-            coordinates: {
-              type: 'Point',
-              coordinates: [-74.0060, 40.7128]
-            }
-          },
-          tags: ['#cooking', '#pasta', '#homemade', '#food']
-        }
-      ]
+      const response: SavedPostsResponse = await getSavedPost()
       
-      setSavedPosts(mockSavedPosts)
+      // Extract and map the posts similar to MainContent.tsx
+      const posts: FeedPost[] = response.data.savedPosts
+        .filter(savedPost => savedPost.postId !== null)
+        .map(savedPost => {
+          const post = savedPost.postId as any // Raw post data from API
+          
+          // Calculate actual comment count from comments array (same logic as MainContent)
+          let actualCommentCount = 0;
+          if (post.comments && Array.isArray(post.comments)) {
+            actualCommentCount = post.comments.reduce((total: number, comment: any) => {
+              const repliesCount = comment.replies ? comment.replies.length : 0;
+              return total + 1 + repliesCount;
+            }, 0);
+          }
+          
+          // Map to FeedPost structure that PostCard expects
+          return {
+            _id: post._id,
+            userId: post.userId,
+            username: post.userId?.username || '',
+            profileImageUrl: post.userId?.profileImageUrl || '',
+            description: post.description || '',
+            caption: post.caption || '',
+            contentType: post.contentType,
+            postType: post.postType,
+            createdAt: post.createdAt,
+            media: post.media || [],
+            isLikedBy: post.isLikedBy || false,
+            likedBy: post.likedBy || [],
+            engagement: {
+              comments: actualCommentCount,
+              impressions: post.engagement?.impressions || 0,
+              likes: post.engagement?.likes || 0,
+              reach: post.engagement?.reach || 0,
+              saves: post.engagement?.saves || 0,
+              shares: post.engagement?.shares || 0,
+              views: post.engagement?.views || 0,
+            },
+            location: post.customization?.normal?.location || post.location || null,
+            tags: post.customization?.normal?.tags || post.tags || [],
+            customization: post.customization
+          } as FeedPost
+        })
+      
+      setSavedPosts(posts)
     } catch (err) {
       setError('Failed to load saved posts')
       console.error('Error fetching saved posts:', err)
@@ -132,7 +94,7 @@ const SavedPage = () => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-red-500 mb-4">{error}</p>
+          <p className="text-yellow-500 mb-4">{error}</p>
           <button 
             onClick={handleRefresh}
             className="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 transition-colors"

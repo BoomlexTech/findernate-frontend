@@ -399,3 +399,28 @@ export interface UpdateBusinessRequest {
   website: string;
   tags: string[];
 }
+
+export interface SavedPost {
+  _id: string;
+  userId: string;
+  postId: FeedPost | null;
+  savedAt: string;
+  createdAt: string;
+  updatedAt: string;
+  __v: number;
+}
+
+export interface SavedPostsResponse {
+  statusCode: number;
+  data: {
+    savedPosts: SavedPost[];
+    pagination: {
+      totalPosts: number;
+      currentPage: number;
+      totalPages: number;
+      postsPerPage: number;
+    };
+  };
+  message: string;
+  success: boolean;
+}

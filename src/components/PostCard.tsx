@@ -1,17 +1,17 @@
 'use client';
 
-import { Heart, MessageCircle, Share2, MapPin, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Heart, MessageCircle, Share2, MapPin, ChevronLeft, ChevronRight, MoreVertical, Bookmark, BookmarkCheck, Flag } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { FeedPost } from '@/types';
+import { FeedPost, SavedPostsResponse } from '@/types';
 import formatPostDate from '@/utils/formatDate';
 import { useState, useEffect } from 'react';
 import ServiceCard from './post-window/ServiceCard';
 import { Badge } from './ui/badge';
 import ProductCard from './post-window/ProductCard';
 import BusinessPostCard from './post-window/BusinessCard';
-import { likePost, unlikePost } from '@/api/post';
+import { likePost, unlikePost, savePost, unsavePost, getSavedPost } from '@/api/post';
 import { createComment } from '@/api/comment';
 import { postEvents } from '@/utils/postEvents';
 import { AxiosError } from 'axios';
@@ -38,6 +38,10 @@ export default function PostCard({ post }: PostCardProps) {
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const [comment, setComment] = useState('');
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isPostSaved, setIsPostSaved] = useState(false);
+  const [checkingSaved, setCheckingSaved] = useState(true);
 
   // Sync local state with prop changes (important for page refreshes)
   useEffect(() => {
@@ -379,6 +383,133 @@ export default function PostCard({ post }: PostCardProps) {
     });
   };
 
+  const handleToggleSavePost = async () => {
+    requireAuth(async () => {
+      if (isSaving) return;
+      
+      setIsSaving(true);
+      const previousSavedState = isPostSaved;
+      
+      try {
+        if (isPostSaved) {
+          console.log(`Unsaving post ${post._id}`);
+          await unsavePost(post._id);
+          setIsPostSaved(false);
+          
+          // Update cache
+          updateSavedPostsCache(post._id, false);
+          
+          console.log('Post unsaved successfully');
+          alert('Post removed from saved!');
+        } else {
+          console.log(`Saving post ${post._id}`);
+          await savePost(post._id);
+          setIsPostSaved(true);
+          
+          // Update cache
+          updateSavedPostsCache(post._id, true);
+          
+          console.log('Post saved successfully');
+          alert('Post saved successfully!');
+        }
+        setShowDropdown(false);
+      } catch (error) {
+        console.error('Error toggling save status:', error);
+        setIsPostSaved(previousSavedState); // Revert state on error
+        alert(`Error ${isPostSaved ? 'removing' : 'saving'} post. Please try again.`);
+      } finally {
+        setIsSaving(false);
+      }
+    });
+  };
+
+  // Helper function to update cached saved posts
+  const updateSavedPostsCache = (postId: string, isSaved: boolean) => {
+    try {
+      const cacheKey = 'saved_posts_cache';
+      const cachedData = localStorage.getItem(cacheKey);
+      if (cachedData) {
+        let savedPostIds: string[] = JSON.parse(cachedData);
+        
+        if (isSaved && !savedPostIds.includes(postId)) {
+          savedPostIds.push(postId);
+        } else if (!isSaved) {
+          savedPostIds = savedPostIds.filter(id => id !== postId);
+        }
+        
+        localStorage.setItem(cacheKey, JSON.stringify(savedPostIds));
+      }
+    } catch (error) {
+      console.error('Error updating cache:', error);
+    }
+  };
+
+  const handleReportPost = () => {
+    console.log(`Reporting post ${post._id}`);
+    setShowDropdown(false);
+    alert('Report functionality coming soon!');
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showDropdown && !(event.target as Element).closest('.dropdown-menu')) {
+        setShowDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showDropdown]);
+
+  // Check if post is saved on component mount
+  useEffect(() => {
+    const checkSavedStatus = async () => {
+      try {
+        // Check cache first (cache for 2 minutes)
+        const cacheKey = 'saved_posts_cache';
+        const cacheTimeKey = 'saved_posts_cache_time';
+        const cacheTime = localStorage.getItem(cacheTimeKey);
+        const currentTime = Date.now();
+        const cacheExpiry = 2 * 60 * 1000; // 2 minutes
+
+        let savedPostIds: string[] = [];
+
+        if (cacheTime && (currentTime - parseInt(cacheTime)) < cacheExpiry) {
+          // Use cached data
+          const cachedData = localStorage.getItem(cacheKey);
+          if (cachedData) {
+            savedPostIds = JSON.parse(cachedData);
+          }
+        } else {
+          // Fetch fresh data and cache it
+          const response: SavedPostsResponse = await getSavedPost();
+          savedPostIds = response.data.savedPosts
+            .filter(savedPost => savedPost.postId?._id)
+            .map(savedPost => savedPost.postId!._id);
+          
+          localStorage.setItem(cacheKey, JSON.stringify(savedPostIds));
+          localStorage.setItem(cacheTimeKey, currentTime.toString());
+        }
+
+        // Check if current post ID exists in saved posts
+        const isCurrentPostSaved = savedPostIds.includes(post._id);
+        setIsPostSaved(isCurrentPostSaved);
+      } catch (error) {
+        console.error('Error checking saved status:', error);
+        setIsPostSaved(false);
+      } finally {
+        setCheckingSaved(false);
+      }
+    };
+
+    if (isClient) {
+      checkSavedStatus();
+    }
+  }, [post._id, isClient]);
+
   return (
     <>
       <div 
@@ -467,33 +598,89 @@ export default function PostCard({ post }: PostCardProps) {
 
           {/* Profile + Info */}
           <div className="flex flex-col justify-start flex-1 space-y-1 relative pb-16">
-            <div className="flex items-start gap-3">
-              <Link href={`/userprofile/${post.username}`}>
-                <Image
-                  width={40}
-                  height={40}
-                  src={
-                    profileImageError || !post.profileImageUrl
-                      ? '/placeholderimg.png'
-                      : post.profileImageUrl
-                  }
-                  alt={post.username || 'User Profile Image'}
-                  className="w-10 h-10 rounded-full object-cover"
-                  onError={() => setProfileImageError(true)}
-                />
-              </Link>
-              <div>
-                  <div className='flex gap-2'>
-                <h3 className="font-semibold text-gray-900">
-                  {post.username || 'No Username'}
-                </h3>
-                {post.contentType && <Badge className='bg-button-gradient' variant='outline'>{post.contentType}</Badge>}
-                  </div>
-              {post.location && (
-              <div className="flex items-center gap-1 text-gray-700">
-                <MapPin className="w-3 h-3 text-yellow-500" />
-                <p className="text-xs">{post.location.name}</p>
+            <div className="flex items-start justify-between">
+              <div className="flex items-start gap-3">
+                <Link href={`/userprofile/${post.username}`}>
+                  <Image
+                    width={40}
+                    height={40}
+                    src={
+                      profileImageError || !post.profileImageUrl
+                        ? '/placeholderimg.png'
+                        : post.profileImageUrl
+                    }
+                    alt={post.username || 'User Profile Image'}
+                    className="w-10 h-10 rounded-full object-cover"
+                    onError={() => setProfileImageError(true)}
+                  />
+                </Link>
+                <div>
+                    <div className='flex gap-2'>
+                  <h3 className="font-semibold text-gray-900">
+                    {post.username || 'No Username'}
+                  </h3>
+                  {post.contentType && <Badge className='bg-button-gradient' variant='outline'>{post.contentType}</Badge>}
+                    </div>
+                {post.location && (
+                <div className="flex items-center gap-1 text-gray-700">
+                  <MapPin className="w-3 h-3 text-yellow-500" />
+                  <p className="text-xs">{post.location.name}</p>
+                </div>
+                  )}
+                </div>
               </div>
+
+              {/* Three Dot Menu */}
+              <div className="relative dropdown-menu">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowDropdown(!showDropdown);
+                  }}
+                  className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+                >
+                  <MoreVertical className="w-5 h-5 text-gray-600" />
+                </button>
+
+                {/* Dropdown Menu */}
+                {showDropdown && (
+                  <div className="absolute right-0 top-8 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-50 min-w-[120px]">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleToggleSavePost();
+                      }}
+                      disabled={isSaving || checkingSaved}
+                      className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 disabled:opacity-50"
+                    >
+                      {checkingSaved ? (
+                        <>
+                          <Bookmark className="w-4 h-4" />
+                          Checking...
+                        </>
+                      ) : isPostSaved ? (
+                        <>
+                          <BookmarkCheck className="w-4 h-4 text-yellow-600" />
+                          {isSaving ? 'Removing...' : 'Unsave'}
+                        </>
+                      ) : (
+                        <>
+                          <Bookmark className="w-4 h-4" />
+                          {isSaving ? 'Saving...' : 'Save'}
+                        </>
+                      )}
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleReportPost();
+                      }}
+                      className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                    >
+                      <Flag className="w-4 h-4" />
+                      Report
+                    </button>
+                  </div>
                 )}
               </div>
             </div>

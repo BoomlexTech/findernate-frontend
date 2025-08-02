@@ -177,7 +177,19 @@ export const unlikePost = async (postId: string) => {
   }
 };
 
+export const savePost = async (postId: string) => {
+  const response = await axios.post('/posts/save', { postId })
+  return response.data
+}
+
 export const getSavedPost = async () => {
   const response = await axios.get('posts/saved')
   return response.data
 }
+
+export const unsavePost = async (postId: string) => {
+  const response = await axios.delete(`/posts/save/${postId}`)
+  return response.data
+}
+
+// Note: Use getSavedPost() to get all saved posts and check if postId exists in the list
