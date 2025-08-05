@@ -81,7 +81,7 @@ const Notifications = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const { requireAuth, showAuthDialog, closeAuthDialog, isAuthenticated } = useAuthGuard();
+  const { requireAuth, showAuthDialog, closeAuthDialog, isAuthenticated, isLoading } = useAuthGuard();
 
   const handleNotificationClick = (notification: Notification) => {
     if (notification.type === 'follow' && notification.senderId) {
@@ -191,6 +191,18 @@ const Notifications = () => {
 
     fetchNotifications();
   }, [isAuthenticated]);
+
+  // Show loading state while checking authentication
+  if (isLoading) {
+    return (
+      <div className="w-[50rem] min-h-screen mx-auto pt-2 bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-yellow-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Show login prompt for unauthenticated users
   if (!isAuthenticated) {
