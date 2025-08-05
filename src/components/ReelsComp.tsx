@@ -12,9 +12,10 @@ interface Reel {
 interface ReelsComponentProps {
   reelsData?: Reel[];
   onReelChange?: (index: number) => void;
+  apiReelsData?: any[]; // Accept reels data from parent component
 }
 
-const ReelsComponent: React.FC<ReelsComponentProps> = ({ onReelChange }) => {
+const ReelsComponent: React.FC<ReelsComponentProps> = ({ onReelChange, apiReelsData }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMuted, setIsMuted] = useState(true);
@@ -48,30 +49,59 @@ const ReelsComponent: React.FC<ReelsComponentProps> = ({ onReelChange }) => {
   ];
 
   useEffect(() => {
-    async function fetchReels() {
-      setLoading(true);
-      try {
-        const res = await getReels();
-        const apiReels = res?.reels;
-        console.log('API reels response:', apiReels);
-        // Map API response to Reel interface
-        const mappedReels: Reel[] = Array.isArray(apiReels)
-          ? apiReels.map((item: any, idx: number) => ({
-              id: idx + 1,
-              videoUrl: item.secure_url || item.url,
-              thumbnail: ''
-            }))
-          : [];
-        setReels(mappedReels.length > 0 ? mappedReels : defaultReelsData);
-      } catch (err) {
-        console.log(err);
-        setReels(defaultReelsData);
-      } finally {
-        setLoading(false);
+    if (apiReelsData && apiReelsData.length > 0) {
+      console.log('Processing API reels data:', apiReelsData);
+      // Map API reels data to Reel interface, extracting video URLs from media array
+      const mappedReels: Reel[] = apiReelsData.map((item: any, idx: number) => {
+        // Find the first video media item or any media with URL
+        const videoMedia = item.media?.find((m: any) => m.type === 'video' || m.url) || item.media?.[0];
+        
+        // Log each reel's media structure for debugging
+        console.log(`Reel ${idx + 1} media:`, item.media);
+        console.log(`Selected video media:`, videoMedia);
+        
+        return {
+          id: idx + 1,
+          videoUrl: videoMedia?.url || defaultReelsData[idx % defaultReelsData.length].videoUrl,
+          thumbnail: videoMedia?.thumbnailUrl || videoMedia?.thumbnail || ''
+        };
+      });
+      
+      console.log('Mapped reels:', mappedReels);
+      setReels(mappedReels);
+      setLoading(false);
+    } else {
+      // Fallback to API call if no data provided
+      async function fetchReels() {
+        setLoading(true);
+        try {
+          const res = await getReels();
+          const apiReels = res?.reels;
+          console.log('API reels response:', apiReels);
+          // Map API response to Reel interface
+          const mappedReels: Reel[] = Array.isArray(apiReels)
+            ? apiReels.map((item: any, idx: number) => {
+                const videoMedia = item.media?.find((m: any) => m.type === 'video' || m.url) || item.media?.[0];
+                console.log(`Fallback reel ${idx + 1} media:`, item.media);
+                return {
+                  id: idx + 1,
+                  videoUrl: videoMedia?.url || defaultReelsData[idx % defaultReelsData.length].videoUrl,
+                  thumbnail: videoMedia?.thumbnailUrl || videoMedia?.thumbnail || ''
+                };
+              })
+            : [];
+          console.log('Fallback mapped reels:', mappedReels);
+          setReels(mappedReels.length > 0 ? mappedReels : defaultReelsData);
+        } catch (err) {
+          console.log('Error fetching reels:', err);
+          setReels(defaultReelsData);
+        } finally {
+          setLoading(false);
+        }
       }
+      fetchReels();
     }
-    fetchReels();
-  }, []);
+  }, [apiReelsData]);
 
   // Safely play video with promise handling and debouncing
   const safePlay = async (video: HTMLVideoElement, index: number) => {
