@@ -1,6 +1,7 @@
 'use client';
 import { getTrendingBusinessOwners } from '@/api/user';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 // Type definitions
@@ -112,9 +113,10 @@ export default function TrendingBusiness() {
           </div>
         ) : (
           businessOwners.map((business: Business) => (
-            <div
+            <Link
               key={business._id}
-              className="flex items-center justify-start gap-6 p-2 rounded-lg hover:bg-yellow-200 transition-colors"
+              href={`/business/${business.businessName.toLowerCase().replace(/\s+/g, '-')}`}
+              className="flex items-center justify-start gap-6 p-2 rounded-lg hover:bg-yellow-200 transition-colors cursor-pointer"
             >
               <Image
                 src="/placeholder.jpg"
@@ -125,11 +127,11 @@ export default function TrendingBusiness() {
                 onError={handleImageError}
               />
               <div className="flex flex-col">
-                <p className="font-semibold text-gray-900 text-sm">{business.businessName}</p>
+                <p className="font-semibold text-gray-900 text-sm hover:text-yellow-700 transition-colors">{business.businessName}</p>
                 <span className="text-yellow-600 text-xs capitalize">{business.category}</span>
                 <p className="text-xs text-gray-500">{formatFollowers(business.followersCount)} followers</p>
               </div>
-            </div>
+            </Link>
           ))
         )}
       </div>
