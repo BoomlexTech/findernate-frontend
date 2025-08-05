@@ -173,7 +173,7 @@ export default function CreateStoryModal({ isOpen, onClose, onUpload }: CreateSt
 
   return (
     <div 
-      className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-black/40 bg-opacity-90 flex items-center justify-center z-50 p-4"
       onClick={(e) => {
         // Prevent modal from closing when clicking backdrop
         if (e.target === e.currentTarget) {
