@@ -1,5 +1,6 @@
 import React from 'react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { Chat } from '@/api/message';
 
 interface GroupDetailsModalProps {
@@ -19,10 +20,27 @@ export const GroupDetailsModal: React.FC<GroupDetailsModalProps> = ({
   getChatDisplayName,
   user
 }) => {
+  const router = useRouter();
+
   if (!show || !selected || selected.chatType !== 'group') return null;
 
+  const handleMemberClick = (participant: any) => {
+    if (!participant || !participant.username) return;
+    
+    if (participant._id === user?._id) {
+      // Navigate to own profile
+      router.push('/profile');
+    } else {
+      // Navigate to other user's profile
+      router.push(`/userprofile/${participant.username}`);
+    }
+    
+    // Close the modal after navigation
+    onClose();
+  };
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black/50 bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 max-h-[80vh] flex flex-col">
         <div className="flex items-center justify-between p-6 border-b">
           <h2 className="text-xl font-semibold text-gray-900">Group Details</h2>
@@ -63,7 +81,11 @@ export const GroupDetailsModal: React.FC<GroupDetailsModalProps> = ({
             <h4 className="text-sm font-medium text-gray-700 mb-4">Members ({selected.participants.length})</h4>
             <div className="space-y-3">
               {selected.participants.filter(participant => participant && participant._id).map((participant) => (
-                <div key={participant._id} className="flex items-center gap-3">
+                <div 
+                  key={participant._id} 
+                  className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition-colors"
+                  onClick={() => handleMemberClick(participant)}
+                >
                   <Image
                     src={participant.profileImageUrl || '/placeholderimg.png'}
                     alt={participant.fullName || participant.username}

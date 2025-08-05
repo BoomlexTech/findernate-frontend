@@ -17,6 +17,8 @@ import { postEvents } from '@/utils/postEvents';
 import { AxiosError } from 'axios';
 import { useAuthGuard } from '@/hooks/useAuthGuard';
 import { AuthDialog } from '@/components/AuthDialog';
+import CommentDrawer from './CommentDrawer';
+import ReportModal from './ReportModal';
 
 export interface PostCardProps {
   post: FeedPost;
@@ -43,7 +45,15 @@ export default function PostCard({ post, onPostDeleted }: PostCardProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [isPostSaved, setIsPostSaved] = useState(false);
   const [checkingSaved, setCheckingSaved] = useState(true);
+  const [showCommentDrawer, setShowCommentDrawer] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isOnProfilePage, setIsOnProfilePage] = useState(false);
+
+  // Check if we're on a profile page to show delete button
+  useEffect(() => {
+    setIsOnProfilePage(pathname.includes('/profile') || pathname.includes('/userprofile'));
+  }, [pathname]);
 
   // Sync local state with prop changes (important for page refreshes)
   useEffect(() => {
@@ -360,7 +370,7 @@ export default function PostCard({ post, onPostDeleted }: PostCardProps) {
   const handleCommentClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     requireAuth(() => {
-      window.open(`/post/${post._id}?focus=comment`, '_blank');
+      setShowCommentDrawer(true);
     });
   };
 
@@ -446,19 +456,12 @@ export default function PostCard({ post, onPostDeleted }: PostCardProps) {
     }
   };
 
-  const handleReportPost = () => {
-    console.log(`Reporting post ${post._id}`);
-    setShowDropdown(false);
-    alert('Report functionality coming soon!');
-  };
-
   const handleDeletePost = async () => {
     requireAuth(async () => {
       if (isDeleting) return;
       
-      // Show confirmation dialog
-      const confirmed = window.confirm('Are you sure you want to delete this post? This action cannot be undone.');
-      if (!confirmed) return;
+      const confirmDelete = window.confirm('Are you sure you want to delete this post? This action cannot be undone.');
+      if (!confirmDelete) return;
       
       setIsDeleting(true);
       try {
@@ -468,7 +471,7 @@ export default function PostCard({ post, onPostDeleted }: PostCardProps) {
         console.log('Post deleted successfully');
         setShowDropdown(false);
         
-        // Call the callback to remove post from parent component
+        // Call the callback if provided to remove from UI
         if (onPostDeleted) {
           onPostDeleted(post._id);
         }
@@ -483,8 +486,12 @@ export default function PostCard({ post, onPostDeleted }: PostCardProps) {
     });
   };
 
-  // Check if we're on a profile page
-  const isOnProfilePage = pathname.includes('/userprofile/') || pathname.includes('/profile');
+  const handleReportPost = () => {
+    requireAuth(() => {
+      setShowReportModal(true);
+      setShowDropdown(false);
+    });
+  };
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -547,9 +554,9 @@ export default function PostCard({ post, onPostDeleted }: PostCardProps) {
   }, [post._id, isClient]);
 
   return (
-    <>
+    <div className="relative">
       <div 
-        className={`bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200 relative ${
+        className={`bg-white ${showCommentDrawer ? 'rounded-t-3xl shadow-none border-b-0' : 'rounded-3xl shadow-sm'} border border-gray-200 overflow-hidden hover:shadow-md transition-all duration-200 relative ${
           pathname.includes('/post/') ? 'cursor-default' : 'cursor-pointer'
         }`}
         onClick={handlePostClick}
@@ -764,7 +771,7 @@ export default function PostCard({ post, onPostDeleted }: PostCardProps) {
         </div>
 
             {/* Comment Box - Only show for normal/regular posts and not on single post pages */}
-            {(!post.contentType || post.contentType === 'normal' || post.contentType === 'regular') && !pathname.includes('/post/') && (
+            {/* {(!post.contentType || post.contentType === 'normal' || post.contentType === 'regular') && !pathname.includes('/post/') && (
               <div className="px-2 -mb-5 mt-auto">
                 <form onSubmit={handleCommentSubmit} className="flex items-center gap-3 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-full border border-yellow-200 px-4 py-2 shadow-sm hover:shadow-md transition-all duration-200">
                   <div className="flex-1 relative">
@@ -794,7 +801,7 @@ export default function PostCard({ post, onPostDeleted }: PostCardProps) {
                   </button>
                 </form>
               </div>
-            )}
+            )} */}
 
             <div className="px-2 py-1 absolute bottom-0">
               <div className="flex items-center justify-between">
@@ -837,8 +844,25 @@ export default function PostCard({ post, onPostDeleted }: PostCardProps) {
         </div>
       </div>
       
+      {/* Comment Drawer - positioned directly attached to post card */}
+      {showCommentDrawer && (
+        <CommentDrawer 
+          isOpen={showCommentDrawer}
+          onClose={() => setShowCommentDrawer(false)}
+          post={post}
+        />
+      )}
+      
       {/* Auth Dialog */}
       <AuthDialog isOpen={showAuthDialog} onClose={closeAuthDialog} />
-    </>
+
+      {/* Report Modal */}
+      <ReportModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        contentType="post"
+        contentId={post._id}
+      />
+    </div>
   );
 }
