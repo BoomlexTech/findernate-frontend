@@ -4,9 +4,13 @@ import React, { useState, useEffect } from 'react'
 import PostCard from '@/components/PostCard'
 import { FeedPost, SavedPostsResponse } from '@/types'
 import { getSavedPost } from '@/api/post'
-import { Bookmark, RefreshCw } from 'lucide-react'
+import { useAuthGuard } from '@/hooks/useAuthGuard'
+import { AuthDialog } from '@/components/AuthDialog'
+import { Bookmark, RefreshCw, LogIn, Heart, MessageCircle } from 'lucide-react'
+import Link from 'next/link'
 
 const SavedPage = () => {
+  const { requireAuth, showAuthDialog, closeAuthDialog, isAuthenticated, isLoading } = useAuthGuard()
   const [savedPosts, setSavedPosts] = useState<FeedPost[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -72,13 +76,88 @@ const SavedPage = () => {
   }
 
   useEffect(() => {
-    fetchSavedPosts()
-  }, [])
+    // Only fetch if user is authenticated
+    if (isAuthenticated) {
+      fetchSavedPosts()
+    } else {
+      setLoading(false)
+    }
+  }, [isAuthenticated])
 
   const handleRefresh = () => {
     fetchSavedPosts()
   }
 
+  const handleLoginClick = () => {
+    requireAuth(() => {
+      // This will trigger a re-render once user is authenticated
+      console.log('User authenticated, saved posts will load');
+    });
+  };
+
+  // Show loading state while checking authentication
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-yellow-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show login prompt for unauthenticated users
+  if (!isAuthenticated) {
+    return (
+      <>
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+          <div className="text-center bg-white rounded-2xl shadow-lg p-12 max-w-md w-full mx-4">
+            <div className="mb-6">
+              <div className="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Bookmark className="w-10 h-10 text-yellow-600" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Sign In to View Saved Posts</h2>
+              <p className="text-gray-600 leading-relaxed">
+                Save posts that inspire you and access them anytime. Sign in to view your saved collection.
+              </p>
+            </div>
+            
+            <div className="space-y-4 mb-6">
+              <div className="flex items-center gap-3 text-sm text-gray-600">
+                <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
+                  <Heart className="w-4 h-4 text-red-500" />
+                </div>
+                <span>Save posts you love</span>
+              </div>
+              <div className="flex items-center gap-3 text-sm text-gray-600">
+                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                  <Bookmark className="w-4 h-4 text-blue-600" />
+                </div>
+                <span>Access your collection anytime</span>
+              </div>
+            </div>
+            
+            <button
+              onClick={handleLoginClick}
+              className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+            >
+              <LogIn className="w-5 h-5" />
+              Sign In to View Saved Posts
+            </button>
+            
+            <p className="text-sm text-gray-500 mt-4">
+              New here? <Link href={"/signup"}><span className="text-yellow-600">Sign up</span></Link> to start saving posts!
+            </p>
+          </div>
+        </div>
+        
+        <AuthDialog isOpen={showAuthDialog} onClose={closeAuthDialog} />
+      </>
+    );
+  }
+
+  // Show loading state for authenticated users fetching data
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -148,6 +227,9 @@ const SavedPage = () => {
           </div>
         )}
       </div>
+      
+      {/* Auth Dialog */}
+      <AuthDialog isOpen={showAuthDialog} onClose={closeAuthDialog} />
     </div>
   )
 }

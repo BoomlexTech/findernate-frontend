@@ -61,7 +61,7 @@ const FloatingHeader = ({paragraph, heading, username, accountBadge, width="", s
               {/* Profile Info */}
               <div className="flex items-center space-x-3">
                 <div className="flex flex-col items-end">
-                  <span className="font-medium text-gray-900">{profile?.fullName}</span>
+                 <Link href={'/profile'}><span className="font-medium text-gray-900">{profile?.fullName}</span></Link>
                   {accountBadge && (
                     <span className="text-gray-400 text-xs">
                       {"Business Account"}

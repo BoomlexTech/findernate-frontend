@@ -70,7 +70,7 @@ export default function TrendingBusiness() {
   };
 
   return (
-    <div className="bg-yellow-100 rounded-xl shadow-sm border border-gray-200 p-6 cursor-pointer">
+    <div className="bg-gray-200 rounded-xl shadow-sm border border-gray-200 p-6 cursor-pointer">
       {/* SVG and Heading aligned */}
       <div className="flex items-center gap-2 mb-4">
         <svg
@@ -114,7 +114,7 @@ export default function TrendingBusiness() {
           businessOwners.map((business: Business) => (
             <div
               key={business._id}
-              className="flex items-center justify-start gap-6 p-2 rounded-lg hover:bg-yellow-200 transition-colors"
+              className="flex items-center justify-start gap-6 p-2 rounded-lg hover:bg-gray-100 transition-colors"
             >
               <Image
                 src="/placeholder.jpg"

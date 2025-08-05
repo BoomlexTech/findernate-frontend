@@ -11,7 +11,7 @@ import { ProductDetailsFormProps, RegularPostPayload, ServiceDetailsFormProps, B
 import RegularPostForm from './posting/RegularDetailsForm';
 import { useUserStore } from '@/store/useUserStore';
 import TagInput from './TagInput';
-import SuccessToast from './SuccessToast';
+import { toast } from 'react-toastify';
 
 interface createPostModalProps {
     closeModal: () => void;
@@ -20,7 +20,6 @@ interface createPostModalProps {
 const CreatePostModal = ({closeModal}: createPostModalProps ) => {
   const [postType, setPostType] = useState('Regular');
   const [loading, setLoading] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const { user } = useUserStore();
@@ -361,11 +360,17 @@ const handleProductChange = (
 
       // Only show success toast if we actually got a successful response
       if (response && (response.status === 200 || response.status === 201 || response.success)) {
-        setShowSuccess(true);
+        toast.success('Post created successfully!', {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
         setTimeout(() => {
-          setShowSuccess(false);
           closeModal();
-        }, 2000);
+        }, 1000);
       } else {
         // Handle case where API doesn't return expected success response
         throw new Error('Post creation failed - unexpected response');
@@ -382,9 +387,8 @@ const handleProductChange = (
     }
   };
 
-  // Reset success state when modal closes
+  // Reset error state when modal closes
   const handleCloseModal = () => {
-    setShowSuccess(false);
     setError(null);
     closeModal();
   };
@@ -613,7 +617,6 @@ const handleProductChange = (
           </Button>
         </div>
       </div>
-      <SuccessToast show={showSuccess} message="Post created successfully!" />
     </div>
   );
 };

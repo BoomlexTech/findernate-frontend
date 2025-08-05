@@ -222,65 +222,75 @@ export default function SuggestedUsers({ users: initialUsers = defaultSuggestedU
         <div className="space-y-4">
           {users.map((user) => {
             const userState = userStates[user._id];
-            const truncatedFullName = user.fullName
-              .split(' ')
-              .slice(0, 7)
-              .join(' ') + (user.fullName.split(' ').length > 7 ? '...' : '');
+            const truncatedFullName = user.fullName.length > 20 
+              ? user.fullName.substring(0, 20) + '...' 
+              : user.fullName;
 
             return (
               <div
                 key={user._id}
-                className="flex items-center justify-between cursor-pointer hover:bg-gray-200 rounded-lg transition-colors duration-150"
+                className="flex items-center p-3 hover:bg-gray-200 rounded-lg transition-colors duration-150 cursor-pointer"
                 onClick={(e) => {
                   // Prevent navigation if clicking the follow/unfollow button
                   if ((e.target as HTMLElement).closest('button')) return;
                   window.location.href = `/userprofile/${user.username}`;
                 }}
               >
-                <div className='flex gap-4 p-3 justify-center items-center flex-grow min-w-0'>
+                {/* Profile Image - Fixed Width */}
+                <div className="flex-shrink-0 w-10 h-10 mr-3">
                   <Image
-                    width={20}
-                    height={20}
+                    width={40}
+                    height={40}
                     src={user.profileImageUrl || '/placeholderimg.png'}
                     alt='profile_image'
-                    className="w-10 h-10 rounded-full object-cover"
+                    className="w-full h-full rounded-full object-cover"
                   />
-                  <div>    
-                    <p className="font-medium text-gray-900 text-sm">{truncatedFullName}</p>
-                    <p className="text-xs text-gray-600">@{user.username}</p>
-                    <p className="text-xs text-gray-500">
-                      {formatFollowers(userState?.followersCount || user.followersCount)} followers
-                    </p>
-                  </div>  
                 </div>
-                <Button
-                  size="sm"
-                  variant="custom"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleFollowToggle(user._id);
-                  }}
-                  disabled={userState?.isLoading}
-                  className={`text-xs px-4 py-1 cursor-pointer flex items-center gap-1 mr-1 ${
-                    userState?.isFollowing 
-                      ? 'bg-gray-500 hover:bg-gray-600 text-white border-gray-500' 
-                      : 'bg-button-gradient border-[#FCD45C] text-white hover:bg-[#FCD45C]'
-                  }`}
-                >
-                  {userState?.isLoading ? (
-                    <div className="w-3 h-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                  ) : userState?.isFollowing ? (
-                    <>
-                      <UserMinus className="w-3 h-3" />
-                      Unfollow
-                    </>
-                  ) : (
-                    <>
-                      <UserPlus className="w-3 h-3" />
-                      Follow
-                    </>
-                  )}
-                </Button>
+
+                {/* User Info - Flexible Width with Truncation */}
+                <div className="flex-1 min-w-0 mr-3">
+                  <p className="font-medium text-gray-900 text-sm truncate" title={user.fullName}>
+                    {truncatedFullName}
+                  </p>
+                  <p className="text-xs text-gray-600 truncate" title={`@${user.username}`}>
+                    @{user.username}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {formatFollowers(userState?.followersCount || user.followersCount)} followers
+                  </p>
+                </div>
+
+                {/* Follow Button - Fixed Width */}
+                <div className="flex-shrink-0">
+                  <Button
+                    size="sm"
+                    variant="custom"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleFollowToggle(user._id);
+                    }}
+                    disabled={userState?.isLoading}
+                    className={`text-xs px-3 py-1.5 cursor-pointer flex items-center gap-1 min-w-[80px] justify-center ${
+                      userState?.isFollowing 
+                        ? 'bg-gray-500 hover:bg-gray-600 text-white border-gray-500' 
+                        : 'bg-button-gradient border-[#FCD45C] text-white hover:bg-[#FCD45C]'
+                    }`}
+                  >
+                    {userState?.isLoading ? (
+                      <div className="w-3 h-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                    ) : userState?.isFollowing ? (
+                      <>
+                        <UserMinus className="w-3 h-3" />
+                        Unfollow
+                      </>
+                    ) : (
+                      <>
+                        <UserPlus className="w-3 h-3" />
+                        Follow
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
             );
           })}

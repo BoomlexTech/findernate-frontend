@@ -1,6 +1,6 @@
 'use client';
 
-import { Heart, MessageCircle, Share2, MapPin, ChevronLeft, ChevronRight, MoreVertical, Bookmark, BookmarkCheck, Flag, Trash2 } from 'lucide-react';
+import { Heart, MessageCircle, MapPin, ChevronLeft, ChevronRight, MoreVertical, Bookmark, BookmarkCheck, Flag, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -829,7 +829,13 @@ export default function PostCard({ post, onPostDeleted }: PostCardProps) {
                     onClick={handleShareClick}
                     className="flex items-center space-x-2 p-2 rounded-lg text-gray-600 hover:text-green-500 hover:bg-gray-100 transition-colors"
                   >
-                    <Share2 className="w-5 h-5" />
+                    <Image 
+                      src="/reply.png" 
+                      alt="Share" 
+                      width={20} 
+                      height={20} 
+                      className="w-5 h-5"
+                    />
                     <span className="text-sm font-medium">{post.engagement.shares || 0}</span>
                   </button>
                 </div>
