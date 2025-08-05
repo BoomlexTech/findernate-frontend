@@ -44,7 +44,7 @@ export interface ReportsListResponse {
 
 // Report content (posts, comments, users, stories)
 export const reportContent = async (reportData: ReportRequest): Promise<Report> => {
-  const response = await apiClient.post<ReportResponse>('/api/report', reportData);
+  const response = await apiClient.post<ReportResponse>('/posts/report', reportData);
   return response.data.data;
 };
 
@@ -92,13 +92,13 @@ export const getReports = async (params?: {
   page?: number;
   limit?: number;
 }): Promise<ReportsListResponse['data']> => {
-  const response = await apiClient.get<ReportsListResponse>('/api/report', { params });
+  const response = await apiClient.get<ReportsListResponse>('/posts/reports', { params });
   return response.data.data;
 };
 
 // Update report status (for admin/moderation)
 export const updateReportStatus = async (reportId: string, status: Report['status']): Promise<Report> => {
-  const response = await apiClient.patch<ReportResponse>(`/api/report/${reportId}`, { status });
+  const response = await apiClient.patch<ReportResponse>(`/posts/report/${reportId}/status`, { status });
   return response.data.data;
 };
 

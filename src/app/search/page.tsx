@@ -339,6 +339,29 @@ export default function SearchPage() {
     setSearchQuery(term);
   };
 
+  // Handler for updating local state when follow status changes
+  const handleFollowUpdate = (userId: string) => {
+    // Update the local users state to reflect the change
+    const userIndex = users.findIndex(user => user._id === userId);
+    if (userIndex !== -1) {
+      const updatedUsers = [...users];
+      const currentUser = updatedUsers[userIndex];
+      
+      // Toggle the follow status and update follower count
+      const newIsFollowing = !currentUser.isFollowing;
+      updatedUsers[userIndex] = {
+        ...currentUser,
+        isFollowing: newIsFollowing,
+        followersCount: newIsFollowing 
+          ? (currentUser.followersCount || 0) + 1 
+          : Math.max((currentUser.followersCount || 0) - 1, 0) // Don't go below 0
+      };
+      setUsers(updatedUsers);
+      
+      console.log(`Updated user ${userId} follow status to: ${newIsFollowing}`);
+    }
+  };
+
   return (
     <>
       <div className="min-h-screen flex flex-col gap-10 hide-scrollbar">
@@ -671,7 +694,7 @@ export default function SearchPage() {
             {activeTab === "Users" || activeTab === "All" ? (
               <>
                 {displayedUsers.map((user) => (
-                  <UserCard key={user._id} user={user} />
+                  <UserCard key={user._id} user={user} onFollow={handleFollowUpdate} />
                 ))}
 
                 {hasMoreUsers && !showAllUsers && !loading && (
