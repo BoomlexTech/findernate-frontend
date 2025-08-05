@@ -7,6 +7,7 @@ import React, { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { createComment } from '@/api/comment'
 import { getReels } from '@/api/reels'
+import { likePost, unlikePost, savePost, unsavePost, getSavedPost } from '@/api/post'
 import { Heart, MoreVertical, Bookmark } from 'lucide-react'
 
 const Page = () => {
@@ -172,6 +173,8 @@ const Page = () => {
   const [isLiked, setIsLiked] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [isLiking, setIsLiking] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Get current modal data based on reel index
   const getCurrentModalData = () => {
@@ -180,6 +183,39 @@ const Page = () => {
     }
     return reelsData[currentReelIndex % reelsData.length];
   };
+
+  // Check if we're using real API data
+  const isUsingRealData = reelsData.length > 0 && getCurrentModalData()?._id?.length === 24;
+
+  // Sync engagement states when reel changes
+  useEffect(() => {
+    const currentData = getCurrentModalData();
+    if (currentData) {
+      setLikesCount(currentData.engagement?.likes || 0);
+      setCommentsCount(currentData.engagement?.comments || 0);
+      setIsLiked(currentData.isLikedBy || false);
+      
+      // Check if current reel is saved
+      const checkSavedStatus = async () => {
+        try {
+          if (isUsingRealData && currentData._id) {
+            const savedPosts = await getSavedPost();
+            const isSavedPost = savedPosts.some((saved: any) => 
+              saved.postId === currentData._id || saved._id === currentData._id
+            );
+            setIsSaved(isSavedPost);
+          } else {
+            setIsSaved(false);
+          }
+        } catch (error) {
+          console.error('Error checking saved status:', error);
+          setIsSaved(false);
+        }
+      };
+      
+      checkSavedStatus();
+    }
+  }, [currentReelIndex, reelsData, isUsingRealData]);
 
   // Get current reel data
   const getCurrentReelData = () => {
@@ -231,6 +267,14 @@ const Page = () => {
   const currentModalData = getCurrentModalData();
 
   const handleCommentSubmit = async (comment: string) => {
+    const currentModalData = getCurrentModalData();
+    
+    // Check if this is real API data (MongoDB ObjectId is 24 characters) or fallback static data
+    if (!currentModalData._id || currentModalData._id.length !== 24 || reelsData.length === 0) {
+      console.warn('Cannot comment: Using fallback static data or no real post ID');
+      throw new Error('Cannot comment on demo data');
+    }
+    
     try {
       // Use current modal data ID
       await createComment({
@@ -249,9 +293,75 @@ const Page = () => {
     setCommentsCount(newCount);
   };
 
-  const handleLikeToggle = () => {
-    setIsLiked(!isLiked);
-    setLikesCount(prev => isLiked ? prev - 1 : prev + 1);
+  const handleLikeToggle = async () => {
+    if (isLiking) return; // Prevent multiple requests
+    
+    const currentModalData = getCurrentModalData();
+    
+    // Check if this is real API data (MongoDB ObjectId is 24 characters) or fallback static data
+    if (!currentModalData._id || currentModalData._id.length !== 24 || reelsData.length === 0) {
+      console.warn('Cannot like: Using fallback static data or no real post ID');
+      return;
+    }
+    
+    console.log('Attempting to like post:', {
+      postId: currentModalData._id,
+      isLiked: isLiked
+    });
+    
+    setIsLiking(true);
+    
+    try {
+      if (isLiked) {
+        await unlikePost(currentModalData._id);
+        setIsLiked(false);
+        setLikesCount(prev => prev - 1);
+        
+        // Update the reelsData to reflect the change
+        setReelsData(prevData => 
+          prevData.map(reel => 
+            reel._id === currentModalData._id 
+              ? { 
+                  ...reel, 
+                  isLikedBy: false, 
+                  engagement: { ...reel.engagement, likes: Math.max(0, reel.engagement.likes - 1) }
+                }
+              : reel
+          )
+        );
+      } else {
+        await likePost(currentModalData._id);
+        setIsLiked(true);
+        setLikesCount(prev => prev + 1);
+        
+        // Update the reelsData to reflect the change
+        setReelsData(prevData => 
+          prevData.map(reel => 
+            reel._id === currentModalData._id 
+              ? { 
+                  ...reel, 
+                  isLikedBy: true, 
+                  engagement: { ...reel.engagement, likes: reel.engagement.likes + 1 }
+                }
+              : reel
+          )
+        );
+      }
+    } catch (error: any) {
+      console.error('Error toggling like:', {
+        error,
+        postId: currentModalData._id,
+        isLiked: isLiked,
+        response: error?.response?.data,
+        status: error?.response?.status,
+        message: error?.message
+      });
+      // Revert optimistic update on error
+      setIsLiked(currentModalData.isLikedBy);
+      setLikesCount(currentModalData.engagement?.likes || 0);
+    } finally {
+      setIsLiking(false);
+    }
   };
 
   const handleShareClick = () => {
@@ -269,10 +379,57 @@ const Page = () => {
     }
   };
 
-  const handleSaveToggle = () => {
-    setIsSaved(!isSaved);
-    console.log(isSaved ? 'Unsaving reel:' : 'Saving reel:', currentReel.id);
-    // Here you would implement the actual save/unsave API call
+  const handleSaveToggle = async () => {
+    if (isSaving) return; // Prevent multiple requests
+    
+    const currentModalData = getCurrentModalData();
+    
+    // Check if this is real API data (MongoDB ObjectId is 24 characters) or fallback static data
+    if (!currentModalData._id || currentModalData._id.length !== 24 || reelsData.length === 0) {
+      console.warn('Cannot save: Using fallback static data or no real post ID');
+      return;
+    }
+    
+    setIsSaving(true);
+    
+    try {
+      if (isSaved) {
+        await unsavePost(currentModalData._id);
+        setIsSaved(false);
+        
+        // Update the reelsData to reflect the change
+        setReelsData(prevData => 
+          prevData.map(reel => 
+            reel._id === currentModalData._id 
+              ? { 
+                  ...reel, 
+                  engagement: { ...reel.engagement, saves: Math.max(0, reel.engagement.saves - 1) }
+                }
+              : reel
+          )
+        );
+      } else {
+        await savePost(currentModalData._id);
+        setIsSaved(true);
+        
+        // Update the reelsData to reflect the change
+        setReelsData(prevData => 
+          prevData.map(reel => 
+            reel._id === currentModalData._id 
+              ? { 
+                  ...reel, 
+                  engagement: { ...reel.engagement, saves: reel.engagement.saves + 1 }
+                }
+              : reel
+          )
+        );
+      }
+    } catch (error) {
+      console.error('Error toggling save:', error);
+      // Revert optimistic update on error - you might want to track initial save state
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const formatNumber = (num: number) => {
@@ -305,7 +462,7 @@ const Page = () => {
       
       {/* Center - Reels */}
       <div className="flex-1 flex justify-center items-center">
-        <ReelsComponent onReelChange={setCurrentReelIndex} />
+        <ReelsComponent onReelChange={setCurrentReelIndex} apiReelsData={reelsData} />
       </div>
 
       {/* Right sidebar - Profile Info + Comments */}
@@ -379,25 +536,27 @@ const Page = () => {
           <div className="flex items-center space-x-6">
             <button 
               onClick={handleLikeToggle}
+              disabled={isLiking}
               className={`flex items-center space-x-2 p-2 rounded-lg transition-colors ${
                 isLiked 
                   ? 'text-red-500' 
                   : 'text-gray-600 hover:text-red-500'
-              } hover:bg-gray-100`}
+              } hover:bg-gray-100 ${isLiking ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              <Heart className={`w-6 h-6 ${isLiked ? 'fill-current' : ''}`} />
-              <span className="text-sm font-medium">{formatNumber(currentModalData.engagement?.likes || 0)}</span>
+              <Heart className={`w-6 h-6 ${isLiked ? 'fill-current' : ''} ${isLiking ? 'animate-pulse' : ''}`} />
+              <span className="text-sm font-medium">{formatNumber(likesCount)}</span>
             </button>
 
             <button 
               onClick={handleSaveToggle}
+              disabled={isSaving}
               className={`flex items-center space-x-2 p-2 rounded-lg transition-colors ${
                 isSaved 
                   ? 'text-yellow-600' 
                   : 'text-gray-600 hover:text-yellow-600'
-              } hover:bg-gray-100`}
+              } hover:bg-gray-100 ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              <Bookmark className={`w-6 h-6 ${isSaved ? 'fill-current' : ''}`} />
+              <Bookmark className={`w-6 h-6 ${isSaved ? 'fill-current' : ''} ${isSaving ? 'animate-pulse' : ''}`} />
               <span className="text-sm font-medium">{formatNumber(currentModalData.engagement?.saves || 0)}</span>
             </button>
             

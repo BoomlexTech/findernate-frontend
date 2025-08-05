@@ -365,17 +365,19 @@ export default function SearchPage() {
   return (
     <>
       <div className="min-h-screen flex flex-col gap-10 hide-scrollbar">
-        <div className="flex-1 pr-[23rem]">
-          <div className="min-w-4xl mx-auto ml-[1rem]">
-            <FloatingHeader
-              paragraph="Discover businesses, products, services, and more"
-              heading="Search"
-              username="John Doe"
-              width="max-w-[54rem]"
-              accountBadge={true}
-            />
+        <div className="flex-1 xl:pr-[23rem] px-4 xl:px-0">
+          <div className="max-w-full xl:max-w-4xl mx-auto xl:ml-4">
+            <div className="[&>*]:!max-w-full [&>*]:xl:!max-w-[54rem]">
+              <FloatingHeader
+                paragraph="Discover businesses, products, services, and more"
+                heading="Search"
+                username="John Doe"
+                width="w-full"
+                accountBadge={true}
+              />
+            </div>
 
-            <div className="w-full relative">
+            <div className="w-full relative [&>*]:!max-w-full [&>*]:xl:!max-w-[54rem]">
               <SearchBar
                 value={searchQuery}
                 placeholder="Search businesses, products, services..."
@@ -747,7 +749,7 @@ export default function SearchPage() {
           </div>
         </div>
 
-        <div className="w-[23rem] fixed p-5 right-0 top-0 h-full bg-white border-l border-gray-200 overflow-y-auto">
+        <div className="hidden xl:block w-[23rem] fixed p-5 right-0 top-0 h-full bg-white border-l border-gray-200 overflow-y-auto">
           <div className="mb-5">
             <TrendingTopics isSearchPage={true} onTrendingClick={handleTrendingClick} />
           </div>

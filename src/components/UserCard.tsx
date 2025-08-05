@@ -155,7 +155,9 @@ const UserCard: React.FC<UserCardProps> = ({ user, onFollow }) => {
         onClick={(e) => {
           // Prevent navigation if clicking the follow or message button
           if ((e.target as HTMLElement).closest('button')) return;
-          router.push(`/userprofile/${user.username}`);
+          requireAuth(() => {
+            router.push(`/userprofile/${user.username}`);
+          });
         }}
       >
         {/* Header with profile image and basic info */}

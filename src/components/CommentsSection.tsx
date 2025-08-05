@@ -193,7 +193,7 @@ const CommentsSection = ({ postId, onCommentCountChange, initialCommentCount = 0
   console.log(`CommentsSection: Sorting ${comments.length} comments by ${sortBy}, result: ${sortedComments.length} sorted comments`);
 
   return (
-    <div className="p-6">
+    <div className="p-6" data-comments-section>
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
