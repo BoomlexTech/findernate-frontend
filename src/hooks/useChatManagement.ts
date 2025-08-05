@@ -319,13 +319,15 @@ export const useChatManagement = ({ user }: UseChatManagementProps) => {
     return unsubscribe;
   }, [userFollowingList, chats, messageRequests, requestDecisionCache]);
 
-  // Handle profile navigation for direct chats
-  const handleProfileClick = (chat: Chat) => {
+  // Handle profile navigation for direct chats and group details for group chats
+  const handleProfileClick = (chat: Chat, setShowGroupDetails?: (show: boolean) => void) => {
     if (chat.chatType === 'direct') {
       const otherParticipant = chat.participants.find(p => p && p._id && p._id !== user?._id);
       if (otherParticipant && otherParticipant.username) {
         router.push(`/userprofile/${otherParticipant.username}`);
       }
+    } else if (chat.chatType === 'group' && setShowGroupDetails) {
+      setShowGroupDetails(true);
     }
   };
 

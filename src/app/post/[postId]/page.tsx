@@ -116,19 +116,14 @@ const PostPage = () => {
                                 [];
             
             console.log('Inside tags function - possibleTags:', possibleTags);
-            console.log('Inside tags function - possibleTags type:', typeof possibleTags);
-            console.log('Inside tags function - possibleTags isArray:', Array.isArray(possibleTags));
             
             if (Array.isArray(possibleTags)) {
-              console.log('Returning array tags:', possibleTags);
               return possibleTags;
             } else if (typeof possibleTags === 'string') {
               // If it's a string, split by comma or return as single item
               const result = possibleTags.includes(',') ? possibleTags.split(',').map(tag => tag.trim()) : [possibleTags];
-              console.log('Returning string-converted tags:', result);
               return result;
             }
-            console.log('Returning empty array for tags');
             return [];
           })(),
           // Ensure engagement object exists with localStorage override for likes

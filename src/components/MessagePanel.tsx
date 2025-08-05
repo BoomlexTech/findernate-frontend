@@ -214,7 +214,7 @@ export default function MessagePanel() {
             typingUsers={typingUsers}
             getChatAvatar={getChatAvatar}
             getChatDisplayName={getChatDisplayName}
-            onProfileClick={handleProfileClick}
+            onProfileClick={(chat) => handleProfileClick(chat, setShowGroupDetails)}
             onContextMenu={(messageId, x, y) => setShowContextMenu({ messageId, x, y })}
             newMessage={newMessage}
             setNewMessage={setNewMessage}

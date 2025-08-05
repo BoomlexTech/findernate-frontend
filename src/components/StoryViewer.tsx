@@ -2,11 +2,14 @@
 
 import Image from "next/image";
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { StoryUser, Story } from "@/types/story";
 import { useStories } from "@/hooks/useStories";
-import { X, ChevronLeft, ChevronRight, Eye, Plus } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, Eye, Plus, MoreVertical, Flag } from "lucide-react";
 import CreateStoryModal from "./CreateStoryModal";
 import { storyAPI } from "@/api/story";
+import { useUserStore } from "@/store/useUserStore";
+import ReportModal from './ReportModal';
 
 interface StoryViewerProps {
   storyUser: StoryUser;
@@ -34,6 +37,11 @@ export default function StoryViewer({
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [viewerCount, setViewerCount] = useState(0);
   const [shouldAdvance, setShouldAdvance] = useState(false);
+  const [showMoreOptions, setShowMoreOptions] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+
+  const { user } = useUserStore();
+  const router = useRouter();
 
   const getInitials = (name: string) => {
     return name
@@ -217,6 +225,7 @@ export default function StoryViewer({
     startProgress();
   };
 
+
   // Handle add story
   const handleAddStory = () => {
     setIsPaused(true);
@@ -306,6 +315,23 @@ export default function StoryViewer({
     return `${diffInHours}h ago`;
   };
 
+  const handleProfileClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsPaused(true);
+    stopProgress();
+    
+    if (currentUser.isCurrentUser) {
+      // Navigate to own profile
+      router.push('/profile');
+    } else {
+      // Navigate to other user's profile
+      router.push(`/userprofile/${currentUser.username}`);
+    }
+    
+    // Close the story viewer after navigation
+    handleClose();
+  };
+
   // Ensure we have valid data before proceeding
   if (!currentUser || !currentUser.stories || currentUser.stories.length === 0 || !currentStory) {
     return null;
@@ -344,24 +370,24 @@ export default function StoryViewer({
 
         {/* User Info Header */}
         <div className="absolute top-8 left-4 right-4 flex items-center justify-between z-20">
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-3 cursor-pointer" onClick={handleProfileClick}>
             {currentUser.profileImageUrl ? (
               <Image
                 src={currentUser.profileImageUrl}
                 alt={currentUser.username}
                 width={32}
                 height={32}
-                className="rounded-full border-2 border-white"
+                className="rounded-full border-2 border-white hover:border-yellow-400 transition-colors"
               />
             ) : (
-              <div className="w-8 h-8 rounded-full border-2 border-white bg-button-gradient flex items-center justify-center">
+              <div className="w-8 h-8 rounded-full border-2 border-white hover:border-yellow-400 bg-button-gradient flex items-center justify-center transition-colors">
                 <span className="text-white text-xs font-bold">
                   {getInitials(currentUser.username)}
                 </span>
               </div>
             )}
             <div>
-              <p className="text-white font-semibold text-base">{currentUser.username}</p>
+              <p className="text-white font-semibold text-base hover:text-yellow-400 transition-colors">{currentUser.username}</p>
               <p className="text-gray-200 text-sm">
                 {formatTimeAgo(currentStory.createdAt)}
               </p>
@@ -389,6 +415,37 @@ export default function StoryViewer({
                 <Eye size={16} />
                 <span className="text-sm">{viewerCount}</span>
               </button>
+            )}
+
+            {/* More Options for non-current user stories */}
+            {!currentUser.isCurrentUser && user && (
+              <div className="relative">
+                <button
+                  onClick={() => {
+                    setIsPaused(true);
+                    stopProgress();
+                    setShowMoreOptions(!showMoreOptions);
+                  }}
+                  className="flex items-center justify-center w-8 h-8 text-white hover:text-gray-300 transition-colors"
+                >
+                  <MoreVertical size={16} />
+                </button>
+
+                {showMoreOptions && (
+                  <div className="absolute right-0 top-full mt-1 bg-white border rounded-lg shadow-lg z-20 min-w-[120px]">
+                    <button
+                      onClick={() => {
+                        setShowReportModal(true);
+                        setShowMoreOptions(false);
+                      }}
+                      className="w-full px-3 py-2 text-left text-sm text-gray-600 hover:bg-gray-50 flex items-center gap-2"
+                    >
+                      <Flag className="w-3 h-3" />
+                      Report Story
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
 
             {/* Close Button */}
@@ -455,6 +512,18 @@ export default function StoryViewer({
         isOpen={showCreateModal}
         onClose={handleCreateModalClose}
         onUpload={handleStoryUpload}
+      />
+
+      {/* Report Modal */}
+      <ReportModal
+        isOpen={showReportModal}
+        onClose={() => {
+          setShowReportModal(false);
+          setIsPaused(false);
+          startProgress();
+        }}
+        contentType="story"
+        contentId={currentStory?._id || ''}
       />
     </div>
   );

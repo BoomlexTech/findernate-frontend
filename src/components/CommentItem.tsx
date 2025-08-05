@@ -2,11 +2,12 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { Heart, MessageCircle, MoreHorizontal, Edit, Trash2 } from 'lucide-react';
+import { Heart, MessageCircle, MoreHorizontal, Edit, Trash2, Flag } from 'lucide-react';
 import { Button } from './ui/button';
 import { Comment, likeComment, unlikeComment, updateComment, deleteComment } from '@/api/comment';
 import { useUserStore } from '@/store/useUserStore';
 import formatPostDate from '@/utils/formatDate';
+import ReportModal from './ReportModal';
 
 interface CommentItemProps {
   comment: Comment;
@@ -23,6 +24,7 @@ const CommentItem = ({ comment, onUpdate, onDelete, isReply = false }: CommentIt
   const [editContent, setEditContent] = useState(comment.content);
   const [showOptions, setShowOptions] = useState(false);
   const [isLikeLoading, setIsLikeLoading] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
 
   const isOwnComment = user?._id === comment.userId;
   const canLikeComment = !isOwnComment; // Disable like for own comments
@@ -109,6 +111,7 @@ const CommentItem = ({ comment, onUpdate, onDelete, isReply = false }: CommentIt
     }
   };
 
+
   return (
     <div className={`flex gap-3 ${isReply ? 'ml-8 pt-3' : ''}`}>
       {/* Profile Image */}
@@ -144,41 +147,54 @@ const CommentItem = ({ comment, onUpdate, onDelete, isReply = false }: CommentIt
             </div>
 
             {/* Options Menu */}
-            {isOwnComment && (
-              <div className="relative">
-                <button
-                  onClick={() => setShowOptions(!showOptions)}
-                  className="p-1 hover:bg-gray-200 rounded"
-                >
-                  <MoreHorizontal className="w-4 h-4 text-gray-500" />
-                </button>
+            <div className="relative">
+              <button
+                onClick={() => setShowOptions(!showOptions)}
+                className="p-1 hover:bg-gray-200 rounded"
+              >
+                <MoreHorizontal className="w-4 h-4 text-gray-500" />
+              </button>
 
-                {showOptions && (
-                  <div className="absolute right-0 top-full mt-1 bg-white border rounded-lg shadow-lg z-10 min-w-[120px]">
+              {showOptions && (
+                <div className="absolute right-0 top-full mt-1 bg-white border rounded-lg shadow-lg z-10 min-w-[120px]">
+                  {isOwnComment ? (
+                    <>
+                      <button
+                        onClick={() => {
+                          setIsEditing(true);
+                          setShowOptions(false);
+                        }}
+                        className="w-full px-3 py-2 text-left text-sm text-gray-600 hover:bg-gray-50 flex items-center gap-2"
+                      >
+                        <Edit className="w-3 h-3" />
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => {
+                          handleDelete();
+                          setShowOptions(false);
+                        }}
+                        className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 text-red-600 flex items-center gap-2"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                        Delete
+                      </button>
+                    </>
+                  ) : (
                     <button
                       onClick={() => {
-                        setIsEditing(true);
+                        setShowReportModal(true);
                         setShowOptions(false);
                       }}
                       className="w-full px-3 py-2 text-left text-sm text-gray-600 hover:bg-gray-50 flex items-center gap-2"
                     >
-                      <Edit className="w-3 h-3" />
-                      Edit
+                      <Flag className="w-3 h-3" />
+                      Report
                     </button>
-                    <button
-                      onClick={() => {
-                        handleDelete();
-                        setShowOptions(false);
-                      }}
-                      className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 text-red-600 flex items-center gap-2"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                      Delete
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Comment Text */}
@@ -238,6 +254,14 @@ const CommentItem = ({ comment, onUpdate, onDelete, isReply = false }: CommentIt
           <span>{formatPostDate(comment.createdAt)}</span>
         </div>
       </div>
+
+      {/* Report Modal */}
+      <ReportModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        contentType="comment"
+        contentId={comment._id}
+      />
     </div>
   );
 };
