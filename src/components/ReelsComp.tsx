@@ -1,32 +1,26 @@
 "use client"
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Play, Volume2, VolumeX, ChevronUp, ChevronDown, Heart } from 'lucide-react';
-import { likeReel, unlikeReel } from '@/api/reels';
+import { Play, Volume2, VolumeX, ChevronUp, ChevronDown } from 'lucide-react';
 import { getReels } from '@/api/reels';
 
 interface Reel {
-  id: string;
+  id: number;
   videoUrl: string;
   thumbnail: string;
-  username: string;
-  fullName: string;
-  profileImageUrl?: string;
-  likesCount?: number;
-  isLikedByUser?: boolean;
 }
 
 interface ReelsComponentProps {
   reelsData?: Reel[];
   onReelChange?: (index: number) => void;
+  apiReelsData?: any[]; // Accept reels data from parent component
 }
 
-const ReelsComponent: React.FC<ReelsComponentProps> = ({ onReelChange }) => {
+const ReelsComponent: React.FC<ReelsComponentProps> = ({ onReelChange, apiReelsData }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMuted, setIsMuted] = useState(true);
   const [reels, setReels] = useState<Reel[]>([]);
   const [loading, setLoading] = useState(false);
-  const [likeLoading, setLikeLoading] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
@@ -38,94 +32,95 @@ const ReelsComponent: React.FC<ReelsComponentProps> = ({ onReelChange }) => {
   // Default fallback videos
   const defaultReelsData: Reel[] = [
     {
-      id: "1",
+      id: 1,
       videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-      thumbnail: "",
-      username: "DemoUser",
-      fullName: "Demo User",
-      profileImageUrl: "",
-      likesCount: 0,
-      isLikedByUser: false,
+      thumbnail: ""
     },
     {
-      id: "2",
+      id: 2,
       videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
-      thumbnail: "",
-      username: "DemoUser",
-      fullName: "Demo User",
-      profileImageUrl: "",
-      likesCount: 0,
-      isLikedByUser: false,
+      thumbnail: ""
     },
     {
-      id: "3",
+      id: 3,
       videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
-      thumbnail: "",
-      username: "DemoUser",
-      fullName: "Demo User",
-      profileImageUrl: "",
-      likesCount: 0,
-      isLikedByUser: false,
+      thumbnail: ""
     }
   ];
 
   useEffect(() => {
-    async function fetchReels() {
-      setLoading(true);
-      try {
-        const res = await getReels();
-        const apiReels = res?.reels;
-        console.log('API reels response:', apiReels);
-        // Map API response to Reel interface
-        const mappedReels: Reel[] = Array.isArray(apiReels)
-            ? apiReels.map((item: any) => ({
-                id: item._id,
-                videoUrl: item.media?.[0]?.url || "",
-                thumbnail: item.media?.[0]?.thumbnailUrl || "",
-                username: item.userId?.username || "Unknown User",
-                fullName: item.userId?.fullName || "",
-                profileImageUrl: item.profileImageUrl || "",
-                likesCount: item.engagement?.likes ?? 0,
-                isLikedByUser: item.isLikedBy ?? false,
-              }))
+    if (apiReelsData && apiReelsData.length > 0) {
+      console.log('Processing API reels data:', apiReelsData);
+      // Map API reels data to Reel interface, extracting video URLs from media array
+      const mappedReels: Reel[] = apiReelsData.map((item: any, idx: number) => {
+        // Find the first video media item or any media with URL
+        const videoMedia = item.media?.find((m: any) => m.type === 'video' || m.url) || item.media?.[0];
+        
+        // Log each reel's media structure for debugging
+        console.log(`Reel ${idx + 1} media:`, item.media);
+        console.log(`Selected video media:`, videoMedia);
+        
+        return {
+          id: idx + 1,
+          videoUrl: videoMedia?.url || defaultReelsData[idx % defaultReelsData.length].videoUrl,
+          thumbnail: videoMedia?.thumbnailUrl || videoMedia?.thumbnail || ''
+        };
+      });
+      
+      console.log('Mapped reels:', mappedReels);
+      setReels(mappedReels);
+      setLoading(false);
+    } else {
+      // Fallback to API call if no data provided
+      async function fetchReels() {
+        setLoading(true);
+        try {
+          const res = await getReels();
+          const apiReels = res?.reels;
+          console.log('API reels response:', apiReels);
+          // Map API response to Reel interface
+          const mappedReels: Reel[] = Array.isArray(apiReels)
+            ? apiReels.map((item: any, idx: number) => {
+                // Handle both old format (direct URL) and new format (media array)
+                let videoUrl = '';
+                let thumbnail = '';
+
+                if (item.media && item.media.length > 0) {
+                  // New format: media array
+                  const videoMedia = item.media.find((m: any) => m.type === 'video' || m.url) || item.media[0];
+                  videoUrl = videoMedia?.url || '';
+                  thumbnail = videoMedia?.thumbnailUrl || videoMedia?.thumbnail || '';
+                } else if (item.secure_url || item.url) {
+                  // Old format: direct URL
+                  videoUrl = item.secure_url || item.url;
+                  thumbnail = '';
+                }
+
+                // Fallback to default if no valid URL found
+                if (!videoUrl) {
+                  videoUrl = defaultReelsData[idx % defaultReelsData.length].videoUrl;
+                }
+
+                console.log(`Fallback reel ${idx + 1} media:`, { videoUrl, thumbnail });
+                return {
+                  id: idx + 1,
+                  videoUrl,
+                  thumbnail
+                };
+              })
             : [];
-
-
-  // Like/unlike handlers
-  const handleLike = async (reelId: string, liked: boolean, index: number) => {
-    if (likeLoading) return;
-    setLikeLoading(true);
-    try {
-      if (liked) {
-        await unlikeReel(reelId);
-      } else {
-        await likeReel(reelId);
+          console.log('Fallback mapped reels:', mappedReels);
+          setReels(mappedReels.length > 0 ? mappedReels : defaultReelsData);
+        } catch (err) {
+          console.log('Error fetching reels:', err);
+          setReels(defaultReelsData);
+        } finally {
+          setLoading(false);
+        }
       }
-      setReels((prev) => prev.map((reel, i) =>
-        i === index
-          ? {
-              ...reel,
-              isLikedByUser: !liked,
-              likesCount: (reel.likesCount || 0) + (liked ? -1 : 1),
-            }
-          : reel
-      ));
-    } catch (err) {
-      // Optionally show error
-    } finally {
-      setLikeLoading(false);
+      fetchReels();
     }
-  };
-        setReels(mappedReels.length > 0 ? mappedReels : defaultReelsData);
-      } catch (err) {
-        console.log(err);
-        setReels(defaultReelsData);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchReels();
-  }, []);
+  }, [apiReelsData]);
 
   // Safely play video with promise handling and debouncing
   const safePlay = async (video: HTMLVideoElement, index: number) => {
@@ -294,7 +289,6 @@ const ReelsComponent: React.FC<ReelsComponentProps> = ({ onReelChange }) => {
     }
   }, [currentIndex, reels.length, onReelChange]);
 
-
   return (
     <div className="relative w-96 mx-auto aspect-[9/16] rounded-2xl bg-black overflow-hidden shadow-2xl flex-shrink-0">
       {/* Up/Down Scroll Buttons */}
@@ -326,6 +320,7 @@ const ReelsComponent: React.FC<ReelsComponentProps> = ({ onReelChange }) => {
       >
         <ChevronDown size={28} />
       </button>
+
       {loading && reels.length === 0 && (
         <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-60 z-30">
           <div className="text-white text-lg">Loading reels...</div>
@@ -393,21 +388,6 @@ const ReelsComponent: React.FC<ReelsComponentProps> = ({ onReelChange }) => {
               </div>
             )}
 
-            {/* Like button and count */}
-            <div className="absolute bottom-24 right-4 z-20 flex flex-col items-center gap-2">
-              <button
-                className={`p-2 rounded-full bg-black/40 hover:bg-black/80 text-white shadow-lg transition-colors ${reel.isLikedByUser ? 'text-red-500' : ''}`}
-                onClick={() => handleLike(reel.id, !!reel.isLikedByUser, index)}
-                disabled={likeLoading}
-                aria-label={reel.isLikedByUser ? 'Unlike' : 'Like'}
-              >
-                <Heart size={32} fill={reel.isLikedByUser ? 'currentColor' : 'none'} />
-              </button>
-              <span className="text-white text-sm font-semibold drop-shadow-md select-none">
-                {reel.likesCount ?? 0}
-              </span>
-            </div>
-
             {/* Top controls - Only mute button */}
             <div className="absolute top-4 right-4 z-10">
               <button
@@ -417,7 +397,6 @@ const ReelsComponent: React.FC<ReelsComponentProps> = ({ onReelChange }) => {
                 {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
               </button>
             </div>
-
           </div>
         ))}
       </div>

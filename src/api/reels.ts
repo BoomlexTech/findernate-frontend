@@ -5,47 +5,22 @@ export const getReels = async () => {
     return response.data.data;
 }
 
-// Since reels are posts with type "reel", we can use the same like/unlike endpoints
+// Like/Unlike functions for reels
 export const likeReel = async (reelId: string) => {
-    try {
-        console.log('likeReel: Starting request for reelId:', reelId);
-        console.log('likeReel: Request payload:', { postId: reelId });
-        
-        const response = await axios.post('/posts/like', { postId: reelId });
-        
-        console.log('likeReel: Success response:', response.data);
-        return response.data;
-    } catch (error) {
-        console.error('likeReel: Error caught:', {
-            reelId,
-            error: error instanceof Error ? error.message : 'Unknown error',
-            status: (error as any)?.response?.status,
-            data: (error as any)?.response?.data
-        });
-        throw error;
-    }
+    console.log('API: Calling likeReel with reelId:', reelId);
+    const response = await axios.post('/posts/like', { postId: reelId }, { timeout: 10000 });
+    console.log('API: likeReel response:', response.data);
+    return response.data;
 }
 
 export const unlikeReel = async (reelId: string) => {
-    try {
-        console.log('unlikeReel: Starting request for reelId:', reelId);
-        console.log('unlikeReel: Request payload:', { postId: reelId });
-        
-        const response = await axios.post('/posts/unlike', { postId: reelId });
-        
-        console.log('unlikeReel: Success response:', response.data);
-        return response.data;
-    } catch (error) {
-        console.error('unlikeReel: Error caught:', {
-            reelId,
-            error: error instanceof Error ? error.message : 'Unknown error',
-            status: (error as any)?.response?.status,
-            data: (error as any)?.response?.data
-        });
-        throw error;
-    }
+    console.log('API: Calling unlikeReel with reelId:', reelId);
+    const response = await axios.post('/posts/unlike', { postId: reelId }, { timeout: 10000 });
+    console.log('API: unlikeReel response:', response.data);
+    return response.data;
 }
 
+// Save/Unsave functions for reels
 export const saveReel = async (reelId: string) => {
     const response = await axios.post('/posts/save', { postId: reelId });
     return response.data;

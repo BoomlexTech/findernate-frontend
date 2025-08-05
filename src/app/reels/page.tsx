@@ -22,9 +22,10 @@ const Page = () => {
   const [reelsData, setReelsData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Local storage key for persisting like states
+  // Local storage keys for persisting states
   const LIKES_STORAGE_KEY = 'findernate-reel-likes';
   const LIKE_COUNTS_STORAGE_KEY = 'findernate-reel-like-counts';
+  const FOLLOW_STORAGE_KEY = 'findernate-reel-follows';
 
   // Helper functions for localStorage
   const getLikedReelsFromStorage = (): Set<string> => {
@@ -67,6 +68,33 @@ const Page = () => {
     }
   };
 
+  // Helper functions for follow states
+  const getFollowedUsersFromStorage = (): Set<string> => {
+    try {
+      const stored = localStorage.getItem(FOLLOW_STORAGE_KEY);
+      return stored ? new Set(JSON.parse(stored)) : new Set();
+    } catch {
+      return new Set();
+    }
+  };
+
+  const saveFollowStateToStorage = (userId: string, isFollowed: boolean) => {
+    try {
+      const followedUsers = getFollowedUsersFromStorage();
+      
+      if (isFollowed) {
+        followedUsers.add(userId);
+      } else {
+        followedUsers.delete(userId);
+      }
+      
+      localStorage.setItem(FOLLOW_STORAGE_KEY, JSON.stringify([...followedUsers]));
+      console.log('Saved follow state to localStorage:', { userId, isFollowed });
+    } catch (error) {
+      console.warn('Failed to save follow state to localStorage:', error);
+    }
+  };
+
   // Fetch reels data from API
   useEffect(() => {
     const fetchReels = async () => {
@@ -77,8 +105,9 @@ const Page = () => {
         
         // Transform API response to match expected format
         const transformedData = response.reels?.map((item: any) => {
-          // Use userId object directly from API response
+          // Use userId object directly from API response and userDetails as fallback
           const userObj = item.userId || {};
+          const userDetail = item.userDetails?.[0] || {};
           
           // Check localStorage for like status and counts
           const likedReels = getLikedReelsFromStorage();
@@ -86,9 +115,15 @@ const Page = () => {
           const isLikedFromStorage = likedReels.has(item._id);
           const likeCountFromStorage = likeCounts.get(item._id);
           
+          // Check localStorage for follow status
+          const followedUsers = getFollowedUsersFromStorage();
+          const userIdToCheck = userObj._id || userDetail._id || item.userId || '';
+          const isFollowedFromStorage = followedUsers.has(userIdToCheck);
+          
           // Use localStorage data if available, otherwise use API data
           const finalIsLiked = isLikedFromStorage || Boolean(item.isLikedBy || item.isLikedByUser || false);
           const finalLikeCount = likeCountFromStorage !== undefined ? likeCountFromStorage : (item.engagement?.likes || item.likesCount || 0);
+          const finalIsFollowed = isFollowedFromStorage || Boolean(item.isFollowed || item.isFollowedByUser || false);
           
           console.log('Transforming reel item:', {
             id: item._id,
@@ -99,18 +134,25 @@ const Page = () => {
             isLikedFromStorage,
             likeCountFromStorage,
             finalIsLiked,
-            finalLikeCount
+            finalLikeCount,
+            userId: item.userId,
+            userObj: userObj,
+            userDetail: userDetail,
+            isFollowed: item.isFollowed,
+            isFollowedByUser: item.isFollowedByUser,
+            isFollowedFromStorage,
+            finalIsFollowed
           });
           
           return {
             _id: item._id,
             userId: {
-              _id: userObj._id || '',
-              username: userObj.username || 'Unknown User',
-              profileImageUrl: item.profileImageUrl || '/placeholderimg.png',
+              _id: userObj._id || userDetail._id || item.userId || '',
+              username: userObj.username || userDetail.username || 'Unknown User',
+              profileImageUrl: userObj.profileImageUrl || userDetail.profileImageUrl || item.profileImageUrl || '/placeholderimg.png',
             },
-            username: userObj.username || 'Unknown User',
-            profileImageUrl: item.profileImageUrl || '/placeholderimg.png',
+            username: userObj.username || userDetail.username || 'Unknown User',
+            profileImageUrl: userObj.profileImageUrl || userDetail.profileImageUrl || item.profileImageUrl || '/placeholderimg.png',
             description: item.description || '',
             caption: item.caption || '',
             contentType: item.contentType || 'normal',
@@ -119,7 +161,7 @@ const Page = () => {
             media: item.media || [],
             hashtags: item.hashtags || [],
             isLikedBy: finalIsLiked,
-            isFollowed: Boolean(item.isFollowed || false),
+            isFollowed: finalIsFollowed,
             likedBy: item.likedBy || [],
             engagement: {
               comments: item.engagement?.comments || 0,
@@ -135,6 +177,7 @@ const Page = () => {
             customization: item.customization || null,
           };
         }) || [];
+        
         setReelsData(transformedData);
       } catch (error) {
         console.error('Error fetching reels:', error);
@@ -166,6 +209,7 @@ const Page = () => {
       createdAt: new Date().toISOString(),
       media: [],
       isLikedBy: false,
+      isFollowed: false,
       likedBy: [],
       engagement: { comments: 15, impressions: 450, likes: 89, reach: 350, saves: 23, shares: 12, views: 1200 },
       location: { name: 'Mountain View, CA', coordinates: { type: 'Point', coordinates: [-122.0840, 37.3861] as [number, number] } },
@@ -180,66 +224,7 @@ const Page = () => {
         }
       }
     },
-    {
-      _id: '2',
-      userId: {
-        _id: 'user2',
-        username: 'cafe_master',
-        profileImageUrl: '/placeholderimg.png'
-      },
-      username: 'cafe_master',
-      profileImageUrl: '/placeholderimg.png',
-      description: 'Learn professional latte art techniques from a certified barista!',
-      caption: 'Coffee Art Masterclass',
-      contentType: 'service',
-      postType: 'service',
-      createdAt: new Date().toISOString(),
-      media: [],
-      isLikedBy: false,
-      likedBy: [],
-      engagement: { comments: 32, impressions: 720, likes: 156, reach: 580, saves: 45, shares: 28, views: 2100 },
-      location: { name: 'Seattle, WA', coordinates: { type: 'Point', coordinates: [-122.3321, 47.6062] as [number, number] } },
-      tags: ['coffee', 'art', 'barista', 'classes'],
-      customization: {
-        service: {
-          name: 'Latte Art Workshop',
-          price: '150',
-          currency: 'USD',
-          duration: '3 hours',
-          link: '#'
-        }
-      }
-    },
-    {
-      _id: '3',
-      userId: {
-        _id: 'user3',
-        username: 'adventure_co',
-        profileImageUrl: '/placeholderimg.png'
-      },
-      username: 'adventure_co',
-      profileImageUrl: '/placeholderimg.png',
-      description: 'Join our guided mountain climbing expeditions! Experience the thrill safely with certified guides.',
-      caption: 'Mountain Adventure Tours',
-      contentType: 'business',
-      postType: 'business',
-      createdAt: new Date().toISOString(),
-      media: [],
-      isLikedBy: false,
-      likedBy: [],
-      engagement: { comments: 89, impressions: 1500, likes: 340, reach: 1200, saves: 67, shares: 45, views: 3500 },
-      location: { name: 'Denver, CO', coordinates: { type: 'Point', coordinates: [-104.9903, 39.7392] as [number, number] } },
-      tags: ['adventure', 'climbing', 'tours', 'outdoors'],
-      customization: {
-        business: {
-          name: 'Peak Adventures LLC',
-          category: 'Adventure Tourism',
-          website: 'https://peakadventures.com',
-          phone: '+1-555-CLIMB',
-          email: 'info@peakadventures.com'
-        }
-      }
-    }
+    // Add other static data items...
   ];
 
   const [commentsCount, setCommentsCount] = useState(0);
@@ -279,6 +264,7 @@ const Page = () => {
       const response = await getReels();
       const transformedData = response.reels?.map((item: any) => {
         const userObj = item.userId || {};
+        const userDetail = item.userDetails?.[0] || {};
         
         // Check localStorage for like status and counts
         const likedReels = getLikedReelsFromStorage();
@@ -286,31 +272,25 @@ const Page = () => {
         const isLikedFromStorage = likedReels.has(item._id);
         const likeCountFromStorage = likeCounts.get(item._id);
         
+        // Check localStorage for follow status
+        const followedUsers = getFollowedUsersFromStorage();
+        const userIdToCheck = userObj._id || userDetail._id || item.userId || '';
+        const isFollowedFromStorage = followedUsers.has(userIdToCheck);
+        
         // Use localStorage data if available, otherwise use API data
         const finalIsLiked = isLikedFromStorage || Boolean(item.isLikedBy || item.isLikedByUser || false);
         const finalLikeCount = likeCountFromStorage !== undefined ? likeCountFromStorage : (item.engagement?.likes || item.likesCount || 0);
-        
-        console.log('Refreshing reel item:', {
-          id: item._id,
-          originalLikes: item.engagement?.likes,
-          originalLikesCount: item.likesCount,
-          originalIsLikedBy: item.isLikedBy,
-          originalIsLikedByUser: item.isLikedByUser,
-          isLikedFromStorage,
-          likeCountFromStorage,
-          finalIsLiked,
-          finalLikeCount
-        });
+        const finalIsFollowed = isFollowedFromStorage || Boolean(item.isFollowed || item.isFollowedByUser || false);
         
         return {
           _id: item._id,
           userId: {
-            _id: userObj._id || '',
-            username: userObj.username || 'Unknown User',
-            profileImageUrl: item.profileImageUrl || '/placeholderimg.png',
+            _id: userObj._id || userDetail._id || item.userId || '',
+            username: userObj.username || userDetail.username || 'Unknown User',
+            profileImageUrl: userObj.profileImageUrl || userDetail.profileImageUrl || item.profileImageUrl || '/placeholderimg.png',
           },
-          username: userObj.username || 'Unknown User',
-          profileImageUrl: item.profileImageUrl || '/placeholderimg.png',
+          username: userObj.username || userDetail.username || 'Unknown User',
+          profileImageUrl: userObj.profileImageUrl || userDetail.profileImageUrl || item.profileImageUrl || '/placeholderimg.png',
           description: item.description || '',
           caption: item.caption || '',
           contentType: item.contentType || 'normal',
@@ -319,7 +299,7 @@ const Page = () => {
           media: item.media || [],
           hashtags: item.hashtags || [],
           isLikedBy: finalIsLiked,
-          isFollowed: Boolean(item.isFollowed || false),
+          isFollowed: finalIsFollowed,
           likedBy: item.likedBy || [],
           engagement: {
             comments: item.engagement?.comments || 0,
@@ -358,6 +338,9 @@ const Page = () => {
     }
     return reelsData[currentReelIndex % reelsData.length];
   };
+
+  // Check if we're using real API data
+  const isUsingRealData = reelsData.length > 0 && getCurrentModalData()?._id?.length === 24;
 
   // Get current reel data
   const getCurrentReelData = () => {
@@ -438,7 +421,8 @@ const Page = () => {
       console.log('Initial data:', {
         id: currentData._id,
         likes: currentData.engagement?.likes,
-        isLikedBy: currentData.isLikedBy
+        isLikedBy: currentData.isLikedBy,
+        isFollowed: currentData.isFollowed
       });
       
       // Force state update to match server data
@@ -490,6 +474,21 @@ const Page = () => {
   const handleFollowToggle = async () => {
     const currentData = getCurrentModalData();
     
+    // Try multiple ways to extract userId
+    let targetUserId = null;
+    
+    if (currentData.userId && typeof currentData.userId === 'object' && currentData.userId._id) {
+      targetUserId = currentData.userId._id;
+    } else if (typeof currentData.userId === 'string') {
+      targetUserId = currentData.userId;
+    }
+    
+    if (!targetUserId || targetUserId === '' || targetUserId === 'undefined') {
+      console.error('No valid userId found for follow action');
+      showToastMessage('Unable to follow: Invalid user data');
+      return;
+    }
+    
     // Optimistic update
     const newIsFollowed = !isFollowed;
     setIsFollowed(newIsFollowed);
@@ -500,10 +499,14 @@ const Page = () => {
 
     try {
       if (newIsFollowed) {
-        await followUser(currentData.userId._id || currentData.userId);
+        await followUser(targetUserId);
+        // Save to localStorage for persistence
+        saveFollowStateToStorage(targetUserId, true);
         showToastMessage(`Now following @${currentData.username}!`);
       } else {
-        await unfollowUser(currentData.userId._id || currentData.userId);
+        await unfollowUser(targetUserId);
+        // Save to localStorage for persistence
+        saveFollowStateToStorage(targetUserId, false);
         showToastMessage(`Unfollowed @${currentData.username}`);
       }
     } catch (error: any) {
@@ -524,8 +527,33 @@ const Page = () => {
         showToastMessage('Please sign in to follow users');
       } else if (error.response?.status === 404) {
         showToastMessage('User not found');
-      } else if (error.response?.status === 400 && error.response?.data?.message?.includes('yourself')) {
-        showToastMessage("You can't follow yourself");
+      } else if (error.response?.status === 400) {
+        const errorMessage = error.response?.data?.message || '';
+        if (errorMessage.includes('yourself')) {
+          showToastMessage("You can't follow yourself");
+        } else if (errorMessage.includes('Already following')) {
+          // If already following, sync the state to match reality
+          setIsFollowed(true);
+          updateReelInState(currentData._id, {
+            isFollowed: true
+          });
+          // Save to localStorage for persistence
+          saveFollowStateToStorage(targetUserId, true);
+          showToastMessage(`Already following @${currentData.username}!`);
+          return; // Don't revert the optimistic update
+        } else if (errorMessage.includes('not following') || errorMessage.includes('Not following')) {
+          // If not following when trying to unfollow, sync the state
+          setIsFollowed(false);
+          updateReelInState(currentData._id, {
+            isFollowed: false
+          });
+          // Save to localStorage for persistence
+          saveFollowStateToStorage(targetUserId, false);
+          showToastMessage(`Not following @${currentData.username}`);
+          return; // Don't revert the optimistic update
+        } else {
+          showToastMessage(`Follow error: ${errorMessage || 'Invalid request'}`);
+        }
       } else {
         showToastMessage('Failed to update follow status. Please try again.');
       }
@@ -540,16 +568,6 @@ const Page = () => {
     if (isProcessing.like) return; // Prevent double-clicks
     
     const currentData = getCurrentModalData();
-    
-    // Validate reel ID before making API call
-    if (!currentData._id || currentData._id === '' || currentData._id === 'undefined') {
-      console.error('handleLikeToggle: Invalid reel ID:', currentData._id);
-      showToastMessage('Invalid reel data. Please refresh.');
-      return;
-    }
-    
-    console.log('handleLikeToggle: Current like status:', isLiked);
-    console.log('handleLikeToggle: Reel ID:', currentData._id);
     
     // Set processing state
     setIsProcessing(prev => ({ ...prev, like: true }));
@@ -574,109 +592,18 @@ const Page = () => {
 
     try {
       if (newIsLiked) {
-        console.log('handleLikeToggle: Calling likeReel');
-        try {
-          await Promise.race([likeReel(currentData._id), createTimeoutPromise(10000)]);
-          console.log('handleLikeToggle: Successfully liked reel');
-          
-          // Ensure state is consistent after successful API call
-          setIsLiked(true);
-          setLikesCount(newLikesCount);
-          
-          // Save to localStorage for persistence across refreshes
-          saveLikedReelToStorage(currentData._id, true, newLikesCount);
-          
-          // Update the actual reels data to persist the change
-          updateReelInState(currentData._id, {
-            isLikedBy: true,
-            engagement: {
-              ...currentData.engagement,
-              likes: newLikesCount
-            }
-          });
-          
-          showToastMessage('Liked!');
-        } catch (likeError: any) {
-          // Handle "already liked" error (409) as success
-          if (likeError?.response?.status === 409) {
-            console.log(`Reel ${currentData._id} already liked - treating as successful like`);
-            
-            // Ensure state reflects "liked" status
-            setIsLiked(true);
-            setLikesCount(newLikesCount);
-            
-            // Save to localStorage for persistence across refreshes
-            saveLikedReelToStorage(currentData._id, true, newLikesCount);
-            
-            // Update reels data to maintain consistency
-            updateReelInState(currentData._id, {
-              isLikedBy: true,
-              engagement: {
-                ...currentData.engagement,
-                likes: newLikesCount
-              }
-            });
-            
-            showToastMessage('Liked!');
-            return; // Don't revert optimistic update since reel is effectively "liked"
-          }
-          throw likeError; // Re-throw other errors
-        }
+        await Promise.race([likeReel(currentData._id), createTimeoutPromise(10000)]);
       } else {
-        console.log('handleLikeToggle: Calling unlikeReel');
-        try {
-          await Promise.race([unlikeReel(currentData._id), createTimeoutPromise(10000)]);
-          console.log('handleLikeToggle: Successfully unliked reel');
-          
-          // Ensure state is consistent after successful API call
-          setIsLiked(false);
-          setLikesCount(newLikesCount);
-          
-          // Save to localStorage for persistence across refreshes
-          saveLikedReelToStorage(currentData._id, false, newLikesCount);
-          
-          // Update the actual reels data to persist the change
-          updateReelInState(currentData._id, {
-            isLikedBy: false,
-            engagement: {
-              ...currentData.engagement,
-              likes: newLikesCount
-            }
-          });
-          
-          showToastMessage('Unliked!');
-        } catch (unlikeError: any) {
-          // Handle "like not found" error (409) as success for unlike
-          if (unlikeError?.response?.status === 409) {
-            console.log(`Reel ${currentData._id} already unliked - treating as successful unlike`);
-            
-            // Ensure state reflects "unliked" status
-            setIsLiked(false);
-            setLikesCount(newLikesCount);
-            
-            // Save to localStorage for persistence across refreshes
-            saveLikedReelToStorage(currentData._id, false, newLikesCount);
-            
-            // Update reels data to maintain consistency
-            updateReelInState(currentData._id, {
-              isLikedBy: false,
-              engagement: {
-                ...currentData.engagement,
-                likes: newLikesCount
-              }
-            });
-            
-            showToastMessage('Unliked!');
-            return; // Don't revert optimistic update since reel is effectively "unliked"
-          }
-          throw unlikeError; // Re-throw other errors
-        }
+        await Promise.race([unlikeReel(currentData._id), createTimeoutPromise(10000)]);
       }
-      console.log('handleLikeToggle: API call successful');
     } catch (error: any) {
-      console.error('handleLikeToggle: API call failed:', error);
+      // Handle "already liked" or "like not found" as success
+      if (error?.response?.status === 409) {
+        // Don't revert - the state is already correct
+        return;
+      }
       
-      // Revert optimistic update on actual errors (not 409)
+      // Revert optimistic update on actual errors
       setIsLiked(!newIsLiked);
       setLikesCount(newIsLiked ? newLikesCount - 1 : newLikesCount + 1);
       
@@ -783,7 +710,7 @@ const Page = () => {
     return num.toString();
   };
   
-      if (loading) {
+  if (loading) {
     return (
       <div className="flex min-h-screen bg-gray-50 items-center justify-center">
         <div className="text-center">
@@ -936,27 +863,23 @@ const Page = () => {
 
         {/* Comments Section */}
         <div className="overflow-y-auto">
-          {/* <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Comments ({commentsCount})
-          </h3> */}
-          
-        {/* Comments Section - show only top 4 comments, no add or pagination */}
-        <div className="">
-          <ReelCommentsSection
-            postId={currentModalData._id}
-            initialCommentCount={commentsCount}
-            onCommentCountChange={handleCommentCountChange}
-            maxVisible={4}
-          />
-          <div className="text-center mt-2">
-            <button
-              className="text-yellow-600 hover:underline text-sm font-medium"
-              onClick={() => window.open(`/post/${currentModalData._id}`, '_blank')}
-            >
-              More
-            </button>
+          {/* Comments Section - show only top 4 comments, no add or pagination */}
+          <div className="">
+            <ReelCommentsSection
+              postId={currentModalData._id}
+              initialCommentCount={commentsCount}
+              onCommentCountChange={handleCommentCountChange}
+              maxVisible={4}
+            />
+            <div className="text-center mt-2">
+              <button
+                className="text-yellow-600 hover:underline text-sm font-medium"
+                onClick={() => window.open(`/post/${currentModalData._id}`, '_blank')}
+              >
+                More
+              </button>
+            </div>
           </div>
-        </div>
         </div>
       </div>
     </div>
