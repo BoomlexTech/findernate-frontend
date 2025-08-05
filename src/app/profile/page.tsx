@@ -18,7 +18,7 @@ const Page = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user } = useUserStore();
-  const { isAuthenticated } = useAuthGuard();
+  const { isAuthenticated, isLoading } = useAuthGuard();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -74,7 +74,19 @@ const Page = () => {
     window.location.href = '/signin';
   };
 
-  // Show loading spinner while checking authentication
+  // Show loading state while checking authentication
+  if (isLoading) {
+    return (
+      <div className="bg-gray-50 max-w-6xl mx-auto p-4 min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-yellow-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading spinner while fetching profile data
   if (loading && isAuthenticated) {
     return (
       <div className="bg-gray-50 max-w-6xl mx-auto p-4 min-h-screen flex items-center justify-center">

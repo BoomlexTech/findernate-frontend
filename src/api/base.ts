@@ -64,22 +64,22 @@ axiosInstance.interceptors.response.use(
       fullError: error
     });
     
-    // Handle authentication errors
-    if (error.response?.status === 401) {
-      console.error('Authentication Error: Token may be expired or invalid');
-      console.log('Current token:', localStorage.getItem('token') ? 'Present' : 'Missing');
+    // // Handle authentication errors
+    // if (error.response?.status === 401) {
+    //   console.error('Authentication Error: Token may be expired or invalid');
+    //   console.log('Current token:', localStorage.getItem('token') ? 'Present' : 'Missing');
       
-      // Trigger logout if we get a 401 error
-      if (typeof window !== 'undefined') {
-        import('@/store/useUserStore').then(({ useUserStore }) => {
-          console.warn('401 error received, logging out user');
-          useUserStore.getState().logout();
-          window.location.href = '/signin';
-        }).catch(err => {
-          console.error('Failed to import userStore for logout:', err);
-        });
-      }
-    }
+    //   // Trigger logout if we get a 401 error
+    //   if (typeof window !== 'undefined') {
+    //     import('@/store/useUserStore').then(({ useUserStore }) => {
+    //       console.warn('401 error received, logging out user');
+    //       useUserStore.getState().logout();
+    //       window.location.href = '/signin';
+    //     }).catch(err => {
+    //       console.error('Failed to import userStore for logout:', err);
+    //     });
+    //   }
+    // }
     
     return Promise.reject(error);
   }

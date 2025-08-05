@@ -8,7 +8,7 @@ import { MessageCircle, Users, LogIn } from "lucide-react";
 import Link from "next/link";
 
 export default function Page() {
-  const { requireAuth, showAuthDialog, closeAuthDialog, isAuthenticated } = useAuthGuard();
+  const { requireAuth, showAuthDialog, closeAuthDialog, isAuthenticated, isLoading } = useAuthGuard();
 
   const handleLoginClick = () => {
     requireAuth(() => {
@@ -16,6 +16,18 @@ export default function Page() {
       console.log('User authenticated, chats will load');
     });
   };
+
+  // Show loading state while checking authentication
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen bg-gray-50 items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-yellow-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Show login prompt for unauthenticated users
   if (!isAuthenticated) {
