@@ -94,7 +94,6 @@ const Page = () => {
       console.warn('Failed to save follow state to localStorage:', error);
     }
   };
-
   // Fetch reels data from API
   useEffect(() => {
     const fetchReels = async () => {
@@ -282,6 +281,20 @@ const Page = () => {
         const finalLikeCount = likeCountFromStorage !== undefined ? likeCountFromStorage : (item.engagement?.likes || item.likesCount || 0);
         const finalIsFollowed = isFollowedFromStorage || Boolean(item.isFollowed || item.isFollowedByUser || false);
         
+        console.log('Refreshing reel item:', {
+          id: item._id,
+          originalLikes: item.engagement?.likes,
+          originalLikesCount: item.likesCount,
+          originalIsLikedBy: item.isLikedBy,
+          originalIsLikedByUser: item.isLikedByUser,
+          isLikedFromStorage,
+          likeCountFromStorage,
+          finalIsLiked,
+          finalLikeCount,
+          isFollowedFromStorage,
+          finalIsFollowed
+        });
+        
         return {
           _id: item._id,
           userId: {
@@ -393,6 +406,14 @@ const Page = () => {
       setCommentsCount(currentData.engagement?.comments || 0);
       setLikesCount(currentData.engagement?.likes || 0);
       setIsLiked(Boolean(currentData.isLikedBy));
+      
+      // Debug follow state initialization
+      console.log('=== FOLLOW STATE INIT ===');
+      console.log('currentData.isFollowed:', currentData.isFollowed);
+      console.log('Boolean(currentData.isFollowed):', Boolean(currentData.isFollowed));
+      console.log('Setting isFollowed to:', Boolean(currentData.isFollowed));
+      console.log('=== END FOLLOW STATE INIT ===');
+      
       setIsFollowed(Boolean(currentData.isFollowed));
       setIsSaved(false); // Reset save state when changing reels
       
@@ -412,7 +433,6 @@ const Page = () => {
       setIsSaved(false);
     }
   }, [currentReelIndex, reelsData]);
-
   // Initialize state when reelsData first loads
   useEffect(() => {
     if (reelsData.length > 0 && !loading) {
@@ -429,10 +449,15 @@ const Page = () => {
       setLikesCount(currentData.engagement?.likes || 0);
       setIsLiked(Boolean(currentData.isLikedBy));
       setCommentsCount(currentData.engagement?.comments || 0);
+      
+      // Debug follow state in initialization
+      console.log('=== INIT FOLLOW STATE ===');
+      console.log('currentData.isFollowed:', currentData.isFollowed);
+      console.log('Setting isFollowed to:', Boolean(currentData.isFollowed));
+      console.log('=== END INIT FOLLOW STATE ===');
       setIsFollowed(Boolean(currentData.isFollowed));
     }
   }, [reelsData, loading]);
-
   // Use current modal data for comment operations
   const currentModalData = getCurrentModalData();
 
@@ -474,21 +499,34 @@ const Page = () => {
   const handleFollowToggle = async () => {
     const currentData = getCurrentModalData();
     
+    // Debug logging to check userId
+    console.log('=== FOLLOW DEBUG START ===');
+    console.log('Follow toggle - currentData:', JSON.stringify(currentData, null, 2));
+    console.log('Follow toggle - userId object:', currentData.userId);
+    console.log('Follow toggle - userId._id:', currentData.userId?._id);
+    console.log('Follow toggle - currentData.userId type:', typeof currentData.userId);
     // Try multiple ways to extract userId
     let targetUserId = null;
     
     if (currentData.userId && typeof currentData.userId === 'object' && currentData.userId._id) {
       targetUserId = currentData.userId._id;
+      console.log('Using userId._id:', targetUserId);
     } else if (typeof currentData.userId === 'string') {
       targetUserId = currentData.userId;
+      console.log('Using userId as string:', targetUserId);
+    } else {
+      console.error('Cannot extract userId from:', currentData.userId);
     }
     
     if (!targetUserId || targetUserId === '' || targetUserId === 'undefined') {
       console.error('No valid userId found for follow action');
+      console.log('targetUserId value:', targetUserId);
       showToastMessage('Unable to follow: Invalid user data');
       return;
     }
     
+    console.log('Follow toggle - final userId:', targetUserId);
+    console.log('=== FOLLOW DEBUG END ===');
     // Optimistic update
     const newIsFollowed = !isFollowed;
     setIsFollowed(newIsFollowed);
@@ -499,11 +537,13 @@ const Page = () => {
 
     try {
       if (newIsFollowed) {
+        console.log('Calling followUser with:', targetUserId);
         await followUser(targetUserId);
         // Save to localStorage for persistence
         saveFollowStateToStorage(targetUserId, true);
         showToastMessage(`Now following @${currentData.username}!`);
       } else {
+        console.log('Calling unfollowUser with:', targetUserId);
         await unfollowUser(targetUserId);
         // Save to localStorage for persistence
         saveFollowStateToStorage(targetUserId, false);
@@ -518,6 +558,9 @@ const Page = () => {
       });
       
       console.error('Error toggling follow:', error);
+      console.error('Error response:', error.response);
+      console.error('Error response data:', error.response?.data);
+      console.error('Error response status:', error.response?.status);
       
       // Handle specific error codes
       if (error.response?.status === 409) {
@@ -533,16 +576,20 @@ const Page = () => {
           showToastMessage("You can't follow yourself");
         } else if (errorMessage.includes('Already following')) {
           // If already following, sync the state to match reality
+          console.log('Already following - syncing state to followed');
+          console.log('Before sync - isFollowed state:', isFollowed);
           setIsFollowed(true);
           updateReelInState(currentData._id, {
             isFollowed: true
           });
           // Save to localStorage for persistence
           saveFollowStateToStorage(targetUserId, true);
+          console.log('After sync - should be true');
           showToastMessage(`Already following @${currentData.username}!`);
           return; // Don't revert the optimistic update
         } else if (errorMessage.includes('not following') || errorMessage.includes('Not following')) {
           // If not following when trying to unfollow, sync the state
+          console.log('Not following - syncing state to unfollowed');
           setIsFollowed(false);
           updateReelInState(currentData._id, {
             isFollowed: false
@@ -559,7 +606,6 @@ const Page = () => {
       }
     }
   };
-
   const handleCommentCountChange = (newCount: number) => {
     setCommentsCount(newCount);
   };
@@ -762,7 +808,13 @@ const Page = () => {
               <span className="font-semibold text-lg text-gray-900">@{currentModalData.username || 'Unknown User'}</span>
             </div>
             <button 
-              onClick={handleFollowToggle}
+              onClick={() => {
+                console.log('=== BUTTON CLICK DEBUG ===');
+                console.log('Current isFollowed state:', isFollowed);
+                console.log('Button should show:', isFollowed ? 'Following' : 'Follow');
+                console.log('=== END BUTTON CLICK DEBUG ===');
+                handleFollowToggle();
+              }}
               className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors mr-2 ${
                 isFollowed 
                   ? 'bg-gray-200 hover:bg-gray-300 text-gray-800' 

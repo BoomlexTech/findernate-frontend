@@ -370,6 +370,7 @@ const ReelsComponent: React.FC<ReelsComponentProps> = ({ onReelChange, apiReelsD
             {/* Overlay gradient */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
 
+
             {/* Play/Pause button */}
             {!isPlaying && (
               <div className="absolute inset-0 flex items-center justify-center">
