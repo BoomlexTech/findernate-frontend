@@ -103,3 +103,28 @@ export const getTrendingBusinessOwners = async () => {
     const response = await axios.get('/business-owners/trending-business-owners')
     return response
 }
+
+export const getBusinessProfile = async (businessName: string) => {
+    try {
+        // Try to get business profile by name first
+        const response = await axios.get(`/business-owners/profile/${businessName}`);
+        console.log('Business profile API response:', response);
+        
+        // Handle different response structures
+        if (response.data && response.data.data) {
+            return response.data; // Standard structure
+        } else if (response.data) {
+            return { data: response.data }; // Direct data structure
+        } else {
+            throw new Error('Invalid response structure');
+        }
+    } catch (error: any) {
+        console.error('Get business profile error:', {
+            status: error.response?.status,
+            message: error.response?.data?.message,
+            businessName,
+            error: error.message
+        });
+        throw error;
+    }
+}
