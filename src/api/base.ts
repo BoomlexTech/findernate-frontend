@@ -51,18 +51,44 @@ axiosInstance.interceptors.request.use(
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
-    console.error('API Error Interceptor:', {
-      url: error.config?.url,
-      method: error.config?.method,
-      status: error.response?.status,
-      statusText: error.response?.statusText,
-      data: error.response?.data,
-      baseURL: error.config?.baseURL,
-      message: error.message,
-      code: error.code,
-      headers: error.response?.headers,
-      fullError: error
-    });
+    // Safely extract error information to avoid circular reference issues
+    let errorInfo;
+    try {
+      errorInfo = {
+        url: error.config?.url || 'unknown',
+        method: error.config?.method?.toUpperCase() || 'unknown',
+        status: error.response?.status || 'unknown',
+        statusText: error.response?.statusText || 'unknown',
+        data: error.response?.data || 'no data',
+        baseURL: error.config?.baseURL || 'unknown',
+        message: error.message || 'no message',
+        code: error.code || 'no code',
+        // Don't include headers as they might cause circular reference
+        timestamp: new Date().toISOString()
+      };
+    } catch (extractError) {
+      errorInfo = {
+        extractionFailed: true,
+        originalError: 'Failed to extract error details',
+        timestamp: new Date().toISOString()
+      };
+    }
+    
+    console.error('API Error Interceptor:', errorInfo);
+    
+    // Log specific error details for debugging
+    try {
+      if (error.response?.status === 409) {
+        console.warn('Conflict Error (409) - Request:', errorInfo.method, errorInfo.url);
+        console.warn('Response Data:', error.response?.data);
+      } else if (error.response?.status === 401) {
+        console.warn('Authentication Error (401):', errorInfo.url);
+      } else if (error.response?.status === 404) {
+        console.warn('Not Found Error (404):', errorInfo.url);
+      }
+    } catch (logError) {
+      console.error('Error in specific error logging:', logError);
+    }
     
     // // Handle authentication errors
     // if (error.response?.status === 401) {

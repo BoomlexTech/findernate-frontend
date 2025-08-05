@@ -1,12 +1,18 @@
 "use client"
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Play, Volume2, VolumeX } from 'lucide-react';
+import { Play, Volume2, VolumeX, ChevronUp, ChevronDown, Heart } from 'lucide-react';
+import { likeReel, unlikeReel } from '@/api/reels';
 import { getReels } from '@/api/reels';
 
 interface Reel {
-  id: number;
+  id: string;
   videoUrl: string;
   thumbnail: string;
+  username: string;
+  fullName: string;
+  profileImageUrl?: string;
+  likesCount?: number;
+  isLikedByUser?: boolean;
 }
 
 interface ReelsComponentProps {
@@ -20,6 +26,7 @@ const ReelsComponent: React.FC<ReelsComponentProps> = ({ onReelChange }) => {
   const [isMuted, setIsMuted] = useState(true);
   const [reels, setReels] = useState<Reel[]>([]);
   const [loading, setLoading] = useState(false);
+  const [likeLoading, setLikeLoading] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
@@ -31,19 +38,34 @@ const ReelsComponent: React.FC<ReelsComponentProps> = ({ onReelChange }) => {
   // Default fallback videos
   const defaultReelsData: Reel[] = [
     {
-      id: 1,
+      id: "1",
       videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-      thumbnail: ""
+      thumbnail: "",
+      username: "DemoUser",
+      fullName: "Demo User",
+      profileImageUrl: "",
+      likesCount: 0,
+      isLikedByUser: false,
     },
     {
-      id: 2,
+      id: "2",
       videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
-      thumbnail: ""
+      thumbnail: "",
+      username: "DemoUser",
+      fullName: "Demo User",
+      profileImageUrl: "",
+      likesCount: 0,
+      isLikedByUser: false,
     },
     {
-      id: 3,
+      id: "3",
       videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
-      thumbnail: ""
+      thumbnail: "",
+      username: "DemoUser",
+      fullName: "Demo User",
+      profileImageUrl: "",
+      likesCount: 0,
+      isLikedByUser: false,
     }
   ];
 
@@ -56,12 +78,44 @@ const ReelsComponent: React.FC<ReelsComponentProps> = ({ onReelChange }) => {
         console.log('API reels response:', apiReels);
         // Map API response to Reel interface
         const mappedReels: Reel[] = Array.isArray(apiReels)
-          ? apiReels.map((item: any, idx: number) => ({
-              id: idx + 1,
-              videoUrl: item.secure_url || item.url,
-              thumbnail: ''
-            }))
-          : [];
+            ? apiReels.map((item: any) => ({
+                id: item._id,
+                videoUrl: item.media?.[0]?.url || "",
+                thumbnail: item.media?.[0]?.thumbnailUrl || "",
+                username: item.userId?.username || "Unknown User",
+                fullName: item.userId?.fullName || "",
+                profileImageUrl: item.profileImageUrl || "",
+                likesCount: item.engagement?.likes ?? 0,
+                isLikedByUser: item.isLikedBy ?? false,
+              }))
+            : [];
+
+
+  // Like/unlike handlers
+  const handleLike = async (reelId: string, liked: boolean, index: number) => {
+    if (likeLoading) return;
+    setLikeLoading(true);
+    try {
+      if (liked) {
+        await unlikeReel(reelId);
+      } else {
+        await likeReel(reelId);
+      }
+      setReels((prev) => prev.map((reel, i) =>
+        i === index
+          ? {
+              ...reel,
+              isLikedByUser: !liked,
+              likesCount: (reel.likesCount || 0) + (liked ? -1 : 1),
+            }
+          : reel
+      ));
+    } catch (err) {
+      // Optionally show error
+    } finally {
+      setLikeLoading(false);
+    }
+  };
         setReels(mappedReels.length > 0 ? mappedReels : defaultReelsData);
       } catch (err) {
         console.log(err);
@@ -243,6 +297,35 @@ const ReelsComponent: React.FC<ReelsComponentProps> = ({ onReelChange }) => {
 
   return (
     <div className="relative w-96 mx-auto aspect-[9/16] rounded-2xl bg-black overflow-hidden shadow-2xl flex-shrink-0">
+      {/* Up/Down Scroll Buttons */}
+      <button
+        className="absolute right-2 top-1/3 z-40 bg-black/40 hover:bg-black/80 text-white rounded-full p-2 shadow-lg transition-colors disabled:opacity-40"
+        style={{ transform: 'translateY(-50%)' }}
+        onClick={() => {
+          if (currentIndex > 0) {
+            setCurrentIndex(currentIndex - 1);
+            scrollToReel(currentIndex - 1);
+          }
+        }}
+        disabled={currentIndex === 0}
+        aria-label="Scroll Up"
+      >
+        <ChevronUp size={28} />
+      </button>
+      <button
+        className="absolute right-2 bottom-1/3 z-40 bg-black/40 hover:bg-black/80 text-white rounded-full p-2 shadow-lg transition-colors disabled:opacity-40"
+        style={{ transform: 'translateY(50%)' }}
+        onClick={() => {
+          if (currentIndex < reels.length - 1) {
+            setCurrentIndex(currentIndex + 1);
+            scrollToReel(currentIndex + 1);
+          }
+        }}
+        disabled={currentIndex === reels.length - 1}
+        aria-label="Scroll Down"
+      >
+        <ChevronDown size={28} />
+      </button>
       {loading && reels.length === 0 && (
         <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-60 z-30">
           <div className="text-white text-lg">Loading reels...</div>
@@ -310,6 +393,20 @@ const ReelsComponent: React.FC<ReelsComponentProps> = ({ onReelChange }) => {
               </div>
             )}
 
+            {/* Like button and count */}
+            <div className="absolute bottom-24 right-4 z-20 flex flex-col items-center gap-2">
+              <button
+                className={`p-2 rounded-full bg-black/40 hover:bg-black/80 text-white shadow-lg transition-colors ${reel.isLikedByUser ? 'text-red-500' : ''}`}
+                onClick={() => handleLike(reel.id, !!reel.isLikedByUser, index)}
+                disabled={likeLoading}
+                aria-label={reel.isLikedByUser ? 'Unlike' : 'Like'}
+              >
+                <Heart size={32} fill={reel.isLikedByUser ? 'currentColor' : 'none'} />
+              </button>
+              <span className="text-white text-sm font-semibold drop-shadow-md select-none">
+                {reel.likesCount ?? 0}
+              </span>
+            </div>
 
             {/* Top controls - Only mute button */}
             <div className="absolute top-4 right-4 z-10">
