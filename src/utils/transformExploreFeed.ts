@@ -125,7 +125,10 @@ export function transformExploreFeedToFeedPost(items: RawExploreFeedItem[]): Fee
         _id: item._id,
         username: userInfo.username,
         profileImageUrl: userInfo.profileImageUrl,
-        userId: typeof item.userId === 'object' ? item.userId : undefined, // Preserve original userId object
+        userId: typeof item.userId === 'object' ? {
+          ...item.userId,
+          profileImageUrl: item.userId.profileImageUrl || '/default-avatar.png'
+        } : undefined,
         description: item.caption || '',
         caption: item.caption || '',
         contentType: 'reel',
@@ -168,7 +171,10 @@ export function transformExploreFeedToFeedPost(items: RawExploreFeedItem[]): Fee
       _id: item._id,
       username: userInfo.username,
       profileImageUrl: userInfo.profileImageUrl,
-      userId: typeof item.userId === 'object' ? item.userId : undefined, // Preserve original userId object
+      userId: typeof item.userId === 'object' ? {
+        ...item.userId,
+        profileImageUrl: item.userId.profileImageUrl || '/default-avatar.png'
+      } : undefined,
       description: item.description || item.caption || '',
       caption: item.caption || '',
       contentType: item.contentType || 'normal',
