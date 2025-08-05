@@ -7,7 +7,7 @@ import React, { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { createComment } from '@/api/comment'
 import { getReels } from '@/api/reels'
-import { Heart, Share2, MoreVertical, Bookmark } from 'lucide-react'
+import { Heart, MoreVertical, Bookmark } from 'lucide-react'
 
 const Page = () => {
   const [currentReelIndex, setCurrentReelIndex] = useState(0);
@@ -405,7 +405,13 @@ const Page = () => {
               onClick={handleShareClick}
               className="flex items-center space-x-2 p-2 rounded-lg text-gray-600 hover:text-green-500 hover:bg-gray-100 transition-colors"
             >
-              <Share2 className="w-6 h-6" />
+              <Image 
+                src="/reply.png" 
+                alt="Share" 
+                width={24} 
+                height={24} 
+                className="w-6 h-6"
+              />
               <span className="text-sm font-medium">{formatNumber(currentModalData.engagement?.shares || 0)}</span>
             </button>
           </div>

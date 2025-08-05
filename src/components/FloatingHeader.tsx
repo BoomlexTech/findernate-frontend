@@ -1,6 +1,8 @@
 import { getUserProfile } from '@/api/user';
 import Image from 'next/image';
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react';
+import { Plus } from 'lucide-react';
+import Link from 'next/link';
 
 type floatingHeaderProps = {
     paragraph: string;
@@ -8,13 +10,15 @@ type floatingHeaderProps = {
     username: string;
     accountBadge: boolean;
     width?: string;
+    showCreateButton?: boolean;
+    onCreateClick?: () => void;
 }
 interface profileProps{
   fullName: string;
   profileImageUrl: string;
 }
 
-const FloatingHeader = ({paragraph, heading, username, accountBadge, width=""}: floatingHeaderProps) => {
+const FloatingHeader = ({paragraph, heading, username, accountBadge, width="", showCreateButton = false, onCreateClick}: floatingHeaderProps) => {
   const [profile, setProfile] = useState<profileProps | null>(null);
 
 
@@ -23,7 +27,8 @@ const FloatingHeader = ({paragraph, heading, username, accountBadge, width=""}: 
         const fetchProfile = async () => {
           try{
             const data = await getUserProfile();
-            setProfile(data)
+            console.log(data)
+            setProfile(data.userId)
           } catch(err){
             console.log(err)
           }
@@ -41,27 +46,46 @@ const FloatingHeader = ({paragraph, heading, username, accountBadge, width=""}: 
               </p>
             </div>
     
-            {/* Right Profile Info */}
-            <div className="flex items-center space-x-3">
+            {/* Right Content */}
+            <div className="flex items-center space-x-4">
+              {/* Create Post Button */}
+              {showCreateButton && (
+                <button 
+                  onClick={onCreateClick}
+                  className="flex items-center gap-2 bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 text-sm transition-colors"
+                >
+                  <Plus className="w-4 h-4" /> Create Post
+                </button>
+              )}
               
-              <div className="flex flex-col items-end">
-                <span className="font-medium text-gray-900">{profile?.fullName}</span>
-                {accountBadge && (
-                  <span
-                    className="text-gray-400 text-xs">
-                    {"Business Account"}
-                  </span>
+              {/* Profile Info */}
+              <div className="flex items-center space-x-3">
+                <div className="flex flex-col items-end">
+                  <span className="font-medium text-gray-900">{profile?.fullName}</span>
+                  {accountBadge && (
+                    <span className="text-gray-400 text-xs">
+                      {"Business Account"}
+                    </span>
+                  )}
+                </div>
+                 <Link href={'/profile'}>
+                {profile?.profileImageUrl ? (
+                  <Image
+                    src={profile?.profileImageUrl}
+                    alt={username}
+                    width={40}
+                    height={40}
+                    className="w-10 h-10 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center">
+                    <span className="text-white font-bold">
+                      {profile?.fullName?.charAt(0)?.toUpperCase() || 'U'}
+                    </span>
+                  </div>
                 )}
+                 </Link>
               </div>
-              {profile?.profileImageUrl &&
-               <Image
-                src={profile?.profileImageUrl}
-                alt={username}
-                width={40}
-                height={40}
-                className="w-10 h-10 rounded-full object-cover"
-              />}
-             
             </div>
     
           </div>
