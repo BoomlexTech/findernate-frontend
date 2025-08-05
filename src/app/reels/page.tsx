@@ -402,7 +402,7 @@ const Page = () => {
             </button>
             
             <button 
-              onClick={handleShareClick}
+              // onClick={handleShareClick}
               className="flex items-center space-x-2 p-2 rounded-lg text-gray-600 hover:text-green-500 hover:bg-gray-100 transition-colors"
             >
               <Image 
@@ -412,7 +412,7 @@ const Page = () => {
                 height={24} 
                 className="w-6 h-6"
               />
-              <span className="text-sm font-medium">{formatNumber(currentModalData.engagement?.shares || 0)}</span>
+              {/* <span className="text-sm font-medium">{formatNumber(currentModalData.engagement?.shares || 0)}</span> */}
             </button>
           </div>
         </div>

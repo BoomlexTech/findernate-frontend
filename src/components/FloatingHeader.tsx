@@ -49,14 +49,14 @@ const FloatingHeader = ({paragraph, heading, username, accountBadge, width="", s
             {/* Right Content */}
             <div className="flex items-center space-x-4">
               {/* Create Post Button */}
-              {showCreateButton && (
+              {/* {showCreateButton && (
                 <button 
                   onClick={onCreateClick}
                   className="flex items-center gap-2 bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 text-sm transition-colors"
                 >
                   <Plus className="w-4 h-4" /> Create Post
                 </button>
-              )}
+              )} */}
               
               {/* Profile Info */}
               <div className="flex items-center space-x-3">
