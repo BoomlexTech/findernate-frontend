@@ -56,12 +56,54 @@ const ReelsComponent: React.FC<ReelsComponentProps> = ({ onReelChange }) => {
         console.log('API reels response:', apiReels);
         // Map API response to Reel interface
         const mappedReels: Reel[] = Array.isArray(apiReels)
+<<<<<<< Updated upstream
           ? apiReels.map((item: any, idx: number) => ({
               id: idx + 1,
               videoUrl: item.secure_url || item.url,
               thumbnail: ''
             }))
           : [];
+=======
+            ? apiReels.map((item: any) => ({
+                id: item._id,
+                videoUrl: item.media?.[0]?.url || "",
+                thumbnail: item.media?.[0]?.thumbnailUrl || "",
+                username: item.userId?.username || "Unknown User",
+                fullName: item.userId?.fullName || "",
+                profileImageUrl: item.profileImageUrl || "",
+                likesCount: item.engagement?.likes ?? 0,
+                isLikedByUser: item.isLikedBy ?? false,
+              }))
+            : [];
+
+
+  // Like/unlike handlers
+  const handleLike = async (reelId: string, liked: boolean, index: number) => {
+    if (likeLoading) return;
+    setLikeLoading(true);
+    try {
+      if (liked) {
+        await unlikeReel(reelId);
+      } else {
+        await likeReel(reelId);
+      }
+      setReels((prev) => prev.map((reel, i) =>
+        i === index
+          ? {
+              ...reel,
+              isLikedByUser: !liked,
+              likesCount: (reel.likesCount || 0) + (liked ? -1 : 1),
+            }
+          : reel
+      ));
+    } catch (err) {
+      // Optionally show error
+    } finally {
+      setLikeLoading(false);
+    }
+  };
+
+>>>>>>> Stashed changes
         setReels(mappedReels.length > 0 ? mappedReels : defaultReelsData);
       } catch (err) {
         console.log(err);
@@ -291,6 +333,7 @@ const ReelsComponent: React.FC<ReelsComponentProps> = ({ onReelChange }) => {
 
             {/* Overlay gradient */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+
 
             {/* Play/Pause button */}
             {!isPlaying && (

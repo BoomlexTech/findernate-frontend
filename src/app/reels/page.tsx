@@ -14,6 +14,82 @@ const Page = () => {
   const [reelsData, setReelsData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+<<<<<<< Updated upstream
+=======
+  // Local storage keys for persisting states
+  const LIKES_STORAGE_KEY = 'findernate-reel-likes';
+  const LIKE_COUNTS_STORAGE_KEY = 'findernate-reel-like-counts';
+  const FOLLOW_STORAGE_KEY = 'findernate-reel-follows';
+
+  // Helper functions for localStorage
+  const getLikedReelsFromStorage = (): Set<string> => {
+    try {
+      const stored = localStorage.getItem(LIKES_STORAGE_KEY);
+      return stored ? new Set(JSON.parse(stored)) : new Set();
+    } catch {
+      return new Set();
+    }
+  };
+
+  const getLikeCountsFromStorage = (): Map<string, number> => {
+    try {
+      const stored = localStorage.getItem(LIKE_COUNTS_STORAGE_KEY);
+      return stored ? new Map(Object.entries(JSON.parse(stored)).map(([k, v]) => [k, Number(v)])) : new Map();
+    } catch {
+      return new Map();
+    }
+  };
+
+  const saveLikedReelToStorage = (reelId: string, isLiked: boolean, likeCount?: number) => {
+    try {
+      const likedReels = getLikedReelsFromStorage();
+      const likeCounts = getLikeCountsFromStorage();
+      
+      if (isLiked) {
+        likedReels.add(reelId);
+      } else {
+        likedReels.delete(reelId);
+      }
+      
+      if (likeCount !== undefined) {
+        likeCounts.set(reelId, likeCount);
+      }
+      
+      localStorage.setItem(LIKES_STORAGE_KEY, JSON.stringify([...likedReels]));
+      localStorage.setItem(LIKE_COUNTS_STORAGE_KEY, JSON.stringify(Object.fromEntries(likeCounts)));
+    } catch (error) {
+      console.warn('Failed to save like state to localStorage:', error);
+    }
+  };
+
+  // Helper functions for follow states
+  const getFollowedUsersFromStorage = (): Set<string> => {
+    try {
+      const stored = localStorage.getItem(FOLLOW_STORAGE_KEY);
+      return stored ? new Set(JSON.parse(stored)) : new Set();
+    } catch {
+      return new Set();
+    }
+  };
+
+  const saveFollowStateToStorage = (userId: string, isFollowed: boolean) => {
+    try {
+      const followedUsers = getFollowedUsersFromStorage();
+      
+      if (isFollowed) {
+        followedUsers.add(userId);
+      } else {
+        followedUsers.delete(userId);
+      }
+      
+      localStorage.setItem(FOLLOW_STORAGE_KEY, JSON.stringify([...followedUsers]));
+      console.log('Saved follow state to localStorage:', { userId, isFollowed });
+    } catch (error) {
+      console.warn('Failed to save follow state to localStorage:', error);
+    }
+  };
+
+>>>>>>> Stashed changes
   // Fetch reels data from API
   useEffect(() => {
     const fetchReels = async () => {
@@ -24,7 +100,46 @@ const Page = () => {
         
         // Transform API response to match expected format
         const transformedData = response.reels?.map((item: any) => {
+<<<<<<< Updated upstream
           const userDetail = item.userDetails?.[0] || {};
+=======
+          // Use userId object directly from API response
+          const userObj = item.userId || {};
+          
+          // Check localStorage for like status and counts
+          const likedReels = getLikedReelsFromStorage();
+          const likeCounts = getLikeCountsFromStorage();
+          const isLikedFromStorage = likedReels.has(item._id);
+          const likeCountFromStorage = likeCounts.get(item._id);
+          
+          // Check localStorage for follow status
+          const followedUsers = getFollowedUsersFromStorage();
+          const userIdToCheck = userObj._id || '';
+          const isFollowedFromStorage = followedUsers.has(userIdToCheck);
+          
+          // Use localStorage data if available, otherwise use API data
+          const finalIsLiked = isLikedFromStorage || Boolean(item.isLikedBy || item.isLikedByUser || false);
+          const finalLikeCount = likeCountFromStorage !== undefined ? likeCountFromStorage : (item.engagement?.likes || item.likesCount || 0);
+          const finalIsFollowed = isFollowedFromStorage || Boolean(item.isFollowed || item.isFollowedByUser || false);
+          
+          console.log('Transforming reel item:', {
+            id: item._id,
+            originalLikes: item.engagement?.likes,
+            originalLikesCount: item.likesCount,
+            originalIsLikedBy: item.isLikedBy,
+            originalIsLikedByUser: item.isLikedByUser,
+            isLikedFromStorage,
+            likeCountFromStorage,
+            finalIsLiked,
+            finalLikeCount,
+            userId: item.userId,
+            userObj: userObj,
+            isFollowed: item.isFollowed,
+            isFollowedByUser: item.isFollowedByUser,
+            isFollowedFromStorage,
+            finalIsFollowed
+          });
+>>>>>>> Stashed changes
           
           return {
             _id: item._id,
@@ -42,8 +157,13 @@ const Page = () => {
             createdAt: item.createdAt,
             media: item.media || [],
             hashtags: item.hashtags || [],
+<<<<<<< Updated upstream
             isLikedBy: item.isLikedBy || false,
             isFollowed: item.isFollowed || false,
+=======
+            isLikedBy: finalIsLiked,
+            isFollowed: finalIsFollowed,
+>>>>>>> Stashed changes
             likedBy: item.likedBy || [],
             engagement: {
               comments: item.engagement?.comments || 0,
@@ -172,6 +292,119 @@ const Page = () => {
   const [isLiked, setIsLiked] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
+<<<<<<< Updated upstream
+=======
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [isFollowed, setIsFollowed] = useState(false);
+  const [isProcessing, setIsProcessing] = useState({
+    like: false,
+    save: false,
+    follow: false,
+    comment: false
+  });
+
+  const showToastMessage = (message: string) => {
+    setToastMessage(message);
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 3000);
+  };
+
+  const updateReelInState = (reelId: string, updates: any) => {
+    setReelsData(prevData => 
+      prevData.map(reel => 
+        reel._id === reelId 
+          ? { ...reel, ...updates }
+          : reel
+      )
+    );
+  };
+
+  const refreshCurrentReel = async () => {
+    try {
+      const response = await getReels();
+      const transformedData = response.reels?.map((item: any) => {
+        const userObj = item.userId || {};
+        
+        // Check localStorage for like status and counts
+        const likedReels = getLikedReelsFromStorage();
+        const likeCounts = getLikeCountsFromStorage();
+        const isLikedFromStorage = likedReels.has(item._id);
+        const likeCountFromStorage = likeCounts.get(item._id);
+        
+        // Check localStorage for follow status
+        const followedUsers = getFollowedUsersFromStorage();
+        const userIdToCheck = userObj._id || '';
+        const isFollowedFromStorage = followedUsers.has(userIdToCheck);
+        
+        // Use localStorage data if available, otherwise use API data
+        const finalIsLiked = isLikedFromStorage || Boolean(item.isLikedBy || item.isLikedByUser || false);
+        const finalLikeCount = likeCountFromStorage !== undefined ? likeCountFromStorage : (item.engagement?.likes || item.likesCount || 0);
+        const finalIsFollowed = isFollowedFromStorage || Boolean(item.isFollowed || item.isFollowedByUser || false);
+        
+        console.log('Refreshing reel item:', {
+          id: item._id,
+          originalLikes: item.engagement?.likes,
+          originalLikesCount: item.likesCount,
+          originalIsLikedBy: item.isLikedBy,
+          originalIsLikedByUser: item.isLikedByUser,
+          isLikedFromStorage,
+          likeCountFromStorage,
+          finalIsLiked,
+          finalLikeCount,
+          isFollowedFromStorage,
+          finalIsFollowed
+        });
+        
+        return {
+          _id: item._id,
+          userId: {
+            _id: userObj._id || '',
+            username: userObj.username || 'Unknown User',
+            profileImageUrl: item.profileImageUrl || '/placeholderimg.png',
+          },
+          username: userObj.username || 'Unknown User',
+          profileImageUrl: item.profileImageUrl || '/placeholderimg.png',
+          description: item.description || '',
+          caption: item.caption || '',
+          contentType: item.contentType || 'normal',
+          postType: item.postType || 'photo',
+          createdAt: item.createdAt,
+          media: item.media || [],
+          hashtags: item.hashtags || [],
+          isLikedBy: finalIsLiked,
+          isFollowed: finalIsFollowed,
+          likedBy: item.likedBy || [],
+          engagement: {
+            comments: item.engagement?.comments || 0,
+            impressions: item.engagement?.impressions || 0,
+            likes: finalLikeCount,
+            reach: item.engagement?.reach || 0,
+            saves: item.engagement?.saves || 0,
+            shares: item.engagement?.shares || 0,
+            views: item.engagement?.views || 0,
+          },
+          location: item.location || null,
+          tags: item.hashtags || [],
+          customization: item.customization || null,
+        };
+      }) || [];
+      
+      setReelsData(transformedData);
+      
+      // Update local state to match server state
+      const currentData = transformedData[currentReelIndex % transformedData.length];
+      if (currentData) {
+        setCommentsCount(currentData.engagement?.comments || 0);
+        setLikesCount(currentData.engagement?.likes || 0);
+        setIsLiked(currentData.isLikedBy || false);
+        setIsFollowed(currentData.isFollowed || false);
+      }
+    } catch (error) {
+      console.error('Error refreshing reel data:', error);
+    }
+  };
+>>>>>>> Stashed changes
 
   // Get current modal data based on reel index
   const getCurrentModalData = () => {
@@ -222,11 +455,70 @@ const Page = () => {
       const currentData = getCurrentModalData();
       setCommentsCount(currentData.engagement?.comments || 0);
       setLikesCount(currentData.engagement?.likes || 0);
+<<<<<<< Updated upstream
       setIsLiked(currentData.isLikedBy || false);
       setIsSaved(false); // You might want to check saved status from API
     }
   }, [currentReelIndex, reelsData]);
 
+=======
+      setIsLiked(Boolean(currentData.isLikedBy));
+      
+      // Debug follow state initialization
+      console.log('=== FOLLOW STATE INIT ===');
+      console.log('currentData.isFollowed:', currentData.isFollowed);
+      console.log('Boolean(currentData.isFollowed):', Boolean(currentData.isFollowed));
+      console.log('Setting isFollowed to:', Boolean(currentData.isFollowed));
+      console.log('=== END FOLLOW STATE INIT ===');
+      
+      setIsFollowed(Boolean(currentData.isFollowed));
+      setIsSaved(false); // Reset save state when changing reels
+      
+      // Fetch top 4 comments for the current reel
+      getCommentsByPost(currentData._id, 1, 4)
+        .then((data) => {
+          setComments(Array.isArray(data.comments) ? data.comments : []);
+        })
+        .catch(() => setComments([]));
+    } else {
+      // Fallback to static data if no API data available
+      const staticData = staticModalData[currentReelIndex % staticModalData.length];
+      setCommentsCount(staticData.engagement?.comments || 0);
+      setLikesCount(staticData.engagement?.likes || 0);
+      setIsLiked(Boolean(staticData.isLikedBy));
+      setIsFollowed(false); // Static data doesn't have follow status
+      setIsSaved(false);
+    }
+  }, [currentReelIndex, reelsData]);
+
+  // Initialize state when reelsData first loads
+  useEffect(() => {
+    if (reelsData.length > 0 && !loading) {
+      console.log('Initializing state with fresh reels data');
+      const currentData = getCurrentModalData();
+      console.log('Initial data:', {
+        id: currentData._id,
+        likes: currentData.engagement?.likes,
+        isLikedBy: currentData.isLikedBy,
+        isFollowed: currentData.isFollowed
+      });
+      
+      // Force state update to match server data
+      setLikesCount(currentData.engagement?.likes || 0);
+      setIsLiked(Boolean(currentData.isLikedBy));
+      setCommentsCount(currentData.engagement?.comments || 0);
+      
+      // Debug follow state in initialization
+      console.log('=== INIT FOLLOW STATE ===');
+      console.log('currentData.isFollowed:', currentData.isFollowed);
+      console.log('Setting isFollowed to:', Boolean(currentData.isFollowed));
+      console.log('=== END INIT FOLLOW STATE ===');
+      
+      setIsFollowed(Boolean(currentData.isFollowed));
+    }
+  }, [reelsData, loading]);
+
+>>>>>>> Stashed changes
   // Use current modal data for comment operations
   const currentModalData = getCurrentModalData();
 
@@ -245,6 +537,122 @@ const Page = () => {
     }
   };
 
+<<<<<<< Updated upstream
+=======
+  const handleFollowToggle = async () => {
+    const currentData = getCurrentModalData();
+    
+    // Debug logging to check userId
+    console.log('=== FOLLOW DEBUG START ===');
+    console.log('Follow toggle - currentData:', JSON.stringify(currentData, null, 2));
+    console.log('Follow toggle - userId object:', currentData.userId);
+    console.log('Follow toggle - userId._id:', currentData.userId?._id);
+    console.log('Follow toggle - currentData.userId type:', typeof currentData.userId);
+    
+    // Try multiple ways to extract userId
+    let targetUserId = null;
+    
+    if (currentData.userId && typeof currentData.userId === 'object' && currentData.userId._id) {
+      targetUserId = currentData.userId._id;
+      console.log('Using userId._id:', targetUserId);
+    } else if (typeof currentData.userId === 'string') {
+      targetUserId = currentData.userId;
+      console.log('Using userId as string:', targetUserId);
+    } else {
+      console.error('Cannot extract userId from:', currentData.userId);
+    }
+    
+    if (!targetUserId || targetUserId === '' || targetUserId === 'undefined') {
+      console.error('No valid userId found for follow action');
+      console.log('targetUserId value:', targetUserId);
+      showToastMessage('Unable to follow: Invalid user data');
+      return;
+    }
+    
+    console.log('Follow toggle - final userId:', targetUserId);
+    console.log('=== FOLLOW DEBUG END ===');
+    
+    // Optimistic update
+    const newIsFollowed = !isFollowed;
+    setIsFollowed(newIsFollowed);
+    
+    updateReelInState(currentData._id, {
+      isFollowed: newIsFollowed
+    });
+
+    try {
+      if (newIsFollowed) {
+        console.log('Calling followUser with:', targetUserId);
+        await followUser(targetUserId);
+        // Save to localStorage for persistence
+        saveFollowStateToStorage(targetUserId, true);
+        showToastMessage(`Now following @${currentData.username}!`);
+      } else {
+        console.log('Calling unfollowUser with:', targetUserId);
+        await unfollowUser(targetUserId);
+        // Save to localStorage for persistence
+        saveFollowStateToStorage(targetUserId, false);
+        showToastMessage(`Unfollowed @${currentData.username}`);
+      }
+    } catch (error: any) {
+      // Revert optimistic update on error
+      setIsFollowed(!newIsFollowed);
+      
+      updateReelInState(currentData._id, {
+        isFollowed: !newIsFollowed
+      });
+      
+      console.error('Error toggling follow:', error);
+      console.error('Error response:', error.response);
+      console.error('Error response data:', error.response?.data);
+      console.error('Error response status:', error.response?.status);
+      
+      // Handle specific error codes
+      if (error.response?.status === 409) {
+        showToastMessage('Follow status already updated. Refreshing...');
+        setTimeout(() => refreshCurrentReel(), 1000);
+      } else if (error.response?.status === 401) {
+        showToastMessage('Please sign in to follow users');
+      } else if (error.response?.status === 404) {
+        showToastMessage('User not found');
+      } else if (error.response?.status === 400) {
+        const errorMessage = error.response?.data?.message || '';
+        if (errorMessage.includes('yourself')) {
+          showToastMessage("You can't follow yourself");
+        } else if (errorMessage.includes('Already following')) {
+          // If already following, sync the state to match reality
+          console.log('Already following - syncing state to followed');
+          console.log('Before sync - isFollowed state:', isFollowed);
+          setIsFollowed(true);
+          updateReelInState(currentData._id, {
+            isFollowed: true
+          });
+          // Save to localStorage for persistence
+          saveFollowStateToStorage(targetUserId, true);
+          console.log('After sync - should be true');
+          showToastMessage(`Already following @${currentData.username}!`);
+          return; // Don't revert the optimistic update
+        } else if (errorMessage.includes('not following') || errorMessage.includes('Not following')) {
+          // If not following when trying to unfollow, sync the state
+          console.log('Not following - syncing state to unfollowed');
+          setIsFollowed(false);
+          updateReelInState(currentData._id, {
+            isFollowed: false
+          });
+          // Save to localStorage for persistence
+          saveFollowStateToStorage(targetUserId, false);
+          showToastMessage(`Not following @${currentData.username}`);
+          return; // Don't revert the optimistic update
+        } else {
+          showToastMessage(`Follow error: ${errorMessage || 'Invalid request'}`);
+        }
+      } else {
+        showToastMessage('Failed to update follow status. Please try again.');
+      }
+    }
+  };
+
+>>>>>>> Stashed changes
   const handleCommentCountChange = (newCount: number) => {
     setCommentsCount(newCount);
   };
@@ -325,8 +733,26 @@ const Page = () => {
             <div className="flex-1">
               <span className="font-semibold text-lg text-gray-900">@{currentModalData.username || 'Unknown User'}</span>
             </div>
+<<<<<<< Updated upstream
             <button className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 rounded-full text-sm font-semibold text-white transition-colors mr-2">
               {currentModalData.isFollowed ? 'Following' : 'Follow'}
+=======
+            <button 
+              onClick={() => {
+                console.log('=== BUTTON CLICK DEBUG ===');
+                console.log('Current isFollowed state:', isFollowed);
+                console.log('Button should show:', isFollowed ? 'Following' : 'Follow');
+                console.log('=== END BUTTON CLICK DEBUG ===');
+                handleFollowToggle();
+              }}
+              className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors mr-2 ${
+                isFollowed 
+                  ? 'bg-gray-200 hover:bg-gray-300 text-gray-800' 
+                  : 'bg-yellow-500 hover:bg-yellow-600 text-white'
+              }`}
+            >
+              {isFollowed ? 'Following' : 'Follow'}
+>>>>>>> Stashed changes
             </button>
             
             {/* Three dots menu */}
