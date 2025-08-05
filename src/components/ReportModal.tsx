@@ -49,13 +49,30 @@ export default function ReportModal({
       return;
     }
 
+    // Validate description
+    const trimmedDescription = reportDescription.trim();
+    if (!trimmedDescription) {
+      alert('Please provide a description for your report');
+      return;
+    }
+
+    if (trimmedDescription.length < 10) {
+      alert('Description must be at least 10 characters long');
+      return;
+    }
+
+    if (trimmedDescription.length > 500) {
+      alert('Description must not exceed 500 characters');
+      return;
+    }
+
     setIsReporting(true);
     try {
       await reportContent({
         type: contentType,
         contentId,
         reason: reportReason as ReportRequest['reason'],
-        description: reportDescription.trim() || undefined
+        description: trimmedDescription
       });
       
       alert(`${getContentTypeLabel()} reported successfully`);
@@ -83,7 +100,7 @@ export default function ReportModal({
   };
 
   const getPlaceholderText = () => {
-    return `Provide more details about why you're reporting this ${contentType}...`;
+    return `Please describe why you're reporting this ${contentType} (minimum 10 characters)...`;
   };
 
   if (!isOpen) return null;
@@ -123,7 +140,7 @@ export default function ReportModal({
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Additional details (optional)
+              Description <span className="text-red-500">*</span>
             </label>
             <textarea
               value={reportDescription}
@@ -132,7 +149,23 @@ export default function ReportModal({
               className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent resize-none text-gray-900 bg-white placeholder-gray-500"
               rows={3}
               disabled={isReporting}
+              maxLength={500}
+              required
             />
+            <div className="flex justify-between text-xs text-gray-500 mt-1">
+              <span>
+                {reportDescription.trim().length < 10 && reportDescription.trim().length > 0 ? (
+                  <span className="text-red-500">
+                    Minimum 10 characters required
+                  </span>
+                ) : (
+                  "Minimum 10 characters"
+                )}
+              </span>
+              <span className={reportDescription.length > 450 ? "text-red-500" : ""}>
+                {reportDescription.length}/500
+              </span>
+            </div>
           </div>
         </div>
 
@@ -147,7 +180,7 @@ export default function ReportModal({
           </Button>
           <Button
             onClick={handleReport}
-            disabled={!reportReason || isReporting}
+            disabled={!reportReason || !reportDescription.trim() || reportDescription.trim().length < 10 || isReporting}
             className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isReporting ? 'Reporting...' : 'Report'}

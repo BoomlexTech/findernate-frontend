@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { X, UserPlus, UserMinus } from 'lucide-react';
+import { X } from 'lucide-react';
 import Image from 'next/image';
-import { getFollowers, getFollowing, followUser, unfollowUser } from '@/api/user';
+import { getFollowers, getFollowing } from '@/api/user';
 import { useRouter } from 'next/navigation';
 import { useUserStore } from '@/store/useUserStore';
 
@@ -34,9 +34,13 @@ const FollowersModal: React.FC<FollowersModalProps> = ({
   const [followers, setFollowers] = useState<User[]>([]);
   const [following, setFollowing] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
-  const [followingLoading, setFollowingLoading] = useState<Set<string>>(new Set());
   const router = useRouter();
   const { user: currentUser } = useUserStore();
+
+  // Update activeTab when initialTab prop changes
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
 
   const getInitials = (name: string) => {
     if (!name || typeof name !== 'string') return '??';
@@ -88,45 +92,6 @@ const FollowersModal: React.FC<FollowersModalProps> = ({
     setActiveTab(tab);
   };
 
-  const handleFollowToggle = async (targetUserId: string) => {
-    if (!currentUser || followingLoading.has(targetUserId)) return;
-
-    setFollowingLoading(prev => new Set(prev).add(targetUserId));
-    
-    try {
-      const isCurrentlyFollowing = (activeTab === 'followers' ? followers : following)
-        .find(user => user._id === targetUserId)?.isFollowing;
-
-      if (isCurrentlyFollowing) {
-        await unfollowUser(targetUserId);
-      } else {
-        await followUser(targetUserId);
-      }
-
-      // Update the local state
-      const updateUserInList = (users: User[]) =>
-        users.map(user =>
-          user._id === targetUserId
-            ? { ...user, isFollowing: !isCurrentlyFollowing }
-            : user
-        );
-
-      if (activeTab === 'followers') {
-        setFollowers(updateUserInList);
-      } else {
-        setFollowing(updateUserInList);
-      }
-    } catch (error) {
-      console.error('Error toggling follow status:', error);
-    } finally {
-      setFollowingLoading(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(targetUserId);
-        return newSet;
-      });
-    }
-  };
-
   const handleUserClick = (clickedUsername: string) => {
     if (!clickedUsername) return;
     onClose();
@@ -156,16 +121,6 @@ const FollowersModal: React.FC<FollowersModalProps> = ({
         {/* Tabs */}
         <div className="flex border-b">
           <button
-            onClick={() => handleTabChange('followers')}
-            className={`flex-1 py-3 px-4 text-sm font-medium transition-colors ${
-              activeTab === 'followers'
-                ? 'text-yellow-600 border-b-2 border-yellow-600'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            Followers
-          </button>
-          <button
             onClick={() => handleTabChange('following')}
             className={`flex-1 py-3 px-4 text-sm font-medium transition-colors ${
               activeTab === 'following'
@@ -174,6 +129,16 @@ const FollowersModal: React.FC<FollowersModalProps> = ({
             }`}
           >
             Following
+          </button>
+          <button
+            onClick={() => handleTabChange('followers')}
+            className={`flex-1 py-3 px-4 text-sm font-medium transition-colors ${
+              activeTab === 'followers'
+                ? 'text-yellow-600 border-b-2 border-yellow-600'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Followers
           </button>
         </div>
 
@@ -192,7 +157,7 @@ const FollowersModal: React.FC<FollowersModalProps> = ({
           ) : (
             <div className="p-4 space-y-3">
               {currentList.filter(user => user && user._id).map((user) => (
-                <div key={user._id} className="flex items-center justify-between">
+                <div key={user._id} className="flex items-center">
                   <div 
                     className="flex items-center gap-3 cursor-pointer flex-1"
                     onClick={() => handleUserClick(user.username)}
@@ -219,33 +184,6 @@ const FollowersModal: React.FC<FollowersModalProps> = ({
                       </p>
                     </div>
                   </div>
-
-                  {/* Follow/Unfollow button - only show if not current user */}
-                  {currentUser && user._id !== currentUser._id && (
-                    <button
-                      onClick={() => handleFollowToggle(user._id)}
-                      disabled={followingLoading.has(user._id)}
-                      className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-1 ${
-                        user.isFollowing
-                          ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                          : 'bg-yellow-500 text-white hover:bg-yellow-600'
-                      }`}
-                    >
-                      {followingLoading.has(user._id) ? (
-                        <div className="w-4 h-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                      ) : user.isFollowing ? (
-                        <>
-                          <UserMinus className="w-4 h-4" />
-                          Unfollow
-                        </>
-                      ) : (
-                        <>
-                          <UserPlus className="w-4 h-4" />
-                          Follow
-                        </>
-                      )}
-                    </button>
-                  )}
                 </div>
               ))}
             </div>
