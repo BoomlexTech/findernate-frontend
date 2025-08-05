@@ -193,3 +193,7 @@ export const unsavePost = async (postId: string) => {
 }
 
 // Note: Use getSavedPost() to get all saved posts and check if postId exists in the list
+export const deletePost = async (postId: string) => {
+  const response = await axios.delete(`/posts/${postId}`)
+  return response.data
+}

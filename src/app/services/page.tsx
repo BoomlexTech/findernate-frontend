@@ -3,10 +3,13 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Plus, Bell } from 'lucide-react';
 import PostCard from '@/components/PostCard';
+import CreatePostModal from '@/components/CreatePostModal';
 import { getExploreFeed } from '@/api/exploreFeed';
 import { transformExploreFeedToFeedPost } from '@/utils/transformExploreFeed';
 import { searchAllContent } from '@/api/search';
+import { getUserProfile } from '@/api/user';
 import { FeedPost } from '@/types';
+import Image from 'next/image';
 
 const ServicesPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -20,6 +23,29 @@ const ServicesPage = () => {
   const [page, setPage] = useState(1);
   const [hasNextPage, setHasNextPage] = useState(true);
   const [isSearchMode, setIsSearchMode] = useState(false);
+  const [showCreatePostModal, setShowCreatePostModal] = useState(false);
+  const [profileImageError, setProfileImageError] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [userLoading, setUserLoading] = useState(true);
+
+  // Fetch user profile
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        setUserLoading(true);
+        const userData = await getUserProfile();
+        setUser(userData);
+        console.log('User data from API in services page:', userData);
+        console.log('Specific fields - fullName:', userData?.fullName, 'username:', userData?.username);
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+      } finally {
+        setUserLoading(false);
+      }
+    };
+
+    fetchUserProfile();
+  }, []);
 
   const categories = [
     "Technology Services",
@@ -215,20 +241,37 @@ const ServicesPage = () => {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <button className="flex items-center gap-2 bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 text-sm">
+            <button 
+              onClick={() => setShowCreatePostModal(true)}
+              className="flex items-center gap-2 bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 text-sm"
+            >
               <Plus className="w-4 h-4" /> Create Post
             </button>
-            <button className="relative p-2 text-gray-400 hover:text-gray-600">
-              <Bell className="w-5 h-5" />
-              <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-            </button>
             <div className="flex items-center gap-2">
-              <div className="text-right">
-                <p className="text-sm font-semibold text-gray-900">AVantika</p>
-                <p className="text-xs text-gray-500">Personal Account</p>
-              </div>
-              <div className="w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center">
-                <span className="text-white font-bold">AV</span>
+              {(user?.profileImageUrl || user?.userId?.profileImageUrl) && !profileImageError ? (
+                <Image
+                  src={user?.profileImageUrl || user?.userId?.profileImageUrl}
+                  alt="Profile"
+                  width={40}
+                  height={40}
+                  className="w-10 h-10 rounded-full object-cover"
+                  unoptimized={(user?.profileImageUrl || user?.userId?.profileImageUrl)?.startsWith('data:')}
+                  onError={() => {
+                    console.log('Profile image failed to load:', user?.profileImageUrl || user?.userId?.profileImageUrl);
+                    setProfileImageError(true);
+                  }}
+                  onLoad={() => console.log('Profile image loaded successfully')}
+                />
+              ) : (
+                <div className="w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center">
+                  <span className="text-white font-bold">
+                    {(user?.fullName || user?.userId?.fullName)?.charAt(0) || 'U'}
+                  </span>
+                </div>
+              )}
+              <div className="text-left">
+                <p className="text-sm font-semibold text-gray-900">{user?.fullName || user?.userId?.fullName || 'User'}</p>
+                <p className="text-xs text-gray-500">@{user?.username || user?.userId?.username || 'username'}</p>
               </div>
             </div>
           </div>
@@ -355,6 +398,11 @@ const ServicesPage = () => {
           </>
         )}
       </div>
+      
+      {/* Create Post Modal */}
+      {showCreatePostModal && (
+        <CreatePostModal closeModal={() => setShowCreatePostModal(false)} />
+      )}
     </div>
   );
 };

@@ -27,7 +27,6 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
 
   const [sharedForm, setSharedForm] = useState({
   description: '',
-  caption: '',
   image: [] as File [], // array of File objects or URLs
   location: {name:''},
   tags: [] as string [],
@@ -306,21 +305,27 @@ const handleProductChange = (
   };
 
   const buildPostPayload = () => {
+  // Create shared form with caption set to description value
+  const sharedFormWithCaption = { 
+    ...sharedForm, 
+    caption: sharedForm.description 
+  };
+  
   switch (postType) {
     case 'Regular':
-      return { ...sharedForm, ...regularForm };
+      return { ...sharedFormWithCaption, ...regularForm };
     case 'Product':
-      return { ...sharedForm, ...productForm };
+      return { ...sharedFormWithCaption, ...productForm };
     case 'Service':
-      return { ...sharedForm, ...serviceForm };
+      return { ...sharedFormWithCaption, ...serviceForm };
     case 'Business':
       return {
         ...businessForm.formData,  // Get the business form data
-        ...sharedForm,             // Override with shared form data (images, etc.)
+        ...sharedFormWithCaption,  // Override with shared form data (images, etc.)
         business: businessForm.formData.business  // Keep the business object
       };
     default:
-      return { ...sharedForm };
+      return { ...sharedFormWithCaption };
   }
 };
 
@@ -486,18 +491,6 @@ const handleProductChange = (
             />
           </div>
 
-               {/* Caption field - only render for Regular posts */}
-          {postType === 'Regular' && (
-            <div className="mb-6">
-              <label className='text-black text-bold ml-2'>Add Caption</label> 
-              <textarea
-                value={sharedForm.caption}
-                onChange={(e) => setSharedForm({...sharedForm, caption: e.target.value})}
-                placeholder="enter the caption..."
-                className="w-full h-15 p-4 border border-gray-300 placeholder:text-gray-500 text-black rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
-              />
-            </div>
-          )}
 
           {postType === 'Regular' && (
             <RegularPostForm
