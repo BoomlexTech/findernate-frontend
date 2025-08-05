@@ -110,6 +110,7 @@ export function transformExploreFeedToFeedPost(items: RawExploreFeedItem[]): Fee
           profileImageUrl: item.userId.profileImageUrl || '/default-avatar.png'
         };
       }
+      // Handle case where userId might be a string ID
       return {
         username: 'unknown_user',
         profileImageUrl: '/default-avatar.png'
@@ -124,6 +125,7 @@ export function transformExploreFeedToFeedPost(items: RawExploreFeedItem[]): Fee
         _id: item._id,
         username: userInfo.username,
         profileImageUrl: userInfo.profileImageUrl,
+        userId: typeof item.userId === 'object' ? item.userId : undefined, // Preserve original userId object
         description: item.caption || '',
         caption: item.caption || '',
         contentType: 'reel',
@@ -166,6 +168,7 @@ export function transformExploreFeedToFeedPost(items: RawExploreFeedItem[]): Fee
       _id: item._id,
       username: userInfo.username,
       profileImageUrl: userInfo.profileImageUrl,
+      userId: typeof item.userId === 'object' ? item.userId : undefined, // Preserve original userId object
       description: item.description || item.caption || '',
       caption: item.caption || '',
       contentType: item.contentType || 'normal',

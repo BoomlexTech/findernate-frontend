@@ -34,8 +34,47 @@ const Page = () => {
         types: 'all', // Get all types of posts
         sortBy: 'engagement' // Sort by engagement for trending
       });
+      console.log("trending data", response);
       
-      const transformedData = transformExploreFeedToFeedPost(response.data.feed);
+      // Transform the new API response structure
+      const transformedData = response.data.feed.map((item) => {
+        // Find the user details for this post
+        const userDetail = item.userDetails?.[0] || {};
+        
+        return {
+          _id: item._id,
+          username: userDetail.username || 'Unknown User',
+          profileImageUrl: userDetail.profileImageUrl || '/placeholderimg.png',
+          userId: {
+            _id: userDetail._id,
+            username: userDetail.username,
+            profileImageUrl: userDetail.profileImageUrl,
+          },
+          description: item.description || '',
+          caption: item.caption || '',
+          contentType: item.contentType || 'normal',
+          postType: item.postType || 'photo',
+          createdAt: item.createdAt,
+          media: item.media || [],
+          engagement: {
+            comments: item.engagement?.comments || 0,
+            impressions: item.engagement?.impressions || 0,
+            likes: item.engagement?.likes || 0,
+            reach: item.engagement?.reach || 0,
+            saves: item.engagement?.saves || 0,
+            shares: item.engagement?.shares || 0,
+            views: item.engagement?.views || 0,
+          },
+          location: item.location || null,
+          tags: item.hashtags || [],
+          isLikedBy: item.isLikedBy || false,
+          likedBy: item.likedBy || [],
+          // Add customization data for business/product/service modals
+          customization: item.customization || null,
+        };
+      });
+      
+      console.log('Transformed trending data:', transformedData.slice(0, 2));
       
       if (reset) {
         setAllPosts(transformedData);

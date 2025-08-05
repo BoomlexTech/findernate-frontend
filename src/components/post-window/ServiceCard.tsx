@@ -11,14 +11,24 @@ interface ServiceCardProps {
 
 const ServiceCard = ({ post }: ServiceCardProps) => {
   const [showDetails, setShowDetails] = useState(false);
+  
+  // Extract service data from post customization
+  const serviceData = post?.customization?.service;
+  const serviceName = serviceData?.name || 'Service';
+  const servicePrice = serviceData?.price || 0;
+  const serviceCurrency = serviceData?.currency || 'INR';
+  const serviceDuration = serviceData?.duration || 60;
+  const serviceCategory = serviceData?.category || 'General';
+  const serviceLocation = post?.location || 'Location not specified';
+  
   return (
     // Main card container
     <div className="max-w-sm rounded-xl bg-blue-100 p-4 shadow-md font-sans border border-blue-500">
       
-      {/* Top section: Yoga Session */}
+      {/* Top section: Service Name */}
       <div className="flex items-center gap-3 rounded-lg bg-blue-300 p-2 text-blue-800 border-1 border-blue-600">
         <Bell size={18} />
-        <h1 className="text-md font-medium ">Yoga Session</h1>
+        <h1 className="text-md font-medium ">{serviceName}</h1>
       </div>
 
       {/* Middle section: Location & Price */}
@@ -28,26 +38,28 @@ const ServiceCard = ({ post }: ServiceCardProps) => {
             <MapPin size={16} className="text-green-700" />
             <span className="text-xs font-semibold text-green-800">LOCATION</span>
           </div>
-          <span className="text-sm font-semibold text-gray-800">Delhi, Delhi</span>
+          <span className="text-sm font-semibold text-gray-800">
+            {typeof serviceLocation === 'string' ? serviceLocation : serviceLocation?.name || 'Not specified'}
+          </span>
         </div>
         <div className="mt-3 flex items-start justify-between">
           <div className="flex items-center gap-2">
             <IndianRupee size={16} className="text-green-700" />
             <span className="text-xs font-semibold text-green-800">PRICE</span>
           </div>
-          <span className=" text-xs font-bold text-gray-900">INR 500</span>
+          <span className=" text-xs font-bold text-gray-900">{serviceCurrency} {servicePrice}</span>
         </div>
       </div>
 
-      {/* Bottom section: Duration & Type */}
+      {/* Bottom section: Duration & Category */}
       <div className="mt-4 flex items-center gap-6 px-2 text-sm text-gray-500">
         <div className="flex items-center gap-2">
           <Clock size={16} />
-          <span className='text-xs'>60 min</span>
+          <span className='text-xs'>{serviceDuration} min</span>
         </div>
         <div className="flex items-center gap-2">
           <User size={16} />
-          <span className='text-xs'>in-person</span>
+          <span className='text-xs'>{serviceCategory}</span>
         </div>
       </div>
       

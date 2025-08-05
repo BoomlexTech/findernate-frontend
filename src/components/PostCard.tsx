@@ -1,6 +1,6 @@
 'use client';
 
-import { Heart, MessageCircle, Share2, MapPin, ChevronLeft, ChevronRight, MoreVertical, Bookmark, BookmarkCheck, Flag } from 'lucide-react';
+import { Heart, MessageCircle, Share2, MapPin, ChevronLeft, ChevronRight, MoreVertical, Bookmark, BookmarkCheck, Flag, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -11,7 +11,7 @@ import ServiceCard from './post-window/ServiceCard';
 import { Badge } from './ui/badge';
 import ProductCard from './post-window/ProductCard';
 import BusinessPostCard from './post-window/BusinessCard';
-import { likePost, unlikePost, savePost, unsavePost, getSavedPost } from '@/api/post';
+import { likePost, unlikePost, savePost, unsavePost, getSavedPost, deletePost } from '@/api/post';
 import { createComment } from '@/api/comment';
 import { postEvents } from '@/utils/postEvents';
 import { AxiosError } from 'axios';
@@ -20,9 +20,10 @@ import { AuthDialog } from '@/components/AuthDialog';
 
 export interface PostCardProps {
   post: FeedPost;
+  onPostDeleted?: (postId: string) => void; // Optional callback for when post is deleted
 }
 
-export default function PostCard({ post }: PostCardProps) {
+export default function PostCard({ post, onPostDeleted }: PostCardProps) {
   const pathname = usePathname();
   const { requireAuth, showAuthDialog, closeAuthDialog } = useAuthGuard();
   
@@ -42,6 +43,7 @@ export default function PostCard({ post }: PostCardProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [isPostSaved, setIsPostSaved] = useState(false);
   const [checkingSaved, setCheckingSaved] = useState(true);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Sync local state with prop changes (important for page refreshes)
   useEffect(() => {
@@ -371,7 +373,7 @@ export default function PostCard({ post }: PostCardProps) {
       // Example: Copy link to clipboard
       if (navigator.share) {
         navigator.share({
-          title: `Check out this post by ${post.username}`,
+          title: `Check out this post by ${post.username || post.userId?.username}`,
           text: post.caption,
           url: `${window.location.origin}/post/${post._id}`
         });
@@ -449,6 +451,40 @@ export default function PostCard({ post }: PostCardProps) {
     setShowDropdown(false);
     alert('Report functionality coming soon!');
   };
+
+  const handleDeletePost = async () => {
+    requireAuth(async () => {
+      if (isDeleting) return;
+      
+      // Show confirmation dialog
+      const confirmed = window.confirm('Are you sure you want to delete this post? This action cannot be undone.');
+      if (!confirmed) return;
+      
+      setIsDeleting(true);
+      try {
+        console.log(`Deleting post ${post._id}`);
+        await deletePost(post._id);
+        
+        console.log('Post deleted successfully');
+        setShowDropdown(false);
+        
+        // Call the callback to remove post from parent component
+        if (onPostDeleted) {
+          onPostDeleted(post._id);
+        }
+        
+        alert('Post deleted successfully!');
+      } catch (error) {
+        console.error('Error deleting post:', error);
+        alert('Error deleting post. Please try again.');
+      } finally {
+        setIsDeleting(false);
+      }
+    });
+  };
+
+  // Check if we're on a profile page
+  const isOnProfilePage = pathname.includes('/userprofile/') || pathname.includes('/profile');
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -600,7 +636,7 @@ export default function PostCard({ post }: PostCardProps) {
           <div className="flex flex-col justify-start flex-1 space-y-1 relative pb-16">
             <div className="flex items-start justify-between">
               <div className="flex items-start gap-3">
-                <Link href={`/userprofile/${post.username}`}>
+                <Link href={`/userprofile/${post.username || post.userId?.username}`}>
                   <Image
                     width={40}
                     height={40}
@@ -609,7 +645,7 @@ export default function PostCard({ post }: PostCardProps) {
                         ? '/placeholderimg.png'
                         : post.profileImageUrl
                     }
-                    alt={post.username || 'User Profile Image'}
+                    alt={(post.username || post.userId?.username) || 'User Profile Image'}
                     className="w-10 h-10 rounded-full object-cover"
                     onError={() => setProfileImageError(true)}
                   />
@@ -617,7 +653,7 @@ export default function PostCard({ post }: PostCardProps) {
                 <div>
                     <div className='flex gap-2'>
                   <h3 className="font-semibold text-gray-900">
-                    {post.username || 'No Username'}
+                    {post.username || post.userId?.username || 'No Username'}
                   </h3>
                   {post.contentType && <Badge className='bg-button-gradient' variant='outline'>{post.contentType}</Badge>}
                     </div>
@@ -679,6 +715,22 @@ export default function PostCard({ post }: PostCardProps) {
                         </>
                       )}
                     </button>
+                    
+                    {/* Delete button - only show on profile pages */}
+                    {isOnProfilePage && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeletePost();
+                        }}
+                        disabled={isDeleting}
+                        className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 disabled:opacity-50"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        {isDeleting ? 'Deleting...' : 'Delete'}
+                      </button>
+                    )}
+                    
                     <button
                       onClick={(e) => {
                         e.stopPropagation();

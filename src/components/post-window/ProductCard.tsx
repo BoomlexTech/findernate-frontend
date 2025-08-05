@@ -11,6 +11,15 @@ interface ProductCardProps {
 
 const ProductCard = ({ post }: ProductCardProps) => {
   const [showDetails, setShowDetails] = useState(false);
+  
+  // Extract product data from post customization
+  const productData = post?.customization?.product;
+  const productName = productData?.name || 'Product';
+  const productPrice = productData?.price || 0;
+  const productCurrency = productData?.currency || 'INR';
+  const productLocation = post?.location || 'Location not specified';
+  const inStock = productData?.inStock !== false; // Default to true if not specified
+  
   return (
     // Main card container
     <div className="max-w-sm rounded-2xl border border-violet-500 bg-violet-200 p-2 shadow-lg font-sans">
@@ -18,7 +27,7 @@ const ProductCard = ({ post }: ProductCardProps) => {
       {/* Top section: Product Name */}
       <div className="flex items-center gap-3 border border-violet-600 rounded-lg bg-violet-300 p-3 text-violet-900">
         <ShoppingBag size={22} className="text-violet-800" />
-        <h1 className="text-lg font-lg">Cool T-Shirt</h1>
+        <h1 className="text-lg font-lg">{productName}</h1>
       </div>
 
       {/* Bottom section: Details and Shop Now button */}
@@ -31,28 +40,39 @@ const ProductCard = ({ post }: ProductCardProps) => {
             <span className="text-xs font-bold uppercase text-orange-600">Location</span>
           </div>
           <p className="mt-1 ml-1 text-sm text-gray-700">
-            Connaught Place, Delhi
+            {typeof productLocation === 'string' ? productLocation : productLocation?.name || 'Not specified'}
           </p>
+        </div>
+
+        {/* Price */}
+        <div className="mt-2">
+          <span className="text-lg font-bold text-gray-900">{productCurrency} {productPrice}</span>
         </div>
 
         {/* Divider */}
         <hr className="my-3 border-t border-orange-200" />
 
-        {/* New Arrival & Shop Now Button */}
+        {/* Stock Status & Shop Now Button */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            {/* The fill color makes the star solid */}
-            <Star size={18} className="text-orange-500 fill-orange-500" />
-            <span className="text-sm font-bold text-orange-600">NEW ARRIVAL</span>
+            <Star size={18} className={`${inStock ? 'text-green-500 fill-green-500' : 'text-red-500 fill-red-500'}`} />
+            <span className={`text-sm font-bold ${inStock ? 'text-green-600' : 'text-red-600'}`}>
+              {inStock ? 'IN STOCK' : 'OUT OF STOCK'}
+            </span>
           </div>
           <button 
             onClick={(e) => {
               e.stopPropagation();
               setShowDetails(true);
             }}
-            className="rounded-lg bg-gradient-to-r from-orange-500 to-red-500 px-4 py-2 text-sm font-bold text-white shadow-md hover:opacity-90"
+            disabled={!inStock}
+            className={`rounded-lg px-4 py-2 text-sm font-bold text-white shadow-md hover:opacity-90 ${
+              inStock 
+                ? 'bg-gradient-to-r from-orange-500 to-red-500' 
+                : 'bg-gray-400 cursor-not-allowed'
+            }`}
           >
-            SHOP NOW
+            {inStock ? 'SHOP NOW' : 'UNAVAILABLE'}
           </button>
         </div>
       </div>

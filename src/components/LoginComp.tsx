@@ -77,7 +77,7 @@ const LoginComponent: React.FC = () => {
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
             <Image
-              src="/Findernate.png"
+              src="/Findernate.ico"
               alt="FinderNate Logo"
               width={40}
               height={40}
