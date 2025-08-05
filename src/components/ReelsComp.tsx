@@ -242,7 +242,7 @@ const ReelsComponent: React.FC<ReelsComponentProps> = ({ onReelChange }) => {
 
 
   return (
-    <div className="relative w-full max-w-sm mx-auto aspect-[9/16] rounded-2xl bg-black overflow-hidden shadow-2xl">
+    <div className="relative w-96 mx-auto aspect-[9/16] rounded-2xl bg-black overflow-hidden shadow-2xl flex-shrink-0">
       {loading && reels.length === 0 && (
         <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-60 z-30">
           <div className="text-white text-lg">Loading reels...</div>

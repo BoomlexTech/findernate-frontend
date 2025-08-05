@@ -1,14 +1,13 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Search, Plus, Bell } from 'lucide-react';
+import { Search } from 'lucide-react';
 import PostCard from '@/components/PostCard';
 import CreatePostModal from '@/components/CreatePostModal';
+import FloatingHeader from '@/components/FloatingHeader';
 import { getExploreFeed } from '@/api/exploreFeed';
 import { transformExploreFeedToFeedPost } from '@/utils/transformExploreFeed';
-import { getUserProfile } from '@/api/user';
 import { FeedPost } from '@/types';
-import Image from 'next/image';
 
 const BusinessesPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -22,28 +21,6 @@ const BusinessesPage = () => {
   const [page, setPage] = useState(1);
   const [hasNextPage, setHasNextPage] = useState(true);
   const [showCreatePostModal, setShowCreatePostModal] = useState(false);
-  const [profileImageError, setProfileImageError] = useState(false);
-  const [user, setUser] = useState<any>(null);
-  const [userLoading, setUserLoading] = useState(true);
-
-  // Fetch user profile
-  useEffect(() => {
-    const fetchUserProfile = async () => {
-      try {
-        setUserLoading(true);
-        const userData = await getUserProfile();
-        setUser(userData);
-        console.log('User data from API in businesses page:', userData);
-        console.log('Specific fields - fullName:', userData?.fullName, 'username:', userData?.username);
-      } catch (error) {
-        console.error('Error fetching user profile:', error);
-      } finally {
-        setUserLoading(false);
-      }
-    };
-
-    fetchUserProfile();
-  }, []);
 
   const categories = [
     "Retail & Shopping",
@@ -178,50 +155,15 @@ const BusinessesPage = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="bg-white border-b border-gray-200 py-6 mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Businesses</h1>
-            <p className="text-gray-600 text-sm">
-              Discover local businesses and services in your area
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={() => setShowCreatePostModal(true)}
-              className="flex items-center gap-2 bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 text-sm"
-            >
-              <Plus className="w-4 h-4" /> Create Post
-            </button>
-            <div className="flex items-center gap-2">
-              {(user?.profileImageUrl || user?.userId?.profileImageUrl) && !profileImageError ? (
-                <Image
-                  src={user?.profileImageUrl || user?.userId?.profileImageUrl}
-                  alt="Profile"
-                  width={40}
-                  height={40}
-                  className="w-10 h-10 rounded-full object-cover"
-                  unoptimized={(user?.profileImageUrl || user?.userId?.profileImageUrl)?.startsWith('data:')}
-                  onError={() => {
-                    console.log('Profile image failed to load:', user?.profileImageUrl || user?.userId?.profileImageUrl);
-                    setProfileImageError(true);
-                  }}
-                  onLoad={() => console.log('Profile image loaded successfully')}
-                />
-              ) : (
-                <div className="w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center">
-                  <span className="text-white font-bold">
-                    {(user?.fullName || user?.userId?.fullName)?.charAt(0) || 'U'}
-                  </span>
-                </div>
-              )}
-              <div className="text-left">
-                <p className="text-sm font-semibold text-gray-900">{user?.fullName || user?.userId?.fullName || 'User'}</p>
-                <p className="text-xs text-gray-500">@{user?.username || user?.userId?.username || 'username'}</p>
-              </div>
-            </div>
-          </div>
-        </div>
+        {/* FloatingHeader */}
+        <FloatingHeader
+          paragraph="Discover local businesses and services in your area"
+          heading="Businesses"
+          username="user"
+          accountBadge={false}
+          showCreateButton={true}
+          onCreateClick={() => setShowCreatePostModal(true)}
+        />
 
         {/* Search and Filters Section */}
         <div className="bg-white border border-gray-200 rounded-lg p-4 md:p-6 shadow-sm mb-6">

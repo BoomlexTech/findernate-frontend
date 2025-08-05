@@ -1,12 +1,14 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Search, Plus, Bell } from 'lucide-react';
+import { Search } from 'lucide-react';
 import PostCard from '@/components/PostCard';
+import FloatingHeader from '@/components/FloatingHeader';
 import { getExploreFeed } from '@/api/exploreFeed';
 import { transformExploreFeedToFeedPost } from '@/utils/transformExploreFeed';
 import { searchAllContent } from '@/api/search';
 import { FeedPost } from '@/types';
+import CreatePostModal from '@/components/CreatePostModal';
 
 const ProductsPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -20,6 +22,7 @@ const ProductsPage = () => {
   const [page, setPage] = useState(1);
   const [hasNextPage, setHasNextPage] = useState(true);
   const [isSearchMode, setIsSearchMode] = useState(false);
+  const [showCreatePostModal, setCreatePostModal] = useState(false);
 
   const categories = [
     "Electronics",
@@ -206,33 +209,15 @@ const ProductsPage = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="bg-white border-b border-gray-200 py-6 mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Products</h1>
-            <p className="text-gray-600 text-sm">
-              Discover amazing products from local sellers and businesses
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <button className="flex items-center gap-2 bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 text-sm">
-              <Plus className="w-4 h-4" /> Create Post
-            </button>
-            <button className="relative p-2 text-gray-400 hover:text-gray-600">
-              <Bell className="w-5 h-5" />
-              <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-            </button>
-            <div className="flex items-center gap-2">
-              <div className="text-right">
-                <p className="text-sm font-semibold text-gray-900">AVantika</p>
-                <p className="text-xs text-gray-500">Personal Account</p>
-              </div>
-              <div className="w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center">
-                <span className="text-white font-bold">AV</span>
-              </div>
-            </div>
-          </div>
-        </div>
+        {/* FloatingHeader */}
+        <FloatingHeader
+          paragraph="Discover amazing products from local sellers and businesses"
+          heading="Products"
+          username="user"
+          accountBadge={false}
+          showCreateButton={true}
+          onCreateClick={() => {setCreatePostModal(true)}}
+        />
 
         {/* Search and Filters Section */}
         <div className="bg-white border border-gray-200 rounded-lg p-4 md:p-6 shadow-sm mb-6">
@@ -355,6 +340,10 @@ const ProductsPage = () => {
           </>
         )}
       </div>
+        {/* Create Post Modal */}
+      {showCreatePostModal && (
+        <CreatePostModal closeModal={() => setCreatePostModal(false)} />
+      )}
     </div>
   );
 };
