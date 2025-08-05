@@ -16,6 +16,7 @@ import Cropper from 'react-easy-crop';
 import { Area } from 'react-easy-crop';
 import { useUserStore } from "@/store/useUserStore";
 import { AxiosError } from "axios";
+import FollowersModal from "./FollowersModal";
 
 interface UserProfileProps {
   userData: UserProfileType;
@@ -51,6 +52,8 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
+  const [showFollowersModal, setShowFollowersModal] = useState(false);
+  const [followersModalTab, setFollowersModalTab] = useState<'followers' | 'following'>('followers');
 
   // Helper function to check if all stories have been viewed by current user
   const areAllStoriesViewed = () => {
@@ -390,6 +393,12 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
     }
   };
 
+  // Handle followers/following click
+  const handleFollowersClick = (tab: 'followers' | 'following') => {
+    setFollowersModalTab(tab);
+    setShowFollowersModal(true);
+  };
+
   return (
     <div className="bg-white rounded-xl overflow-hidden shadow-sm w-full">
       {/* Cropper Modal */}
@@ -719,14 +728,20 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
 
         {/* Stats */}
         <div className="flex gap-4 sm:gap-6 mt-6 text-sm text-gray-700 font-medium flex-wrap">
-          <span>
+          <button
+            onClick={() => handleFollowersClick('following')}
+            className="hover:text-yellow-600 transition-colors cursor-pointer"
+          >
             <strong className="text-black">{profile?.followingCount}</strong>{" "}
             Following
-          </span>
-          <span>
+          </button>
+          <button
+            onClick={() => handleFollowersClick('followers')}
+            className="hover:text-yellow-600 transition-colors cursor-pointer"
+          >
             <strong className="text-black">{followersCount}</strong>{" "}
             Followers
-          </span>
+          </button>
           <span>
             <strong className="text-black">{profile?.postsCount || 0}</strong> Posts
           </span>
@@ -760,6 +775,15 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
           }}
         />
       )}
+
+      {/* Followers Modal */}
+      <FollowersModal
+        userId={profile._id}
+        username={profile.username}
+        isOpen={showFollowersModal}
+        onClose={() => setShowFollowersModal(false)}
+        initialTab={followersModalTab}
+      />
     </div>
   );
 };
