@@ -13,7 +13,7 @@ export default function RightSidebar() {
       {/* Login/Signup buttons for non-authenticated users */}
       {!user && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4">
-          <h3 className="text-lg font-semibold text-gray-900 mb-3">Join FinderNate</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-3">Join Findernate</h3>
           <div className="flex gap-2">
             <Link 
               href="/signin" 

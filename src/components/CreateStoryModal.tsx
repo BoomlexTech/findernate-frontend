@@ -128,7 +128,7 @@ export default function CreateStoryModal({ isOpen, onClose, onUpload }: CreateSt
       const success = await onUpload(selectedFile, caption || undefined);
       
       if (success) {
-        // Reset form for another upload instead of closing
+        // Close modal after successful upload
         cleanup();
         setSelectedFile(null);
         setPreviewUrl(null);
@@ -142,6 +142,8 @@ export default function CreateStoryModal({ isOpen, onClose, onUpload }: CreateSt
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
         }
+        // Close the modal
+        onClose();
       } else {
         setError("Failed to upload story. Please try again.");
       }

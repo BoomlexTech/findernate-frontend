@@ -568,8 +568,8 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
 
             {/* Location, Website, Email, Joined */}
             <div className="flex items-center gap-3 sm:gap-4 mt-4 text-xs sm:text-sm text-gray-600 flex-wrap">
-              {/* Location */}
-              {(profile?.location || isEditing) && (
+              {/* Location - TEMPORARILY HIDDEN */}
+              {/* {(profile?.location || isEditing) && (
                 <div className="flex items-center gap-1">
                   📍
                   {isEditing ? (
@@ -586,7 +586,7 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
                     <span>{profile.location || "No location added"}</span>
                   )}
                 </div>
-              )}
+              )} */}
 
               {/* Website/Link */}
               {(profile?.link || isEditing) && (
@@ -613,8 +613,8 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
                 </div>
               )}
 
-              {/* Email for current user or if verified */}
-              {(isCurrentUser || profile?.isEmailVerified) && profile?.email && (
+              {/* Email for current user or if verified - TEMPORARILY HIDDEN */}
+              {/* {(isCurrentUser || profile?.isEmailVerified) && profile?.email && (
                 <div className="flex items-center gap-1">
                   📧
                   <span className="flex items-center gap-1">
@@ -624,7 +624,7 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
                     )}
                   </span>
                 </div>
-              )}
+              )} */}
 
               {/* Business Profile Badge */}
               {profile?.isBusinessProfile && (

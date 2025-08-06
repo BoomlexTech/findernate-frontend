@@ -312,8 +312,11 @@ export default function PostCard({ post, onPostDeleted }: PostCardProps) {
       return;
     }
     
-    // Open post page in new tab with only post ID
-    window.open(`/post/${post._id}`, '_blank');
+    // Require authentication before opening post
+    requireAuth(() => {
+      // Open post page in new tab with only post ID
+      window.open(`/post/${post._id}`, '_blank');
+    });
   };
 
   const handleCommentSubmit = async (e: React.FormEvent) => {
@@ -370,7 +373,22 @@ export default function PostCard({ post, onPostDeleted }: PostCardProps) {
   const handleCommentClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     requireAuth(() => {
-      setShowCommentDrawer(true);
+      // If we're on a single post page, focus on the existing comments section instead of opening drawer
+      if (pathname.includes('/post/')) {
+        // Find and focus the comments section on the page
+        const commentsSection = document.querySelector('[data-comments-section]');
+        if (commentsSection) {
+          commentsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          // Focus on the comment input if it exists
+          const commentInput = commentsSection.querySelector('textarea, input[type="text"]') as HTMLElement;
+          if (commentInput) {
+            setTimeout(() => commentInput.focus(), 300); // Small delay for smooth scroll
+          }
+        }
+      } else {
+        // On home page or other pages, show the comment drawer
+        setShowCommentDrawer(true);
+      }
     });
   };
 
@@ -643,7 +661,15 @@ export default function PostCard({ post, onPostDeleted }: PostCardProps) {
           <div className="flex flex-col justify-start flex-1 space-y-1 relative pb-16">
             <div className="flex items-start justify-between">
               <div className="flex items-start gap-3">
-                <Link href={`/userprofile/${post.username || post.userId?.username}`}>
+                <div 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    requireAuth(() => {
+                      window.open(`/userprofile/${post.username || post.userId?.username}`, '_blank');
+                    });
+                  }}
+                  className="cursor-pointer"
+                >
                   <Image
                     width={40}
                     height={40}
@@ -653,13 +679,21 @@ export default function PostCard({ post, onPostDeleted }: PostCardProps) {
                         : post.profileImageUrl
                     }
                     alt={(post.username || post.userId?.username) || 'User Profile Image'}
-                    className="w-10 h-10 rounded-full object-cover"
+                    className="w-10 h-10 rounded-full object-cover hover:opacity-80 transition-opacity"
                     onError={() => setProfileImageError(true)}
                   />
-                </Link>
+                </div>
                 <div>
                     <div className='flex gap-2'>
-                  <h3 className="font-semibold text-gray-900">
+                  <h3 
+                    className="font-semibold text-gray-900 cursor-pointer hover:text-yellow-600 transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      requireAuth(() => {
+                        window.open(`/userprofile/${post.username || post.userId?.username}`, '_blank');
+                      });
+                    }}
+                  >
                     {post.username || post.userId?.username || 'No Username'}
                   </h3>
                   {post.contentType && <Badge className='bg-button-gradient' variant='outline'>{post.contentType}</Badge>}

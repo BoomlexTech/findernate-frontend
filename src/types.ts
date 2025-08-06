@@ -298,6 +298,9 @@ export interface SearchUser {
   profileImageUrl?: string;
   bio?: string;
   location?: string;
+  isFollowing?: boolean;
+  followersCount?: number;
+  followingCount?: number;
 }
 
 export interface SearchResult {

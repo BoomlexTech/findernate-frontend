@@ -7,6 +7,8 @@ import { useState, useEffect } from 'react';
 import { followUser, getSuggestedUsers, unfollowUser } from '@/api/user';
 import { UserPlus, UserMinus } from 'lucide-react';
 import { AxiosError } from 'axios';
+import { useAuthGuard } from '@/hooks/useAuthGuard';
+import { AuthDialog } from '@/components/AuthDialog';
 
 interface SuggestedUser {
   _id: string;
@@ -70,6 +72,7 @@ export default function SuggestedUsers({ users: initialUsers = defaultSuggestedU
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { requireAuth, showAuthDialog, closeAuthDialog } = useAuthGuard();
 
   useEffect(() => {
     async function fetchSuggestedUsers() {
@@ -233,7 +236,9 @@ export default function SuggestedUsers({ users: initialUsers = defaultSuggestedU
                 onClick={(e) => {
                   // Prevent navigation if clicking the follow/unfollow button
                   if ((e.target as HTMLElement).closest('button')) return;
-                  window.location.href = `/userprofile/${user.username}`;
+                  requireAuth(() => {
+                    window.open(`/userprofile/${user.username}`, '_blank');
+                  });
                 }}
               >
                 {/* Profile Image - Fixed Width */}
@@ -296,6 +301,9 @@ export default function SuggestedUsers({ users: initialUsers = defaultSuggestedU
           })}
         </div>
       )}
+      
+      {/* Auth Dialog */}
+      <AuthDialog isOpen={showAuthDialog} onClose={closeAuthDialog} />
     </div>
   );
 }
