@@ -1,6 +1,6 @@
 "use client"
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Play, Volume2, VolumeX } from 'lucide-react';
+import { Play, Volume2, VolumeX, ChevronUp, ChevronDown } from 'lucide-react';
 import { getReels } from '@/api/reels';
 
 interface Reel {
@@ -81,12 +81,31 @@ const ReelsComponent: React.FC<ReelsComponentProps> = ({ onReelChange, apiReelsD
           // Map API response to Reel interface
           const mappedReels: Reel[] = Array.isArray(apiReels)
             ? apiReels.map((item: any, idx: number) => {
-                const videoMedia = item.media?.find((m: any) => m.type === 'video' || m.url) || item.media?.[0];
-                console.log(`Fallback reel ${idx + 1} media:`, item.media);
+                // Handle both old format (direct URL) and new format (media array)
+                let videoUrl = '';
+                let thumbnail = '';
+
+                if (item.media && item.media.length > 0) {
+                  // New format: media array
+                  const videoMedia = item.media.find((m: any) => m.type === 'video' || m.url) || item.media[0];
+                  videoUrl = videoMedia?.url || '';
+                  thumbnail = videoMedia?.thumbnailUrl || videoMedia?.thumbnail || '';
+                } else if (item.secure_url || item.url) {
+                  // Old format: direct URL
+                  videoUrl = item.secure_url || item.url;
+                  thumbnail = '';
+                }
+
+                // Fallback to default if no valid URL found
+                if (!videoUrl) {
+                  videoUrl = defaultReelsData[idx % defaultReelsData.length].videoUrl;
+                }
+
+                console.log(`Fallback reel ${idx + 1} media:`, { videoUrl, thumbnail });
                 return {
                   id: idx + 1,
-                  videoUrl: videoMedia?.url || defaultReelsData[idx % defaultReelsData.length].videoUrl,
-                  thumbnail: videoMedia?.thumbnailUrl || videoMedia?.thumbnail || ''
+                  videoUrl,
+                  thumbnail
                 };
               })
             : [];
@@ -270,9 +289,38 @@ const ReelsComponent: React.FC<ReelsComponentProps> = ({ onReelChange, apiReelsD
     }
   }, [currentIndex, reels.length, onReelChange]);
 
-
   return (
     <div className="relative w-96 mx-auto aspect-[9/16] rounded-2xl bg-black overflow-hidden shadow-2xl flex-shrink-0">
+      {/* Up/Down Scroll Buttons */}
+      <button
+        className="absolute right-2 top-1/3 z-40 bg-black/40 hover:bg-black/80 text-white rounded-full p-2 shadow-lg transition-colors disabled:opacity-40"
+        style={{ transform: 'translateY(-50%)' }}
+        onClick={() => {
+          if (currentIndex > 0) {
+            setCurrentIndex(currentIndex - 1);
+            scrollToReel(currentIndex - 1);
+          }
+        }}
+        disabled={currentIndex === 0}
+        aria-label="Scroll Up"
+      >
+        <ChevronUp size={28} />
+      </button>
+      <button
+        className="absolute right-2 bottom-1/3 z-40 bg-black/40 hover:bg-black/80 text-white rounded-full p-2 shadow-lg transition-colors disabled:opacity-40"
+        style={{ transform: 'translateY(50%)' }}
+        onClick={() => {
+          if (currentIndex < reels.length - 1) {
+            setCurrentIndex(currentIndex + 1);
+            scrollToReel(currentIndex + 1);
+          }
+        }}
+        disabled={currentIndex === reels.length - 1}
+        aria-label="Scroll Down"
+      >
+        <ChevronDown size={28} />
+      </button>
+
       {loading && reels.length === 0 && (
         <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-60 z-30">
           <div className="text-white text-lg">Loading reels...</div>
@@ -322,6 +370,7 @@ const ReelsComponent: React.FC<ReelsComponentProps> = ({ onReelChange, apiReelsD
             {/* Overlay gradient */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
 
+
             {/* Play/Pause button */}
             {!isPlaying && (
               <div className="absolute inset-0 flex items-center justify-center">
@@ -340,7 +389,6 @@ const ReelsComponent: React.FC<ReelsComponentProps> = ({ onReelChange, apiReelsD
               </div>
             )}
 
-
             {/* Top controls - Only mute button */}
             <div className="absolute top-4 right-4 z-10">
               <button
@@ -350,7 +398,6 @@ const ReelsComponent: React.FC<ReelsComponentProps> = ({ onReelChange, apiReelsD
                 {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
               </button>
             </div>
-
           </div>
         ))}
       </div>
