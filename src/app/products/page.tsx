@@ -138,22 +138,28 @@ const ProductsPage = () => {
   }, [searchTerm, selectedLocation]);
 
   const applyFilters = () => {
-    let filtered = [...allProducts];
+    // Filter out products with missing essential data
+    let filtered = allProducts.filter(product => 
+      product && 
+      product._id && 
+      product.media && 
+      product.media.length > 0
+    );
 
     // Apply search filter
     if (searchTerm) {
       filtered = filtered.filter(product => 
-        product.caption.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.username.toLowerCase().includes(searchTerm.toLowerCase())
+        (product.caption || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (product.description || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (product.username || '').toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
     // Apply category filter
     if (selectedCategory) {
       filtered = filtered.filter(product => 
-        product.tags.some(tag => tag.toLowerCase().includes(selectedCategory.toLowerCase())) ||
-        product.contentType.toLowerCase().includes(selectedCategory.toLowerCase())
+        (product.tags || []).some(tag => tag.toLowerCase().includes(selectedCategory.toLowerCase())) ||
+        (product.contentType || '').toLowerCase().includes(selectedCategory.toLowerCase())
       );
     }
 

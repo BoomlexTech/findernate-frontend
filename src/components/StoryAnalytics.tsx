@@ -189,7 +189,7 @@ export default function StoryAnalytics({ story, onClose, onViewerCountUpdate }: 
                   <div key={viewer._id} className="flex items-center space-x-3">
                     <div className="relative w-10 h-10">
                       <Image
-                        src={viewer.profileImageUrl || '/default-avatar.png'}
+                        src={viewer.profileImageUrl || '/placeholderimg.png'}
                         alt={viewer.username}
                         fill
                         className="rounded-full object-cover border border-gray-200"

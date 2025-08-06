@@ -107,13 +107,13 @@ export function transformExploreFeedToFeedPost(items: RawExploreFeedItem[]): Fee
       if (typeof item.userId === 'object' && item.userId !== null) {
         return {
           username: item.userId.username || 'unknown_user',
-          profileImageUrl: item.userId.profileImageUrl || '/default-avatar.png'
+          profileImageUrl: item.userId.profileImageUrl || '/placeholderimg.png'
         };
       }
       // Handle case where userId might be a string ID
       return {
         username: 'unknown_user',
-        profileImageUrl: '/default-avatar.png'
+        profileImageUrl: '/placeholderimg.png'
       };
     };
 
@@ -127,7 +127,7 @@ export function transformExploreFeedToFeedPost(items: RawExploreFeedItem[]): Fee
         profileImageUrl: userInfo.profileImageUrl,
         userId: typeof item.userId === 'object' ? {
           ...item.userId,
-          profileImageUrl: item.userId.profileImageUrl || '/default-avatar.png'
+          profileImageUrl: item.userId.profileImageUrl || '/placeholderimg.png'
         } : undefined,
         description: item.caption || '',
         caption: item.caption || '',
@@ -173,7 +173,7 @@ export function transformExploreFeedToFeedPost(items: RawExploreFeedItem[]): Fee
       profileImageUrl: userInfo.profileImageUrl,
       userId: typeof item.userId === 'object' ? {
         ...item.userId,
-        profileImageUrl: item.userId.profileImageUrl || '/default-avatar.png'
+        profileImageUrl: item.userId.profileImageUrl || '/placeholderimg.png'
       } : undefined,
       description: item.description || item.caption || '',
       caption: item.caption || '',
