@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import PlanSelectionModal from './business/PlanSelectionModal';
 import { ChevronDown } from 'lucide-react';
+import { UpdateBusinessCategory, GetBusinessCategory } from '@/api/business';
 
 const businessCategories = [
   'Technology & Software',
@@ -28,12 +29,55 @@ const businessCategories = [
 export default function AccountSettings() {
   const [showPlanModal, setShowPlanModal] = useState(false);
   const [isBusiness, setIsBusiness] = useState(true);
-  const [currentCategory, setCurrentCategory] = useState('Fashion & Apparel');
+  const [currentCategory, setCurrentCategory] = useState('');
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  const [isUpdatingCategory, setIsUpdatingCategory] = useState(false);
+  const [updateMessage, setUpdateMessage] = useState('');
+  const [isLoadingCategory, setIsLoadingCategory] = useState(true);
 
-  const handleCategorySelect = (category: string) => {
-    setCurrentCategory(category);
-    setShowCategoryDropdown(false);
+  // Fetch current business category on component mount
+  useEffect(() => {
+    const fetchBusinessCategory = async () => {
+      if (!isBusiness) {
+        setIsLoadingCategory(false);
+        return;
+      }
+
+      try {
+        const response = await GetBusinessCategory();
+        setCurrentCategory(response.data?.category || '');
+      } catch (error: any) {
+        console.error('Failed to fetch business category:', error);
+        setCurrentCategory('');
+      } finally {
+        setIsLoadingCategory(false);
+      }
+    };
+
+    fetchBusinessCategory();
+  }, [isBusiness]);
+
+  const handleCategorySelect = async (category: string) => {
+    if (category === currentCategory) {
+      setShowCategoryDropdown(false);
+      return;
+    }
+
+    setIsUpdatingCategory(true);
+    setUpdateMessage('');
+    
+    try {
+      await UpdateBusinessCategory(category);
+      setCurrentCategory(category);
+      setUpdateMessage('Category updated successfully!');
+      setTimeout(() => setUpdateMessage(''), 3000);
+    } catch (error: any) {
+      setUpdateMessage(error.response?.data?.message || 'Failed to update category');
+      setTimeout(() => setUpdateMessage(''), 3000);
+    } finally {
+      setIsUpdatingCategory(false);
+      setShowCategoryDropdown(false);
+    }
   };
 
   return (
@@ -64,18 +108,34 @@ export default function AccountSettings() {
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Business Category</h3>
-              <p className="text-blue-600">Current category: {currentCategory}</p>
+              {isLoadingCategory ? (
+                <p className="text-gray-500">Loading category...</p>
+              ) : (
+                <p className="text-blue-600">
+                  Current category: {currentCategory || 'No category set'}
+                </p>
+              )}
+              {updateMessage && (
+                <p className={`text-sm mt-1 ${updateMessage.includes('successfully') ? 'text-green-600' : 'text-red-600'}`}>
+                  {updateMessage}
+                </p>
+              )}
             </div>
             <div className="relative">
               <button 
                 onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                disabled={isUpdatingCategory}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Update Category
-                <ChevronDown className={`w-4 h-4 transition-transform ${showCategoryDropdown ? 'rotate-180' : ''}`} />
+                {isUpdatingCategory ? 'Updating...' : 'Update Category'}
+                {isUpdatingCategory ? (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <ChevronDown className={`w-4 h-4 transition-transform ${showCategoryDropdown ? 'rotate-180' : ''}`} />
+                )}
               </button>
               
-              {showCategoryDropdown && (
+              {showCategoryDropdown && !isUpdatingCategory && (
                 <>
                   {/* Backdrop */}
                   <div 
