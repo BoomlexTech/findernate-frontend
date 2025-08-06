@@ -260,6 +260,7 @@ export default function SignupComponent() {
                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
+            {error && <p className="text-red-500">{error}</p>}
           </div>
 
           {/* Submit Button */}
@@ -270,7 +271,6 @@ export default function SignupComponent() {
           >
             Create Account
           </button>
-          {error && <p className="text-red-500">{error}</p>}
         </div>
 
         {/* Already have account */}

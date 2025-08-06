@@ -86,36 +86,16 @@ export const ChatList: React.FC<ChatListProps> = ({
     }
     
     const textWithoutUrl = msg.replace(urlRegex, '').trim();
+    const maxLength = 50; // Limit message preview to 50 characters
+    if (textWithoutUrl.length > maxLength) {
+      return textWithoutUrl.substring(0, maxLength) + '...';
+    }
     return textWithoutUrl || 'No messages yet';
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center py-8">
-        <div className="text-gray-500">Loading chats...</div>
-      </div>
-    );
-  }
-
-  if (chats.length === 0) {
-    return (
-      <div className="flex justify-center items-center py-8">
-        <div className="text-gray-500">
-          {searchQuery.trim() 
-            ? `No ${activeTab === 'requests' ? 'requests' : 'chats'} found matching your search` 
-            : activeTab === 'requests' 
-              ? 'No message requests'
-              : activeTab === 'group'
-                ? 'No group chats available'
-                : 'No direct chats available'
-          }
-        </div>
-      </div>
-    );
-  }
-
   return (
     <>
+      {/* Search bar - always visible */}
       <div className="px-6 py-4 relative">
         <Search className="absolute left-9 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
         <input 
@@ -127,75 +107,95 @@ export const ChatList: React.FC<ChatListProps> = ({
         />
       </div>
 
+      {/* Content area */}
       <div className="overflow-y-auto px-4 flex-1">
-        {chats.map((chat) => (
-          <div 
-            key={chat._id} 
-            className={`flex items-start gap-3 p-3 rounded-lg transition ${
-              activeTab === 'requests' 
-                ? "hover:bg-orange-50" 
-                : `cursor-pointer hover:bg-yellow-50 ${selectedChat === chat._id ? "bg-yellow-50 border border-yellow-300" : ""}`
-            }`} 
-            onClick={() => {
-              if (activeTab !== 'requests') {
-                console.log('Selecting chat:', chat._id);
-                setSelectedChat(chat._id);
+        {loading ? (
+          <div className="flex justify-center items-center py-8">
+            <div className="text-gray-500">Loading chats...</div>
+          </div>
+        ) : chats.length === 0 ? (
+          <div className="flex justify-center items-center py-8">
+            <div className="text-gray-500">
+              {searchQuery.trim() 
+                ? `No ${activeTab === 'requests' ? 'requests' : 'chats'} found matching your search` 
+                : activeTab === 'requests' 
+                  ? 'No message requests'
+                  : activeTab === 'group'
+                    ? 'No group chats available'
+                    : 'No direct chats available'
               }
-            }}
-          >
-            <Image 
-              src={getChatAvatar(chat)} 
-              alt={getChatDisplayName(chat)} 
-              width={48} 
-              height={48} 
-              className="rounded-full" 
-            />
-            <div className="flex-1">
-              <div className="flex items-center gap-2">
-                <span className="font-semibold text-black">{getChatDisplayName(chat)}</span>
-                <span className={`text-xs px-2 py-0.5 rounded-full ${
-                  activeTab === 'requests' 
-                    ? 'bg-orange-100 text-orange-700'
-                    : 'bg-yellow-100 text-yellow-700'
-                }`}>
-                  {activeTab === 'requests' ? 'Request' : (chat.chatType === 'group' ? 'Group' : 'Direct')}
-                </span>
-                <span className="ml-auto text-xs text-gray-400">{formatTime(chat.lastMessageAt)}</span>
+            </div>
+          </div>
+        ) : (
+          chats.map((chat) => (
+            <div 
+              key={chat._id} 
+              className={`flex items-start gap-3 p-3 rounded-lg transition ${
+                activeTab === 'requests' 
+                  ? "hover:bg-orange-50" 
+                  : `cursor-pointer hover:bg-yellow-50 ${selectedChat === chat._id ? "bg-yellow-50 border border-yellow-300" : ""}`
+              }`} 
+              onClick={() => {
+                if (activeTab !== 'requests') {
+                  console.log('Selecting chat:', chat._id);
+                  setSelectedChat(chat._id);
+                }
+              }}
+            >
+              <Image 
+                src={getChatAvatar(chat)} 
+                alt={getChatDisplayName(chat)} 
+                width={48} 
+                height={48} 
+                className="rounded-full" 
+              />
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-black">{getChatDisplayName(chat)}</span>
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${
+                    activeTab === 'requests' 
+                      ? 'bg-orange-100 text-orange-700'
+                      : 'bg-yellow-100 text-yellow-700'
+                  }`}>
+                    {activeTab === 'requests' ? 'Request' : (chat.chatType === 'group' ? 'Group' : 'Direct')}
+                  </span>
+                  <span className="ml-auto text-xs text-gray-400">{formatTime(chat.lastMessageAt)}</span>
+                </div>
+                <p className="text-sm text-gray-600 truncate max-w-[200px] overflow-hidden whitespace-nowrap">
+                  {renderChatPreview(chat)}
+                </p>
+                
+                {activeTab === 'requests' && onAcceptRequest && onDeclineRequest && (
+                  <div className="flex gap-2 mt-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onAcceptRequest(chat._id);
+                      }}
+                      className="px-3 py-1 bg-green-500 hover:bg-green-600 text-white text-xs rounded-full transition-colors"
+                    >
+                      Accept
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeclineRequest(chat._id);
+                      }}
+                      className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white text-xs rounded-full transition-colors"
+                    >
+                      Decline
+                    </button>
+                  </div>
+                )}
               </div>
-              <p className="text-sm text-gray-600 truncate">
-                {renderChatPreview(chat)}
-              </p>
-              
-              {activeTab === 'requests' && onAcceptRequest && onDeclineRequest && (
-                <div className="flex gap-2 mt-2">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onAcceptRequest(chat._id);
-                    }}
-                    className="px-3 py-1 bg-green-500 hover:bg-green-600 text-white text-xs rounded-full transition-colors"
-                  >
-                    Accept
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDeclineRequest(chat._id);
-                    }}
-                    className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white text-xs rounded-full transition-colors"
-                  >
-                    Decline
-                  </button>
+              {activeTab !== 'requests' && (chat.unreadCount ?? 0) > 0 && (
+                <div className="ml-2 bg-yellow-500 text-white text-xs min-w-[20px] h-5 flex items-center justify-center rounded-full px-1 animate-pulse">
+                  {chat?.unreadCount && chat.unreadCount > 99 ? '99+' : chat.unreadCount}
                 </div>
               )}
             </div>
-            {activeTab !== 'requests' && (chat.unreadCount ?? 0) > 0 && (
-              <div className="ml-2 bg-yellow-500 text-white text-xs min-w-[20px] h-5 flex items-center justify-center rounded-full px-1 animate-pulse">
-                {chat?.unreadCount && chat.unreadCount > 99 ? '99+' : chat.unreadCount}
-              </div>
-            )}
-          </div>
-        ))}
+          ))
+        )}
       </div>
     </>
   );

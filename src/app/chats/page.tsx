@@ -3,18 +3,16 @@
 import { Suspense } from "react";
 import MessagePanel from "@/components/MessagePanel";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
-import { AuthDialog } from "@/components/AuthDialog";
 import { MessageCircle, Users, LogIn } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function Page() {
-  const { requireAuth, showAuthDialog, closeAuthDialog, isAuthenticated, isLoading } = useAuthGuard();
+  const { isAuthenticated, isLoading } = useAuthGuard();
+  const router = useRouter();
 
   const handleLoginClick = () => {
-    requireAuth(() => {
-      // This will trigger a re-render once user is authenticated
-      console.log('User authenticated, chats will load');
-    });
+    router.push('/signin');
   };
 
   // Show loading state while checking authentication
@@ -77,7 +75,7 @@ export default function Page() {
           </div>
         </div>
         
-        <AuthDialog isOpen={showAuthDialog} onClose={closeAuthDialog} />
+
       </>
     );
   }
@@ -98,8 +96,7 @@ export default function Page() {
           <MessagePanel />
         </Suspense>
       </div>
-      
-      <AuthDialog isOpen={showAuthDialog} onClose={closeAuthDialog} />
+
     </>
   );
 }

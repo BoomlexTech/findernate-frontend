@@ -9,6 +9,8 @@ import { Plus } from "lucide-react";
 import StoryViewer from "./StoryViewer";
 import CreateStoryModal from "./CreateStoryModal";
 import StoryAnalytics from "./StoryAnalytics";
+import { useAuthGuard } from "@/hooks/useAuthGuard";
+import { AuthDialog } from "./AuthDialog";
 
 interface StoriesBarProps {
   onCreateStory?: () => void;
@@ -59,6 +61,7 @@ export default function StoriesBar({ onCreateStory }: StoriesBarProps) {
   const modalStateRef = useRef(false);
   
   const { user, token } = useUserStore();
+  const { requireAuth, showAuthDialog, closeAuthDialog } = useAuthGuard();
 
   const getInitials = (name: string) => {
     return name
@@ -107,20 +110,30 @@ export default function StoriesBar({ onCreateStory }: StoriesBarProps) {
     }
   }, [storyUsers]);
 
-  // Always render something - don't return null
-  if (!user) {
-    // Show a placeholder while user data loads or if user needs to log in
+  // When no user is logged in, show only a login prompt
+  if (!user || !token) {
     return (
-      <div className="flex overflow-x-auto space-x-6 pb-2 px-2 scrollbar-hide bg-white shadow-md rounded-lg">
-        <div className="flex flex-col items-center mt-5 flex-shrink-0">
-          <div className="w-16 h-16 rounded-full bg-blue-100 border-2 border-blue-300 flex items-center justify-center cursor-pointer hover:bg-blue-200 transition-colors">
-            <Plus size={24} className="text-blue-600" />
+      <>
+        <div className="flex overflow-x-auto space-x-6 pb-2 px-2 scrollbar-hide bg-white shadow-md rounded-lg">
+          <div className="flex flex-col items-center mt-5 flex-shrink-0">
+            <div 
+              className="w-16 h-16 rounded-full bg-gradient-to-r from-yellow-400 to-orange-500 border-2 border-white shadow-lg flex items-center justify-center cursor-pointer hover:from-yellow-500 hover:to-orange-600 transition-all transform hover:scale-105"
+              onClick={() => requireAuth()}
+            >
+              <Plus size={28} className="text-white" strokeWidth={3} />
+            </div>
+            <p className="text-xs mt-2 text-center text-gray-700 font-medium max-w-[64px] truncate">
+              Add Story
+            </p>
           </div>
-          <p className="text-xs mt-2 text-center text-gray-700 font-medium max-w-[64px] truncate">
-            {token ? 'Your Story' : 'Login for Stories'}
-          </p>
         </div>
-      </div>
+
+        {/* Auth Dialog */}
+        <AuthDialog
+          isOpen={showAuthDialog}
+          onClose={closeAuthDialog}
+        />
+      </>
     );
   }
 
@@ -170,9 +183,11 @@ export default function StoriesBar({ onCreateStory }: StoriesBarProps) {
   };
 
   const handleCreateStory = () => {
-    modalStateRef.current = true;
-    localStorage.setItem('create-story-modal-open', 'true');
-    setShowCreateModal(true);
+    requireAuth(() => {
+      modalStateRef.current = true;
+      localStorage.setItem('create-story-modal-open', 'true');
+      setShowCreateModal(true);
+    });
   };
 
   const handleStoryUpload = async (media: File, caption?: string) => {
@@ -212,12 +227,12 @@ export default function StoriesBar({ onCreateStory }: StoriesBarProps) {
 
   return (
     <>
-      <div className="flex overflow-x-auto space-x-6 pb-2 px-2 scrollbar-hide bg-white shadow-md rounded-lg">
+      <div className="flex overflow-x-auto space-x-3 sm:space-x-6 pb-2 px-2 bg-white shadow-md rounded-lg subtle-scrollbar">
         {displayUsers.map((storyUser) => (
           <div key={storyUser._id} className="flex flex-col items-center mt-5 flex-shrink-0">
             <div
               onClick={() => openStoryModal(storyUser)}
-              className={`relative w-16 h-16 rounded-full border-2 ${
+              className={`relative w-12 h-12 sm:w-16 sm:h-16 rounded-full border-2 ${
                 areAllStoriesViewed(storyUser)
                   ? "border-gray-400"
                   : storyUser.hasNewStories
@@ -261,7 +276,7 @@ export default function StoriesBar({ onCreateStory }: StoriesBarProps) {
                 </div>
               )}
             </div>
-            <p className="text-xs mt-2 text-center text-gray-700 font-medium max-w-[64px] truncate">
+            <p className="text-xs mt-2 text-center text-gray-700 font-medium max-w-[48px] sm:max-w-[64px] truncate">
               {storyUser.isCurrentUser ? "Your Story" : storyUser.username}
             </p>
           </div>
@@ -299,6 +314,12 @@ export default function StoriesBar({ onCreateStory }: StoriesBarProps) {
           onClose={handleCloseAnalytics}
         />
       )}
+
+      {/* Auth Dialog */}
+      <AuthDialog
+        isOpen={showAuthDialog}
+        onClose={closeAuthDialog}
+      />
     </>
   );
 }

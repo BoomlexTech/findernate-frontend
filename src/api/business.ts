@@ -15,3 +15,13 @@ export const UpdateBusinessDetails = async (business: UpdateBusinessRequest) => 
     const response = await axios.patch("/business/update", business);
     return response.data;
 }
+
+export const UpdateBusinessCategory = async (category: string) => {
+    const response = await axios.patch("/business/update-category", { category });
+    return response.data;
+}
+
+export const GetBusinessCategory = async () => {
+    const response = await axios.get("/business/my-category");
+    return response.data;
+}

@@ -335,22 +335,29 @@ export default function SearchPage() {
   };
 
   return (
-    <div className="flex flex-col md:flex-row w-full min-h-screen bg-[#f8f9fa]">
-      {/* Left Sidebar / Main Feed */}
-      <div className="flex-1 p-4 md:pl-8 md:pr-6">
-        {/* Search Bar and Filter tabs in same row */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          {/* Search Bar */}
-          <div className="flex-1">
+    <div className="min-h-screen flex flex-col gap-10 hide-scrollbar">
+      <div className="flex-1 xl:pr-[23rem] px-4 xl:px-0">
+        <div className="max-w-full xl:max-w-4xl mx-auto xl:ml-4">
+          <div className="[&>*]:!max-w-full [&>*]:xl:!max-w-[54rem]">
+            <FloatingHeader
+              paragraph="Discover businesses, products, services, and more"
+              heading="Search"
+              username="John Doe"
+              width="w-full"
+              accountBadge={true}
+            />
+          </div>
+
+          <div className="w-full relative [&>*]:!max-w-full [&>*]:xl:!max-w-[54rem]">
             <SearchBar
               value={searchQuery}
-              placeholder="Search businesses, products, services, people..."
+              placeholder="Search businesses, products, services..."
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
             />
           </div>
 
           {/* Filter tabs */}
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 mt-4 mb-6">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               return (
@@ -370,198 +377,181 @@ export default function SearchPage() {
               );
             })}
           </div>
-        </div>
 
-        {/* Advanced Filters Grid - Similar to Business Page */}
-        <div className="bg-white border border-gray-200 rounded-lg p-4 md:p-6 shadow-sm mb-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {/* Location Filter */}
-            <select
-              className="w-full px-4 py-2 border text-black border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-              value={selectedLocation}
-              onChange={(e) => {
-                if (e.target.value === "Current Location") {
-                  getCurrentLocation();
-                } else {
-                  setSelectedLocation(e.target.value);
-                  setUseCurrentLocation(false);
-                  setCurrentCoordinates(null);
-                }
-              }}
-              disabled={loading}
-            >
-              <option value="All Locations">All Locations</option>
-              <option value="Current Location">Current Location</option>
-              {locations.map((location) => (
-                <option key={location} value={location}>
-                  {location}
-                </option>
-              ))}
-            </select>
-
-            {/* Content Type Filter */}
-            {activeTab !== "Users" && (
+          {/* Advanced Filters Grid */}
+          <div className="bg-white border border-gray-200 rounded-lg p-4 md:p-6 shadow-sm mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {/* Location Filter */}
               <select
                 className="w-full px-4 py-2 border text-black border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                value={selectedContentType || ""}
-                onChange={(e) => setSelectedContentType(e.target.value || null)}
+                value={selectedLocation}
+                onChange={(e) => {
+                  if (e.target.value === "Current Location") {
+                    getCurrentLocation();
+                  } else {
+                    setSelectedLocation(e.target.value);
+                    setUseCurrentLocation(false);
+                    setCurrentCoordinates(null);
+                  }
+                }}
                 disabled={loading}
               >
-                <option value="">All Content Types</option>
-                {contentTypes.map((type) => (
-                  <option key={type.id} value={type.id}>
-                    {type.label}
+                <option value="All Locations">All Locations</option>
+                <option value="Current Location">Current Location</option>
+                {locations.map((location) => (
+                  <option key={location} value={location}>
+                    {location}
                   </option>
                 ))}
               </select>
-            )}
 
-            {/* Post Type Filter */}
-            {activeTab !== "Users" && (
-              <select
-                className="w-full px-4 py-2 border text-black border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                value={selectedPostType || ""}
-                onChange={(e) => setSelectedPostType(e.target.value || null)}
-                disabled={loading}
-              >
-                <option value="">All Post Types</option>
-                {postTypes.map((type) => (
-                  <option key={type.id} value={type.id}>
-                    {type.label}
-                  </option>
-                ))}
-              </select>
-            )}
+              {/* Content Type Filter */}
+              {activeTab !== "Users" && (
+                <select
+                  className="w-full px-4 py-2 border text-black border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  value={selectedContentType || ""}
+                  onChange={(e) => setSelectedContentType(e.target.value || null)}
+                  disabled={loading}
+                >
+                  <option value="">All Content Types</option>
+                  {contentTypes.map((type) => (
+                    <option key={type.id} value={type.id}>
+                      {type.label}
+                    </option>
+                  ))}
+                </select>
+              )}
 
-            {/* Date Range Filter */}
-            <div className="flex gap-2">
-              <DatePicker
-                selected={startDate}
-                onChange={(date) => setStartDate(date)}
-                selectsStart
-                startDate={startDate}
-                endDate={endDate}
-                placeholderText="From"
-                className="w-full px-4 py-2 border text-black border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                disabled={loading}
-              />
-              <DatePicker
-                selected={endDate}
-                onChange={(date) => setEndDate(date)}
-                selectsEnd
-                startDate={startDate}
-                endDate={endDate}
-                minDate={startDate || undefined}
-                placeholderText="To"
-                className="w-full px-4 py-2 border text-black border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                disabled={loading}
-              />
+              {/* Post Type Filter */}
+              {activeTab !== "Users" && (
+                <select
+                  className="w-full px-4 py-2 border text-black border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  value={selectedPostType || ""}
+                  onChange={(e) => setSelectedPostType(e.target.value || null)}
+                  disabled={loading}
+                >
+                  <option value="">All Post Types</option>
+                  {postTypes.map((type) => (
+                    <option key={type.id} value={type.id}>
+                      {type.label}
+                    </option>
+                  ))}
+                </select>
+              )}
+
+              {/* Date Range Filter */}
+              <div className="flex gap-2">
+                <DatePicker
+                  selected={startDate}
+                  onChange={(date) => setStartDate(date)}
+                  selectsStart
+                  startDate={startDate}
+                  endDate={endDate}
+                  placeholderText="From"
+                  className="w-full px-4 py-2 border text-black border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  disabled={loading}
+                />
+                <DatePicker
+                  selected={endDate}
+                  onChange={(date) => setEndDate(date)}
+                  selectsEnd
+                  startDate={startDate}
+                  endDate={endDate}
+                  minDate={startDate || undefined}
+                  placeholderText="To"
+                  className="w-full px-4 py-2 border text-black border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  disabled={loading}
+                />
+              </div>
+
+              {/* Radius Slider - Only show when using current location */}
+              {useCurrentLocation && (
+                <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-lg px-4 py-2">
+                  <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Radius:</span>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="range"
+                      min="1"
+                      max="200"
+                      value={searchRadius}
+                      onChange={(e) => setSearchRadius(Number(e.target.value))}
+                      disabled={loading}
+                      className="flex-1 h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                      style={{
+                        background: `linear-gradient(to right, #eab308 0%, #eab308 ${((searchRadius - 1) / 199) * 100}%, #e5e7eb ${((searchRadius - 1) / 199) * 100}%, #e5e7eb 100%)`
+                      }}
+                    />
+                    <span className="text-sm font-medium text-gray-900 min-w-[30px]">{searchRadius}km</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Clear Filters Button */}
+              {hasActiveFilters() && (
+                <button
+                  onClick={clearAllFilters}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+                >
+                  Clear Filters
+                </button>
+              )}
             </div>
+          </div>
 
-            {/* Radius Slider - Only show when using current location */}
-            {useCurrentLocation && (
-              <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-lg px-4 py-2">
-                <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Radius:</span>
+          {/* Search Results Info */}
+          {searchQuery.trim() && !loading && (
+            <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <input
-                    type="range"
-                    min="1"
-                    max="200"
-                    value={searchRadius}
-                    onChange={(e) => setSearchRadius(Number(e.target.value))}
-                    disabled={loading}
-                    className="flex-1 h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
-                    style={{
-                      background: `linear-gradient(to right, #eab308 0%, #eab308 ${((searchRadius - 1) / 199) * 100}%, #e5e7eb ${((searchRadius - 1) / 199) * 100}%, #e5e7eb 100%)`
-                    }}
-                  />
-                  <span className="text-sm font-medium text-gray-900 min-w-[30px]">{searchRadius}km</span>
+                  <Search className="w-4 h-4 text-blue-600" />
+                  <span className="text-blue-800 font-medium">
+                    {results.length > 0 || users.length > 0 ? (
+                      <>
+                        Found {results.length} posts and {users.length} users
+                        {selectedLocation !== "All Locations" && !useCurrentLocation && (
+                          <span className="text-blue-600"> in {selectedLocation}</span>
+                        )}
+                        {useCurrentLocation && (
+                          <span className="text-blue-600"> within {searchRadius}km of your location</span>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        No results found for "{searchQuery}"
+                        {selectedLocation !== "All Locations" && !useCurrentLocation && (
+                          <span> in {selectedLocation}</span>
+                        )}
+                      </>
+                    )}
+                  </span>
                 </div>
-              </div>
-            )}
-
-            {/* Clear Filters Button */}
-            {hasActiveFilters() && (
-              <button
-                onClick={clearAllFilters}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
-              >
-                Clear Filters
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Click outside to close dropdowns */}
-        {(locationDropdownOpen || contentTypeDropdownOpen || postTypeDropdownOpen) && (
-          <div
-            className="fixed inset-0 z-40"
-            onClick={() => {
-              setLocationDropdownOpen(false);
-              setContentTypeDropdownOpen(false);
-              setPostTypeDropdownOpen(false);
-            }}
-          />
-        )}
-
-        {/* Search Results Info */}
-        {searchQuery.trim() && !loading && (
-          <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Search className="w-4 h-4 text-blue-600" />
-                <span className="text-blue-800 font-medium">
-                  {results.length > 0 || users.length > 0 ? (
-                    <>
-                      Found {results.length} posts and {users.length} users
-                      {selectedLocation !== "All Locations" && !useCurrentLocation && (
-                        <span className="text-blue-600"> in {selectedLocation}</span>
-                      )}
-                      {useCurrentLocation && (
-                        <span className="text-blue-600"> within {searchRadius}km of your location</span>
-                      )}
-                    </>
-                  ) : (
-                    <>
-                      No results found for "{searchQuery}"
-                      {selectedLocation !== "All Locations" && !useCurrentLocation && (
-                        <span> in {selectedLocation}</span>
-                      )}
-                    </>
-                  )}
-                </span>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Error Message */}
-        {error && (
-          <div className="mb-4 p-4 bg-red-50 border border-red-200 text-red-600 rounded-lg">
-            {error}
-          </div>
-        )}
+          {/* Error Message */}
+          {error && (
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 text-red-600 rounded-lg">
+              {error}
+            </div>
+          )}
 
-        {/* Loading Indicator */}
-        {loading && (
-          <div className="flex justify-center my-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-yellow-500"></div>
-          </div>
-        )}
+          {/* Loading Indicator */}
+          {loading && (
+            <div className="flex justify-center my-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-yellow-500"></div>
+            </div>
+          )}
 
-        {/* Search Results */}
-        <div className="space-y-6">
-          {/* User Cards Section */}
-          {activeTab === "Users" || activeTab === "All" ? (
-            <>
-              {displayedUsers.map((user) => (
-                <div key={user._id} className="w-full">
-                  <UserCard user={user} onFollow={handleFollowUpdate} />
-                </div>
-              ))}
+          <div className="flex flex-col items-center gap-4 text-black">
+            {/* User Cards Section */}
+            {activeTab === "Users" || activeTab === "All" ? (
+              <>
+                {displayedUsers.map((user) => (
+                  <UserCard key={user._id} user={user} onFollow={handleFollowUpdate} />
+                ))}
 
-              {hasMoreUsers && !showAllUsers && !loading && (
-                <div className="w-full">
+                {hasMoreUsers && !showAllUsers && !loading && (
                   <button
                     onClick={() => setShowAllUsers(true)}
                     className="w-full bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 p-4 group"
@@ -573,11 +563,9 @@ export default function SearchPage() {
                       </span>
                     </div>
                   </button>
-                </div>
-              )}
+                )}
 
-              {showAllUsers && hasMoreUsers && !loading && (
-                <div className="w-full">
+                {showAllUsers && hasMoreUsers && !loading && (
                   <button
                     onClick={() => setShowAllUsers(false)}
                     className="w-full bg-gray-50 border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 p-3"
@@ -587,41 +575,36 @@ export default function SearchPage() {
                       <span className="font-medium text-sm">Show less</span>
                     </div>
                   </button>
-                </div>
-              )}
-            </>
-          ) : null}
+                )}
+              </>
+            ) : null}
 
-          {/* Search Results - Posts */}
-          {activeTab !== "Users" && (
-            <>
-              {results.map((item) => (
-                <div key={item._id} className="w-full">
-                  <PostCard post={item} />
-                </div>
-              ))}
-            </>
-          )}
+            {/* Search Results - Posts */}
+            {activeTab !== "Users" && (
+              <>
+                {results.map((item) => (
+                  <PostCard key={item._id} post={item} />
+                ))}
+              </>
+            )}
 
-          {/* No Results Message */}
-          {!loading && results.length === 0 && users.length === 0 && searchQuery.trim() && (
-            <div className="text-center py-12 bg-white rounded-xl shadow-sm border border-gray-200">
-              <Search size={48} className="mx-auto mb-4 text-gray-300" />
-              <p className="text-lg font-medium text-gray-900">No results found</p>
-              <p className="text-sm text-gray-600">Try adjusting your search terms or filters</p>
-            </div>
-          )}
-        </div>
-      </div>
-       
-      {/* Right Sidebar */}
-      <div className="w-full md:w-[320px] md:p-6 lg:p-0">
-        <aside className="w-full md:w-[20rem] max-w-full bg-white shadow-md rounded-lg md:sticky md:top-4 md:h-[calc(100vh-2rem)] overflow-y-auto">
-          <div className="p-4 space-y-6">
-            <TrendingTopics isSearchPage={true} onTrendingClick={handleTrendingClick} />
-            <TrendingBusiness />
+            {/* No Results Message */}
+            {!loading && results.length === 0 && users.length === 0 && searchQuery.trim() && (
+              <div className="text-gray-500 text-center py-8">
+                <Search size={48} className="mx-auto mb-4 text-gray-300" />
+                <p className="text-lg font-medium">No results found</p>
+                <p className="text-sm">Try adjusting your search terms or filters</p>
+              </div>
+            )}
           </div>
-        </aside>
+        </div>
+
+        <div className="hidden xl:block w-[23rem] fixed p-5 right-0 top-0 h-full bg-white border-l border-gray-200 overflow-y-auto">
+          <div className="mb-5">
+            <TrendingTopics isSearchPage={true} onTrendingClick={handleTrendingClick} />
+          </div>
+          <TrendingBusiness />
+        </div>
       </div>
     </div>
   );

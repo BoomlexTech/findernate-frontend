@@ -300,6 +300,7 @@ export interface SearchUser {
   location?: string;
   isFollowing?: boolean;
   followersCount?: number;
+  followingCount?: number;
 }
 
 export interface SearchResult {

@@ -1,6 +1,53 @@
 import { AddBusinessDetails, UpdateBusinessDetails, GetBusinessDetails } from "@/api/business";
 import React, { useState, useEffect } from "react";
 import { Button } from "../ui/button";
+import { ChevronDown } from 'lucide-react';
+
+const businessCategories = [
+  'Technology & Software',
+  'E-commerce & Retail',
+  'Health & Wellness',
+  'Education & Training',
+  'Finance & Accounting',
+  'Marketing & Advertising',
+  'Real Estate',
+  'Travel & Hospitality',
+  'Food & Beverage',
+  'Fashion & Apparel',
+  'Automotive',
+  'Construction & Engineering',
+  'Legal & Consulting',
+  'Entertainment & Media',
+  'Art & Design',
+  'Logistics & Transportation',
+  'Agriculture & Farming',
+  'Manufacturing & Industrial',
+  'Non-profit & NGOs',
+  'Telecommunications'
+];
+
+const socialMediaPlatforms = [
+  'Facebook',
+  'Instagram',
+  'Twitter',
+  'LinkedIn',
+  'YouTube',
+  'TikTok',
+  'Snapchat',
+  'Pinterest',
+  'WhatsApp Business',
+  'Telegram',
+  'Discord',
+  'Reddit',
+  'Tumblr',
+  'Behance',
+  'Dribbble',
+  'GitHub',
+  'Medium',
+  'Quora',
+  'Clubhouse',
+  'Twitch'
+];
 
 type SocialMedia = { platform: string; url: string };
 type BusinessDetails = {
@@ -68,6 +115,8 @@ const BusinessDetailsModal: React.FC<Props> = ({
   const [tagInput, setTagInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [fetchingData, setFetchingData] = useState(false);
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  const [showSocialDropdowns, setShowSocialDropdowns] = useState<Record<number, boolean>>({});
 
   // Fetch business details when in edit mode
   useEffect(() => {
@@ -170,6 +219,15 @@ const BusinessDetailsModal: React.FC<Props> = ({
     }));
   };
 
+  const handleSocialPlatformSelect = (idx: number, platform: string) => {
+    handleSocialChange(idx, "platform", platform);
+    setShowSocialDropdowns(prev => ({ ...prev, [idx]: false }));
+  };
+
+  const toggleSocialDropdown = (idx: number) => {
+    setShowSocialDropdowns(prev => ({ ...prev, [idx]: !prev[idx] }));
+  };
+
   const addSocial = () => {
     setForm((prev) => ({
       ...prev,
@@ -213,6 +271,53 @@ const BusinessDetailsModal: React.FC<Props> = ({
       e.preventDefault();
       addTag();
     }
+  };
+
+  const handleCategorySelect = (category: string) => {
+    setForm(prev => ({ ...prev, category }));
+    setShowCategoryDropdown(false);
+  };
+
+  const handleGSTChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.toUpperCase(); // Convert to uppercase first
+    // Only allow uppercase letters and numbers, max 15 characters
+    const filteredValue = value.replace(/[^A-Z0-9]/g, '').slice(0, 15);
+    setForm(prev => ({ ...prev, gstNumber: filteredValue }));
+  };
+
+  const handleAadhaarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, ''); // Only allow digits
+    const limitedValue = value.slice(0, 12); // Limit to 12 digits
+    
+    // Format with spaces: XXXX XXXX XXXX
+    let formattedValue = '';
+    for (let i = 0; i < limitedValue.length; i++) {
+      if (i > 0 && i % 4 === 0) {
+        formattedValue += ' ';
+      }
+      formattedValue += limitedValue[i];
+    }
+    
+    setForm(prev => ({ ...prev, aadhaarNumber: formattedValue }));
+  };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, ''); // Only allow digits
+    const limitedValue = value.slice(0, 10); // Limit to 10 digits for Indian numbers
+    
+    // Format as: XXXXX XXXXX
+    let formattedValue = '';
+    for (let i = 0; i < limitedValue.length; i++) {
+      if (i === 5) {
+        formattedValue += ' ';
+      }
+      formattedValue += limitedValue[i];
+    }
+    
+    setForm(prev => ({
+      ...prev,
+      contact: { ...prev.contact, phone: formattedValue }
+    }));
   };
 
   const handleSubmit = async () => {
@@ -316,14 +421,44 @@ const BusinessDetailsModal: React.FC<Props> = ({
                 
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-gray-700">Category *</label>
-                  <input 
-                    name="category" 
-                    value={form.category} 
-                    onChange={handleChange} 
-                    placeholder="Industry category" 
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white text-gray-800 placeholder-gray-500" 
-                    required 
-                  />
+                  <div className="relative">
+                    <button 
+                      type="button"
+                      onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white text-gray-800 text-left flex items-center justify-between"
+                    >
+                      <span className={form.category ? 'text-gray-800' : 'text-gray-500'}>
+                        {form.category || 'Select a category'}
+                      </span>
+                      <ChevronDown className={`w-4 h-4 transition-transform ${showCategoryDropdown ? 'rotate-180' : ''}`} />
+                    </button>
+                    
+                    {showCategoryDropdown && (
+                      <>
+                        {/* Backdrop */}
+                        <div 
+                          className="fixed inset-0 z-10" 
+                          onClick={() => setShowCategoryDropdown(false)}
+                        />
+                        
+                        {/* Dropdown */}
+                        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-20 max-h-60 overflow-y-auto">
+                          {businessCategories.map((category) => (
+                            <button
+                              key={category}
+                              type="button"
+                              onClick={() => handleCategorySelect(category)}
+                              className={`w-full text-left px-4 py-3 hover:bg-yellow-50 transition-colors border-b border-gray-100 last:border-b-0 ${
+                                form.category === category ? 'bg-yellow-100 text-yellow-800 font-medium' : 'text-gray-700'
+                              }`}
+                            >
+                              {category}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
                 
                 <div className="space-y-2">
@@ -342,10 +477,15 @@ const BusinessDetailsModal: React.FC<Props> = ({
                   <input 
                     name="gstNumber" 
                     value={form.gstNumber} 
-                    onChange={handleChange} 
-                    placeholder="GST registration number" 
+                    onChange={handleGSTChange} 
+                    placeholder="GST registration number (15 chars max)" 
+                    maxLength={15}
+                    style={{ textTransform: 'uppercase' }}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white text-gray-800 placeholder-gray-500" 
                   />
+                  <p className="text-xs text-gray-500">
+                    Only uppercase letters and numbers allowed ({form.gstNumber.length}/15)
+                  </p>
                 </div>
                 
                 <div className="space-y-2">
@@ -353,10 +493,14 @@ const BusinessDetailsModal: React.FC<Props> = ({
                   <input 
                     name="aadhaarNumber" 
                     value={form.aadhaarNumber} 
-                    onChange={handleChange} 
-                    placeholder="Aadhaar number" 
+                    onChange={handleAadhaarChange} 
+                    placeholder="XXXX XXXX XXXX (12 digits)" 
+                    maxLength={14} // 12 digits + 2 spaces
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white text-gray-800 placeholder-gray-500" 
                   />
+                  <p className="text-xs text-gray-500">
+                    Only numbers allowed, auto-formatted ({form.aadhaarNumber.replace(/\s/g, '').length}/12 digits)
+                  </p>
                 </div>
               </div>
               
@@ -437,12 +581,17 @@ const BusinessDetailsModal: React.FC<Props> = ({
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-gray-700">Phone</label>
                   <input 
+                    type="tel"
                     name="contact.phone" 
                     value={form.contact.phone} 
-                    onChange={handleChange} 
-                    placeholder="+91 98765 43210" 
+                    onChange={handlePhoneChange} 
+                    placeholder="98765 43210 (10 digits)" 
+                    maxLength={11} // 10 digits + 1 space
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white text-gray-800 placeholder-gray-500" 
                   />
+                  <p className="text-xs text-gray-500">
+                    Only numbers allowed, auto-formatted ({form.contact.phone.replace(/\s/g, '').length}/10 digits)
+                  </p>
                 </div>
                 
                 <div className="space-y-2">
@@ -465,12 +614,44 @@ const BusinessDetailsModal: React.FC<Props> = ({
                   {form.contact.socialMedia.map((sm, idx) => (
                     <div key={idx} className="flex gap-3 items-end">
                       <div className="flex-1 space-y-2">
-                        <input
-                          value={sm.platform}
-                          onChange={e => handleSocialChange(idx, "platform", e.target.value)}
-                          placeholder="Platform (e.g., LinkedIn, Facebook)"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white text-gray-800 placeholder-gray-500"
-                        />
+                        <div className="relative">
+                          <button 
+                            type="button"
+                            onClick={() => toggleSocialDropdown(idx)}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white text-gray-800 text-left flex items-center justify-between"
+                          >
+                            <span className={sm.platform ? 'text-gray-800' : 'text-gray-500'}>
+                              {sm.platform || 'Select platform'}
+                            </span>
+                            <ChevronDown className={`w-4 h-4 transition-transform ${showSocialDropdowns[idx] ? 'rotate-180' : ''}`} />
+                          </button>
+                          
+                          {showSocialDropdowns[idx] && (
+                            <>
+                              {/* Backdrop */}
+                              <div 
+                                className="fixed inset-0 z-10" 
+                                onClick={() => setShowSocialDropdowns(prev => ({ ...prev, [idx]: false }))}
+                              />
+                              
+                              {/* Dropdown */}
+                              <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-20 max-h-48 overflow-y-auto">
+                                {socialMediaPlatforms.map((platform) => (
+                                  <button
+                                    key={platform}
+                                    type="button"
+                                    onClick={() => handleSocialPlatformSelect(idx, platform)}
+                                    className={`w-full text-left px-4 py-3 hover:bg-yellow-50 transition-colors border-b border-gray-100 last:border-b-0 ${
+                                      sm.platform === platform ? 'bg-yellow-100 text-yellow-800 font-medium' : 'text-gray-700'
+                                    }`}
+                                  >
+                                    {platform}
+                                  </button>
+                                ))}
+                              </div>
+                            </>
+                          )}
+                        </div>
                       </div>
                       <div className="flex-1 space-y-2">
                         <input

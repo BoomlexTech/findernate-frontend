@@ -30,7 +30,7 @@ export const AuthDialog: React.FC<AuthDialogProps> = ({ isOpen, onClose }) => {
 
   return (
     <div 
-      className="fixed inset-0 bg-black/40 bg-opacity-50 flex items-center justify-center z-50"
+      className="fixed inset-0 bg-black/40 bg-opacity-50 flex items-center justify-center z-[10000]"
       onClick={handleBackdropClick}
     >
       <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4 relative">

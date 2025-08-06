@@ -7,13 +7,15 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { discoverItems, navigationItems } from '@/constants/uiItems';
 import { Plus } from 'lucide-react';
+import { useAuthGuard } from '@/hooks/useAuthGuard';
 
 interface leftSidebarProps {
 	togglePost?: () => void;
+	onItemClick?: () => void;
 }
 
-export default function LeftSidebar({togglePost}: leftSidebarProps) {
-
+export default function LeftSidebar({togglePost, onItemClick}: leftSidebarProps) {
+	const { isAuthenticated } = useAuthGuard();
 	const [isActive, setIsActive] = useState(0);
 	useEffect(() => {
 	  const saved = localStorage.getItem('sidebarActiveIndex');
@@ -53,7 +55,8 @@ export default function LeftSidebar({togglePost}: leftSidebarProps) {
 				  onClick={()=> {
                    setIsActive(index);
                    localStorage.setItem('sidebarActiveIndex', String(index));
-                   router.push(item.route)
+                   router.push(item.route);
+                   onItemClick?.();
                  }}
 				  className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-all duration-200 ${
 					index===isActive
@@ -71,15 +74,17 @@ export default function LeftSidebar({togglePost}: leftSidebarProps) {
 		  </ul>
 		</nav>
 
-		{/* Create Post Button */}
-		<div className="mb-8">
-		  <Button 
-		  onClick={togglePost}
-		  variant='custom' 
-		  className="flex gap-3 w-full h-[3rem] bg-gradient-to-r from-yellow-400 to-yellow-600 hover:bg-[#DBB42C]/80 text-white font-medium py-3 rounded-xl transition-all duration-600 shadow-sm hover:shadow-md transform hover:scale-105">
-			<Plus size={20}/> Create Post
-		  </Button>
-		</div>
+		{/* Create Post Button - Only show for authenticated users */}
+		{isAuthenticated && (
+		  <div className="mb-8">
+			<Button 
+			onClick={togglePost}
+			variant='custom' 
+			className="flex gap-3 w-full h-[3rem] bg-gradient-to-r from-yellow-400 to-yellow-600 hover:bg-[#DBB42C]/80 text-white font-medium py-3 rounded-xl transition-all duration-600 shadow-sm hover:shadow-md transform hover:scale-105">
+			  <Plus size={20}/> Create Post
+			</Button>
+		  </div>
+		)}
 
 		{/* Discover Section */}
 		<div>
@@ -96,6 +101,7 @@ export default function LeftSidebar({togglePost}: leftSidebarProps) {
  					  setIsActive(index);
                      localStorage.setItem('sidebarActiveIndex', String(index));
                      router.push(item.route);
+                     onItemClick?.();
 				  }}
 					className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-all duration-200
 							  ${index===isActive

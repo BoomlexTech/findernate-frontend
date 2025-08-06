@@ -31,16 +31,17 @@ export const MessageItem: React.FC<MessageItemProps> = ({
       if (ytMatch && ytMatch[1]) {
         const videoId = ytMatch[1];
         return (
-          <div className="my-2">
+          <div className="my-2 w-full">
             <iframe
-              width="320"
-              height="180"
+              width="100%"
+              height="150"
               src={`https://www.youtube.com/embed/${videoId}`}
               title="YouTube video player"
               frameBorder="0"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
-              className="rounded-lg border"
+              className="rounded-lg border max-w-full"
+              style={{ aspectRatio: '16/9', maxWidth: '280px' }}
             ></iframe>
           </div>
         );
@@ -53,7 +54,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
       return textWithoutUrl ? <p>{textWithoutUrl}</p> : null;
     }
     
-    return <p>{msg.message}</p>;
+    return <p className="break-all">{msg.message}</p>;
   };
 
   return (
@@ -61,7 +62,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
       data-message-id={msg._id}
       className={`flex ${isCurrentUser ? "justify-end" : "justify-start"} mb-4 group relative`}
     >
-      <div className={`max-w-md px-4 py-3 rounded-2xl relative ${
+      <div className={`max-w-xs px-4 py-3 rounded-2xl relative break-words ${
         isCurrentUser 
           ? "bg-[#DBB42C] text-white" 
           : "bg-gray-100 text-gray-900"

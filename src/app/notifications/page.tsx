@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { getNotifications } from '@/api/notification';
 import { Bell, User, Heart, MessageCircle, FileText, Loader2, AlertCircle, RefreshCw, LogIn } from 'lucide-react';
 import { useAuthGuard } from '@/hooks/useAuthGuard';
-import { AuthDialog } from '@/components/AuthDialog';
 
 interface Notification {
   _id: string;
@@ -81,7 +80,7 @@ const Notifications = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const { requireAuth, showAuthDialog, closeAuthDialog, isAuthenticated, isLoading } = useAuthGuard();
+  const { isAuthenticated, isLoading } = useAuthGuard();
 
   const handleNotificationClick = (notification: Notification) => {
     if (notification.type === 'follow' && notification.senderId) {
@@ -103,10 +102,7 @@ const Notifications = () => {
   };
 
   const handleLoginClick = () => {
-    requireAuth(() => {
-      // This will trigger a re-render once user is authenticated
-      console.log('User authenticated, notifications will load');
-    });
+    router.push('/signin');
   };
 
   const getNotificationIcon = (type: string) => {
@@ -208,25 +204,9 @@ const Notifications = () => {
   if (!isAuthenticated) {
     return (
       <>
-        <div className="w-[50rem] min-h-screen mx-auto pt-2 bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-          {/* Header */}
-          <div className="bg-button-gradient px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
-                  <Bell className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-xl font-bold text-white">Notifications</h1>
-                  <p className="text-white/80 text-sm">Sign in to see your activity</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Login prompt content */}
-          <div className="flex items-center justify-center min-h-[calc(100vh-120px)] p-6">
-            <div className="text-center bg-gray-50 rounded-2xl shadow-sm p-12 max-w-md w-full">
+        <div className="flex min-h-screen bg-gray-50">
+          <div className="flex-1 flex items-center justify-center p-4">
+            <div className="text-center bg-white rounded-2xl shadow-lg p-12 max-w-md w-full mx-4">
               <div className="mb-6">
                 <div className="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Bell className="w-10 h-10 text-yellow-600" />
@@ -260,7 +240,7 @@ const Notifications = () => {
               
               <button
                 onClick={handleLoginClick}
-                className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+                className="w-full bg-button-gradient text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg flex items-center justify-center gap-2"
               >
                 <LogIn className="w-5 h-5" />
                 Sign In to See Notifications
@@ -272,8 +252,7 @@ const Notifications = () => {
             </div>
           </div>
         </div>
-        
-        <AuthDialog isOpen={showAuthDialog} onClose={closeAuthDialog} />
+
       </>
     );
   }
@@ -416,8 +395,7 @@ const Notifications = () => {
           )}
         </div>
       </div>
-      
-      <AuthDialog isOpen={showAuthDialog} onClose={closeAuthDialog} />
+
     </>
   );
 };
