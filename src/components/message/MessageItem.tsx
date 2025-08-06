@@ -53,7 +53,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
       return textWithoutUrl ? <p>{textWithoutUrl}</p> : null;
     }
     
-    return <p>{msg.message}</p>;
+    return <p className="break-all">{msg.message}</p>;
   };
 
   return (
@@ -61,7 +61,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
       data-message-id={msg._id}
       className={`flex ${isCurrentUser ? "justify-end" : "justify-start"} mb-4 group relative`}
     >
-      <div className={`max-w-md px-4 py-3 rounded-2xl relative ${
+      <div className={`max-w-xs px-4 py-3 rounded-2xl relative break-words ${
         isCurrentUser 
           ? "bg-[#DBB42C] text-white" 
           : "bg-gray-100 text-gray-900"
