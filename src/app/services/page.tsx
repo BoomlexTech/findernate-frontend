@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import { Search } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import PostCard from '@/components/PostCard';
-import FloatingHeader from '@/components/FloatingHeader';
 import { getExploreFeed } from '@/api/exploreFeed';
 import { transformExploreFeedToFeedPost } from '@/utils/transformExploreFeed';
 import { searchAllContent } from '@/api/search';
@@ -209,17 +208,7 @@ const ServicesPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* FloatingHeader */}
-        <FloatingHeader
-          paragraph="Discover professional services from verified businesses"
-          heading="Services"
-          username="user"
-          accountBadge={false}
-          showCreateButton={true}
-          onCreateClick={() => {setCreatePostModal(true)}}
-        />
-
+      <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
         {/* Search and Filters Section */}
         <div className="bg-white border border-gray-200 rounded-lg p-4 md:p-6 shadow-sm mb-6">
           <div className="mb-4 relative">
