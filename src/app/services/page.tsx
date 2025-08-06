@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Search } from 'lucide-react';
+import { createPortal } from 'react-dom';
 import PostCard from '@/components/PostCard';
 import FloatingHeader from '@/components/FloatingHeader';
 import { getExploreFeed } from '@/api/exploreFeed';
@@ -340,10 +341,13 @@ const ServicesPage = () => {
           </>
         )}
       </div>
-        {/* Create Post Modal */}
-      {createPostModal && (
-        <CreatePostModal closeModal={() => setCreatePostModal(false)} />
-      )}
+        {/* Create Post Modal - Rendered via Portal */}
+      {createPostModal && typeof document !== 'undefined' &&
+        createPortal(
+          <CreatePostModal closeModal={() => setCreatePostModal(false)} />,
+          document.body
+        )
+      }
     </div>
   );
 };

@@ -71,7 +71,7 @@ export default function TrendingBusiness() {
   };
 
   return (
-    <div className="bg-yellow-100 rounded-xl shadow-sm border border-gray-200 p-6 cursor-pointer">
+    <div className="bg-gray-200 rounded-xl shadow-sm border border-gray-200 p-6 cursor-pointer">
       {/* SVG and Heading aligned */}
       <div className="flex items-center gap-2 mb-4">
         <svg
