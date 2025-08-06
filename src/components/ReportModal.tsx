@@ -81,6 +81,8 @@ export default function ReportModal({
       console.error(`Error reporting ${contentType}:`, error);
       if (error?.response?.status === 409) {
         alert(`You have already reported this ${contentType}`);
+      } else if (error?.response?.status === 404) {
+        alert(`Report functionality is not available yet. Please contact the administrator.`);
       } else {
         alert(`Failed to report ${contentType}. Please try again.`);
       }

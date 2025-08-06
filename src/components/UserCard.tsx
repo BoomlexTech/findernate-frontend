@@ -1,9 +1,15 @@
 import { SearchUser } from "@/types";
 import Image from "next/image";
-import { User, Plus, MessageCircle } from "lucide-react";
+import { User, Plus, MessageCircle, MoreVertical, Flag } from "lucide-react";
+import { useState, useEffect } from "react";
+import { messageAPI } from "@/api/message";
+import { followUser, unfollowUser } from "@/api/user";
 import { useRouter } from "next/navigation";
+import { useUserStore } from "@/store/useUserStore";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
 import { AuthDialog } from "@/components/AuthDialog";
+import { AxiosError } from "axios";
+import ReportModal from './ReportModal';
 
 interface UserCardProps {
   user: SearchUser;
@@ -11,20 +17,106 @@ interface UserCardProps {
 }
 
 const UserCard: React.FC<UserCardProps> = ({ user, onFollow }) => {
+  const [isFollowing, setIsFollowing] = useState(user.isFollowing || false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [creatingChat, setCreatingChat] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
   const router = useRouter();
   const { requireAuth, showAuthDialog, closeAuthDialog } = useAuthGuard();
 
+  // Update local state when user prop changes
+  useEffect(() => {
+    setIsFollowing(user.isFollowing || false);
+  }, [user.isFollowing]);
+
   const handleFollowClick = async () => {
     requireAuth(async () => {
-      // Navigate to user profile instead of following
-      router.push(`/userprofile/${user.username}`);
+      if (isLoading) return;
+      
+      // Debug check - same as UserProfile
+      console.log('Attempting to follow/unfollow user:', {
+        targetUserId: user._id,
+        currentlyFollowing: isFollowing,
+        token: typeof window !== 'undefined' ? !!localStorage.getItem('token') : false
+      });
+      
+      setIsLoading(true);
+      try {
+        if (isFollowing) {
+          await unfollowUser(user._id);
+          setIsFollowing(false);
+        } else {
+          await followUser(user._id);
+          setIsFollowing(true);
+        }
+        
+        // Call the optional callback if provided (for parent component updates)
+        onFollow?.(user._id);
+        
+      } catch (error: any) {
+        console.error('Error toggling follow status:', error);
+        
+        const errorMessage = error instanceof Error ? error.message : '';
+        const responseMessage = error.response?.data?.message || '';
+        
+        // Handle specific error cases - same as UserProfile
+        if (responseMessage === 'Already following' || errorMessage === 'Already following') {
+          setIsFollowing(true);
+          console.log('User was already following - updating UI state');
+          onFollow?.(user._id);
+        } else if (responseMessage === 'Not following this user' || errorMessage === 'Not following this user') {
+          setIsFollowing(false);
+          console.log('User was not following - updating UI state');  
+          onFollow?.(user._id);
+        } else {
+          // Show user-friendly error message for other errors
+          alert(errorMessage || responseMessage || 'Failed to update follow status');
+          
+          // Reset state on other errors
+          setIsFollowing(user.isFollowing || false);
+        }
+      } finally {
+        setIsLoading(false);
+      }
     });
   };
 
   const handleMessageClick = async () => {
     requireAuth(async () => {
-      // Navigate to user profile instead of opening chat
-      router.push(`/userprofile/${user.username}`);
+      if (creatingChat) return;
+      
+      setCreatingChat(true);
+      try {
+        // Get current user from store
+        const currentUser = useUserStore.getState().user;
+        
+        if (!currentUser) {
+          alert('Please log in to send messages');
+          return;
+        }
+        
+        // Create a direct chat with both users (current user + target user)
+        const participants = [currentUser._id, user._id];
+        console.log('Creating chat with participants:', participants);
+        
+        const chat = await messageAPI.createChat(participants, 'direct');
+        
+        // Navigate to the chat page with the created chat selected
+        router.push(`/chats?chatId=${chat._id}`);
+      } catch (error) {
+        const axiosError = error as AxiosError;
+        console.error('Error creating chat:', axiosError);
+
+        if (axiosError.response?.status === 404) {
+          alert('Chat functionality is not available on this server yet. Please contact the administrator.');
+        } else {
+          const errorMessage = axiosError.response?.data as string || 'Failed to create chat';
+          alert(errorMessage);
+        }
+      } finally {
+        setCreatingChat(false);
+      }
     });
   };
 
@@ -42,6 +134,20 @@ const UserCard: React.FC<UserCardProps> = ({ user, onFollow }) => {
     return text.slice(0, maxLength).trim() + "...";
   };
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showDropdown && !(event.target as Element).closest('.relative')) {
+        setShowDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showDropdown]);
+
   return (
     <>
       <div
@@ -49,7 +155,9 @@ const UserCard: React.FC<UserCardProps> = ({ user, onFollow }) => {
         onClick={(e) => {
           // Prevent navigation if clicking the follow or message button
           if ((e.target as HTMLElement).closest('button')) return;
-          router.push(`/userprofile/${user.username}`);
+          requireAuth(() => {
+            router.push(`/userprofile/${user.username}`);
+          });
         }}
       >
         {/* Header with profile image and basic info */}
@@ -105,18 +213,62 @@ const UserCard: React.FC<UserCardProps> = ({ user, onFollow }) => {
                 <div className="ml-3 flex gap-2">
                   <button
                     onClick={(e) => { e.stopPropagation(); handleFollowClick(); }}
-                    className="px-4 py-1.5 rounded-md text-sm font-medium transition-all duration-200 flex items-center gap-1.5 bg-button-gradient text-white hover:bg-blue-700"
+                    disabled={isLoading}
+                    className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all duration-200 flex items-center gap-1.5 ${
+                      isFollowing
+                        ? "bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300"
+                        : "bg-button-gradient text-white hover:bg-blue-700"
+                    } disabled:opacity-50 disabled:cursor-not-allowed`}
                   >
-                    <Plus size={14} />
-                    Follow
+                    {isLoading ? (
+                      <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-md animate-spin" />
+                    ) : (
+                      <>
+                        {!isFollowing && <Plus size={14} />}
+                        {isFollowing ? "Following" : "Follow"}
+                      </>
+                    )}
                   </button>
                   <button
                     onClick={(e) => { e.stopPropagation(); handleMessageClick(); }}
-                    className="px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200 flex items-center gap-1.5 bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300"
+                    disabled={creatingChat}
+                    className="px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200 flex items-center gap-1.5 bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <MessageCircle size={14} />
-                    Message
+                    {creatingChat ? (
+                      <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-md animate-spin" />
+                    ) : (
+                      <MessageCircle size={14} />
+                    )}
                   </button>
+                  
+                  {/* More Options */}
+                  <div className="relative">
+                    <button
+                      onClick={(e) => { 
+                        e.stopPropagation(); 
+                        setShowDropdown(!showDropdown); 
+                      }}
+                      className="px-2 py-1.5 rounded-md text-sm font-medium transition-all duration-200 flex items-center bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300"
+                    >
+                      <MoreVertical size={14} />
+                    </button>
+
+                    {showDropdown && (
+                      <div className="absolute right-0 top-full mt-1 bg-white border rounded-lg shadow-lg z-10 min-w-[120px]">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowReportModal(true);
+                            setShowDropdown(false);
+                          }}
+                          className="w-full px-3 py-2 text-left text-sm text-gray-600 hover:bg-gray-50 flex items-center gap-2"
+                        >
+                          <Flag className="w-3 h-3" />
+                          Report User
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -126,6 +278,14 @@ const UserCard: React.FC<UserCardProps> = ({ user, onFollow }) => {
       
       {/* Auth Dialog */}
       <AuthDialog isOpen={showAuthDialog} onClose={closeAuthDialog} />
+
+      {/* Report Modal */}
+      <ReportModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        contentType="user"
+        contentId={user._id}
+      />
     </>
   );
 };

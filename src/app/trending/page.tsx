@@ -62,7 +62,7 @@ const Page = () => {
             likes: item.engagement?.likes || 0,
             reach: item.engagement?.reach || 0,
             saves: item.engagement?.saves || 0,
-            shares: item.engagement?.shares || 0,
+            shares: item.engagement?.shares || 12,
             views: item.engagement?.views || 0,
           },
           location: item.location || null,
