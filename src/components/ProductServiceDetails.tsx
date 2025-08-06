@@ -96,9 +96,9 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
 
   if (isSidebar) {
     return (
-      <div className="bg-white h-full overflow-y-auto hide-scrollbar border-gray-200">
+      <div className="bg-white h-full flex flex-col border-gray-200">
         {/* Header */}
-        <div className="sticky top-0 bg-gradient-to-r from-yellow-50 to-amber-50 border-b border-gray-200 p-4">
+        <div className="sticky top-0 bg-gradient-to-r from-yellow-50 to-amber-50 border-b border-gray-200 p-4 z-10 flex-shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
@@ -121,8 +121,9 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
           </div>
         </div>
 
-        {/* Content */}
-        <div className="p-4 space-y-4">
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto hide-scrollbar">
+          <div className="p-4 space-y-4 pb-20">
           {/* Price and Duration */}
           <div className="grid grid-cols-1 gap-3">
             <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3">
@@ -227,29 +228,31 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
             </ul>
           </div>
 
-          {/* Book Button */}
-          <div className="pt-2">
-            <button
-              onClick={handleBooking}
-              disabled={isBooking}
-              className={`w-full py-3 px-4 rounded-xl font-bold text-white text-sm transition-all duration-200 shadow-lg hover:shadow-xl ${
-                isProduct
-                  ? 'bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800'
-                  : isBusiness
-                  ? 'bg-gradient-to-r from-violet-600 to-purple-700 hover:from-violet-700 hover:to-purple-800'
-                  : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800'
-              } ${isBooking ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.02]'}`}
-            >
-              {isBooking ? (
-                <div className="flex items-center justify-center gap-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                  {isProduct ? 'Adding...' : isBusiness ? 'Getting...' : 'Booking...'}
-                </div>
-              ) : (
-                isProduct ? 'Add to Cart' : isBusiness ? 'Get Contact' : 'Book Now'
-              )}
-            </button>
           </div>
+        </div>
+
+        {/* Sticky Button at Bottom */}
+        <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 z-10 flex-shrink-0">
+          <button
+            onClick={handleBooking}
+            disabled={isBooking}
+            className={`w-full py-3 px-4 rounded-xl font-bold text-white text-sm transition-all duration-200 shadow-lg hover:shadow-xl ${
+              isProduct
+                ? 'bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800'
+                : isBusiness
+                ? 'bg-gradient-to-r from-violet-600 to-purple-700 hover:from-violet-700 hover:to-purple-800'
+                : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800'
+            } ${isBooking ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.02]'}`}
+          >
+            {isBooking ? (
+              <div className="flex items-center justify-center gap-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                {isProduct ? 'Adding...' : isBusiness ? 'Getting...' : 'Booking...'}
+              </div>
+            ) : (
+              isProduct ? 'Add to Cart' : isBusiness ? 'Get Contact' : 'Book Now'
+            )}
+          </button>
         </div>
       </div>
     );
