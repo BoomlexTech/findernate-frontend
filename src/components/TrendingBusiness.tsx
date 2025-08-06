@@ -116,7 +116,7 @@ export default function TrendingBusiness() {
             <Link
               key={business._id}
               href={`/business/${business.businessName.toLowerCase().replace(/\s+/g, '-')}`}
-              className="flex items-center justify-start gap-6 p-2 rounded-lg hover:bg-yellow-200 transition-colors cursor-pointer"
+              className="flex items-center justify-start gap-6 p-2 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
             >
               <Image
                 src="/placeholder.jpg"

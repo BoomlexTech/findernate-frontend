@@ -1,7 +1,6 @@
 import { getUserProfile } from '@/api/user';
 import Image from 'next/image';
 import React, { useEffect, useState } from 'react';
-import { Plus } from 'lucide-react';
 import Link from 'next/link';
 import { useUserStore } from '@/store/useUserStore';
 import { useAuthGuard } from '@/hooks/useAuthGuard';
@@ -21,7 +20,7 @@ interface profileProps{
   profileImageUrl: string;
 }
 
-const FloatingHeader = ({paragraph, heading, username, accountBadge, width="", showCreateButton = false, onCreateClick}: floatingHeaderProps) => {
+const FloatingHeader = ({paragraph, heading, username, accountBadge, width=""}: floatingHeaderProps) => {
   const [profile, setProfile] = useState<profileProps | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { user } = useUserStore();
@@ -74,14 +73,14 @@ const FloatingHeader = ({paragraph, heading, username, accountBadge, width="", s
               )}
 
               {/* Create Post Button - only show when logged in */}
-              {!isLoading && showCreateButton && user && (
+              {/* {!isLoading && showCreateButton && user && (
                 <button 
                   onClick={onCreateClick}
                   className="flex items-center gap-2 bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 text-sm transition-colors"
                 >
                   <Plus className="w-4 h-4" /> Create Post
                 </button>
-              )}
+              )} */}
               
               {/* Login/Signup buttons for non-authenticated users */}
               {!isLoading && !user && (
