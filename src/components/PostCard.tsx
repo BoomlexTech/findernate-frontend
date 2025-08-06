@@ -1,6 +1,6 @@
 'use client';
 
-import { Heart, MessageCircle, MapPin, ChevronLeft, ChevronRight, MoreVertical, Bookmark, BookmarkCheck, Flag, Trash2 } from 'lucide-react';
+import { Heart, MessageCircle, Share2, MapPin, ChevronLeft, ChevronRight, MoreVertical, Bookmark, BookmarkCheck, Flag, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -837,40 +837,34 @@ export default function PostCard({ post, onPostDeleted }: PostCardProps) {
               </div>
             )} */}
 
-            <div className="px-2 py-1 absolute bottom-0">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
+            <div className="px-1 sm:px-2 py-1 absolute bottom-0 w-full pr-20 sm:pr-24">
+              <div className="flex items-center">
+                <div className="flex items-center space-x-2 sm:space-x-4">
                   <button 
                     onClick={handleLikeToggle}
                     disabled={isLoading}
-                    className={`flex items-center space-x-2 p-2 rounded-lg transition-colors ${
+                    className={`flex items-center space-x-1 sm:space-x-2 p-1 sm:p-2 rounded-lg transition-colors ${
                       isLiked 
                         ? 'text-red-500' 
                         : 'text-gray-600 hover:text-red-500'
                     } ${isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100'}`}
                   >
-                    <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
-                    <span className="text-sm font-medium">{likesCount}</span>
+                    <Heart className={`w-4 h-4 sm:w-5 sm:h-5 ${isLiked ? 'fill-current' : ''}`} />
+                    <span className="text-xs sm:text-sm font-medium">{likesCount}</span>
                   </button>
                   <button 
                     onClick={handleCommentClick}
-                    className="flex items-center space-x-2 p-2 rounded-lg text-gray-600 hover:text-blue-500 hover:bg-gray-100 transition-colors"
+                    className="flex items-center space-x-1 sm:space-x-2 p-1 sm:p-2 rounded-lg text-gray-600 hover:text-blue-500 hover:bg-gray-100 transition-colors"
                   >
-                    <MessageCircle className="w-5 h-5" />
-                    <span className="text-sm font-medium">{commentsCount || 0}</span>
+                    <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <span className="text-xs sm:text-sm font-medium">{commentsCount || 0}</span>
                   </button>
                   <button 
                     onClick={handleShareClick}
-                    className="flex items-center space-x-2 p-2 rounded-lg text-gray-600 hover:text-green-500 hover:bg-gray-100 transition-colors"
+                    className="flex items-center space-x-1 sm:space-x-2 p-1 sm:p-2 rounded-lg text-gray-600 hover:text-green-500 hover:bg-gray-100 transition-colors"
                   >
-                    <Image 
-                      src="/reply.png" 
-                      alt="Share" 
-                      width={20} 
-                      height={20} 
-                      className="w-5 h-5"
-                    />
-                    <span className="text-sm font-medium">{post.engagement.shares || 0}</span>
+                    <Share2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <span className="text-xs sm:text-sm font-medium hidden xs:inline">{post.engagement.shares || 0}</span>
                   </button>
                 </div>
               </div>
@@ -878,8 +872,8 @@ export default function PostCard({ post, onPostDeleted }: PostCardProps) {
           </div>
 
           {/* Timestamp */}
-          <div className="absolute bottom-2 right-2 text-xs text-gray-500">
-            <p className="text-xs text-gray-700 p-2">{formatPostDate(post.createdAt)}</p>
+          <div className="absolute bottom-1 sm:bottom-2 right-1 sm:right-2 text-xs text-gray-500">
+            <p className="text-xs text-gray-700 p-1 sm:p-2 whitespace-nowrap">{formatPostDate(post.createdAt)}</p>
           </div>
         </div>
       </div>

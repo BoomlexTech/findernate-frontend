@@ -6,9 +6,10 @@ import ReelCommentsSection from '@/components/ReelCommentsSection'
 import React, { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { createComment, getCommentsByPost, Comment as CommentType } from '@/api/comment'
-import { getReels, likeReel, unlikeReel, saveReel, unsaveReel } from '@/api/reels'
+import { getReels, likeReel, unlikeReel } from '@/api/reels'
+import { savePost, unsavePost, getSavedPost } from '@/api/post'
 import { followUser, unfollowUser } from '@/api/user'
-import { Heart, MoreVertical, Bookmark } from 'lucide-react'
+import { Heart, MoreVertical, Bookmark, BookmarkCheck } from 'lucide-react'
 
 // Timeout utility for API calls
 const createTimeoutPromise = (timeout: number) => {
@@ -26,6 +27,7 @@ const Page = () => {
   const LIKES_STORAGE_KEY = 'findernate-reel-likes';
   const LIKE_COUNTS_STORAGE_KEY = 'findernate-reel-like-counts';
   const FOLLOW_STORAGE_KEY = 'findernate-reel-follows';
+  const SAVES_STORAGE_KEY = 'findernate-reel-saves';
 
   // Helper functions for localStorage
   const getLikedReelsFromStorage = (): Set<string> => {
@@ -94,6 +96,34 @@ const Page = () => {
       console.warn('Failed to save follow state to localStorage:', error);
     }
   };
+
+  // Helper functions for save states
+  const getSavedReelsFromStorage = (): Set<string> => {
+    try {
+      const stored = localStorage.getItem(SAVES_STORAGE_KEY);
+      return stored ? new Set(JSON.parse(stored)) : new Set();
+    } catch {
+      return new Set();
+    }
+  };
+
+  const saveSaveStateToStorage = (reelId: string, isSaved: boolean) => {
+    try {
+      const savedReels = getSavedReelsFromStorage();
+      
+      if (isSaved) {
+        savedReels.add(reelId);
+      } else {
+        savedReels.delete(reelId);
+      }
+      
+      localStorage.setItem(SAVES_STORAGE_KEY, JSON.stringify([...savedReels]));
+      console.log('Saved save state to localStorage:', { reelId, isSaved });
+    } catch (error) {
+      console.warn('Failed to save save state to localStorage:', error);
+    }
+  };
+
   // Fetch reels data from API
   useEffect(() => {
     const fetchReels = async () => {
@@ -415,7 +445,30 @@ const Page = () => {
       console.log('=== END FOLLOW STATE INIT ===');
       
       setIsFollowed(Boolean(currentData.isFollowed));
-      setIsSaved(false); // Reset save state when changing reels
+      
+      // Check saved status for current reel using localStorage first
+      const checkSavedStatus = () => {
+        try {
+          if (currentData._id?.length === 24) {
+            // Check localStorage first for immediate response
+            const savedReels = getSavedReelsFromStorage();
+            const isLocallyMarkedSaved = savedReels.has(currentData._id);
+            
+            console.log('Checking saved status for reel:', currentData._id);
+            console.log('localStorage saved reels:', [...savedReels]);
+            console.log('Is locally saved:', isLocallyMarkedSaved);
+            
+            setIsSaved(isLocallyMarkedSaved);
+          } else {
+            setIsSaved(false);
+          }
+        } catch (error) {
+          console.error('Error checking saved status:', error);
+          setIsSaved(false);
+        }
+      };
+      
+      checkSavedStatus();
       
       // Fetch top 4 comments for the current reel
       getCommentsByPost(currentData._id, 1, 4)
@@ -698,27 +751,34 @@ const Page = () => {
   const handleSaveToggle = async () => {
     const currentData = getCurrentModalData();
     
+    // Check if this is real API data (MongoDB ObjectId is 24 characters) or fallback static data
+    if (!currentData._id || currentData._id.length !== 24 || reelsData.length === 0) {
+      console.warn('Cannot save: Using fallback static data or no real post ID');
+      showToastMessage('Cannot save demo reels');
+      return;
+    }
+    
     // Optimistic update
     const newIsSaved = !isSaved;
-    const newSavesCount = newIsSaved 
-      ? currentData.engagement.saves + 1 
-      : Math.max(0, currentData.engagement.saves - 1);
-    
     setIsSaved(newIsSaved);
     
     updateReelInState(currentData._id, {
       engagement: {
         ...currentData.engagement,
-        saves: newSavesCount
+        saves: newIsSaved 
+          ? currentData.engagement.saves + 1 
+          : Math.max(0, currentData.engagement.saves - 1)
       }
     });
 
     try {
       if (newIsSaved) {
-        await saveReel(currentData._id);
+        await savePost(currentData._id); // Use post API since reels are posts
+        saveSaveStateToStorage(currentData._id, true); // Save to localStorage
         showToastMessage('Reel saved!');
       } else {
-        await unsaveReel(currentData._id);
+        await unsavePost(currentData._id); // Use post API since reels are posts
+        saveSaveStateToStorage(currentData._id, false); // Update localStorage
         showToastMessage('Reel removed from saved');
       }
     } catch (error: any) {
@@ -729,24 +789,13 @@ const Page = () => {
         engagement: {
           ...currentData.engagement,
           saves: newIsSaved 
-            ? newSavesCount - 1 
-            : newSavesCount + 1
+            ? Math.max(0, currentData.engagement.saves - 1)
+            : currentData.engagement.saves + 1
         }
       });
       
       console.error('Error toggling save:', error);
-      
-      // Handle specific error codes
-      if (error.response?.status === 409) {
-        showToastMessage('Save status already updated. Refreshing...');
-        setTimeout(() => refreshCurrentReel(), 1000);
-      } else if (error.response?.status === 401) {
-        showToastMessage('Please sign in to save reels');
-      } else if (error.response?.status === 404) {
-        showToastMessage('Reel not found');
-      } else {
-        showToastMessage('Failed to save reel. Please try again.');
-      }
+      showToastMessage('Failed to save reel. Please try again.');
     }
   };
 
@@ -776,13 +825,35 @@ const Page = () => {
         </div>
       )}
 
-      {/* Left Modal */}
+      {/* Left Modal - Only show for business, product, or service reels */}
       <div className="w-80 bg-white rounded-2xl overflow-y-auto border border-gray-200">
-        <ProductServiceDetails 
-          post={getCurrentModalData()} 
-          onClose={() => {}} 
-          isSidebar={true}
-        />
+        {(() => {
+          const currentData = getCurrentModalData();
+          const contentType = currentData?.contentType?.toLowerCase();
+          const postType = currentData?.postType?.toLowerCase();
+          
+          // Show ProductServiceDetails only for specific content types
+          if (contentType === 'business' || contentType === 'product' || contentType === 'service' ||
+              postType === 'business' || postType === 'product' || postType === 'service') {
+            return (
+              <ProductServiceDetails 
+                post={currentData} 
+                onClose={() => {}} 
+                isSidebar={true}
+              />
+            );
+          }
+          
+          // For normal reels, show a minimal placeholder or blank space
+          return (
+            <div className="flex items-center justify-center h-full text-gray-400">
+              <div className="text-center">
+                <p className="text-sm">Regular Reel</p>
+                <p className="text-xs mt-1">No additional details</p>
+              </div>
+            </div>
+          );
+        })()}
       </div>
       
       {/* Center - Reels */}
@@ -887,14 +958,13 @@ const Page = () => {
 
             <button 
               onClick={handleSaveToggle}
-              className={`flex items-center space-x-2 p-2 rounded-lg transition-colors ${
-                isSaved 
-                  ? 'text-yellow-600' 
-                  : 'text-gray-600 hover:text-yellow-600'
-              } hover:bg-gray-100`}
+              className="flex items-center p-2 rounded-lg transition-colors text-gray-600 hover:text-yellow-600 hover:bg-gray-100"
             >
-              <Bookmark className={`w-6 h-6 ${isSaved ? 'fill-current' : ''}`} />
-              <span className="text-sm font-medium">{formatNumber(currentModalData.engagement?.saves || 0)}</span>
+              {isSaved ? (
+                <BookmarkCheck className="w-6 h-6 text-yellow-600" />
+              ) : (
+                <Bookmark className="w-6 h-6" />
+              )}
             </button>
             
             <button 
