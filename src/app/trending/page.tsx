@@ -39,16 +39,17 @@ const Page = () => {
       // Transform the new API response structure
       const transformedData = response.data.feed.map((item) => {
         // Find the user details for this post
-        const userDetail = item.userDetails?.[0] || {};
+        const userDetail = item.userId || {};
         
         return {
           _id: item._id,
           username: userDetail.username || 'Unknown User',
-          profileImageUrl: userDetail.profileImageUrl || '/placeholderimg.png',
+          profileImageUrl: item.profileImageUrl || userDetail.profileImageUrl || '/placeholderimg.png',
           userId: {
             _id: userDetail._id,
             username: userDetail.username,
-            profileImageUrl: userDetail.profileImageUrl,
+            fullName: userDetail.fullName,
+            profileImageUrl: item.profileImageUrl || userDetail.profileImageUrl,
           },
           description: item.description || '',
           caption: item.caption || '',
@@ -62,7 +63,7 @@ const Page = () => {
             likes: item.engagement?.likes || 0,
             reach: item.engagement?.reach || 0,
             saves: item.engagement?.saves || 0,
-            shares: item.engagement?.shares || 12,
+            shares: item.engagement?.shares || 0,
             views: item.engagement?.views || 0,
           },
           location: item.location || null,
