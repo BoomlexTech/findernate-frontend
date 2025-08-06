@@ -227,12 +227,12 @@ export default function StoriesBar({ onCreateStory }: StoriesBarProps) {
 
   return (
     <>
-      <div className="flex overflow-x-auto space-x-6 pb-2 px-2 scrollbar-hide bg-white shadow-md rounded-lg">
+      <div className="flex overflow-x-auto space-x-3 sm:space-x-6 pb-2 px-2 bg-white shadow-md rounded-lg subtle-scrollbar">
         {displayUsers.map((storyUser) => (
           <div key={storyUser._id} className="flex flex-col items-center mt-5 flex-shrink-0">
             <div
               onClick={() => openStoryModal(storyUser)}
-              className={`relative w-16 h-16 rounded-full border-2 ${
+              className={`relative w-12 h-12 sm:w-16 sm:h-16 rounded-full border-2 ${
                 areAllStoriesViewed(storyUser)
                   ? "border-gray-400"
                   : storyUser.hasNewStories
@@ -276,7 +276,7 @@ export default function StoriesBar({ onCreateStory }: StoriesBarProps) {
                 </div>
               )}
             </div>
-            <p className="text-xs mt-2 text-center text-gray-700 font-medium max-w-[64px] truncate">
+            <p className="text-xs mt-2 text-center text-gray-700 font-medium max-w-[48px] sm:max-w-[64px] truncate">
               {storyUser.isCurrentUser ? "Your Story" : storyUser.username}
             </p>
           </div>

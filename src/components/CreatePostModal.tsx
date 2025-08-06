@@ -23,8 +23,8 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
   // Check if user is a business profile to determine available post types
   const isBusinessProfile = user?.isBusinessProfile || false;
 
-  // Set default post type based on user profile
-  const [postType, setPostType] = useState(isBusinessProfile ? 'Product' : 'Regular');
+  // Set default post type to Regular for all users
+  const [postType, setPostType] = useState('Regular');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -442,20 +442,18 @@ const handleProductChange = (
 
           {/* Post Type Tabs */}
           <div className="flex space-x-4 mb-6">
-            {/* Regular Post - Only for non-business profiles */}
-            {!isBusinessProfile && (
-              <Button
-                variant='custom'
-                onClick={() => setPostType('Regular')}
-                className={`px-4 py-2 rounded-lg border transition-colors ${
-                  postType === 'Regular'
-                    ? 'border-yellow-500 bg-yellow-50 text-yellow-700'
-                    : 'border-gray-300 text-gray-600 hover:bg-gray-50'
-                }`}
-              >
-                Regular Post
-              </Button>
-            )}
+            {/* Regular Post - Available for everyone */}
+            <Button
+              variant='custom'
+              onClick={() => setPostType('Regular')}
+              className={`px-4 py-2 rounded-lg border transition-colors ${
+                postType === 'Regular'
+                  ? 'border-yellow-500 bg-yellow-50 text-yellow-700'
+                  : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              Regular Post
+            </Button>
 
             {/* Business Post Types - Only for business profiles */}
             {isBusinessProfile && (
@@ -509,7 +507,7 @@ const handleProductChange = (
           </div>
 
 
-          {!isBusinessProfile && postType === 'Regular' && (
+          {postType === 'Regular' && (
             <RegularPostForm
               formData={regularForm}
               onChange={handleRegularChange}

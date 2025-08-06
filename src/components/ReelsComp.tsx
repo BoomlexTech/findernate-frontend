@@ -290,10 +290,10 @@ const ReelsComponent: React.FC<ReelsComponentProps> = ({ onReelChange, apiReelsD
   }, [currentIndex, reels.length, onReelChange]);
 
   return (
-    <div className="relative w-96 mx-auto aspect-[9/16] rounded-2xl bg-black overflow-hidden shadow-2xl flex-shrink-0">
-      {/* Up/Down Scroll Buttons */}
+    <div className="relative w-96 mx-auto aspect-[9/16] flex-shrink-0">
+      {/* Up/Down Scroll Buttons - Outside the video container */}
       <button
-        className="absolute right-2 top-1/3 z-40 bg-black/40 hover:bg-black/80 text-white rounded-full p-2 shadow-lg transition-colors disabled:opacity-40"
+        className="absolute -right-14 top-1/3 z-[9999] bg-black/40 hover:bg-black/80 text-white rounded-full p-2 shadow-lg transition-colors disabled:opacity-40"
         style={{ transform: 'translateY(-50%)' }}
         onClick={() => {
           if (currentIndex > 0) {
@@ -307,7 +307,7 @@ const ReelsComponent: React.FC<ReelsComponentProps> = ({ onReelChange, apiReelsD
         <ChevronUp size={28} />
       </button>
       <button
-        className="absolute right-2 bottom-1/3 z-40 bg-black/40 hover:bg-black/80 text-white rounded-full p-2 shadow-lg transition-colors disabled:opacity-40"
+        className="absolute -right-14 bottom-1/3 z-[9999] bg-black/40 hover:bg-black/80 text-white rounded-full p-2 shadow-lg transition-colors disabled:opacity-40"
         style={{ transform: 'translateY(50%)' }}
         onClick={() => {
           if (currentIndex < reels.length - 1) {
@@ -320,6 +320,9 @@ const ReelsComponent: React.FC<ReelsComponentProps> = ({ onReelChange, apiReelsD
       >
         <ChevronDown size={28} />
       </button>
+
+      {/* Video container with overflow hidden */}
+      <div className="absolute inset-0 rounded-2xl bg-black overflow-hidden shadow-2xl">
 
       {loading && reels.length === 0 && (
         <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-60 z-30">
@@ -400,6 +403,7 @@ const ReelsComponent: React.FC<ReelsComponentProps> = ({ onReelChange, apiReelsD
             </div>
           </div>
         ))}
+      </div>
       </div>
 
       <style jsx>{`
