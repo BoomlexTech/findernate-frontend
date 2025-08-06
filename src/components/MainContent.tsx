@@ -170,7 +170,7 @@ export default function MainContent() {
   }, [page]);
 
   return (
-    <div className="max-w-3xl mx-auto py-4 px-4">
+    <div className="max-w-3xl mx-auto py-4 px-2 sm:px-4">
       {initialLoad ? (
         <div className="text-center py-12">
           <div className="text-6xl mb-4">⏳</div>
@@ -189,7 +189,7 @@ export default function MainContent() {
         </div>
       ) : (
         <>
-          <div className="space-y-6 mt-6">
+          <div className="space-y-4 sm:space-y-6 mt-6">
             {feed
             .filter(post => post.username !== null)
             .map((post) => (

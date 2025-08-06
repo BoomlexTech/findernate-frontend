@@ -11,9 +11,10 @@ import { useAuthGuard } from '@/hooks/useAuthGuard';
 
 interface leftSidebarProps {
 	togglePost?: () => void;
+	onItemClick?: () => void;
 }
 
-export default function LeftSidebar({togglePost}: leftSidebarProps) {
+export default function LeftSidebar({togglePost, onItemClick}: leftSidebarProps) {
 	const { isAuthenticated } = useAuthGuard();
 	const [isActive, setIsActive] = useState(0);
 	useEffect(() => {
@@ -54,7 +55,8 @@ export default function LeftSidebar({togglePost}: leftSidebarProps) {
 				  onClick={()=> {
                    setIsActive(index);
                    localStorage.setItem('sidebarActiveIndex', String(index));
-                   router.push(item.route)
+                   router.push(item.route);
+                   onItemClick?.();
                  }}
 				  className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-all duration-200 ${
 					index===isActive
@@ -99,6 +101,7 @@ export default function LeftSidebar({togglePost}: leftSidebarProps) {
  					  setIsActive(index);
                      localStorage.setItem('sidebarActiveIndex', String(index));
                      router.push(item.route);
+                     onItemClick?.();
 				  }}
 					className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-all duration-200
 							  ${index===isActive

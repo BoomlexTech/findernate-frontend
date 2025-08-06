@@ -580,11 +580,148 @@ export default function PostCard({ post, onPostDeleted }: PostCardProps) {
         onClick={handlePostClick}
         data-post-id={post._id}
       >
-        {/* Media + Info Side-by-Side */}
-        <div className="flex flex-row gap-4 p-3">
-          {/* Media */}
+        {/* Desktop Layout: Media + Info Side-by-Side | Mobile Layout: Stacked */}
+        <div className="flex flex-col md:flex-row gap-3 md:gap-4 p-3">
+          
+          {/* Mobile: User Profile and Name with Location (Top Section) */}
+          <div className="md:hidden flex items-center justify-between mb-2">
+            <div className="flex items-center gap-3">
+              <div 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  requireAuth(() => {
+                    window.open(`/userprofile/${post.username || post.userId?.username}`, '_blank');
+                  });
+                }}
+                className="cursor-pointer"
+              >
+                <Image
+                  width={40}
+                  height={40}
+                  src={
+                    profileImageError || !post.profileImageUrl
+                      ? '/placeholderimg.png'
+                      : post.profileImageUrl
+                  }
+                  alt={(post.username || post.userId?.username) || 'User Profile Image'}
+                  className="w-10 h-10 rounded-full object-cover hover:opacity-80 transition-opacity"
+                  onError={() => setProfileImageError(true)}
+                />
+              </div>
+              <div>
+                <div className='flex gap-2 items-center'>
+                  <h3 
+                    className="font-semibold text-gray-900 cursor-pointer hover:text-yellow-600 transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      requireAuth(() => {
+                        window.open(`/userprofile/${post.username || post.userId?.username}`, '_blank');
+                      });
+                    }}
+                  >
+                    {post.username || post.userId?.username || 'No Username'}
+                  </h3>
+                  {post.contentType && <Badge className='bg-button-gradient' variant='outline'>{post.contentType}</Badge>}
+                </div>
+                {post.location && (
+                  <div className="flex items-center gap-1 text-gray-700">
+                    <MapPin className="w-3 h-3 text-yellow-500" />
+                    <p className="text-xs">
+                      {typeof post.location === 'object' ? 
+                        (post.location.name || 
+                         (post.location as any).label || 
+                         (post.location as any).address || 
+                         String(post.location))
+                        : 
+                        String(post.location)
+                      }
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Mobile: Three Dot Menu */}
+            <div className="relative dropdown-menu">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowDropdown(!showDropdown);
+                }}
+                className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <MoreVertical className="w-5 h-5 text-gray-600" />
+              </button>
+
+              {/* Dropdown Menu */}
+              {showDropdown && (
+                <div className="absolute right-0 top-8 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-50 min-w-[120px]">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleToggleSavePost();
+                    }}
+                    disabled={isSaving || checkingSaved}
+                    className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 disabled:opacity-50"
+                  >
+                    {checkingSaved ? (
+                      <>
+                        <Bookmark className="w-4 h-4" />
+                        Checking...
+                      </>
+                    ) : isPostSaved ? (
+                      <>
+                        <BookmarkCheck className="w-4 h-4 text-yellow-600" />
+                        {isSaving ? 'Removing...' : 'Unsave'}
+                      </>
+                    ) : (
+                      <>
+                        <Bookmark className="w-4 h-4" />
+                        {isSaving ? 'Saving...' : 'Save'}
+                      </>
+                    )}
+                  </button>
+                  
+                  {/* Delete button - only show on profile pages */}
+                  {isOnProfilePage && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeletePost();
+                      }}
+                      disabled={isDeleting}
+                      className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 disabled:opacity-50"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      {isDeleting ? 'Deleting...' : 'Delete'}
+                    </button>
+                  )}
+                  
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleReportPost();
+                    }}
+                    className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                  >
+                    <Flag className="w-4 h-4" />
+                    Report
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Business/Service/Product Details - Mobile Only (Before Media) */}
+          <div className="md:hidden mb-2">
+            {post.contentType === 'service' && <ServiceCard post={post} />}
+            {post.contentType === 'product' && <ProductCard post={post} />}
+            {post.contentType === 'business' && <BusinessPostCard post={post} />}
+          </div>
+
+          {/* Media Section */}
           <div 
-            className="post-media relative w-[21rem] h-[24rem] overflow-hidden rounded-2xl group"
+            className="post-media relative w-full h-[300px] sm:h-[350px] md:w-[21rem] md:h-[24rem] overflow-hidden rounded-2xl group"
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
@@ -657,8 +794,8 @@ export default function PostCard({ post, onPostDeleted }: PostCardProps) {
             )}
           </div>
 
-          {/* Profile + Info */}
-          <div className="flex flex-col justify-start flex-1 space-y-1 relative pb-16">
+          {/* Desktop: Profile + Info - Hidden on mobile */}
+          <div className="hidden md:flex flex-col justify-start flex-1 space-y-1 relative pb-16">
             <div className="flex items-start justify-between">
               <div className="flex items-start gap-3">
                 <div 
@@ -716,7 +853,7 @@ export default function PostCard({ post, onPostDeleted }: PostCardProps) {
                 </div>
               </div>
 
-              {/* Three Dot Menu */}
+              {/* Desktop: Three Dot Menu */}
               <div className="relative dropdown-menu">
                 <button
                   onClick={(e) => {
@@ -789,20 +926,21 @@ export default function PostCard({ post, onPostDeleted }: PostCardProps) {
 
             <p className="text-gray-900 leading-relaxed">{post.caption}</p>
 
+            {/* Desktop: Business/Service/Product Details */}
             {post.contentType === 'service' && <ServiceCard post={post} />}
             {post.contentType === 'product' && <ProductCard post={post} />}
             {post.contentType === 'business' && <BusinessPostCard post={post} />}
 
-          {/* Hashtags */}
-        <div className="px-1 pb-4">
-          <div className="flex flex-wrap gap-2">
-            {post.tags && Array.isArray(post.tags) && post.tags.length > 0 && post.tags.map((tag, index) => (
-              <span key={index} className='text-yellow-600'>
-                #{typeof tag === 'string' ? tag : String(tag)}
-              </span>
-            ))}
-          </div>
-        </div>
+            {/* Desktop: Hashtags */}
+            <div className="px-1 pb-4">
+              <div className="flex flex-wrap gap-2">
+                {post.tags && Array.isArray(post.tags) && post.tags.length > 0 && post.tags.map((tag, index) => (
+                  <span key={index} className='text-yellow-600'>
+                    #{typeof tag === 'string' ? tag : String(tag)}
+                  </span>
+                ))}
+              </div>
+            </div>
 
             {/* Comment Box - Only show for normal/regular posts and not on single post pages */}
             {/* {(!post.contentType || post.contentType === 'normal' || post.contentType === 'regular') && !pathname.includes('/post/') && (
@@ -837,6 +975,7 @@ export default function PostCard({ post, onPostDeleted }: PostCardProps) {
               </div>
             )} */}
 
+            {/* Desktop: Engagement buttons and timestamp - inside info panel */}
             <div className="px-1 sm:px-2 py-1 absolute bottom-0 w-full pr-20 sm:pr-24">
               <div className="flex items-center">
                 <div className="flex items-center space-x-2 sm:space-x-4">
@@ -869,11 +1008,63 @@ export default function PostCard({ post, onPostDeleted }: PostCardProps) {
                 </div>
               </div>
             </div>
+            
+            {/* Desktop: Timestamp */}
+            <div className="absolute bottom-1 sm:bottom-2 right-1 sm:right-2 text-xs text-gray-500">
+              <p className="text-xs text-gray-700 p-1 sm:p-2 whitespace-nowrap">{formatPostDate(post.createdAt)}</p>
+            </div>
           </div>
 
-          {/* Timestamp */}
-          <div className="absolute bottom-1 sm:bottom-2 right-1 sm:right-2 text-xs text-gray-500">
-            <p className="text-xs text-gray-700 p-1 sm:p-2 whitespace-nowrap">{formatPostDate(post.createdAt)}</p>
+          {/* Mobile: Content Below Media */}
+          <div className="md:hidden space-y-3">
+            {/* Mobile: Caption */}
+            <p className="text-gray-900 leading-relaxed text-sm">{post.caption}</p>
+
+            {/* Mobile: Hashtags */}
+            {post.tags && Array.isArray(post.tags) && post.tags.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {post.tags.map((tag, index) => (
+                  <span key={index} className='text-yellow-600 text-sm'>
+                    #{typeof tag === 'string' ? tag : String(tag)}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Mobile: Engagement Buttons */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <button 
+                  onClick={handleLikeToggle}
+                  disabled={isLoading}
+                  className={`flex items-center space-x-2 p-2 rounded-lg transition-colors ${
+                    isLiked 
+                      ? 'text-red-500' 
+                      : 'text-gray-600 hover:text-red-500'
+                  } ${isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100'}`}
+                >
+                  <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
+                  <span className="text-sm font-medium">{likesCount}</span>
+                </button>
+                <button 
+                  onClick={handleCommentClick}
+                  className="flex items-center space-x-2 p-2 rounded-lg text-gray-600 hover:text-blue-500 hover:bg-gray-100 transition-colors"
+                >
+                  <MessageCircle className="w-5 h-5" />
+                  <span className="text-sm font-medium">{commentsCount || 0}</span>
+                </button>
+                <button 
+                  onClick={handleShareClick}
+                  className="flex items-center space-x-2 p-2 rounded-lg text-gray-600 hover:text-green-500 hover:bg-gray-100 transition-colors"
+                >
+                  <Share2 className="w-5 h-5" />
+                  <span className="text-sm font-medium">{post.engagement.shares || 0}</span>
+                </button>
+              </div>
+              
+              {/* Mobile: Timestamp */}
+              <p className="text-xs text-gray-500">{formatPostDate(post.createdAt)}</p>
+            </div>
           </div>
         </div>
       </div>

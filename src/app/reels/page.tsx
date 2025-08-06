@@ -5,6 +5,7 @@ import ReelsComponent from '@/components/ReelsComp'
 import ReelCommentsSection from '@/components/ReelCommentsSection'
 import React, { useState, useEffect } from 'react'
 import Image from 'next/image'
+import { useRouter } from 'next/navigation'
 import { createComment, getCommentsByPost, Comment as CommentType } from '@/api/comment'
 import { getReels, likeReel, unlikeReel } from '@/api/reels'
 import { savePost, unsavePost, getSavedPost } from '@/api/post'
@@ -19,6 +20,7 @@ const createTimeoutPromise = (timeout: number) => {
 };
 
 const Page = () => {
+  const router = useRouter();
   const [currentReelIndex, setCurrentReelIndex] = useState(0);
   const [reelsData, setReelsData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -121,6 +123,13 @@ const Page = () => {
       console.log('Saved save state to localStorage:', { reelId, isSaved });
     } catch (error) {
       console.warn('Failed to save save state to localStorage:', error);
+    }
+  };
+
+  // Handle profile navigation
+  const handleProfileClick = (username: string) => {
+    if (username && username !== 'Unknown User') {
+      router.push(`/userprofile/${username}`);
     }
   };
 
@@ -870,13 +879,25 @@ const Page = () => {
             <Image
               src={currentModalData.profileImageUrl || '/placeholderimg.png'}
               alt={currentModalData.username || 'User'}
-              className="w-12 h-12 rounded-full mr-3 object-cover"
+              className="w-12 h-12 rounded-full mr-3 object-cover cursor-pointer hover:opacity-80 transition-opacity"
               width={48}
               height={48}
               unoptimized
+              onClick={(e) => {
+                e.stopPropagation();
+                handleProfileClick(currentModalData.username);
+              }}
             />
             <div className="flex-1">
-              <span className="font-semibold text-lg text-gray-900">@{currentModalData.username || 'Unknown User'}</span>
+              <span 
+                className="font-semibold text-lg text-gray-900 cursor-pointer hover:text-yellow-600 transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleProfileClick(currentModalData.username);
+                }}
+              >
+                @{currentModalData.username || 'Unknown User'}
+              </span>
             </div>
             <button 
               onClick={() => {

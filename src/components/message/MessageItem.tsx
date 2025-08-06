@@ -31,16 +31,17 @@ export const MessageItem: React.FC<MessageItemProps> = ({
       if (ytMatch && ytMatch[1]) {
         const videoId = ytMatch[1];
         return (
-          <div className="my-2">
+          <div className="my-2 w-full">
             <iframe
-              width="320"
-              height="180"
+              width="100%"
+              height="150"
               src={`https://www.youtube.com/embed/${videoId}`}
               title="YouTube video player"
               frameBorder="0"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
-              className="rounded-lg border"
+              className="rounded-lg border max-w-full"
+              style={{ aspectRatio: '16/9', maxWidth: '280px' }}
             ></iframe>
           </div>
         );
