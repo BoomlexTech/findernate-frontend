@@ -1,6 +1,6 @@
 'use client';
 
-import { Heart, MessageCircle, Share2, MapPin, ChevronLeft, ChevronRight, MoreVertical, Bookmark, BookmarkCheck, Flag, Trash2 } from 'lucide-react';
+import { Heart, MessageCircle, MapPin, ChevronLeft, ChevronRight, MoreVertical, Bookmark, BookmarkCheck, Flag, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -30,6 +30,7 @@ export default function PostCard({ post, onPostDeleted }: PostCardProps) {
   const { requireAuth, showAuthDialog, closeAuthDialog } = useAuthGuard();
   
   const [profileImageError, setProfileImageError] = useState(false);
+  const [mediaImageError, setMediaImageError] = useState(false);
   const [isLiked, setIsLiked] = useState(post.isLikedBy);
   const [likesCount, setLikesCount] = useState(post.engagement.likes);
   const [commentsCount, setCommentsCount] = useState(post.engagement.comments);
@@ -65,7 +66,13 @@ export default function PostCard({ post, onPostDeleted }: PostCardProps) {
   // Reset media index when post changes
   useEffect(() => {
     setCurrentMediaIndex(0);
+    setMediaImageError(false);
   }, [post._id]);
+
+  // Reset media error when media index changes
+  useEffect(() => {
+    setMediaImageError(false);
+  }, [currentMediaIndex]);
 
   // Set client-side flag to prevent hydration issues
   useEffect(() => {
@@ -571,6 +578,12 @@ export default function PostCard({ post, onPostDeleted }: PostCardProps) {
     }
   }, [post._id, isClient]);
 
+  // Don't render if essential post data is missing
+  if (!post || !post._id || !post.media || post.media.length === 0) {
+    console.warn('PostCard: Essential post data missing', { post: post?._id, hasMedia: post?.media?.length > 0 });
+    return null;
+  }
+
   return (
     <div className="relative">
       <div 
@@ -721,7 +734,7 @@ export default function PostCard({ post, onPostDeleted }: PostCardProps) {
 
           {/* Media Section */}
           <div 
-            className="post-media relative w-full h-[300px] sm:h-[350px] md:w-[21rem] md:h-[24rem] overflow-hidden rounded-2xl group"
+            className="post-media relative w-full h-[300px] sm:h-[350px] md:w-[21rem] md:h-[24rem] md:flex-shrink-0 overflow-hidden rounded-2xl group"
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
@@ -733,6 +746,7 @@ export default function PostCard({ post, onPostDeleted }: PostCardProps) {
                 poster={post.media[currentMediaIndex]?.thumbnailUrl}
                 muted
                 loop
+                style={{ objectFit: 'cover' }}
                 onMouseEnter={(e) => e.currentTarget.play()}
                 onMouseLeave={(e) => e.currentTarget.pause()}
               >
@@ -741,11 +755,15 @@ export default function PostCard({ post, onPostDeleted }: PostCardProps) {
               </video>
             ) : (
               <Image
-                src={post.media[currentMediaIndex]?.url || post.media[0]?.url}
+                src={mediaImageError ? '/placeholderimg.png' : (post.media[currentMediaIndex]?.url || post.media[0]?.url || '/placeholderimg.png')}
                 alt="Post content"
                 fill
                 className="rounded-xl object-cover"
                 unoptimized
+                onError={() => {
+                  console.warn('Media image failed to load for post:', post._id, 'URL:', post.media[currentMediaIndex]?.url);
+                  setMediaImageError(true);
+                }}
               />
             )}
 
@@ -932,7 +950,7 @@ export default function PostCard({ post, onPostDeleted }: PostCardProps) {
             {post.contentType === 'business' && <BusinessPostCard post={post} />}
 
             {/* Desktop: Hashtags */}
-            <div className="px-1 pb-4">
+            <div className="px-1 pb-2">
               <div className="flex flex-wrap gap-2">
                 {post.tags && Array.isArray(post.tags) && post.tags.length > 0 && post.tags.map((tag, index) => (
                   <span key={index} className='text-yellow-600'>
@@ -1002,7 +1020,13 @@ export default function PostCard({ post, onPostDeleted }: PostCardProps) {
                     onClick={handleShareClick}
                     className="flex items-center space-x-1 sm:space-x-2 p-1 sm:p-2 rounded-lg text-gray-600 hover:text-green-500 hover:bg-gray-100 transition-colors"
                   >
-                    <Share2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <Image 
+                      src="/reply.png" 
+                      alt="Share" 
+                      width={20} 
+                      height={20} 
+                      className="w-4 h-4 sm:w-5 sm:h-5"
+                    />
                     <span className="text-xs sm:text-sm font-medium hidden xs:inline">{post.engagement.shares || 0}</span>
                   </button>
                 </div>
@@ -1016,13 +1040,13 @@ export default function PostCard({ post, onPostDeleted }: PostCardProps) {
           </div>
 
           {/* Mobile: Content Below Media */}
-          <div className="md:hidden space-y-3">
+          <div className="md:hidden space-y-2">
             {/* Mobile: Caption */}
             <p className="text-gray-900 leading-relaxed text-sm">{post.caption}</p>
 
             {/* Mobile: Hashtags */}
             {post.tags && Array.isArray(post.tags) && post.tags.length > 0 && (
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 mb-2">
                 {post.tags.map((tag, index) => (
                   <span key={index} className='text-yellow-600 text-sm'>
                     #{typeof tag === 'string' ? tag : String(tag)}
@@ -1057,7 +1081,13 @@ export default function PostCard({ post, onPostDeleted }: PostCardProps) {
                   onClick={handleShareClick}
                   className="flex items-center space-x-2 p-2 rounded-lg text-gray-600 hover:text-green-500 hover:bg-gray-100 transition-colors"
                 >
-                  <Share2 className="w-5 h-5" />
+                  <Image 
+                    src="/reply.png" 
+                    alt="Share" 
+                    width={20} 
+                    height={20} 
+                    className="w-5 h-5"
+                  />
                   <span className="text-sm font-medium">{post.engagement.shares || 0}</span>
                 </button>
               </div>
