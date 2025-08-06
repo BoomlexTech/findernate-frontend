@@ -21,7 +21,7 @@ const BusinessPostCard = ({ post }: BusinessPostCardProps) => {
   
   return (
     // Main card container
-    <div className="max-w-sm rounded-2xl border border-violet-500 bg-violet-200 p-2 shadow-md font-sans">
+    <div className="w-full rounded-2xl border border-violet-500 bg-violet-200 p-2 shadow-md font-sans">
       
       {/* Header section: Business Name */}
       <div className="flex items-center justify-between px-1 py-2">

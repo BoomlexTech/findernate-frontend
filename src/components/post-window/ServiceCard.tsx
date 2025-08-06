@@ -23,7 +23,7 @@ const ServiceCard = ({ post }: ServiceCardProps) => {
   
   return (
     // Main card container
-    <div className="max-w-sm rounded-xl bg-blue-100 p-4 shadow-md font-sans border border-blue-500">
+    <div className="w-full rounded-xl bg-blue-100 p-4 shadow-md font-sans border border-blue-500">
       
       {/* Top section: Service Name */}
       <div className="flex items-center gap-3 rounded-lg bg-blue-300 p-2 text-blue-800 border-1 border-blue-600">
