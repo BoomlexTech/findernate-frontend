@@ -9,6 +9,7 @@ import { transformExploreFeedToFeedPost } from '@/utils/transformExploreFeed';
 import { searchAllContent } from '@/api/search';
 import { FeedPost } from '@/types';
 import CreatePostModal from '@/components/CreatePostModal';
+import { getCommentsByPost, Comment } from '@/api/comment';
 
 const ServicesPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -58,11 +59,57 @@ const ServicesPage = () => {
       
       const transformedData = transformExploreFeedToFeedPost(response.data.feed);
       
+      console.log('Transformed service data:', transformedData.slice(0, 2));
+      
+      // Fetch comments for all service posts
+      const servicesWithComments = await Promise.all(
+        transformedData.map(async (service) => {
+          try {
+            console.log(`Fetching comments for service: ${service._id}`);
+            const commentsResponse = await getCommentsByPost(service._id, 1, 5); // Fetch first 5 comments
+            console.log(`Comments response for service ${service._id}:`, commentsResponse);
+            
+            // Handle different possible response structures
+            let comments = [];
+            let totalComments = 0;
+            
+            if (commentsResponse) {
+              // Check if response has comments array directly
+              if (Array.isArray(commentsResponse.comments)) {
+                comments = commentsResponse.comments;
+                totalComments = commentsResponse.totalComments || commentsResponse.total || comments.length;
+              } else if (Array.isArray(commentsResponse)) {
+                // If response is directly an array
+                comments = commentsResponse;
+                totalComments = comments.length;
+              } else {
+                console.log('Unexpected comments response structure:', commentsResponse);
+              }
+            }
+            
+            console.log(`Processed ${comments.length} comments for service ${service._id}, total: ${totalComments}`);
+            
+            return {
+              ...service,
+              comments: comments,
+              // Update engagement comments count with actual comment count
+              engagement: {
+                ...service.engagement,
+                comments: totalComments || service.engagement.comments,
+              },
+            };
+          } catch (error) {
+            console.error(`Failed to fetch comments for service ${service._id}:`, error);
+            return service; // Return service without comments if fetch fails
+          }
+        })
+      );
+      
       if (reset) {
-        setAllServices(transformedData);
-        setServices(transformedData);
+        setAllServices(servicesWithComments);
+        setServices(servicesWithComments);
       } else {
-        const newAllServices = [...allServices, ...transformedData];
+        const newAllServices = [...allServices, ...servicesWithComments];
         setAllServices(newAllServices);
         setServices(newAllServices);
       }
@@ -108,7 +155,51 @@ const ServicesPage = () => {
         profileImageUrl: post.userId?.profileImageUrl,
       }));
       
-      setServices(flattenedResults);
+      console.log('Service search results:', flattenedResults.slice(0, 2));
+      
+      // Fetch comments for search results
+      const searchResultsWithComments = await Promise.all(
+        flattenedResults.map(async (service) => {
+          try {
+            console.log(`Fetching comments for search result service: ${service._id}`);
+            const commentsResponse = await getCommentsByPost(service._id, 1, 5);
+            console.log(`Comments response for search service ${service._id}:`, commentsResponse);
+            
+            // Handle different possible response structures
+            let comments = [];
+            let totalComments = 0;
+            
+            if (commentsResponse) {
+              if (Array.isArray(commentsResponse.comments)) {
+                comments = commentsResponse.comments;
+                totalComments = commentsResponse.totalComments || commentsResponse.total || comments.length;
+              } else if (Array.isArray(commentsResponse)) {
+                comments = commentsResponse;
+                totalComments = comments.length;
+              } else {
+                console.log('Unexpected search comments response structure:', commentsResponse);
+              }
+            }
+            
+            console.log(`Processed ${comments.length} comments for search service ${service._id}, total: ${totalComments}`);
+            
+            return {
+              ...service,
+              comments: comments,
+              // Update engagement comments count with actual comment count
+              engagement: {
+                ...service.engagement,
+                comments: totalComments || service.engagement?.comments || 0,
+              },
+            };
+          } catch (error) {
+            console.error(`Failed to fetch comments for search service ${service._id}:`, error);
+            return service;
+          }
+        })
+      );
+      
+      setServices(searchResultsWithComments);
     } catch (error) {
       console.error('Search error:', error);
       setServices([]);

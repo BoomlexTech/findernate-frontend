@@ -9,6 +9,7 @@ import { transformExploreFeedToFeedPost } from '@/utils/transformExploreFeed';
 import { searchAllContent } from '@/api/search';
 import { FeedPost } from '@/types';
 import CreatePostModal from '@/components/CreatePostModal';
+import { getCommentsByPost, Comment } from '@/api/comment';
 
 const ProductsPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -58,11 +59,57 @@ const ProductsPage = () => {
       
       const transformedData = transformExploreFeedToFeedPost(response.data.feed);
       
+      console.log('Transformed product data:', transformedData.slice(0, 2));
+      
+      // Fetch comments for all product posts
+      const productsWithComments = await Promise.all(
+        transformedData.map(async (product) => {
+          try {
+            console.log(`Fetching comments for product: ${product._id}`);
+            const commentsResponse = await getCommentsByPost(product._id, 1, 5); // Fetch first 5 comments
+            console.log(`Comments response for product ${product._id}:`, commentsResponse);
+            
+            // Handle different possible response structures
+            let comments = [];
+            let totalComments = 0;
+            
+            if (commentsResponse) {
+              // Check if response has comments array directly
+              if (Array.isArray(commentsResponse.comments)) {
+                comments = commentsResponse.comments;
+                totalComments = commentsResponse.totalComments || commentsResponse.total || comments.length;
+              } else if (Array.isArray(commentsResponse)) {
+                // If response is directly an array
+                comments = commentsResponse;
+                totalComments = comments.length;
+              } else {
+                console.log('Unexpected comments response structure:', commentsResponse);
+              }
+            }
+            
+            console.log(`Processed ${comments.length} comments for product ${product._id}, total: ${totalComments}`);
+            
+            return {
+              ...product,
+              comments: comments,
+              // Update engagement comments count with actual comment count
+              engagement: {
+                ...product.engagement,
+                comments: totalComments || product.engagement.comments,
+              },
+            };
+          } catch (error) {
+            console.error(`Failed to fetch comments for product ${product._id}:`, error);
+            return product; // Return product without comments if fetch fails
+          }
+        })
+      );
+      
       if (reset) {
-        setAllProducts(transformedData);
-        setProducts(transformedData);
+        setAllProducts(productsWithComments);
+        setProducts(productsWithComments);
       } else {
-        const newAllProducts = [...allProducts, ...transformedData];
+        const newAllProducts = [...allProducts, ...productsWithComments];
         setAllProducts(newAllProducts);
         setProducts(newAllProducts);
       }
@@ -108,7 +155,51 @@ const ProductsPage = () => {
         profileImageUrl: post.userId?.profileImageUrl,
       }));
       
-      setProducts(flattenedResults);
+      console.log('Search results:', flattenedResults.slice(0, 2));
+      
+      // Fetch comments for search results
+      const searchResultsWithComments = await Promise.all(
+        flattenedResults.map(async (product) => {
+          try {
+            console.log(`Fetching comments for search result product: ${product._id}`);
+            const commentsResponse = await getCommentsByPost(product._id, 1, 5);
+            console.log(`Comments response for search product ${product._id}:`, commentsResponse);
+            
+            // Handle different possible response structures
+            let comments = [];
+            let totalComments = 0;
+            
+            if (commentsResponse) {
+              if (Array.isArray(commentsResponse.comments)) {
+                comments = commentsResponse.comments;
+                totalComments = commentsResponse.totalComments || commentsResponse.total || comments.length;
+              } else if (Array.isArray(commentsResponse)) {
+                comments = commentsResponse;
+                totalComments = comments.length;
+              } else {
+                console.log('Unexpected search comments response structure:', commentsResponse);
+              }
+            }
+            
+            console.log(`Processed ${comments.length} comments for search product ${product._id}, total: ${totalComments}`);
+            
+            return {
+              ...product,
+              comments: comments,
+              // Update engagement comments count with actual comment count
+              engagement: {
+                ...product.engagement,
+                comments: totalComments || product.engagement?.comments || 0,
+              },
+            };
+          } catch (error) {
+            console.error(`Failed to fetch comments for search product ${product._id}:`, error);
+            return product;
+          }
+        })
+      );
+      
+      setProducts(searchResultsWithComments);
     } catch (error) {
       console.error('Search error:', error);
       setProducts([]);

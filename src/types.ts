@@ -1,5 +1,7 @@
 
 // types/signup.ts
+import { Comment } from './api/comment';
+
 export interface SignupData {
   phone: string;
   countryCode: string;
@@ -288,6 +290,7 @@ export interface FeedPost {
       };
     };
   };
+  comments?: Comment[];
 }
 
 

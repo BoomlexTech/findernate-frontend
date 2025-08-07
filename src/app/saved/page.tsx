@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import PostCard from '@/components/PostCard'
 import { FeedPost, SavedPostsResponse } from '@/types'
 import { getSavedPost } from '@/api/post'
+import { getCommentsByPost, Comment } from '@/api/comment'
 import { useAuthGuard } from '@/hooks/useAuthGuard'
 import { AuthDialog } from '@/components/AuthDialog'
 import { Bookmark, RefreshCw, LogIn, Heart, MessageCircle } from 'lucide-react'
@@ -23,7 +24,7 @@ const SavedPage = () => {
       const response: SavedPostsResponse = await getSavedPost()
       
       // Extract and map the posts similar to MainContent.tsx
-      const posts: FeedPost[] = response.data.savedPosts
+      const initialPosts: FeedPost[] = response.data.savedPosts
         .filter(savedPost => savedPost.postId !== null)
         .map(savedPost => {
           const post = savedPost.postId as any // Raw post data from API
@@ -62,11 +63,59 @@ const SavedPage = () => {
             },
             location: post.customization?.normal?.location || post.location || null,
             tags: post.customization?.normal?.tags || post.tags || [],
-            customization: post.customization
+            customization: post.customization,
+            // Add comments array for PostCard to use
+            comments: post.comments || []
           } as FeedPost
         })
+
+      console.log('Initial saved posts:', initialPosts.slice(0, 2));
       
-      setSavedPosts(posts)
+      // Fetch comments for all saved posts
+      const postsWithComments = await Promise.all(
+        initialPosts.map(async (post) => {
+          try {
+            console.log(`Fetching comments for saved post: ${post._id}`);
+            const commentsResponse = await getCommentsByPost(post._id, 1, 5); // Fetch first 5 comments
+            console.log(`Comments response for saved post ${post._id}:`, commentsResponse);
+            
+            // Handle different possible response structures
+            let comments = [];
+            let totalComments = 0;
+            
+            if (commentsResponse) {
+              // Check if response has comments array directly
+              if (Array.isArray(commentsResponse.comments)) {
+                comments = commentsResponse.comments;
+                totalComments = commentsResponse.totalComments || commentsResponse.total || comments.length;
+              } else if (Array.isArray(commentsResponse)) {
+                // If response is directly an array
+                comments = commentsResponse;
+                totalComments = comments.length;
+              } else {
+                console.log('Unexpected comments response structure:', commentsResponse);
+              }
+            }
+            
+            console.log(`Processed ${comments.length} comments for saved post ${post._id}, total: ${totalComments}`);
+            
+            return {
+              ...post,
+              comments: comments,
+              // Update engagement comments count with actual comment count
+              engagement: {
+                ...post.engagement,
+                comments: totalComments || post.engagement.comments,
+              },
+            };
+          } catch (error) {
+            console.error(`Failed to fetch comments for saved post ${post._id}:`, error);
+            return post; // Return post without comments if fetch fails
+          }
+        })
+      );
+      
+      setSavedPosts(postsWithComments)
     } catch (err) {
       setError('Failed to load saved posts')
       console.error('Error fetching saved posts:', err)

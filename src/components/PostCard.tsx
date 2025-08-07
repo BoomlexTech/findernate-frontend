@@ -25,9 +25,10 @@ export interface PostCardProps {
   post: FeedPost;
   onPostDeleted?: (postId: string) => void; // Optional callback for when post is deleted
   onPostClick?: () => void; // Optional callback for when post is clicked
+  showComments?: boolean; // Whether to display comments inline
 }
 
-export default function PostCard({ post, onPostDeleted, onPostClick }: PostCardProps) {
+export default function PostCard({ post, onPostDeleted, onPostClick, showComments = false }: PostCardProps) {
   const pathname = usePathname();
   const { requireAuth, showAuthDialog, closeAuthDialog } = useAuthGuard();
   
@@ -63,8 +64,15 @@ export default function PostCard({ post, onPostDeleted, onPostClick }: PostCardP
   useEffect(() => {
     setIsLiked(post.isLikedBy);
     setLikesCount(post.engagement.likes);
-    setCommentsCount(post.engagement.comments);
-  }, [post.isLikedBy, post.engagement.likes, post.engagement.comments]);
+    
+    // Use actual comments array length if available, otherwise use engagement count
+    const actualCommentsCount = post.comments && Array.isArray(post.comments) 
+      ? post.comments.length 
+      : post.engagement.comments;
+    setCommentsCount(actualCommentsCount);
+    
+    console.log(`PostCard ${post._id} - Setting comments count to ${actualCommentsCount} (from ${post.comments ? 'comments array' : 'engagement'})`);
+  }, [post.isLikedBy, post.engagement.likes, post.engagement.comments, post.comments]);
 
   // Reset media index when post changes
   useEffect(() => {
@@ -85,7 +93,9 @@ export default function PostCard({ post, onPostDeleted, onPostClick }: PostCardP
   // For debugging - log the initial state including comments
   useEffect(() => {
     console.log(`PostCard loaded for post ${post._id}: isLikedBy=${post.isLikedBy}, likes=${post.engagement.likes}, comments=${post.engagement.comments}`);
-  }, [post._id]);
+    console.log(`PostCard comments array:`, post.comments);
+    console.log(`PostCard showComments prop:`, showComments);
+  }, [post._id, post.comments, showComments]);
 
   // Load like status and comment count from localStorage on component mount (for persistence across refreshes)
   // Skip this on individual post pages since the page level handles localStorage
@@ -1106,6 +1116,8 @@ export default function PostCard({ post, onPostDeleted, onPostClick }: PostCardP
           </div>
         </div>
       </div>
+      
+     
       
       {/* Comment Drawer - positioned directly attached to post card */}
       {showCommentDrawer && (
