@@ -70,7 +70,7 @@ const ProductsPage = () => {
             console.log(`Comments response for product ${product._id}:`, commentsResponse);
             
             // Handle different possible response structures
-            let comments = [];
+            let comments: Comment[] = [];
             let totalComments = 0;
             
             if (commentsResponse) {
@@ -166,7 +166,7 @@ const ProductsPage = () => {
             console.log(`Comments response for search product ${product._id}:`, commentsResponse);
             
             // Handle different possible response structures
-            let comments = [];
+            let comments: Comment[] = [];
             let totalComments = 0;
             
             if (commentsResponse) {

@@ -70,7 +70,7 @@ const ServicesPage = () => {
             console.log(`Comments response for service ${service._id}:`, commentsResponse);
             
             // Handle different possible response structures
-            let comments = [];
+            let comments: Comment[] = [];
             let totalComments = 0;
             
             if (commentsResponse) {
@@ -166,7 +166,7 @@ const ServicesPage = () => {
             console.log(`Comments response for search service ${service._id}:`, commentsResponse);
             
             // Handle different possible response structures
-            let comments = [];
+            let comments: Comment[] = [];
             let totalComments = 0;
             
             if (commentsResponse) {

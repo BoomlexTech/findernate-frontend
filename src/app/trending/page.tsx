@@ -89,7 +89,7 @@ const Page = () => {
             console.log(`Comments response for post ${post._id}:`, commentsResponse);
             
             // Handle different possible response structures
-            let comments = [];
+            let comments: Comment[] = [];
             let totalComments = 0;
             
             if (commentsResponse) {
