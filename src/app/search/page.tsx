@@ -17,19 +17,15 @@ import {
   X,
   MapPin,
   Crosshair,
-  Filter,
-  Sparkles,
-  TrendingUp,
-  Flame,
-  Star,
 } from "lucide-react";
-
+//import FloatingHeader from "@/components/FloatingHeader";
 import { searchAllContent, searchUsers } from "@/api/search";
 import { FeedPost, SearchUser } from "@/types";
 import UserCard from "@/components/UserCard";
 import TrendingTopics from "@/components/TrendingTopics";
 import TrendingBusiness from "@/components/TrendingBusiness";
 import PostCard from "@/components/PostCard";
+// import { Button } from "@/components/ui/button";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import ImageModal from "@/components/ImageModal";
@@ -95,6 +91,7 @@ export default function SearchPage() {
     "Pune, India",
   ];
 
+
   const getCurrentLocation = () => {
     if (navigator.geolocation) {
       setLoading(true);
@@ -127,6 +124,7 @@ export default function SearchPage() {
     }
     setLocationDropdownOpen(false);
   };
+
 
   const handleContentTypeSelect = (type: string) => {
     if (type === "all") {
@@ -179,7 +177,7 @@ export default function SearchPage() {
       setError(null);
 
       const locationParam = !useCurrentLocation && selectedLocation !== "All Locations" 
-        ? selectedLocation.split(',')[0].toLowerCase().trim()
+        ? selectedLocation.split(',')[0].toLowerCase().trim() // Extract city name and lowercase it
         : undefined;
 
       const response = await searchAllContent(
@@ -193,22 +191,41 @@ export default function SearchPage() {
         useCurrentLocation && currentCoordinates ? searchRadius : undefined,
         useCurrentLocation && currentCoordinates ? currentCoordinates : undefined
       );
+      console.log("Search params:", {
+        query: searchQuery,
+        location: locationParam,
+        contentType: selectedContentType === "all" ? undefined : selectedContentType || undefined,
+        postType: selectedPostType || undefined,
+        useCurrentLocation,
+        coordinates: currentCoordinates,
+        radius: searchRadius
+      });
+      
+      console.log("API response:", response);
 
       let filteredResults = response.data.results || [];
       let filteredUsers = response.data.users || [];
 
+      // Client-side location filtering for posts if not using current location
       if (!useCurrentLocation && selectedLocation !== "All Locations") {
+        console.log("Applying client-side location filtering for:", selectedLocation);
+        
         filteredResults = filteredResults.filter((post) => {
+          // Check if post has location in customization for different content types
           const postLocation = post.customization?.normal?.location?.name || 
                                post.customization?.product?.location?.name ||
                                post.customization?.service?.location?.name ||
                                post.customization?.business?.location?.name;
           
           if (postLocation) {
+            // Normalize location names for comparison
             const normalizedPostLocation = postLocation.toLowerCase().trim();
             const normalizedSelectedLocation = selectedLocation.toLowerCase().trim();
             const selectedCity = selectedLocation.split(',')[0].toLowerCase().trim();
             
+            console.log("Comparing post location:", normalizedPostLocation, "with selected:", normalizedSelectedLocation);
+            
+            // Check for various matching patterns
             const isMatch = normalizedPostLocation.includes(selectedCity) ||
                            normalizedSelectedLocation.includes(normalizedPostLocation) ||
                            normalizedPostLocation === normalizedSelectedLocation ||
@@ -217,14 +234,19 @@ export default function SearchPage() {
             
             return isMatch;
           }
+          
+          // If post doesn't have location data, exclude it when location filter is applied
           return false;
         });
 
+        // Filter users by location as well
         filteredUsers = filteredUsers.filter((user) => {
           if (user.location) {
             const normalizedUserLocation = user.location.toLowerCase().trim();
             const normalizedSelectedLocation = selectedLocation.toLowerCase().trim();
             const selectedCity = selectedLocation.split(',')[0].toLowerCase().trim();
+            
+            console.log("Comparing user location:", normalizedUserLocation, "with selected:", normalizedSelectedLocation);
             
             const isMatch = normalizedUserLocation.includes(selectedCity) ||
                            normalizedSelectedLocation.includes(normalizedUserLocation) ||
@@ -233,8 +255,12 @@ export default function SearchPage() {
             
             return isMatch;
           }
+          
+          // If user doesn't have location data, exclude them when location filter is applied
           return false;
         });
+        
+        console.log("Filtered results:", filteredResults.length, "posts,", filteredUsers.length, "users");
       }
 
       const flattenedResults = filteredResults.map((post) => ({
@@ -279,6 +305,7 @@ export default function SearchPage() {
     }
   };
 
+  // Auto-trigger search when filters change
   useEffect(() => {
     const timer = setTimeout(() => {
       if (searchQuery.trim()) {
@@ -310,6 +337,7 @@ export default function SearchPage() {
   const displayedUsers = showAllUsers ? users : users.slice(0, 2);
   const hasMoreUsers = users.length > 2;
 
+  // Handler for trending search click
   const handleTrendingClick = (term: string) => {
     setSearchQuery(term);
   };
@@ -343,24 +371,50 @@ export default function SearchPage() {
   };
 
   return (
-    <div className="flex flex-col md:flex-row w-full min-h-screen bg-[#f8f9fa]">
-      {/* Left Sidebar / Main Feed */}
-      <div className="flex-1 p-4 md:pl-8 md:pr-6">
+    <>
+      <div className="min-h-screen flex flex-col gap-10 hide-scrollbar">
+        <div className="flex-1 xl:pr-[23rem] px-4 xl:px-0">
+          <div className="max-w-full xl:max-w-4xl mx-auto xl:ml-4">
+            {/* <div className="[&>*]:!max-w-full [&>*]:xl:!max-w-[54rem]">
+              <FloatingHeader
+                paragraph="Discover businesses, products, services, and more"
+                heading="Search"
+                username="John Doe"
+                width="w-full"
+                accountBadge={true}
+              />
+            </div> */}
 
-
-          {/* Search Bar and Filter tabs */}
-          <div className="flex flex-col sm:flex-row gap-4 mb-6">
-            {/* Search Bar */}
-            <div className="flex-1">
+            <div className="w-full relative [&>*]:!max-w-full [&>*]:xl:!max-w-[54rem] mt-5">
               <SearchBar
                 value={searchQuery}
                 placeholder="Search businesses, products, services..."
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
               />
+              {/* <Button
+                variant="custom"
+                onClick={activeTab === "Users" ? handleUserSearch : handleSearch}
+                disabled={!searchQuery.trim() || loading}
+                className="absolute right-10 top-1/2 -translate-y-1/2 bg-button-gradient cursor-pointer disabled:bg-gray-300 text-white px-6 py-4 rounded-xl transition-colors flex items-center"
+              >
+                {loading ? "Searching..." : "Search"}
+              </Button> */}
             </div>
 
-            {/* Filter tabs */}
-            <div className="flex gap-1.5">
+            {/* Clear Filters Button */}
+            {hasActiveFilters() && (
+              <div className="flex justify-start mt-4">
+                <button
+                  onClick={clearAllFilters}
+                  className="flex items-center gap-2 text-sm text-gray-600 hover:text-yellow-600 transition-colors"
+                >
+                  <X size={16} />
+                  Clear all filters
+                </button>
+              </div>
+            )}
+
+            <div className="flex flex-wrap gap-2 mb-6 mt-4">
               {tabs.map((tab) => {
                 const Icon = tab.icon;
                 return (
@@ -368,10 +422,10 @@ export default function SearchPage() {
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
                     disabled={loading}
-                    className={`px-5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-300 flex items-center gap-2.5 shadow-md border-2 ${
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-medium transition-all ${
                       activeTab === tab.id
-                        ? 'bg-gradient-to-r from-yellow-400 to-yellow-600 text-white shadow-lg transform scale-105 border-yellow-300'
-                        : 'bg-white text-gray-600 hover:bg-gray-50 border-gray-200 hover:border-gray-300 hover:scale-105 hover:shadow-lg'
+                        ? "bg-yellow-100 text-yellow-800 border-yellow-300"
+                        : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
                     } ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
                   >
                     <Icon className="w-4 h-4" />
@@ -380,99 +434,78 @@ export default function SearchPage() {
                 );
               })}
             </div>
-          </div>
 
-          {/* Advanced Filters Grid */}
-          <div className="bg-white border border-gray-200 rounded-lg p-4 md:p-6 shadow-sm mb-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {/* Location Filter */}
-              <select
-                className="w-full px-4 py-2 border text-black border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                value={selectedLocation}
-                onChange={(e) => {
-                  if (e.target.value === "Current Location") {
-                    getCurrentLocation();
-                  } else {
-                    setSelectedLocation(e.target.value);
-                    setUseCurrentLocation(false);
-                    setCurrentCoordinates(null);
-                  }
-                }}
-                disabled={loading}
-              >
-                <option value="All Locations">All Locations</option>
-                <option value="Current Location">Current Location</option>
-                {locations.map((location) => (
-                  <option key={location} value={location}>
-                    {location}
-                  </option>
-                ))}
-              </select>
-
-              {/* Content Type Filter */}
-              {activeTab !== "Users" && (
-                <select
-                  className="w-full px-4 py-2 border text-black border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                  value={selectedContentType || ""}
-                  onChange={(e) => setSelectedContentType(e.target.value || null)}
+            {/* Advanced Search Filters */}
+            <div className="flex flex-wrap gap-4 mb-8">
+              {/* Location Dropdown */}
+              <div className="relative">
+                <button
+                  onClick={() => {
+                    setLocationDropdownOpen(!locationDropdownOpen);
+                    setContentTypeDropdownOpen(false);
+                    setPostTypeDropdownOpen(false);
+                  }}
                   disabled={loading}
+                  className={`flex items-center justify-between w-48 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors ${
+                    loading ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
                 >
-                  <option value="">All Content Types</option>
-                  {contentTypes.map((type) => (
-                    <option key={type.id} value={type.id}>
-                      {type.label}
-                    </option>
-                  ))}
-                </select>
-              )}
+                  <span className="truncate flex items-center gap-2">
+                    {useCurrentLocation ? (
+                      <>
+                        <Crosshair className="w-4 h-4" />
+                        Current Location
+                      </>
+                    ) : (
+                      <>
+                        <MapPin className="w-4 h-4" />
+                        {selectedLocation}
+                      </>
+                    )}
+                  </span>
+                  <ChevronDown
+                    className={`w-4 h-4 transition-transform ${
+                      locationDropdownOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
 
-              {/* Post Type Filter */}
-              {activeTab !== "Users" && (
-                <select
-                  className="w-full px-4 py-2 border text-black border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                  value={selectedPostType || ""}
-                  onChange={(e) => setSelectedPostType(e.target.value || null)}
-                  disabled={loading}
-                >
-                  <option value="">All Post Types</option>
-                  {postTypes.map((type) => (
-                    <option key={type.id} value={type.id}>
-                      {type.label}
-                    </option>
-                  ))}
-                </select>
-              )}
-
-              {/* Date Range Filter */}
-              <div className="flex gap-2">
-                <DatePicker
-                  selected={startDate}
-                  onChange={(date) => setStartDate(date)}
-                  selectsStart
-                  startDate={startDate}
-                  endDate={endDate}
-                  placeholderText="From"
-                  className="w-full px-4 py-2 border text-black border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                  disabled={loading}
-                />
-                <DatePicker
-                  selected={endDate}
-                  onChange={(date) => setEndDate(date)}
-                  selectsEnd
-                  startDate={startDate}
-                  endDate={endDate}
-                  minDate={startDate || undefined}
-                  placeholderText="To"
-                  className="w-full px-4 py-2 border text-black border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                  disabled={loading}
-                />
+                {locationDropdownOpen && (
+                  <div className="absolute top-full left-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-lg z-50 max-h-60 overflow-y-auto">
+                    <button
+                      onClick={() => handleLocationSelect("Current Location")}
+                      className={`w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors flex items-center gap-2 ${
+                        useCurrentLocation
+                          ? "bg-yellow-50 text-yellow-800"
+                          : "text-gray-700"
+                      }`}
+                    >
+                      <Crosshair className="w-4 h-4" />
+                      Current Location
+                    </button>
+                    {locations.map((location) => (
+                      <button
+                        key={location}
+                        onClick={() => handleLocationSelect(location)}
+                        className={`w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors flex items-center gap-2 ${
+                          selectedLocation === location && !useCurrentLocation
+                            ? "bg-yellow-50 text-yellow-800"
+                            : "text-gray-700"
+                        }`}
+                      >
+                        <MapPin className="w-4 h-4" />
+                        {location}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Radius Slider - Only show when using current location */}
               {useCurrentLocation && (
-                <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-lg px-4 py-2">
+                <div className="flex items-center gap-4 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 min-w-[200px]">
                   <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Radius:</span>
-                  <div className="flex items-center gap-2">
+                  <div className="flex-1 flex items-center gap-3">
                     <input
                       type="range"
                       min="1"
@@ -480,72 +513,191 @@ export default function SearchPage() {
                       value={searchRadius}
                       onChange={(e) => setSearchRadius(Number(e.target.value))}
                       disabled={loading}
-                      className="flex-1 h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                      className={`flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider ${
+                        loading ? "opacity-50 cursor-not-allowed" : ""
+                      }`}
                       style={{
                         background: `linear-gradient(to right, #eab308 0%, #eab308 ${((searchRadius - 1) / 199) * 100}%, #e5e7eb ${((searchRadius - 1) / 199) * 100}%, #e5e7eb 100%)`
                       }}
                     />
-                    <span className="text-sm font-medium text-gray-900 min-w-[30px]">{searchRadius}km</span>
+                    <span className="text-sm font-medium text-gray-900 min-w-[40px] text-right">{searchRadius} km</span>
                   </div>
                 </div>
               )}
 
-              {/* Clear Filters Button */}
-              {hasActiveFilters() && (
-                <button
-                  onClick={clearAllFilters}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
-                >
-                  Clear Filters
-                </button>
-              )}
-            </div>
-          </div>
+              {/* Content Type Dropdown */}
+              {activeTab !== "Users" && (
+                <div className="relative">
+                  <button
+                    onClick={() => {
+                      setContentTypeDropdownOpen(!contentTypeDropdownOpen);
+                      setLocationDropdownOpen(false);
+                      setPostTypeDropdownOpen(false);
+                    }}
+                    disabled={loading}
+                    className={`flex items-center justify-between w-48 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors ${
+                      loading ? "opacity-50 cursor-not-allowed" : ""
+                    }`}
+                  >
+                    <span className="truncate">
+                      {selectedContentType 
+                        ? contentTypes.find(t => t.id === selectedContentType)?.label || "All" 
+                        : "All"}
+                    </span>
+                    <ChevronDown
+                      className={`w-4 h-4 transition-transform ${
+                        contentTypeDropdownOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
 
-          {/* Search Results Info */}
-          {searchQuery.trim() && !loading && (
-            <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Search className="w-4 h-4 text-blue-600" />
-                  <span className="text-blue-800 font-medium">
-                    {results.length > 0 || users.length > 0 ? (
-                      <>
-                        Found {results.length} posts and {users.length} users
-                        {selectedLocation !== "All Locations" && !useCurrentLocation && (
-                          <span className="text-blue-600"> in {selectedLocation}</span>
-                        )}
-                        {useCurrentLocation && (
-                          <span className="text-blue-600"> within {searchRadius}km of your location</span>
-                        )}
-                      </>
-                    ) : (
-                      <>
-                        No results found for "{searchQuery}"
-                        {selectedLocation !== "All Locations" && !useCurrentLocation && (
-                          <span> in {selectedLocation}</span>
-                        )}
-                      </>
-                    )}
-                  </span>
+                  {contentTypeDropdownOpen && (
+                    <div className="absolute top-full left-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-lg z-50 max-h-60 overflow-y-auto">
+                      {contentTypes.map((type) => (
+                        <button
+                          key={type.id}
+                          onClick={() => handleContentTypeSelect(type.id)}
+                          className={`w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors flex items-center gap-2 ${
+                            (type.id === "all" && selectedContentType === null) || selectedContentType === type.id
+                              ? "bg-yellow-50 text-yellow-800"
+                              : "text-gray-700"
+                          }`}
+                        >
+                          <type.icon className="w-4 h-4" />
+                          {type.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
+              )}
+
+              {/* Post Type Dropdown */}
+              {activeTab !== "Users" && (
+                <div className="relative">
+                  <button
+                    onClick={() => {
+                      setPostTypeDropdownOpen(!postTypeDropdownOpen);
+                      setLocationDropdownOpen(false);
+                      setContentTypeDropdownOpen(false);
+                    }}
+                    disabled={loading}
+                    className={`flex items-center justify-between w-48 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors ${
+                      loading ? "opacity-50 cursor-not-allowed" : ""
+                    }`}
+                  >
+                    <span className="truncate">
+                      {selectedPostType 
+                        ? postTypes.find(t => t.id === selectedPostType)?.label || "Post Type" 
+                        : "Post Type"}
+                    </span>
+                    <ChevronDown
+                      className={`w-4 h-4 transition-transform ${
+                        postTypeDropdownOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+
+                  {postTypeDropdownOpen && (
+                    <div className="absolute top-full left-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-lg z-50 max-h-60 overflow-y-auto">
+                      {postTypes.map((type) => (
+                        <button
+                          key={type.id}
+                          onClick={() => handlePostTypeSelect(type.id)}
+                          className={`w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors flex items-center gap-2 ${
+                            selectedPostType === type.id
+                              ? "bg-yellow-50 text-yellow-800"
+                              : "text-gray-700"
+                          }`}
+                        >
+                          <type.icon className="w-4 h-4" />
+                          {type.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Date Range Picker */}
+              <div className={`flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 ${
+                loading ? "opacity-50 cursor-not-allowed" : ""
+              }`}>
+                <Calendar className="w-4 h-4 text-gray-500" />
+                <DatePicker
+                  selected={startDate}
+                  onChange={(date) => setStartDate(date)}
+                  selectsStart
+                  startDate={startDate}
+                  endDate={endDate}
+                  placeholderText="Start Date"
+                  className="w-28 bg-transparent text-sm focus:outline-none text-black"
+                  disabled={loading}
+                />
+                <span className="text-gray-400">to</span>
+                <DatePicker
+                  selected={endDate}
+                  onChange={(date) => setEndDate(date)}
+                  selectsEnd
+                  startDate={startDate}
+                  endDate={endDate}
+                  minDate={startDate || undefined}
+                  placeholderText="End Date"
+                  className="w-28 bg-transparent text-sm focus:outline-none text-black"
+                  disabled={loading}
+                />
               </div>
             </div>
-          )}
 
-          {/* Error Message */}
-          {error && (
-            <div className="mb-4 p-4 bg-red-50 border border-red-200 text-red-600 rounded-lg">
-              {error}
-            </div>
-          )}
+            {/* Click outside to close dropdowns */}
+            {(locationDropdownOpen || contentTypeDropdownOpen || postTypeDropdownOpen) && (
+              <div
+                className="fixed inset-0 z-40"
+                onClick={() => {
+                  setLocationDropdownOpen(false);
+                  setContentTypeDropdownOpen(false);
+                  setPostTypeDropdownOpen(false);
+                }}
+              />
+            )}
 
-          {/* Loading Indicator */}
-          {loading && (
-            <div className="flex justify-center my-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-yellow-500"></div>
-            </div>
-          )}
+            {/* Search Results Info */}
+            {searchQuery.trim() && !loading && (
+              <div className="mb-4 text-sm text-gray-600">
+                {results.length > 0 || users.length > 0 ? (
+                  <p>
+                    Found {results.length} posts and {users.length} users
+                    {selectedLocation !== "All Locations" && !useCurrentLocation && (
+                      <span className="text-yellow-600"> in {selectedLocation}</span>
+                    )}
+                    {useCurrentLocation && (
+                      <span className="text-yellow-600"> within {searchRadius}km of your location</span>
+                    )}
+                  </p>
+                ) : (
+                  <p>No results found for {searchQuery}
+                    {selectedLocation !== "All Locations" && !useCurrentLocation && (
+                      <span> in {selectedLocation}</span>
+                    )}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Error Message */}
+            {error && (
+              <div className="mb-4 p-4 bg-red-50 text-red-600 rounded-lg">
+                {error}
+              </div>
+            )}
+
+            {/* Loading Indicator */}
+            {loading && (
+              <div className="flex justify-center my-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-yellow-500"></div>
+              </div>
+            )}
+          </div>
 
           <div className="flex flex-col items-center gap-4 text-black">
             {/* User Cards Section */}
@@ -558,7 +710,7 @@ export default function SearchPage() {
                 {hasMoreUsers && !showAllUsers && !loading && (
                   <button
                     onClick={() => setShowAllUsers(true)}
-                    className="w-full bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 p-4 group"
+                    className="w-full max-w-2xl bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 p-4 group"
                   >
                     <div className="flex items-center justify-center gap-3 text-gray-600 group-hover:text-yellow-600">
                       <Plus size={20} className="transition-transform group-hover:scale-110" />
@@ -572,7 +724,7 @@ export default function SearchPage() {
                 {showAllUsers && hasMoreUsers && !loading && (
                   <button
                     onClick={() => setShowAllUsers(false)}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 p-3"
+                    className="w-full max-w-2xl bg-gray-50 border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 p-3"
                   >
                     <div className="flex items-center justify-center gap-2 text-gray-600 hover:text-yellow-600">
                       <ChevronDown size={16} className="rotate-180 transition-transform" />
@@ -592,6 +744,7 @@ export default function SearchPage() {
                     post={item} 
                     onPostClick={() => handlePostClick(item)}
                   />
+
                 ))}
               </>
             )}
@@ -606,15 +759,13 @@ export default function SearchPage() {
             )}
           </div>
         </div>
-       
-      {/* Right Sidebar / Trending Topics with Independent Scroll */}
-      <div className="w-full md:w-[320px] md:p-6 lg:p-0">
-        <aside className="w-full md:w-[20rem] max-w-full bg-white shadow-md rounded-lg md:sticky md:top-4 md:h-[calc(100vh-2rem)] overflow-y-auto">
-          <div className="p-4 space-y-6">
+
+        <div className="hidden xl:block w-[23rem] fixed p-5 right-0 top-0 h-full bg-white border-l border-gray-200 overflow-y-auto">
+          <div className="mb-5">
             <TrendingTopics isSearchPage={true} onTrendingClick={handleTrendingClick} />
-            <TrendingBusiness />
           </div>
-        </aside>
+          <TrendingBusiness />
+        </div>
       </div>
 
       {/* Image Modal */}
@@ -624,5 +775,6 @@ export default function SearchPage() {
         post={selectedPost}
       />
     </div>
+
   );
 }
