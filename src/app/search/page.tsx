@@ -23,7 +23,7 @@ import {
   Flame,
   Star,
 } from "lucide-react";
-import FloatingHeader from "@/components/FloatingHeader";
+
 import { searchAllContent, searchUsers } from "@/api/search";
 import { FeedPost, SearchUser } from "@/types";
 import UserCard from "@/components/UserCard";
@@ -335,47 +335,43 @@ export default function SearchPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col gap-10 hide-scrollbar">
-      <div className="flex-1 xl:pr-[23rem] px-4 xl:px-0">
-        <div className="max-w-full xl:max-w-4xl mx-auto xl:ml-4">
-          <div className="[&>*]:!max-w-full [&>*]:xl:!max-w-[54rem]">
-            <FloatingHeader
-              paragraph="Discover businesses, products, services, and more"
-              heading="Search"
-              username="John Doe"
-              width="w-full"
-              accountBadge={true}
-            />
-          </div>
+    <div className="flex flex-col md:flex-row w-full min-h-screen bg-[#f8f9fa]">
+      {/* Left Sidebar / Main Feed */}
+      <div className="flex-1 p-4 md:pl-8 md:pr-6">
 
-          <div className="w-full relative [&>*]:!max-w-full [&>*]:xl:!max-w-[54rem]">
-            <SearchBar
-              value={searchQuery}
-              placeholder="Search businesses, products, services..."
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
-            />
-          </div>
 
-          {/* Filter tabs */}
-          <div className="flex flex-wrap gap-2 mt-4 mb-6">
-            {tabs.map((tab) => {
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  disabled={loading}
-                  className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 shadow-sm border ${
-                    activeTab === tab.id
-                      ? 'bg-button-gradient text-white shadow-lg transform scale-105 border-yellow-300'
-                      : 'bg-white text-gray-700 hover:bg-gray-50 border-gray-200 hover:border-gray-300 hover:scale-105'
-                  } ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
-                >
-                  <Icon className="w-4 h-4" />
-                  {tab.label}
-                </button>
-              );
-            })}
+          {/* Search Bar and Filter tabs */}
+          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+            {/* Search Bar */}
+            <div className="flex-1">
+              <SearchBar
+                value={searchQuery}
+                placeholder="Search businesses, products, services..."
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
+              />
+            </div>
+
+            {/* Filter tabs */}
+            <div className="flex gap-1.5">
+              {tabs.map((tab) => {
+                const Icon = tab.icon;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    disabled={loading}
+                    className={`px-5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-300 flex items-center gap-2.5 shadow-md border-2 ${
+                      activeTab === tab.id
+                        ? 'bg-gradient-to-r from-yellow-400 to-yellow-600 text-white shadow-lg transform scale-105 border-yellow-300'
+                        : 'bg-white text-gray-600 hover:bg-gray-50 border-gray-200 hover:border-gray-300 hover:scale-105 hover:shadow-lg'
+                    } ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Advanced Filters Grid */}
@@ -598,13 +594,15 @@ export default function SearchPage() {
             )}
           </div>
         </div>
-
-        <div className="hidden xl:block w-[23rem] fixed p-5 right-0 top-0 h-full bg-white border-l border-gray-200 overflow-y-auto">
-          <div className="mb-5">
+       
+      {/* Right Sidebar / Trending Topics with Independent Scroll */}
+      <div className="w-full md:w-[320px] md:p-6 lg:p-0">
+        <aside className="w-full md:w-[20rem] max-w-full bg-white shadow-md rounded-lg md:sticky md:top-4 md:h-[calc(100vh-2rem)] overflow-y-auto">
+          <div className="p-4 space-y-6">
             <TrendingTopics isSearchPage={true} onTrendingClick={handleTrendingClick} />
+            <TrendingBusiness />
           </div>
-          <TrendingBusiness />
-        </div>
+        </aside>
       </div>
     </div>
   );
