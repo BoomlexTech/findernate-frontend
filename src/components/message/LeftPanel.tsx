@@ -1,5 +1,5 @@
 import React from 'react';
-import Image from 'next/image';
+//import Image from 'next/image';
 import { ChatTabs } from './ChatTabs';
 import { ChatList } from './ChatList';
 import { Chat } from '@/api/message';
@@ -7,7 +7,6 @@ import { Chat } from '@/api/message';
 type TabType = 'direct' | 'group' | 'requests';
 
 interface LeftPanelProps {
-  user: any;
   activeTab: TabType;
   setActiveTab: (tab: TabType) => void;
   directUnreadCount: number;
@@ -29,7 +28,6 @@ interface LeftPanelProps {
 }
 
 export const LeftPanel: React.FC<LeftPanelProps> = ({
-  user,
   activeTab,
   setActiveTab,
   directUnreadCount,
@@ -51,34 +49,7 @@ export const LeftPanel: React.FC<LeftPanelProps> = ({
 }) => {
   return (
     <div className="w-1/3 border-r bg-white flex flex-col">
-      <div className="flex items-center justify-between p-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Messages</h1>
-          <p className="text-sm text-gray-600 mt-1">Connect with businesses and users</p>
-        </div>
-        <div className="flex items-center space-x-4">
-          <button className="relative p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors">
-            {/* Future: Notifications */}
-          </button>
-          <div className="flex items-center space-x-3">
-            <div className="text-right">
-              <p className="text-sm font-semibold text-gray-900">{user?.username}</p>
-              <p className="text-xs text-gray-500">Personal Account</p>
-            </div>
-            {user?.profileImageUrl && (
-              <Image 
-                width={10} 
-                height={10} 
-                src={user?.profileImageUrl} 
-                alt="User Avatar" 
-                className="w-10 h-10 rounded-full object-cover border-2 border-yellow-400" 
-              />
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="px-6 pt-4">
+      <div className="px-6 pt-6">
         <ChatTabs
           activeTab={activeTab}
           setActiveTab={setActiveTab}
