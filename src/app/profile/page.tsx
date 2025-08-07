@@ -2,7 +2,7 @@
 import { getPostsByUserid } from '@/api/homeFeed';
 import { getUserProfile } from '@/api/user';
 import AccountSettings from '@/components/AccountSettings';
-//import FloatingHeader from '@/components/FloatingHeader';
+import FloatingHeader from '@/components/FloatingHeader';
 import PostCard from '@/components/PostCard';
 import ProfilePostsSection from '@/components/ProfilePostsSection';
 import UserProfile from '@/components/UserProfile'
@@ -103,12 +103,12 @@ const Page = () => {
     return (
       <>
         <div className="bg-gray-50 max-w-6xl mx-auto p-4 min-h-screen">
-          {/* <FloatingHeader
+          <FloatingHeader
             paragraph="Sign in to access your profile"
             heading="Profile"
             username="Guest"
             accountBadge={false}
-          /> */}
+          />
           
           <div className="flex items-center justify-center min-h-[60vh]">
             <div className="text-center bg-white rounded-2xl shadow-lg p-12 max-w-md w-full mx-4">
@@ -186,14 +186,14 @@ const Page = () => {
   return (
     <>
       <div className='bg-gray-50 max-w-6xl mx-auto'>
-        {/* <FloatingHeader
+        <FloatingHeader
           paragraph="Manage your account and business settings"
           heading="Profile"
           username={profileData.fullName || "User"}
           accountBadge={true}
-        /> */}
+        />
 
-        <div className='flex flex-col gap-6 pt-5'>
+        <div className='flex flex-col gap-6'>
           <UserProfile 
             userData={profileData}
             isCurrentUser={true}
