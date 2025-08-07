@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
-import { X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import { FeedPost } from '@/types';
 
 interface ImageModalProps {
@@ -16,12 +16,19 @@ export default function ImageModal({ isOpen, onClose, post }: ImageModalProps) {
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const [videoLoaded, setVideoLoaded] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const mediaRef = useRef<HTMLDivElement>(null);
 
   // Reset image index when post changes
   useEffect(() => {
     if (post) {
       setCurrentImageIndex(0);
       setVideoLoaded(false);
+      setZoomLevel(1);
+      setPosition({ x: 0, y: 0 });
     }
   }, [post?._id]);
 
@@ -36,12 +43,21 @@ export default function ImageModal({ isOpen, onClose, post }: ImageModalProps) {
         handlePrevious();
       } else if (e.key === 'ArrowRight') {
         handleNext();
+      } else if (e.key === '+' || e.key === '=') {
+        e.preventDefault();
+        handleZoomIn();
+      } else if (e.key === '-') {
+        e.preventDefault();
+        handleZoomOut();
+      } else if (e.key === '0') {
+        e.preventDefault();
+        handleResetZoom();
       }
     };
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, currentImageIndex]);
+  }, [isOpen, currentImageIndex, zoomLevel]);
 
   const handlePrevious = () => {
     if (!post?.media || post.media.length === 0) return;
@@ -49,6 +65,8 @@ export default function ImageModal({ isOpen, onClose, post }: ImageModalProps) {
       prev === 0 ? post.media.length - 1 : prev - 1
     );
     setVideoLoaded(false);
+    setZoomLevel(1);
+    setPosition({ x: 0, y: 0 });
   };
 
   const handleNext = () => {
@@ -57,15 +75,61 @@ export default function ImageModal({ isOpen, onClose, post }: ImageModalProps) {
       prev === post.media.length - 1 ? 0 : prev + 1
     );
     setVideoLoaded(false);
+    setZoomLevel(1);
+    setPosition({ x: 0, y: 0 });
   };
 
-  // Touch handlers for mobile swipe
+  const handleZoomIn = () => {
+    setZoomLevel(prev => Math.min(prev * 1.2, 2.5));
+  };
+
+  const handleZoomOut = () => {
+    setZoomLevel(prev => Math.max(prev / 1.2, 0.8));
+  };
+
+  const handleResetZoom = () => {
+    setZoomLevel(1);
+    setPosition({ x: 0, y: 0 });
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (zoomLevel > 1.2) {
+      setIsDragging(true);
+      setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
+    }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (isDragging && zoomLevel > 1.2) {
+      setPosition({
+        x: e.clientX - dragStart.x,
+        y: e.clientY - dragStart.y
+      });
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  // Touch handlers for mobile swipe and zoom
   const handleTouchStart = (e: React.TouchEvent) => {
-    setTouchStart(e.targetTouches[0].clientX);
+    if (e.touches.length === 1) {
+      setTouchStart(e.targetTouches[0].clientX);
+    }
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd(e.targetTouches[0].clientX);
+    if (e.touches.length === 1 && zoomLevel > 1.2) {
+      // Pan when zoomed
+      const touch = e.touches[0];
+      setPosition({
+        x: touch.clientX - dragStart.x,
+        y: touch.clientY - dragStart.y
+      });
+    } else if (e.touches.length === 1) {
+      setTouchEnd(e.targetTouches[0].clientX);
+    }
   };
 
   const handleTouchEnd = () => {
@@ -89,6 +153,15 @@ export default function ImageModal({ isOpen, onClose, post }: ImageModalProps) {
     setVideoLoaded(true);
   };
 
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    if (e.deltaY < 0) {
+      handleZoomIn();
+    } else {
+      handleZoomOut();
+    }
+  };
+
   if (!isOpen || !post) return null;
 
   const currentMedia = post.media?.[currentImageIndex];
@@ -103,15 +176,44 @@ export default function ImageModal({ isOpen, onClose, post }: ImageModalProps) {
       />
       
       {/* Modal Content */}
-      <div className="relative w-full mx-4 bg-white rounded-lg shadow-2xl overflow-hidden max-w-4xl max-h-[90vh]">
+      <div className="relative w-full mx-4 bg-black rounded-lg shadow-2xl overflow-hidden max-w-6xl max-h-[95vh]">
         {/* Header */}
-        <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-end bg-gradient-to-b from-black/50 to-transparent p-4">
-          <button
-            onClick={onClose}
-            className="rounded-full bg-black/30 text-white hover:bg-black/50 transition-colors p-2"
-          >
-            <X className="w-5 h-5" />
-          </button>
+        <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between bg-gradient-to-b from-black/50 to-transparent p-4">
+          <div className="flex items-center gap-2">
+            {zoomLevel > 1 && (
+              <span className="text-white text-sm font-medium">
+                {Math.round(zoomLevel * 100)}%
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleZoomOut}
+              disabled={zoomLevel <= 0.8}
+              className="rounded-full bg-black/30 text-white hover:bg-black/50 transition-colors p-2 disabled:opacity-50"
+            >
+              <ZoomOut className="w-4 h-4" />
+            </button>
+            <button
+              onClick={handleResetZoom}
+              className="rounded-full bg-black/30 text-white hover:bg-black/50 transition-colors p-2"
+            >
+              <RotateCcw className="w-4 h-4" />
+            </button>
+            <button
+              onClick={handleZoomIn}
+              disabled={zoomLevel >= 2.5}
+              className="rounded-full bg-black/30 text-white hover:bg-black/50 transition-colors p-2 disabled:opacity-50"
+            >
+              <ZoomIn className="w-4 h-4" />
+            </button>
+            <button
+              onClick={onClose}
+              className="rounded-full bg-black/30 text-white hover:bg-black/50 transition-colors p-2"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Media Counter - Positioned at bottom right */}
@@ -123,18 +225,25 @@ export default function ImageModal({ isOpen, onClose, post }: ImageModalProps) {
 
         {/* Media Container */}
         <div 
-          className="relative w-full h-full flex items-center justify-center"
+          className="relative w-full h-full flex items-center justify-center overflow-hidden bg-black"
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
+          onWheel={handleWheel}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+          style={{ cursor: isDragging ? 'grabbing' : zoomLevel > 1.2 ? 'grab' : 'default' }}
         >
           {currentMedia && (
-            <div className="w-full h-full flex items-center justify-center p-4 pt-8">
+            <div className="w-full h-full flex items-center justify-center p-4 pt-8 bg-black">
               {currentMedia.type === 'video' ? (
                 <div 
+                  ref={mediaRef}
                   className="w-full h-full flex items-center justify-center"
                   style={{ 
-                    minHeight: 'calc(90vh - 120px)',
+                    minHeight: 'calc(95vh - 120px)',
                     minWidth: 'calc(100vw - 80px)'
                   }}
                 >
@@ -149,32 +258,46 @@ export default function ImageModal({ isOpen, onClose, post }: ImageModalProps) {
                       videoLoaded ? 'opacity-100' : 'opacity-0'
                     }`}
                     style={{ 
-                      maxHeight: 'calc(90vh - 120px)',
+                      maxHeight: 'calc(95vh - 120px)',
                       width: 'auto',
                       height: 'auto',
-                      minWidth: '320px',
-                      minHeight: '240px'
+                      minWidth: '400px',
+                      minHeight: '300px',
+                      transform: `scale(${zoomLevel}) translate(${position.x / zoomLevel}px, ${position.y / zoomLevel}px)`,
+                      transition: isDragging ? 'none' : 'transform 0.1s ease-out'
                     }}
                   >
                     Your browser does not support the video tag.
                   </video>
                   {!videoLoaded && (
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
                     </div>
                   )}
                 </div>
               ) : (
-                <div className="w-full h-full flex items-center justify-center">
+                <div 
+                  ref={mediaRef}
+                  className="w-full h-full flex items-center justify-center"
+                  style={{ 
+                    minHeight: 'calc(95vh - 120px)',
+                    minWidth: 'calc(100vw - 80px)'
+                  }}
+                >
                   <Image
                     src={currentMedia.url}
                     alt="Post image"
-                    width={600}
-                    height={400}
+                    width={1200}
+                    height={900}
                     className="max-w-full max-h-full object-contain"
                     style={{ 
-                      maxHeight: 'calc(60vh - 120px)',
-                      maxWidth: 'calc(70vw - 80px)'
+                      maxHeight: 'calc(95vh - 120px)',
+                      width: 'auto',
+                      height: 'auto',
+                      minWidth: '800px',
+                      minHeight: '500px',
+                      transform: `scale(${zoomLevel}) translate(${position.x / zoomLevel}px, ${position.y / zoomLevel}px)`,
+                      transition: isDragging ? 'none' : 'transform 0.1s ease-out'
                     }}
                   />
                 </div>
@@ -208,7 +331,11 @@ export default function ImageModal({ isOpen, onClose, post }: ImageModalProps) {
             {post.media.map((media, index) => (
               <button
                 key={index}
-                onClick={() => setCurrentImageIndex(index)}
+                onClick={() => {
+                  setCurrentImageIndex(index);
+                  setZoomLevel(1);
+                  setPosition({ x: 0, y: 0 });
+                }}
                 className={`w-12 h-12 rounded-md overflow-hidden border-2 transition-all ${
                   index === currentImageIndex 
                     ? 'border-white scale-110' 
