@@ -86,9 +86,20 @@ const UserProfilePage = () => {
         
         if (profileResponse.userId) {
           // Transform the backend response to include isFollowing
+          // Handle both string and boolean values for isFollowedBy
+          const isFollowing = profileResponse.isFollowedBy === true || 
+                             profileResponse.isFollowedBy === "True" || 
+                             profileResponse.isFollowedBy === "true";
+          
+          console.log("Follow state debug:", {
+            isFollowedBy: profileResponse.isFollowedBy,
+            isFollowedByType: typeof profileResponse.isFollowedBy,
+            calculatedIsFollowing: isFollowing
+          });
+          
           const userProfileData = {
             ...profileResponse.userId,
-            isFollowing: profileResponse.isFollowedBy === "True"
+            isFollowing: isFollowing
           };
           
           setProfileData(userProfileData);

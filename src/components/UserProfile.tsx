@@ -83,6 +83,13 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
 
   // Update internal state if userData prop changes
   useEffect(() => {
+    console.log("UserProfile useEffect - userData:", {
+      username: userData.username,
+      isFollowing: userData.isFollowing,
+      isFollowingType: typeof userData.isFollowing,
+      followersCount: userData.followersCount
+    });
+    
     setProfile(userData);
     setIsFollowing(userData.isFollowing || false);
     setFollowersCount(userData.followersCount);
@@ -322,33 +329,53 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
     setIsFollowLoading(true);
     try {
       if (isFollowing) {
-        await unfollowUser(profile._id);
-        setIsFollowing(false);
-        setFollowersCount(prev => prev - 1);
+        const result = await unfollowUser(profile._id);
+        
+        // Check if it was a "Not following this user" case
+        if (result.message === 'Not following this user') {
+          setIsFollowing(false);
+          // Don't decrement count since we weren't following
+        } else {
+          setIsFollowing(false);
+          setFollowersCount(prev => prev - 1);
+        }
       } else {
-        await followUser(profile._id);
-        setIsFollowing(true);
-        setFollowersCount(prev => prev + 1);
+        const result = await followUser(profile._id);
+        
+        // Check if it was an "Already following" case
+        if (result.message === 'Already following') {
+          setIsFollowing(true);
+          // Don't increment count since we were already following
+        } else {
+          setIsFollowing(true);
+          setFollowersCount(prev => prev + 1);
+        }
       }
     } catch (error: any) {
       console.error('Error toggling follow status:', error);
       
-      const errorMessage = error instanceof Error ? error.message : '';
+      // Get error message from API response
+      const errorMessage = error?.response?.data?.message || error?.message || '';
       
       // Handle specific error cases
       if (errorMessage === 'Already following') {
-        // Update state to reflect reality
+        // Update state to reflect reality - user is already following
         setIsFollowing(true);
+        // Don't change followers count since we're already following
         console.log('User was already following - updating UI state');
       } else if (errorMessage === 'Not following this user') {
-        // Update state to reflect reality
+        // Update state to reflect reality - user is not following
         setIsFollowing(false);
         console.log('User was not following - updating UI state');
+      } else if (errorMessage === 'Cannot follow yourself') {
+        // Handle self-follow attempt
+        console.log('Cannot follow yourself');
+        alert('You cannot follow yourself');
       } else {
         // Show user-friendly error message for other errors
         alert(errorMessage || 'Failed to update follow status');
         
-        // Reset state on other errors
+        // Reset state on other errors to initial userData values
         setIsFollowing(userData.isFollowing || false);
         setFollowersCount(userData.followersCount);
       }
