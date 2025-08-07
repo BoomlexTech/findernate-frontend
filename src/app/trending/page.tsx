@@ -8,6 +8,7 @@ import { TrendingUp, Flame, Star } from 'lucide-react';
 import { getExploreFeed } from '@/api/exploreFeed';
 //import { transformExploreFeedToFeedPost } from '@/utils/transformExploreFeed';
 import { FeedPost } from '@/types';
+import { getCommentsByPost, Comment } from '@/api/comment';
 import TimeTracker from '@/utils/TimeTracker';
 
 const Page = () => {
@@ -72,16 +73,62 @@ const Page = () => {
           likedBy: item.likedBy || [],
           // Add customization data for business/product/service modals
           customization: item.customization || null,
+          // Initialize comments array to be populated
+          comments: [] as Comment[],
         };
       });
       
       console.log('Transformed trending data:', transformedData.slice(0, 2));
       
+      // Fetch comments for all posts
+      const postsWithComments = await Promise.all(
+        transformedData.map(async (post) => {
+          try {
+            console.log(`Fetching comments for post: ${post._id}`);
+            const commentsResponse = await getCommentsByPost(post._id, 1, 5); // Fetch first 5 comments
+            console.log(`Comments response for post ${post._id}:`, commentsResponse);
+            
+            // Handle different possible response structures
+            let comments: Comment[] = [];
+            let totalComments = 0;
+            
+            if (commentsResponse) {
+              // Check if response has comments array directly
+              if (Array.isArray(commentsResponse.comments)) {
+                comments = commentsResponse.comments;
+                totalComments = commentsResponse.totalComments || commentsResponse.total || comments.length;
+              } else if (Array.isArray(commentsResponse)) {
+                // If response is directly an array
+                comments = commentsResponse;
+                totalComments = comments.length;
+              } else {
+                console.log('Unexpected comments response structure:', commentsResponse);
+              }
+            }
+            
+            console.log(`Processed ${comments.length} comments for post ${post._id}, total: ${totalComments}`);
+            
+            return {
+              ...post,
+              comments: comments,
+              // Update engagement comments count with actual comment count
+              engagement: {
+                ...post.engagement,
+                comments: totalComments || post.engagement.comments,
+              },
+            };
+          } catch (error) {
+            console.error(`Failed to fetch comments for post ${post._id}:`, error);
+            return post; // Return post without comments if fetch fails
+          }
+        })
+      );
+      
       if (reset) {
-        setAllPosts(transformedData);
-        setPosts(transformedData);
+        setAllPosts(postsWithComments);
+        setPosts(postsWithComments);
       } else {
-        const newAllPosts = [...allPosts, ...transformedData];
+        const newAllPosts = [...allPosts, ...postsWithComments];
         setAllPosts(newAllPosts);
         setPosts(newAllPosts);
       }
@@ -265,7 +312,7 @@ const Page = () => {
             <div className="space-y-6 mb-8">
               {posts.map((post) => (
                 <div key={post._id} className="w-full">
-                  <PostCard post={post} />
+                  <PostCard post={post} showComments={true} />
                 </div>
               ))}
             </div>

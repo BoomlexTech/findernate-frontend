@@ -8,6 +8,7 @@ import FloatingHeader from '@/components/FloatingHeader';
 import { getExploreFeed } from '@/api/exploreFeed';
 import { transformExploreFeedToFeedPost } from '@/utils/transformExploreFeed';
 import { FeedPost } from '@/types';
+import { getCommentsByPost, Comment } from '@/api/comment';
 
 const BusinessesPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -55,11 +56,57 @@ const BusinessesPage = () => {
       
       const transformedData = transformExploreFeedToFeedPost(response.data.feed);
       
+      console.log('Transformed business data:', transformedData.slice(0, 2));
+      
+      // Fetch comments for all business posts
+      const businessesWithComments = await Promise.all(
+        transformedData.map(async (business) => {
+          try {
+            console.log(`Fetching comments for business: ${business._id}`);
+            const commentsResponse = await getCommentsByPost(business._id, 1, 5); // Fetch first 5 comments
+            console.log(`Comments response for business ${business._id}:`, commentsResponse);
+            
+            // Handle different possible response structures
+            let comments: Comment[] = [];
+            let totalComments = 0;
+            
+            if (commentsResponse) {
+              // Check if response has comments array directly
+              if (Array.isArray(commentsResponse.comments)) {
+                comments = commentsResponse.comments;
+                totalComments = commentsResponse.totalComments || commentsResponse.total || comments.length;
+              } else if (Array.isArray(commentsResponse)) {
+                // If response is directly an array
+                comments = commentsResponse;
+                totalComments = comments.length;
+              } else {
+                console.log('Unexpected comments response structure:', commentsResponse);
+              }
+            }
+            
+            console.log(`Processed ${comments.length} comments for business ${business._id}, total: ${totalComments}`);
+            
+            return {
+              ...business,
+              comments: comments,
+              // Update engagement comments count with actual comment count
+              engagement: {
+                ...business.engagement,
+                comments: totalComments || business.engagement.comments,
+              },
+            };
+          } catch (error) {
+            console.error(`Failed to fetch comments for business ${business._id}:`, error);
+            return business; // Return business without comments if fetch fails
+          }
+        })
+      );
+      
       if (reset) {
-        setAllBusinesses(transformedData);
-        setBusinesses(transformedData);
+        setAllBusinesses(businessesWithComments);
+        setBusinesses(businessesWithComments);
       } else {
-        const newAllBusinesses = [...allBusinesses, ...transformedData];
+        const newAllBusinesses = [...allBusinesses, ...businessesWithComments];
         setAllBusinesses(newAllBusinesses);
         setBusinesses(newAllBusinesses);
       }
