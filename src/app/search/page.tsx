@@ -32,6 +32,7 @@ import TrendingBusiness from "@/components/TrendingBusiness";
 import PostCard from "@/components/PostCard";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import ImageModal from "@/components/ImageModal";
 
 export default function SearchPage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -52,6 +53,8 @@ export default function SearchPage() {
   const [useCurrentLocation, setUseCurrentLocation] = useState(false);
   const [currentCoordinates, setCurrentCoordinates] = useState<string | null>(null);
   const [searchRadius, setSearchRadius] = useState<number>(5);
+  const [showImageModal, setShowImageModal] = useState(false);
+  const [selectedPost, setSelectedPost] = useState<FeedPost | null>(null);
 
   const tabs = [
     { id: "All", label: "All", icon: Search },
@@ -309,6 +312,11 @@ export default function SearchPage() {
 
   const handleTrendingClick = (term: string) => {
     setSearchQuery(term);
+  };
+
+  const handlePostClick = (post: FeedPost) => {
+    setSelectedPost(post);
+    setShowImageModal(true);
   };
 
   // Handler for updating local state when follow status changes
@@ -579,7 +587,11 @@ export default function SearchPage() {
             {activeTab !== "Users" && (
               <>
                 {results.map((item) => (
-                  <PostCard key={item._id} post={item} />
+                  <PostCard 
+                    key={item._id} 
+                    post={item} 
+                    onPostClick={() => handlePostClick(item)}
+                  />
                 ))}
               </>
             )}
@@ -604,6 +616,13 @@ export default function SearchPage() {
           </div>
         </aside>
       </div>
+
+      {/* Image Modal */}
+      <ImageModal
+        isOpen={showImageModal}
+        onClose={() => setShowImageModal(false)}
+        post={selectedPost}
+      />
     </div>
   );
 }
