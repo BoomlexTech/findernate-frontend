@@ -19,13 +19,15 @@ import { useAuthGuard } from '@/hooks/useAuthGuard';
 import { AuthDialog } from '@/components/AuthDialog';
 import CommentDrawer from './CommentDrawer';
 import ReportModal from './ReportModal';
+import ImageModal from './ImageModal';
 
 export interface PostCardProps {
   post: FeedPost;
   onPostDeleted?: (postId: string) => void; // Optional callback for when post is deleted
+  onPostClick?: () => void; // Optional callback for when post is clicked
 }
 
-export default function PostCard({ post, onPostDeleted }: PostCardProps) {
+export default function PostCard({ post, onPostDeleted, onPostClick }: PostCardProps) {
   const pathname = usePathname();
   const { requireAuth, showAuthDialog, closeAuthDialog } = useAuthGuard();
   
@@ -50,6 +52,7 @@ export default function PostCard({ post, onPostDeleted }: PostCardProps) {
   const [showReportModal, setShowReportModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isOnProfilePage, setIsOnProfilePage] = useState(false);
+  const [showImageModal, setShowImageModal] = useState(false);
 
   // Check if we're on a profile page to show delete button
   useEffect(() => {
@@ -321,8 +324,13 @@ export default function PostCard({ post, onPostDeleted }: PostCardProps) {
     
     // Require authentication before opening post
     requireAuth(() => {
-      // Open post page in new tab with only post ID
-      window.open(`/post/${post._id}`, '_blank');
+      // If onPostClick prop is provided, use it (for search page)
+      if (onPostClick) {
+        onPostClick();
+      } else {
+        // Default behavior: open image modal
+        setShowImageModal(true);
+      }
     });
   };
 
@@ -1117,6 +1125,13 @@ export default function PostCard({ post, onPostDeleted }: PostCardProps) {
         onClose={() => setShowReportModal(false)}
         contentType="post"
         contentId={post._id}
+      />
+
+      {/* Image Modal */}
+      <ImageModal
+        isOpen={showImageModal}
+        onClose={() => setShowImageModal(false)}
+        post={post}
       />
     </div>
   );
