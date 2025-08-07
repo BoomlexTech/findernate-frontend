@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { reportContent, reportReasons, ReportRequest } from '@/api/report';
 import { Button } from './ui/button';
+import { toast } from 'react-toastify';
 
 interface ReportModalProps {
   isOpen: boolean;
@@ -45,24 +46,52 @@ export default function ReportModal({
 
   const handleReport = async () => {
     if (!reportReason) {
-      alert('Please select a reason for reporting');
+      toast.error('Please select a reason for reporting', {
+        position: "top-right",
+        autoClose: 4000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
       return;
     }
 
     // Validate description
     const trimmedDescription = reportDescription.trim();
     if (!trimmedDescription) {
-      alert('Please provide a description for your report');
+      toast.error('Please provide a description for your report', {
+        position: "top-right",
+        autoClose: 4000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
       return;
     }
 
     if (trimmedDescription.length < 10) {
-      alert('Description must be at least 10 characters long');
+      toast.error('Description must be at least 10 characters long', {
+        position: "top-right",
+        autoClose: 4000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
       return;
     }
 
     if (trimmedDescription.length > 500) {
-      alert('Description must not exceed 500 characters');
+      toast.error('Description must not exceed 500 characters', {
+        position: "top-right",
+        autoClose: 4000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
       return;
     }
 
@@ -75,16 +104,45 @@ export default function ReportModal({
         description: trimmedDescription
       });
       
-      alert(`${getContentTypeLabel()} reported successfully`);
+      // Show success toast
+      toast.success(`${getContentTypeLabel()} reported successfully`, {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
       onClose();
     } catch (error: any) {
       console.error(`Error reporting ${contentType}:`, error);
       if (error?.response?.status === 409) {
-        alert(`You have already reported this ${contentType}`);
+        toast.error(`You have already reported this ${contentType}`, {
+          position: "top-right",
+          autoClose: 4000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
       } else if (error?.response?.status === 404) {
-        alert(`Report functionality is not available yet. Please contact the administrator.`);
+        toast.error(`Report functionality is not available yet. Please contact the administrator.`, {
+          position: "top-right",
+          autoClose: 4000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
       } else {
-        alert(`Failed to report ${contentType}. Please try again.`);
+        toast.error(`Failed to report ${contentType}. Please try again.`, {
+          position: "top-right",
+          autoClose: 4000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
       }
     } finally {
       setIsReporting(false);

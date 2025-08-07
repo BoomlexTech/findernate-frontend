@@ -47,6 +47,24 @@ export const storyAPI = {
     return response.data.data;
   },
 
+  // Save a story
+  saveStory: async (storyId: string) => {
+    const response = await axiosInstance.post('/stories/save', { storyId });
+    return response.data;
+  },
+
+  // Get saved stories
+  getSavedStories: async () => {
+    const response = await axiosInstance.get('/stories/saved');
+    return response.data.data;
+  },
+
+  // Unsave a story
+  unsaveStory: async (storyId: string) => {
+    const response = await axiosInstance.delete(`/stories/save/${storyId}`);
+    return response.data;
+  },
+
   // Delete a story (if needed)
   deleteStory: async (storyId: string): Promise<void> => {
     await axiosInstance.delete(`/stories/${storyId}`);

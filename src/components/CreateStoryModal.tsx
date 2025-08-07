@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import Image from "next/image";
 import { X, Upload, Camera, Image as ImageIcon, Video, Send, Play, Pause, RotateCcw } from "lucide-react";
+import { toast } from 'react-toastify';
 
 interface CreateStoryModalProps {
   isOpen: boolean;
@@ -128,6 +129,16 @@ export default function CreateStoryModal({ isOpen, onClose, onUpload }: CreateSt
       const success = await onUpload(selectedFile, caption || undefined);
       
       if (success) {
+        // Show success toast
+        toast.success('Story shared successfully!', {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+        
         // Close modal after successful upload
         cleanup();
         setSelectedFile(null);
@@ -146,10 +157,30 @@ export default function CreateStoryModal({ isOpen, onClose, onUpload }: CreateSt
         onClose();
       } else {
         setError("Failed to upload story. Please try again.");
+        
+        // Show error toast
+        toast.error('Failed to upload story. Please try again.', {
+          position: "top-right",
+          autoClose: 4000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
       }
     } catch (err) {
       setError("An error occurred while uploading");
       console.error("Upload error:", err);
+      
+      // Show error toast
+      toast.error('Failed to upload story. Please try again.', {
+        position: "top-right",
+        autoClose: 4000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
     } finally {
       setIsUploading(false);
     }
