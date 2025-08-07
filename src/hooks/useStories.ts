@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { storyAPI } from '@/api/story';
 import { Story, StoryUser, StoryFeed } from '@/types/story';
 import { useUserStore } from '@/store/useUserStore';
+import { toast } from 'react-toastify';
 
 export const useStories = () => {
   const [stories, setStories] = useState<Story[]>([]);
@@ -133,6 +134,70 @@ export const useStories = () => {
     }
   }, [user]);
 
+  // Save a story
+  const saveStory = useCallback(async (storyId: string) => {
+    if (!user) {
+      console.warn('Cannot save story: User not authenticated');
+      return false;
+    }
+    
+    try {
+      await storyAPI.saveStory(storyId);
+      toast.success('Story saved successfully!', {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+      return true;
+    } catch (err: any) {
+      console.error('Error saving story:', err);
+      toast.error('Failed to save story. Please try again.', {
+        position: "top-right",
+        autoClose: 4000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+      return false;
+    }
+  }, [user]);
+
+  // Unsave a story
+  const unsaveStory = useCallback(async (storyId: string) => {
+    if (!user) {
+      console.warn('Cannot unsave story: User not authenticated');
+      return false;
+    }
+    
+    try {
+      await storyAPI.unsaveStory(storyId);
+      toast.success('Story removed from saved!', {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+      return true;
+    } catch (err: any) {
+      console.error('Error unsaving story:', err);
+      toast.error('Failed to remove story from saved. Please try again.', {
+        position: "top-right",
+        autoClose: 4000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+      return false;
+    }
+  }, [user]);
+
   // Check if current user has any active stories
   const hasActiveStories = useCallback(() => {
     if (!user) return false;
@@ -157,6 +222,8 @@ export const useStories = () => {
     fetchStories,
     uploadStory,
     markStoryAsSeen,
+    saveStory,
+    unsaveStory,
     hasActiveStories,
     getCurrentUserStories,
   };
