@@ -184,7 +184,6 @@ export default function MessagePanel() {
   return (
     <div className="flex w-full h-screen">
       <LeftPanel
-        user={user}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         directUnreadCount={directUnreadCount}
