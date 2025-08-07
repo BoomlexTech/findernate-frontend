@@ -55,6 +55,14 @@ export const followUser = async (userId: string) => {
             userId,
             error: error.message
         });
+        
+        // Handle specific cases where we want to return success-like response
+        if (error.response?.status === 400 && error.response?.data?.message === 'Already following') {
+            // If already following, emit event and return success response
+            followEvents.emit(userId, true);
+            return { success: true, message: 'Already following' };
+        }
+        
         throw error;
     }
 }
@@ -74,6 +82,14 @@ export const unfollowUser = async (userId: string) => {
             userId,
             error: error.message
         });
+        
+        // Handle specific cases where we want to return success-like response
+        if (error.response?.status === 400 && error.response?.data?.message === 'Not following this user') {
+            // If not following, emit event and return success response
+            followEvents.emit(userId, false);
+            return { success: true, message: 'Not following this user' };
+        }
+        
         throw error;
     }
 }
