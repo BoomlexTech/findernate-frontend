@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import PlanSelectionModal from './business/PlanSelectionModal';
+import BusinessDetailsModal from './business/BusinessDetailsModal';
 import { ChevronDown } from 'lucide-react';
 import { UpdateBusinessCategory, GetBusinessCategory } from '@/api/business';
+import { CreateBusinessRequest } from '@/types';
 
 const businessCategories = [
   'Technology & Software',
@@ -28,7 +30,8 @@ const businessCategories = [
 
 export default function AccountSettings() {
   const [showPlanModal, setShowPlanModal] = useState(false);
-  const [isBusiness, setIsBusiness] = useState(true);
+  const [showBusinessDetailsModal, setShowBusinessDetailsModal] = useState(false);
+  const [isBusiness, setIsBusiness] = useState(false);
   const [currentCategory, setCurrentCategory] = useState('');
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [isUpdatingCategory, setIsUpdatingCategory] = useState(false);
@@ -80,9 +83,33 @@ export default function AccountSettings() {
     }
   };
 
+  const handleBusinessDetailsSubmit = (data: CreateBusinessRequest) => {
+    // Handle the business details submission
+    console.log('Business details submitted:', data);
+    setShowBusinessDetailsModal(false);
+    setIsBusiness(true);
+    setUpdateMessage('Business account created successfully!');
+    setTimeout(() => setUpdateMessage(''), 3000);
+  };
+
+  const handleSwitchToBusiness = () => {
+    if (isBusiness) {
+      setIsBusiness(false);
+    } else {
+      setShowBusinessDetailsModal(true);
+    }
+  };
+
   return (
     <div className="w-full mx-auto p-6 bg-white">
       <h1 className="text-3xl font-bold text-black mb-8">Account Settings</h1>
+      
+      {/* Success Message */}
+      {updateMessage && !isBusiness && (
+        <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+          <p className="text-green-800">{updateMessage}</p>
+        </div>
+      )}
 
       {/* Business Account Section */}
       <div className="mb-8">
@@ -95,7 +122,7 @@ export default function AccountSettings() {
           </div>
           <button
             className={`px-6 py-2 cursor-pointer rounded-lg transition-colors ${isBusiness ? 'bg-gray-200 text-gray-800 hover:bg-gray-300' : 'bg-yellow-600 text-white hover:bg-yellow-700'}`}
-            onClick={() => setIsBusiness((prev) => !prev)}
+            onClick={handleSwitchToBusiness}
           >
             {isBusiness ? 'Switch to Personal' : 'Switch to Business'}
           </button>
@@ -197,6 +224,13 @@ export default function AccountSettings() {
           setShowPlanModal(false);
         }}
         currentPlan="Small Business" // or whatever the current plan is
+      />
+
+      {/* Business Details Modal */}
+      <BusinessDetailsModal
+        isOpen={showBusinessDetailsModal}
+        onClose={() => setShowBusinessDetailsModal(false)}
+        onSubmit={handleBusinessDetailsSubmit}
       />
     </div>
   );

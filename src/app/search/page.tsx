@@ -774,7 +774,7 @@ export default function SearchPage() {
         onClose={() => setShowImageModal(false)}
         post={selectedPost}
       />
-    </div>
+    </>
 
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, Globe, Bell, Volume2, User, HelpCircle, LogOut, Shield, MapPin, Phone, ChevronRight, ChevronDown, Layers } from "lucide-react";
+import { ChevronLeft, Globe, Bell, Volume2, User, HelpCircle, LogOut, Shield, MapPin, Phone, ChevronRight, ChevronDown, Layers, X } from "lucide-react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { logout } from "@/api/auth";
@@ -98,14 +98,18 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
 
   return (
     <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center">
-      <div className="bg-white w-full max-w-md h-[90vh] rounded-xl shadow-lg overflow-y-scroll relative">
+      <div className="bg-white w-full max-w-md h-[90vh] rounded-xl shadow-lg overflow-y-scroll relative  hide-scrollbar">
         {/* Header */}
-        <div className="sticky top-0 z-10 bg-white px-4 py-4 flex items-center justify-center border-b border-gray-200">
+        <div className="sticky top-0 z-10 bg-white px-4 py-4 flex items-center justify-center border-b border-gray-200 relative">
           <ChevronLeft
-            className="w-6 h-6 text-gray-600 absolute left-4 cursor-pointer"
+            className="w-6 h-6 text-gray-600 absolute left-4 cursor-pointer hover:text-gray-800 transition-colors"
             onClick={onClose}
           />
           <h1 className="text-2xl font-medium text-black">Settings</h1>
+          <X
+            className="w-6 h-6 text-gray-600 absolute right-4 cursor-pointer hover:text-gray-800 transition-colors"
+            onClick={onClose}
+          />
         </div>
 
         {/* Content */}

@@ -8,3 +8,4 @@ server/
 static
 // hello
 .env.local
+tsconfig.tsbuildinfo

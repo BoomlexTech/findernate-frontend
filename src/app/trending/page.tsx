@@ -6,7 +6,7 @@ import PostCard from '@/components/PostCard';
 import TrendingBusiness from '@/components/TrendingBusiness';
 import { TrendingUp, Flame, Star } from 'lucide-react';
 import { getExploreFeed } from '@/api/exploreFeed';
-import { transformExploreFeedToFeedPost } from '@/utils/transformExploreFeed';
+//import { transformExploreFeedToFeedPost } from '@/utils/transformExploreFeed';
 import { FeedPost } from '@/types';
 import TimeTracker from '@/utils/TimeTracker';
 
