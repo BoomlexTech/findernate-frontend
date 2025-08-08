@@ -4,6 +4,8 @@ import BusinessDetailsModal from './business/BusinessDetailsModal';
 import { ChevronDown } from 'lucide-react';
 import { UpdateBusinessCategory, GetBusinessCategory } from '@/api/business';
 import { CreateBusinessRequest } from '@/types';
+import { useUserStore } from '@/store/useUserStore';
+import { getUserProfile } from '@/api/user';
 
 const businessCategories = [
   'Technology & Software',
@@ -37,6 +39,31 @@ export default function AccountSettings() {
   const [isUpdatingCategory, setIsUpdatingCategory] = useState(false);
   const [updateMessage, setUpdateMessage] = useState('');
   const [isLoadingCategory, setIsLoadingCategory] = useState(true);
+  const { user, updateUser } = useUserStore();
+
+  // Keep local flag in sync with store
+  useEffect(() => {
+    setIsBusiness(Boolean(user?.isBusinessProfile));
+  }, [user?.isBusinessProfile]);
+
+  // Hydrate from backend to avoid stale store values
+  useEffect(() => {
+    let isMounted = true;
+    (async () => {
+      try {
+        const data = await getUserProfile();
+        const profile = data?.userId ?? data;
+        const flag = Boolean(profile?.isBusinessProfile);
+        if (isMounted) {
+          setIsBusiness(flag);
+          updateUser({ isBusinessProfile: flag });
+        }
+      } catch {
+        // ignore; fallback to store value
+      }
+    })();
+    return () => { isMounted = false; };
+  }, [updateUser]);
 
   // Fetch current business category on component mount
   useEffect(() => {
@@ -88,14 +115,14 @@ export default function AccountSettings() {
     console.log('Business details submitted:', data);
     setShowBusinessDetailsModal(false);
     setIsBusiness(true);
+    try { updateUser({ isBusinessProfile: true }); } catch {}
     setUpdateMessage('Business account created successfully!');
     setTimeout(() => setUpdateMessage(''), 3000);
   };
 
+  // Upgrade flow only for non-business users
   const handleSwitchToBusiness = () => {
-    if (isBusiness) {
-      setIsBusiness(false);
-    } else {
+    if (!isBusiness) {
       setShowBusinessDetailsModal(true);
     }
   };
@@ -117,15 +144,17 @@ export default function AccountSettings() {
           <div>
             <h2 className="text-xl font-semibold text-gray-900 mb-1">Business Account</h2>
             <p className="text-gray-600">
-              {isBusiness ? 'Switch back to personal account' : 'Switch to business account'}
+              {isBusiness ? 'You are on a business account' : 'Switch to business account'}
             </p>
           </div>
-          <button
-            className={`px-6 py-2 cursor-pointer rounded-lg transition-colors ${isBusiness ? 'bg-gray-200 text-gray-800 hover:bg-gray-300' : 'bg-yellow-600 text-white hover:bg-yellow-700'}`}
-            onClick={handleSwitchToBusiness}
-          >
-            {isBusiness ? 'Switch to Personal' : 'Switch to Business'}
-          </button>
+          {!isBusiness && (
+            <button
+              className={`px-6 py-2 cursor-pointer rounded-lg transition-colors bg-yellow-600 text-white hover:bg-yellow-700`}
+              onClick={handleSwitchToBusiness}
+            >
+              Switch to Business
+            </button>
+          )}
         </div>
       </div>
 
