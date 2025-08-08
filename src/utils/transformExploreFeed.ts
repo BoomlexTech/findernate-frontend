@@ -121,6 +121,17 @@ export function transformExploreFeedToFeedPost(items: RawExploreFeedItem[]): Fee
 
     // Handle reels
     if (item._type === 'reel') {
+      // For reels, check if media array exists (new API structure) or use legacy videoUrl
+      const media = item.media && item.media.length > 0 
+        ? item.media 
+        : [{
+            type: 'video' as const,
+            url: item.videoUrl || '',
+            thumbnailUrl: item.thumbnailUrl,
+            duration: null,
+            dimensions: undefined
+          }];
+
       return {
         _id: item._id,
         username: userInfo.username,
@@ -129,31 +140,26 @@ export function transformExploreFeedToFeedPost(items: RawExploreFeedItem[]): Fee
           ...item.userId,
           profileImageUrl: item.userId.profileImageUrl || '/placeholderimg.png'
         } : undefined,
-        description: item.caption || '',
-        caption: item.caption || '',
-        contentType: 'reel',
+        description: item.caption || item.description || '',
+        caption: item.caption || item.description || '',
+        contentType: item.contentType || 'reel',
         postType: 'video',
         createdAt: item.createdAt,
-        media: [{
-          type: 'video' as const,
-          url: item.videoUrl || '',
-          thumbnailUrl: item.thumbnailUrl,
-          duration: null,
-          dimensions: undefined
-        }],
+        media: media,
         engagement: {
-          comments: item.comments?.length || 0,
-          impressions: 0,
-          likes: item.likes?.length || 0,
-          reach: 0,
-          saves: 0,
-          shares: 0,
-          views: item.views || 0,
+          comments: item.engagement?.comments || item.comments?.length || 0,
+          impressions: item.engagement?.impressions || 0,
+          likes: item.engagement?.likes || item.likes?.length || 0,
+          reach: item.engagement?.reach || 0,
+          saves: item.engagement?.saves || 0,
+          shares: item.engagement?.shares || 0,
+          views: item.engagement?.views || item.views || 0,
         },
-        location: null,
+        location: item.customization?.normal?.location || null,
         tags: item.hashtags || [],
         isLikedBy: false,
         likedBy: [],
+        customization: item.customization
       };
     }
     
@@ -194,6 +200,7 @@ export function transformExploreFeedToFeedPost(items: RawExploreFeedItem[]): Fee
       tags: getTags(),
       isLikedBy: false,
       likedBy: [],
+      customization: item.customization
     };
   });
 }

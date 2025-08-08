@@ -756,33 +756,53 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
           >
-            {/* Current Media Display */}
-            {post.media[currentMediaIndex]?.type === 'video' ? (
-              <video
-                className="w-full h-full object-cover rounded-xl"
-                poster={post.media[currentMediaIndex]?.thumbnailUrl}
-                muted
-                loop
-                style={{ objectFit: 'cover' }}
-                onMouseEnter={(e) => e.currentTarget.play()}
-                onMouseLeave={(e) => e.currentTarget.pause()}
-              >
-                <source src={post.media[currentMediaIndex]?.url} type="video/mp4" />
-                Your browser does not support the video tag.
-              </video>
-            ) : (
-              <Image
-                src={mediaImageError ? '/placeholderimg.png' : (post.media[currentMediaIndex]?.url || post.media[0]?.url || '/placeholderimg.png')}
-                alt="Post content"
-                fill
-                className="rounded-xl object-cover"
-                unoptimized
-                onError={() => {
-                  console.warn('Media image failed to load for post:', post._id, 'URL:', post.media[currentMediaIndex]?.url);
-                  setMediaImageError(true);
-                }}
-              />
-            )}
+            {/* Prepare current media with safe guards to avoid empty src warnings */}
+            {(() => {
+              const currentMedia = post.media[currentMediaIndex];
+              const rawUrl = typeof currentMedia?.url === 'string' ? currentMedia.url.trim() : '';
+              const safeUrl = rawUrl.length > 0 ? rawUrl : undefined; // undefined so browser/next won't treat as empty string
+              const rawThumb = typeof currentMedia?.thumbnailUrl === 'string' ? currentMedia.thumbnailUrl.trim() : '';
+              const safeThumb = rawThumb.length > 0 ? rawThumb : undefined;
+              const isVideo = currentMedia?.type === 'video' && !!safeUrl;
+
+              if (isVideo) {
+                return (
+                  <video
+                    className="w-full h-full object-cover rounded-xl"
+                    poster={safeThumb}
+                    muted
+                    loop
+                    style={{ objectFit: 'cover' }}
+                    onMouseEnter={(e) => e.currentTarget.play()}
+                    onMouseLeave={(e) => e.currentTarget.pause()}
+                  >
+                    {/* Only render source if we have a valid URL */}
+                    {safeUrl && <source src={safeUrl} type="video/mp4" />}
+                    Your browser does not support the video tag.
+                  </video>
+                );
+              }
+
+              // Image fallback (also covers case where media.type === 'video' but url missing/empty)
+              const firstNonEmptyUrl = post.media.find(m => (m.url || '').trim().length > 0)?.url?.trim();
+              const imageUrl = mediaImageError
+                ? '/placeholderimg.png'
+                : safeUrl || firstNonEmptyUrl || '/placeholderimg.png';
+
+              return (
+                <Image
+                  src={imageUrl}
+                  alt="Post content"
+                  fill
+                  className="rounded-xl object-cover"
+                  unoptimized
+                  onError={() => {
+                    console.warn('Media image failed to load for post:', post._id, 'URL:', imageUrl);
+                    setMediaImageError(true);
+                  }}
+                />
+              );
+            })()}
 
             {/* Navigation Controls - Only show if more than 1 media item */}
             {post.media.length > 1 && (

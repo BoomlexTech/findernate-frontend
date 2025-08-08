@@ -57,7 +57,43 @@ const ServicesPage = () => {
         sortBy: 'time' // Use consistent sorting for base data
       });
       
-      const transformedData = transformExploreFeedToFeedPost(response.data.feed);
+      let transformedData = transformExploreFeedToFeedPost(response.data.feed);
+
+      // Normalize / enrich service posts to guarantee PostCard requirements
+      transformedData = transformedData.map(post => {
+        // Extract user data properly
+        const userData = post.userId || {};
+        
+        // Fallback caption
+        const serviceName = post.customization?.service?.name;
+        const description = post.description || '';
+        const captionFallback = post.caption || description || serviceName || 'Service Post';
+
+        // Ensure media present (PostCard returns null without media)
+        const hasValidMedia = Array.isArray(post.media) && post.media.some(m => (m.url || '').trim().length > 0);
+        const media = hasValidMedia ? post.media : [{ type: 'image', url: '/placeholderimg.png' } as any];
+
+        // Location fallback from customization.service.location
+        const location = post.location || post.customization?.service?.location || null;
+
+        // Tags fallback (merge existing + category/subcategory if missing)
+        const serviceCategory = post.customization?.service?.category;
+        const serviceSubcategory = (post as any).customization?.service?.subcategory;
+        let tags = post.tags || post.hashtags || [];
+        if (serviceCategory && !tags.includes(serviceCategory)) tags = [...tags, serviceCategory];
+        if (serviceSubcategory && !tags.includes(serviceSubcategory)) tags = [...tags, serviceSubcategory];
+
+        return {
+          ...post,
+          caption: captionFallback,
+          description: description,
+          username: userData.username || 'Unknown User',
+          profileImageUrl: userData.profileImageUrl || '/placeholderimg.png',
+          media,
+          location,
+          tags
+        };
+      });
       
       console.log('Transformed service data:', transformedData.slice(0, 2));
       
@@ -155,11 +191,27 @@ const ServicesPage = () => {
         profileImageUrl: post.userId?.profileImageUrl,
       }));
       
-      console.log('Service search results:', flattenedResults.slice(0, 2));
+      // Normalize search results similar to fetchServices
+      const normalizedSearchResults = flattenedResults.map((post) => {
+        const serviceName = post.customization?.service?.name;
+        const description = post.description || '';
+        const captionFallback = post.caption || description || serviceName || 'Service';
+        const hasValidMedia = Array.isArray(post.media) && post.media.some(m => (m.url || '').trim().length > 0);
+        const media = hasValidMedia ? post.media : [{ type: 'image', url: '/placeholderimg.png' }];
+        const location = post.location || post.customization?.service?.location || null;
+        const serviceCategory = post.customization?.service?.category;
+        const serviceSubcategory = post.customization?.service?.subcategory;
+        let tags = post.tags || [];
+        if (serviceCategory && !tags.includes(serviceCategory)) tags = [...tags, serviceCategory];
+        if (serviceSubcategory && !tags.includes(serviceSubcategory)) tags = [...tags, serviceSubcategory];
+        return { ...post, caption: captionFallback, media, location, tags };
+      });
+      
+      console.log('Service search results:', normalizedSearchResults.slice(0, 2));
       
       // Fetch comments for search results
       const searchResultsWithComments = await Promise.all(
-        flattenedResults.map(async (service) => {
+        normalizedSearchResults.map(async (service) => {
           try {
             console.log(`Fetching comments for search result service: ${service._id}`);
             const commentsResponse = await getCommentsByPost(service._id, 1, 5);
@@ -229,22 +281,28 @@ const ServicesPage = () => {
   }, [searchTerm, selectedLocation]);
 
   const applyFilters = () => {
-    let filtered = [...allServices];
+    // Filter out services with missing essential data
+    let filtered = allServices.filter(service => 
+      service && 
+      service._id && 
+      service.media && 
+      service.media.length > 0
+    );
 
     // Apply search filter
     if (searchTerm) {
       filtered = filtered.filter(service => 
-        service.caption.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        service.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        service.username.toLowerCase().includes(searchTerm.toLowerCase())
+        (service.caption || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (service.description || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (service.username || '').toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
     // Apply category filter
     if (selectedCategory) {
       filtered = filtered.filter(service => 
-        service.tags.some(tag => tag.toLowerCase().includes(selectedCategory.toLowerCase())) ||
-        service.contentType.toLowerCase().includes(selectedCategory.toLowerCase())
+        (service.tags || []).some(tag => tag.toLowerCase().includes(selectedCategory.toLowerCase())) ||
+        (service.contentType || '').toLowerCase().includes(selectedCategory.toLowerCase())
       );
     }
 
