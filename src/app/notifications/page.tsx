@@ -363,7 +363,7 @@ const Notifications = () => {
                             <span className="font-semibold text-gray-900 hover:text-yellow-600 transition-colors">
                               {notification.senderId?.username || 'Unknown user'}
                             </span>
-                            <span className="text-gray-600">{notification.message}</span>
+                            <span className="text-gray-600">{" "+notification.message}</span>
                           </p>
                           <div className="flex items-center mt-1 space-x-2">
                             <span className="text-xs text-gray-500">

@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, Globe, Bell, Volume2, User, HelpCircle, LogOut, Shield, MapPin, Phone, ChevronRight, ChevronDown, Layers, X } from "lucide-react";
+import { User, HelpCircle, LogOut, Shield, MapPin, Phone, ChevronRight, Layers, X } from "lucide-react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { logout } from "@/api/auth";
@@ -10,10 +10,12 @@ import PlanSelectionModal from "./business/PlanSelectionModal";
 import BusinessDetailsModal from "./business/BusinessDetailsModal";
 import SuccessToast from "@/components/SuccessToast"; // Update path as needed
 import { CreateBusinessRequest, UpdateBusinessRequest } from "@/types";
+import { useEffect } from "react";
+import { getUserProfile } from "@/api/user";
 
 
 const SettingsModal = ({ onClose }: { onClose: () => void }) => {
-  const [muteNotifications, setMuteNotifications] = useState(false);
+  //const [muteNotifications, setMuteNotifications] = useState(false);
   const [hideAddress, setHideAddress] = useState(false);
   const [hideNumber, setHideNumber] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -24,7 +26,35 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
   const [showEditBusinessDetails, setShowEditBusinessDetails] = useState(false);
   const [successToast, setSuccessToast] = useState({ show: false, message: "" });
   const router = useRouter();
-  const { logout: logoutUser } = useUserStore();
+  const { logout: logoutUser, user, updateUser } = useUserStore();
+  const [isBusinessProfile, setIsBusinessProfile] = useState<boolean>(user?.isBusinessProfile === true);
+
+  // Hydrate business flag from backend to avoid stale store values
+  useEffect(() => {
+    let isMounted = true;
+    (async () => {
+      try {
+        const data = await getUserProfile();
+        const profile = data?.userId ?? data; // tolerate either shape
+        if (isMounted && typeof profile?.isBusinessProfile === 'boolean') {
+          setIsBusinessProfile(profile.isBusinessProfile);
+          updateUser({ isBusinessProfile: profile.isBusinessProfile });
+        }
+      } catch {
+        // ignore; fallback to store
+      }
+    })();
+    return () => { isMounted = false; };
+  }, [updateUser]);
+
+  // Helper: if not a business profile, open upgrade flow; otherwise run the action
+  const requireBusiness = (action?: () => void) => () => {
+    if (!isBusinessProfile) {
+      setShowBusinessPlans(true);
+      return;
+    }
+    if (action) action();
+  };
 
   const handleLogout = async () => {
     try {
@@ -82,6 +112,8 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
     onClose()
     // Optionally show a success message or refresh data
     console.log('Business details created:', data);
+    // Immediately reflect upgrade in client store
+    try { updateUser({ isBusinessProfile: true }); } catch {}
   };
 
   const handleEditBusinessDetailsSubmit = (data: UpdateBusinessRequest) => {
@@ -97,14 +129,21 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center">
-      <div className="bg-white w-full max-w-md h-[90vh] rounded-xl shadow-lg overflow-y-scroll relative  hide-scrollbar">
+    <>
+      <div 
+        className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center"
+        onClick={onClose}
+      >
+          <div 
+            className="bg-white w-full max-w-md h-[90vh] rounded-xl shadow-lg overflow-y-scroll hide-scrollbar"
+          onClick={(e) => e.stopPropagation()}
+        >
         {/* Header */}
-        <div className="sticky top-0 z-10 bg-white px-4 py-4 flex items-center justify-center border-b border-gray-200 relative">
-          <ChevronLeft
+        <div className="sticky top-0 z-10 bg-white px-4 py-4 flex items-center justify-center border-b border-gray-200">
+          {/* <ChevronLeft
             className="w-6 h-6 text-gray-600 absolute left-4 cursor-pointer hover:text-gray-800 transition-colors"
             onClick={onClose}
-          />
+          /> */}
           <h1 className="text-2xl font-medium text-black">Settings</h1>
           <X
             className="w-6 h-6 text-gray-600 absolute right-4 cursor-pointer hover:text-gray-800 transition-colors"
@@ -119,7 +158,7 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
             title="Upgrade Business Profile"
             onClick={handleUpgradeClick}
           />
-          <SettingItem
+          {/* <SettingItem
             icon={<Globe />}
             title="Language"
             right={
@@ -135,7 +174,7 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
             enabled={muteNotifications}
             onToggle={() => setMuteNotifications(!muteNotifications)}
           />
-          <SettingItem icon={<Bell />} title="Custom Notification" />
+          <SettingItem icon={<Bell />} title="Custom Notification" /> */}
           <SettingItem icon={<User />} title="Account" />
           <SettingItem icon={<Layers />} title="About App" />
           <SettingItem icon={<HelpCircle />} title="Help Center" />
@@ -146,25 +185,37 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
         <div className="px-4 py-6">
           <h2 className="text-gray-500 font-medium text-sm mb-4">Business Info</h2>
           <div className="space-y-0">
-            <SettingItem icon={<Shield />} title="View Your Business Details" />
-            <SettingItem icon={<Shield />} title="Complete your KYC" />
-            <SettingItem icon={<Shield />} title="Promote Your Business" />
+            <SettingItem 
+              icon={<Shield />} 
+              title="View Your Business Details" 
+              onClick={requireBusiness(() => setShowEditBusinessDetails(true))}
+            />
+            <SettingItem 
+              icon={<Shield />} 
+              title="Complete your KYC" 
+              onClick={requireBusiness()}
+            />
+            <SettingItem 
+              icon={<Shield />} 
+              title="Promote Your Business" 
+              onClick={requireBusiness()}
+            />
             <SettingItem
               icon={<Shield />}
               title="Edit Your Business Details"
-              onClick={() => setShowEditBusinessDetails(true)}
+              onClick={requireBusiness(() => setShowEditBusinessDetails(true))}
             />
             <SettingToggle
               icon={<MapPin />}
               title="Hide Address"
               enabled={hideAddress}
-              onToggle={() => setHideAddress(!hideAddress)}
+              onToggle={requireBusiness(() => setHideAddress(!hideAddress))}
             />
             <SettingToggle
               icon={<Phone />}
               title="Hide Number"
               enabled={hideNumber}
-              onToggle={() => setHideNumber(!hideNumber)}
+              onToggle={requireBusiness(() => setHideNumber(!hideNumber))}
             />
           </div>
         </div>
@@ -190,41 +241,41 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
             )}
           </button>
         </div>
+        
+        <SuccessToast show={successToast.show} message={successToast.message} />
       </div>
-      
-      {/* Plan Selection Modal */}
-      <PlanSelectionModal
-        isOpen={showBusinessPlans}
-        onClose={() => setShowBusinessPlans(false)}
-        onSelectPlan={handlePlanSelect}
-        currentPlan={selectedPlan || "Free"}
-      />
-      
-      {/* Payment Modal */}
-      <PaymentMethodsModal
-        isOpen={showPaymentModal}
-        onClose={handlePaymentModalClose}
-        onPaymentOptionClick={handlePaymentOptionClick}
-      />
-      
-      {/* Business Details Modal - CREATE MODE (after payment) */}
-      <BusinessDetailsModal
-        isOpen={showBusinessDetailsModal}
-        onClose={() => setShowBusinessDetailsModal(false)}
-        onSubmit={handleBusinessDetailsSubmit}
-        // isEdit is false by default, so it will use POST API
-      />
-      
-      {/* Edit Business Details Modal - EDIT MODE */}
-      <BusinessDetailsModal
-        isOpen={showEditBusinessDetails}
-        onClose={() => setShowEditBusinessDetails(false)}
-        onSubmit={handleEditBusinessDetailsSubmit}
-        isEdit={true} // This will fetch data on mount and use PATCH API
-      />
-
-       <SuccessToast show={successToast.show} message={successToast.message} />
     </div>
+    {/* Plan Selection Modal */}
+    <PlanSelectionModal
+      isOpen={showBusinessPlans}
+      onClose={() => setShowBusinessPlans(false)}
+      onSelectPlan={handlePlanSelect}
+      currentPlan={selectedPlan || "Free"}
+    />
+    
+    {/* Payment Modal */}
+    <PaymentMethodsModal
+      isOpen={showPaymentModal}
+      onClose={handlePaymentModalClose}
+      onPaymentOptionClick={handlePaymentOptionClick}
+    />
+    
+    {/* Business Details Modal - CREATE MODE (after payment) */}
+    <BusinessDetailsModal
+      isOpen={showBusinessDetailsModal}
+      onClose={() => setShowBusinessDetailsModal(false)}
+      onSubmit={handleBusinessDetailsSubmit}
+      // isEdit is false by default, so it will use POST API
+    />
+    
+    {/* Edit Business Details Modal - EDIT MODE */}
+    <BusinessDetailsModal
+      isOpen={showEditBusinessDetails}
+      onClose={() => setShowEditBusinessDetails(false)}
+      onSubmit={handleEditBusinessDetailsSubmit}
+      isEdit={true} // This will fetch data on mount and use PATCH API
+    />
+  </>
   );
 };
 
