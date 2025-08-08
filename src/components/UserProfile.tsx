@@ -228,6 +228,85 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
     return canvas.toDataURL('image/jpeg', 0.9);
   }
 
+  // Resize a data URL to a max size (maintains aspect ratio)
+  async function resizeImageDataUrl(
+    dataUrl: string,
+    maxWidth = 512,
+    maxHeight = 512,
+    quality = 0.85,
+    mimeType: 'image/jpeg' | 'image/webp' = 'image/jpeg'
+  ): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const img = new window.Image();
+      img.onload = () => {
+        let { width, height } = img;
+        const ratio = Math.min(maxWidth / width, maxHeight / height, 1);
+        const newW = Math.round(width * ratio);
+        const newH = Math.round(height * ratio);
+
+        const canvas = document.createElement('canvas');
+        canvas.width = newW;
+        canvas.height = newH;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return reject(new Error('No 2d context'));
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, 0, 0, newW, newH);
+        const out = canvas.toDataURL(mimeType, quality);
+        resolve(out);
+      };
+      img.onerror = () => reject(new Error('Failed to load image for resizing'));
+      img.src = dataUrl;
+    });
+  }
+
+  function dataUrlToBlob(dataUrl: string): Blob {
+    const [meta, base64] = dataUrl.split(',');
+    const mime = /data:(.*?);base64/.exec(meta)?.[1] || 'image/jpeg';
+    const binary = atob(base64);
+    const len = binary.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
+    return new Blob([bytes], { type: mime });
+  }
+
+  async function uploadToCloudinary(blob: Blob, fileName = 'profile.jpg'): Promise<{ secure_url: string }> {
+    // Obtain a signed payload from our server (uses CLOUDINARY_* server env vars)
+    const signRes = await fetch('/api/cloudinary-sign', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ folder: 'findernate/profiles' }),
+    });
+
+    if (!signRes.ok) {
+      const msg = await signRes.text().catch(() => '');
+      throw new Error(`Failed to get Cloudinary signature (${signRes.status}): ${msg}`);
+    }
+
+    const { signature, timestamp, apiKey, cloudName, folder } = await signRes.json();
+
+    const form = new FormData();
+    form.append('file', blob, fileName);
+    form.append('api_key', apiKey);
+    form.append('timestamp', String(timestamp));
+    form.append('signature', signature);
+    form.append('folder', folder || 'findernate/profiles');
+
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+      method: 'POST',
+      body: form,
+    });
+
+    if (!res.ok) {
+      const errText = await res.text().catch(() => '');
+      throw new Error(`Cloudinary upload failed (${res.status}): ${errText}`);
+    }
+
+    const json = await res.json();
+    if (!json.secure_url) throw new Error('Cloudinary response missing secure_url');
+    return { secure_url: json.secure_url };
+  }
+
   const handleCropSave = async () => {
     if (selectedImage && croppedAreaPixels) {
       const croppedImg = await getCroppedImg(selectedImage, croppedAreaPixels);
@@ -265,6 +344,23 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
         profileImageUrlLength: profileData.profileImageUrl ? profileData.profileImageUrl.length : 0,
         profileImageUrlStart: profileData.profileImageUrl ? profileData.profileImageUrl.substring(0, 100) : 'No image URL'
       });
+
+      // If image is a data URL (newly selected), resize and try to upload to Cloudinary first
+      if (profileData.profileImageUrl && profileData.profileImageUrl.startsWith('data:')) {
+        // Resize to safe dimensions to avoid large payloads and network errors
+        const resizedDataUrl = await resizeImageDataUrl(profileData.profileImageUrl, 512, 512, 0.85, 'image/jpeg');
+
+        try {
+          // Prefer uploading to Cloudinary and use the secure URL
+          const blob = dataUrlToBlob(resizedDataUrl);
+          const { secure_url } = await uploadToCloudinary(blob, 'avatar.jpg');
+          profileData.profileImageUrl = secure_url;
+        } catch (cloudErr) {
+          console.warn('Cloudinary upload failed, falling back to sending resized data URL:', cloudErr);
+          // Fallback: send resized data URL to backend (ensure backend supports this)
+          profileData.profileImageUrl = resizedDataUrl;
+        }
+      }
       
       // Call the editProfile API
       const updatedProfile = await editProfile(profileData);
@@ -277,6 +373,15 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
         ...prev,
         ...updatedProfile
       }));
+
+      // Sync to global user store so StoriesBar shows latest avatar/name
+      try {
+        useUserStore.getState().updateUser({
+          fullName: updatedProfile.fullName,
+          username: updatedProfile.username,
+          profileImageUrl: updatedProfile.profileImageUrl,
+        });
+      } catch {}
       
       // Call the parent's onProfileUpdate if provided
       if (onProfileUpdate) {
