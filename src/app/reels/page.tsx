@@ -770,6 +770,9 @@ const Page = () => {
     // Optimistic update
     const newIsSaved = !isSaved;
     setIsSaved(newIsSaved);
+
+    // Persist optimistic state immediately so effects reading localStorage don't override UI
+    saveSaveStateToStorage(currentData._id, newIsSaved);
     
     updateReelInState(currentData._id, {
       engagement: {
@@ -783,16 +786,15 @@ const Page = () => {
     try {
       if (newIsSaved) {
         await savePost(currentData._id); // Use post API since reels are posts
-        saveSaveStateToStorage(currentData._id, true); // Save to localStorage
         showToastMessage('Reel saved!');
       } else {
         await unsavePost(currentData._id); // Use post API since reels are posts
-        saveSaveStateToStorage(currentData._id, false); // Update localStorage
         showToastMessage('Reel removed from saved');
       }
     } catch (error: any) {
-      // Revert optimistic update on error
+      // Revert optimistic update on error (including localStorage)
       setIsSaved(!newIsSaved);
+      saveSaveStateToStorage(currentData._id, !newIsSaved);
       
       updateReelInState(currentData._id, {
         engagement: {
