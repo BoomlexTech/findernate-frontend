@@ -159,7 +159,7 @@ export function transformExploreFeedToFeedPost(items: RawExploreFeedItem[]): Fee
         tags: item.hashtags || [],
         isLikedBy: false,
         likedBy: [],
-        customization: item.customization
+        customization: undefined // Reels typically don't have customization
       };
     }
     
@@ -171,6 +171,40 @@ export function transformExploreFeedToFeedPost(items: RawExploreFeedItem[]): Fee
       if (item.customization?.business?.tags) return item.customization.business.tags;
       return item.hashtags || [];
     };
+
+    // Transform customization to match FeedPost interface
+    const transformedCustomization = item.customization ? {
+      product: item.customization.product ? {
+        name: item.customization.product.name,
+        price: String(item.customization.product.price), // Convert number to string
+        currency: item.customization.product.currency,
+        inStock: true, // Default value since not in raw data
+        link: '', // Default value since not in raw data
+        location: undefined
+      } : undefined,
+      service: item.customization.service ? {
+        name: item.customization.service.name,
+        description: item.customization.service.description,
+        price: String(item.customization.service.price), // Convert number to string
+        currency: item.customization.service.currency,
+        category: item.customization.service.category,
+        subcategory: item.customization.service.subcategory,
+        duration: item.customization.service.duration,
+        serviceType: item.customization.service.category, // Use category as serviceType
+        location: undefined
+      } : undefined,
+      business: item.customization.business ? {
+        businessName: item.customization.business.businessName,
+        businessType: item.customization.business.businessType,
+        description: item.customization.business.description,
+        category: item.customization.business.category,
+        subcategory: '', // Default value since not in raw data
+        location: undefined
+      } : undefined,
+      normal: item.customization.normal ? {
+        location: item.customization.normal.location
+      } : undefined
+    } : undefined;
 
     // Handle posts
     return {
@@ -200,7 +234,7 @@ export function transformExploreFeedToFeedPost(items: RawExploreFeedItem[]): Fee
       tags: getTags(),
       isLikedBy: false,
       likedBy: [],
-      customization: item.customization
+      customization: transformedCustomization
     };
   });
 }

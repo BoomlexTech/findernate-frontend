@@ -61,9 +61,6 @@ const ServicesPage = () => {
 
       // Normalize / enrich service posts to guarantee PostCard requirements
       transformedData = transformedData.map(post => {
-        // Extract user data properly
-        const userData = post.userId || {};
-        
         // Fallback caption
         const serviceName = post.customization?.service?.name;
         const description = post.description || '';
@@ -87,8 +84,8 @@ const ServicesPage = () => {
           ...post,
           caption: captionFallback,
           description: description,
-          username: userData.username || 'Unknown User',
-          profileImageUrl: userData.profileImageUrl || '/placeholderimg.png',
+          username: post.username || post.userId?.username || 'Unknown User',
+          profileImageUrl: post.profileImageUrl || post.userId?.profileImageUrl || '/placeholderimg.png',
           media,
           location,
           tags
