@@ -11,7 +11,7 @@ import { Badge } from './ui/badge';
 import ProductCard from './post-window/ProductCard';
 import BusinessPostCard from './post-window/BusinessCard';
 import { likePost, unlikePost, savePost, unsavePost, getSavedPost, deletePost } from '@/api/post';
-import { createComment } from '@/api/comment';
+//import { createComment } from '@/api/comment';
 import { postEvents } from '@/utils/postEvents';
 import { AxiosError } from 'axios';
 import { useAuthGuard } from '@/hooks/useAuthGuard';
@@ -42,8 +42,8 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
   const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
-  const [comment, setComment] = useState('');
-  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+  // const [comment, setComment] = useState('');
+  // const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isPostSaved, setIsPostSaved] = useState(false);
@@ -343,56 +343,56 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
     });
   };
 
-  const handleCommentSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    requireAuth(async () => {
-      if (!comment.trim() || isSubmittingComment) return;
+  // const handleCommentSubmit = async (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   requireAuth(async () => {
+  //     if (!comment.trim() || isSubmittingComment) return;
       
-      setIsSubmittingComment(true);
-      try {
-        console.log(`Adding comment to post ${post._id}:`, comment);
+  //     setIsSubmittingComment(true);
+  //     try {
+  //       console.log(`Adding comment to post ${post._id}:`, comment);
         
-        // Call the actual API to create comment
-        const newComment = await createComment({
-          postId: post._id,
-          content: comment.trim()
-        });
+  //       // Call the actual API to create comment
+  //       const newComment = await createComment({
+  //         postId: post._id,
+  //         content: comment.trim()
+  //       });
         
-        console.log('Comment created successfully:', newComment);
+  //       console.log('Comment created successfully:', newComment);
         
-        // Update comments count optimistically and clear input
-        const newCount = commentsCount + 1;
-        setCommentsCount(newCount);
-        setComment('');
+  //       // Update comments count optimistically and clear input
+  //       const newCount = commentsCount + 1;
+  //       setCommentsCount(newCount);
+  //       setComment('');
         
-        // Save the updated comment count to localStorage for persistence
-        if (isClient) {
-          localStorage.setItem(`post_comments_count_${post._id}`, newCount.toString());
-        }
+  //       // Save the updated comment count to localStorage for persistence
+  //       if (isClient) {
+  //         localStorage.setItem(`post_comments_count_${post._id}`, newCount.toString());
+  //       }
         
-        // Emit event for comment count change to sync across components
-        postEvents.emit(post._id, 'commentCountChange', newCount);
+  //       // Emit event for comment count change to sync across components
+  //       postEvents.emit(post._id, 'commentCountChange', newCount);
         
-        // Note: The backend automatically updates the post's comment count
-        // The saved count will persist until the server provides a higher count
+  //       // Note: The backend automatically updates the post's comment count
+  //       // The saved count will persist until the server provides a higher count
         
-      } catch (error: any) {
-        console.error('Error adding comment:', error);
+  //     } catch (error: any) {
+  //       console.error('Error adding comment:', error);
         
-        // Revert the comment count on error
-        setCommentsCount(commentsCount);
-        if (isClient) {
-          localStorage.setItem(`post_comments_count_${post._id}`, commentsCount.toString());
-        }
+  //       // Revert the comment count on error
+  //       setCommentsCount(commentsCount);
+  //       if (isClient) {
+  //         localStorage.setItem(`post_comments_count_${post._id}`, commentsCount.toString());
+  //       }
         
-        // Show user-friendly error message
-        const errorMessage = error?.response?.data?.message || 'Failed to add comment. Please try again.';
-        alert(errorMessage);
-      } finally {
-        setIsSubmittingComment(false);
-      }
-    });
-  };
+  //       // Show user-friendly error message
+  //       const errorMessage = error?.response?.data?.message || 'Failed to add comment. Please try again.';
+  //       alert(errorMessage);
+  //     } finally {
+  //       setIsSubmittingComment(false);
+  //     }
+  //   });
+  // };
 
   const handleCommentClick = (e: React.MouseEvent) => {
     e.stopPropagation();
