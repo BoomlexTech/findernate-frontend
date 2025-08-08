@@ -11,6 +11,7 @@ import CreateStoryModal from "./CreateStoryModal";
 import StoryAnalytics from "./StoryAnalytics";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
 import { AuthDialog } from "./AuthDialog";
+import { getUserProfile } from "@/api/user";
 
 interface StoriesBarProps {
   onCreateStory?: () => void;
@@ -62,6 +63,33 @@ export default function StoriesBar({ onCreateStory }: StoriesBarProps) {
   
   const { user, token } = useUserStore();
   const { requireAuth, showAuthDialog, closeAuthDialog } = useAuthGuard();
+  const [meAvatarUrl, setMeAvatarUrl] = useState<string | "">("");
+
+  // Initialize from store immediately
+  useEffect(() => {
+    if (user?.profileImageUrl) setMeAvatarUrl(user.profileImageUrl);
+  }, [user?.profileImageUrl]);
+
+  // If logged-in user's avatar is missing in the store, hydrate it from API
+  useEffect(() => {
+    if (!user || (user.profileImageUrl && user.profileImageUrl.trim() !== "")) return;
+    (async () => {
+      try {
+        const data = await getUserProfile();
+        const p = data?.userId || data;
+        if (p?.profileImageUrl) {
+          useUserStore.getState().updateUser({
+            profileImageUrl: p.profileImageUrl,
+            fullName: p.fullName,
+            username: p.username,
+          });
+          setMeAvatarUrl(p.profileImageUrl);
+        }
+      } catch (e) {
+        console.warn("Failed to hydrate user avatar", e);
+      }
+    })();
+  }, [user?._id, user?.profileImageUrl]);
 
   const getInitials = (name: string) => {
     return name
@@ -228,59 +256,64 @@ export default function StoriesBar({ onCreateStory }: StoriesBarProps) {
   return (
     <>
       <div className="flex overflow-x-auto space-x-3 sm:space-x-6 pb-2 px-2 bg-white shadow-md rounded-lg subtle-scrollbar">
-        {displayUsers.map((storyUser) => (
-          <div key={storyUser._id} className="flex flex-col items-center mt-5 flex-shrink-0">
-            <div
-              onClick={() => openStoryModal(storyUser)}
-              className={`relative w-12 h-12 sm:w-16 sm:h-16 rounded-full border-2 ${
-                areAllStoriesViewed(storyUser)
-                  ? "border-gray-400"
-                  : storyUser.hasNewStories
-                  ? "border-2 bg-gradient-to-r from-yellow-400 to-yellow-600 p-[2px]"
-                  : "border-gray-300"
-              } cursor-pointer transition-transform hover:scale-105`}
-            >
-              <div className={`w-full h-full rounded-full overflow-hidden ${
-                storyUser.hasNewStories && !areAllStoriesViewed(storyUser) ? 'bg-white p-[2px]' : ''
-              }`}>
-                {storyUser.profileImageUrl ? (
-                  <Image
-                    src={storyUser.profileImageUrl}
-                    alt={storyUser.username}
-                    width={64}
-                    height={64}
-                    className="object-cover w-full h-full rounded-full"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-button-gradient rounded-full flex items-center justify-center">
-                    <span className="text-white text-sm font-bold">
-                      {getInitials(storyUser.username)}
-                    </span>
+        {displayUsers.map((storyUser) => {
+          const isMe = storyUser.isCurrentUser;
+          const avatarUrl = isMe ? (meAvatarUrl || user?.profileImageUrl || storyUser.profileImageUrl) : storyUser.profileImageUrl;
+          const initials = getInitials(isMe ? (user?.username || user?.fullName || storyUser.username) : storyUser.username);
+          return (
+            <div key={storyUser._id} className="flex flex-col items-center mt-5 flex-shrink-0">
+              <div
+                onClick={() => openStoryModal(storyUser)}
+                className={`relative w-12 h-12 sm:w-16 sm:h-16 rounded-full border-2 ${
+                  areAllStoriesViewed(storyUser)
+                    ? "border-gray-400"
+                    : storyUser.hasNewStories
+                    ? "border-2 bg-gradient-to-r from-yellow-400 to-yellow-600 p-[2px]"
+                    : "border-gray-300"
+                } cursor-pointer transition-transform hover:scale-105`}
+              >
+                <div className={`w-full h-full rounded-full overflow-hidden ${
+                  storyUser.hasNewStories && !areAllStoriesViewed(storyUser) ? 'bg-white p-[2px]' : ''
+                }`}>
+                  {avatarUrl ? (
+                    <Image
+                      src={avatarUrl}
+                      alt={storyUser.username}
+                      width={64}
+                      height={64}
+                      className="object-cover w-full h-full rounded-full"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-button-gradient rounded-full flex items-center justify-center">
+                      <span className="text-white text-sm font-bold">
+                        {initials}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Instagram-style add story plus icon for current user with no stories */}
+                {storyUser.isCurrentUser && (!storyUser.stories || storyUser.stories.length === 0) && (
+                  <div 
+                    className="absolute bottom-0 right-0 w-5 h-5 bg-yellow-500 rounded-full border-2 border-white shadow-lg flex items-center justify-center cursor-pointer hover:bg-yellow-600 transition-all hover:scale-110 z-20"
+                    onClick={(e) => {
+                      e.stopPropagation(); // Prevent the parent click handler
+                      handleCreateStory();
+                    }}
+                    style={{
+                      transform: 'translate(30%, 30%)'
+                    }}
+                  >
+                    <Plus size={10} className="text-white" strokeWidth={3} />
                   </div>
                 )}
               </div>
-              
-              {/* Instagram-style add story plus icon for current user with no stories */}
-              {storyUser.isCurrentUser && (!storyUser.stories || storyUser.stories.length === 0) && (
-                <div 
-                  className="absolute bottom-0 right-0 w-5 h-5 bg-yellow-500 rounded-full border-2 border-white shadow-lg flex items-center justify-center cursor-pointer hover:bg-yellow-600 transition-all hover:scale-110 z-20"
-                  onClick={(e) => {
-                    e.stopPropagation(); // Prevent the parent click handler
-                    handleCreateStory();
-                  }}
-                  style={{
-                    transform: 'translate(30%, 30%)'
-                  }}
-                >
-                  <Plus size={10} className="text-white" strokeWidth={3} />
-                </div>
-              )}
+              <p className="text-xs mt-2 text-center text-gray-700 font-medium max-w-[48px] sm:max-w-[64px] truncate">
+                {storyUser.isCurrentUser ? "Your Story" : storyUser.username}
+              </p>
             </div>
-            <p className="text-xs mt-2 text-center text-gray-700 font-medium max-w-[48px] sm:max-w-[64px] truncate">
-              {storyUser.isCurrentUser ? "Your Story" : storyUser.username}
-            </p>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Story Viewer Modal */}
