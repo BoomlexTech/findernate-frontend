@@ -605,7 +605,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
   return (
     <div className="relative">
       <div 
-        className={`bg-white ${showCommentDrawer ? 'rounded-t-3xl shadow-none border-b-0' : 'rounded-3xl shadow-sm'} border border-gray-200 overflow-hidden hover:shadow-md transition-all duration-200 relative ${
+        className={`w-full bg-white ${showCommentDrawer ? 'rounded-t-3xl shadow-none border-b-0' : 'rounded-3xl shadow-sm'} border border-gray-200 overflow-hidden hover:shadow-md transition-all duration-200 relative ${
           pathname.includes('/post/') ? 'cursor-default' : 'cursor-pointer'
         }`}
         onClick={handlePostClick}

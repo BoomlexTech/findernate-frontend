@@ -29,6 +29,7 @@ import PostCard from "@/components/PostCard";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import ImageModal from "@/components/ImageModal";
+import { getCommentsByPost, Comment } from "@/api/comment";
 
 export default function SearchPage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -269,7 +270,51 @@ export default function SearchPage() {
         profileImageUrl: post.userId?.profileImageUrl,
       }));
       
-      setResults(flattenedResults);
+      // Fetch comments for all posts to get accurate comment counts
+      const postsWithComments = await Promise.all(
+        flattenedResults.map(async (post) => {
+          try {
+            console.log(`Fetching comments for post: ${post._id}`);
+            const commentsResponse = await getCommentsByPost(post._id, 1, 5); // Fetch first 5 comments
+            console.log(`Comments response for post ${post._id}:`, commentsResponse);
+            
+            // Handle different possible response structures
+            let comments: Comment[] = [];
+            let totalComments = 0;
+            
+            if (commentsResponse) {
+              // Check if response has comments array directly
+              if (Array.isArray(commentsResponse.comments)) {
+                comments = commentsResponse.comments;
+                totalComments = commentsResponse.totalComments || commentsResponse.total || comments.length;
+              } else if (Array.isArray(commentsResponse)) {
+                // If response is directly an array
+                comments = commentsResponse;
+                totalComments = comments.length;
+              } else {
+                console.log('Unexpected comments response structure:', commentsResponse);
+              }
+            }
+            
+            console.log(`Processed ${comments.length} comments for post ${post._id}, total: ${totalComments}`);
+            
+            return {
+              ...post,
+              comments: comments,
+              // Update engagement comments count with actual comment count
+              engagement: {
+                ...post.engagement,
+                comments: totalComments || post.engagement.comments,
+              },
+            };
+          } catch (error) {
+            console.error(`Failed to fetch comments for post ${post._id}:`, error);
+            return post; // Return post without comments if fetch fails
+          }
+        })
+      );
+      
+      setResults(postsWithComments);
       setUsers(filteredUsers);
       setShowAllUsers(false);
     } catch (err) {
@@ -374,7 +419,7 @@ export default function SearchPage() {
     <>
       <div className="min-h-screen flex flex-col gap-10 hide-scrollbar">
         <div className="flex-1 xl:pr-[23rem] px-4 xl:px-0">
-          <div className="max-w-full xl:max-w-4xl mx-auto xl:ml-4">
+          <div className="w-full xl:ml-4">
             {/* <div className="[&>*]:!max-w-full [&>*]:xl:!max-w-[54rem]">
               <FloatingHeader
                 paragraph="Discover businesses, products, services, and more"
@@ -704,7 +749,9 @@ export default function SearchPage() {
             {activeTab === "Users" || activeTab === "All" ? (
               <>
                 {displayedUsers.map((user) => (
-                  <UserCard key={user._id} user={user} onFollow={handleFollowUpdate} />
+                  <div key={user._id} className="w-full max-w-2xl">
+                    <UserCard user={user} onFollow={handleFollowUpdate} />
+                  </div>
                 ))}
 
                 {hasMoreUsers && !showAllUsers && !loading && (
@@ -739,12 +786,12 @@ export default function SearchPage() {
             {activeTab !== "Users" && (
               <>
                 {results.map((item) => (
-                  <PostCard 
-                    key={item._id} 
-                    post={item} 
-                    onPostClick={() => handlePostClick(item)}
-                  />
-
+                  <div key={item._id} className="w-full px-4 sm:px-6">
+                    <PostCard 
+                      post={item} 
+                      onPostClick={() => handlePostClick(item)}
+                    />
+                  </div>
                 ))}
               </>
             )}
