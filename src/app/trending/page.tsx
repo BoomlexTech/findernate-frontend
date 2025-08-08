@@ -42,6 +42,22 @@ const Page = () => {
         // Find the user details for this post
         const userDetail = item.userId || {};
         
+        // Prefer customization location if present, fallback to top-level location
+        const locationName =
+          item?.customization?.business?.location?.name ??
+          item?.customization?.service?.location?.name ??
+          item?.customization?.product?.location?.name ??
+          item?.customization?.normal?.location?.name ??
+          (typeof item?.location === 'string' ? item.location : item?.location?.name) ??
+          null;
+        const tags = item?.customization?.business?.tags ??
+          item?.customization?.service?.tags ??
+          item?.customization?.product?.tags ??
+          item?.customization?.normal?.tags ??
+          item?.tags ??
+          [];
+      
+
         return {
           _id: item._id,
           username: userDetail.username || 'Unknown User',
@@ -67,8 +83,8 @@ const Page = () => {
             shares: item.engagement?.shares || 0,
             views: item.engagement?.views || 0,
           },
-          location: item.location || null,
-          tags: item.hashtags || [],
+          location: locationName,
+          tags: tags,
           isLikedBy: item.isLikedBy || false,
           likedBy: item.likedBy || [],
           // Add customization data for business/product/service modals

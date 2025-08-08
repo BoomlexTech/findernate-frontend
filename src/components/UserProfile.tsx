@@ -239,7 +239,7 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
     return new Promise((resolve, reject) => {
       const img = new window.Image();
       img.onload = () => {
-        let { width, height } = img;
+        const { width, height } = img;
         const ratio = Math.min(maxWidth / width, maxHeight / height, 1);
         const newW = Math.round(width * ratio);
         const newH = Math.round(height * ratio);

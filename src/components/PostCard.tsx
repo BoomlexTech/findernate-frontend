@@ -2,7 +2,6 @@
 
 import { Heart, MessageCircle, MapPin, ChevronLeft, ChevronRight, MoreVertical, Bookmark, BookmarkCheck, Flag, Trash2 } from 'lucide-react';
 import Image from 'next/image';
-import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { FeedPost, SavedPostsResponse } from '@/types';
 import formatPostDate from '@/utils/formatDate';
