@@ -1,4 +1,4 @@
-import { Home,Clapperboard, Search, MessageCircle, User, TrendingUp, Building, Package, Settings, Bookmark, Bell} from 'lucide-react';
+import { Home,Clapperboard, Search, MessageCircle, User, TrendingUp, Building, Package, Bookmark, Bell, Wrench} from 'lucide-react';
 
 
 export const navigationItems = [
@@ -14,7 +14,7 @@ export const discoverItems = [
   { icon: TrendingUp, label: 'Trending', route: '/trending' },
   { icon: Building, label: 'Businesses', route: '/businesses' },
   { icon: Package, label: 'Products', route: '/products' },
-  { icon: Settings, label: 'Services', route: '/services' },
+  { icon: Wrench, label: 'Services', route: '/services' },
   { icon: Bookmark, label: 'Saved', route: '/saved' },
 ];
 
