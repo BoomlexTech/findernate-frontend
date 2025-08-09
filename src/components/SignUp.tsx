@@ -21,9 +21,11 @@ export default function SignupComponent() {
     confirmPassword: ''
   });
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [usernameAvailable, setUsernameAvailable] = useState<boolean>(false);
   const [showCountryDropdown, setShowCountryDropdown] = useState(false);
   const [error, setError] = useState('');
+  const [emailError, setEmailError] = useState('');
   const router = useRouter();
 
   const {setUser, setToken} = useUserStore()
@@ -38,12 +40,36 @@ export default function SignupComponent() {
 
   const selectedCountry = countryCodes.find(c => c.code === formData.countryCode);
 
+  const validateEmail = (value: string) => {
+    if (!value) {
+      setEmailError('');
+      return true;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+    if (!emailRegex.test(value)) {
+      setEmailError('Enter a valid email address');
+      return false;
+    }
+    setEmailError('');
+    return true;
+  };
+
   const handleInputChange = (e:React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
+    // Special handling for phone number: allow only digits
+    if (name === 'phoneNumber') {
+      const digitsOnly = value.replace(/[^0-9]/g, '');
+      setFormData(prev => ({
+        ...prev,
+        [name]: digitsOnly
+      }));
+      return;
+    }
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
+    if (name === 'email') validateEmail(value);
   };
 
   const checkUsernameAvailability = () => {
@@ -61,8 +87,9 @@ export default function SignupComponent() {
     }
   }, []);
 
-  const handleSubmit = async (e: React.MouseEvent<HTMLButtonElement>) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validateEmail(formData.email)) return;
         setError('');
     try {
       const response = await signUp(formData);
@@ -100,8 +127,8 @@ export default function SignupComponent() {
           <p className="text-gray-600">Join India&apos;s premier business platform</p>
         </div>
 
-        {/* Form */}
-        <div className="space-y-6">
+  {/* Form */}
+  <form className="space-y-6" onSubmit={handleSubmit}>
           {/* Full Name */}
             <div className="relative">
               <Input
@@ -174,6 +201,9 @@ export default function SignupComponent() {
                 value={formData.phoneNumber}
                 onChange={handleInputChange}
                 inputClassName='pl-25'
+                pattern="[0-9]*"
+                inputMode="numeric"
+                maxLength={15}
                 required
               />
               
@@ -204,11 +234,15 @@ export default function SignupComponent() {
                 placeholder="Email address"
                 value={formData.email}
                 onChange={handleInputChange}
+                onBlur={(e) => validateEmail(e.target.value)}
                 leftIcon={
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
                 </svg>
                 }
+                error={emailError}
+                autoComplete="email"
+                inputMode="email"
                 required
               />
             </div>
@@ -242,7 +276,7 @@ export default function SignupComponent() {
           <div>
             <div className="relative">
               <Input
-                type={showPassword ? "text" : "password"}
+                type={showConfirmPassword ? "text" : "password"}
                 name="confirmPassword"
                 placeholder=" Confirm Password"
                 value={formData.confirmPassword}
@@ -254,10 +288,10 @@ export default function SignupComponent() {
               />
               <button
                 type="button"
-                onClick={() => setShowPassword(!showPassword)}
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                 className="absolute right-3 top-3.5 text-gray-400 hover:text-gray-600"
               >
-                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
             {error && <p className="text-red-500">{error}</p>}
@@ -265,13 +299,12 @@ export default function SignupComponent() {
 
           {/* Submit Button */}
           <button
-            onClick={handleSubmit}
             type="submit"
             className="w-full py-3 px-4 bg-button-gradient text-white font-semibold rounded-lg transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl"
           >
             Create Account
           </button>
-        </div>
+        </form>
 
         {/* Already have account */}
         <div className="text-center mt-6">

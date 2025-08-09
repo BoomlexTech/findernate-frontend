@@ -11,6 +11,8 @@ import { getReels, likeReel, unlikeReel } from '@/api/reels'
 import { savePost, unsavePost, getSavedPost } from '@/api/post'
 import { followUser, unfollowUser } from '@/api/user'
 import { Heart, MoreVertical, Bookmark, BookmarkCheck } from 'lucide-react'
+import { useAuthGuard } from '@/hooks/useAuthGuard';
+import { AuthDialog } from '@/components/AuthDialog';
 
 // Timeout utility for API calls
 const createTimeoutPromise = (timeout: number) => {
@@ -24,6 +26,8 @@ const Page = () => {
   const [currentReelIndex, setCurrentReelIndex] = useState(0);
   const [reelsData, setReelsData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  // Auth guard for gating actions (e.g., three dots menu) when user not logged in
+  const { requireAuth, showAuthDialog, closeAuthDialog } = useAuthGuard();
 
   // Local storage keys for persisting states
   const LIKES_STORAGE_KEY = 'findernate-reel-likes';
@@ -829,6 +833,8 @@ const Page = () => {
 
   return (
     <div className="flex h-screen bg-gray-100 gap-6 p-6">
+  {/* Auth Dialog (shown if unauthenticated user triggers protected action) */}
+  <AuthDialog isOpen={showAuthDialog} onClose={closeAuthDialog} />
       {/* Toast Notification */}
       {showToast && (
         <div className="fixed top-4 right-4 z-50 bg-gray-800 text-white px-4 py-2 rounded-lg shadow-lg transition-all duration-300">
@@ -921,7 +927,7 @@ const Page = () => {
             {/* Three dots menu */}
             <div className="relative">
               <button
-                onClick={() => setShowDropdown(!showDropdown)}
+                onClick={() => requireAuth(() => setShowDropdown(prev => !prev))}
                 className="p-2 hover:bg-gray-100 rounded-full transition-colors"
               >
                 <MoreVertical className="w-5 h-5 text-gray-600" />

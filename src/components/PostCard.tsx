@@ -676,7 +676,11 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  setShowDropdown(!showDropdown);
+                    // Gate opening the menu behind auth
+                    const opened = requireAuth(() => {
+                      setShowDropdown(prev => !prev);
+                    });
+                    if (!opened) return; // AuthDialog will show
                 }}
                 className="p-1 hover:bg-gray-100 rounded-full transition-colors"
               >

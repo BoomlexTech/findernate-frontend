@@ -22,8 +22,23 @@ const LoginComponent: React.FC = () => {
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState('');
+  const [emailError, setEmailError] = useState('');
   const { setUser, setToken } = useUserStore();
   const router = useRouter();
+
+  const validateEmail = (value: string) => {
+    if (!value) {
+      setEmailError('');
+      return true;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+    if (!emailRegex.test(value)) {
+      setEmailError('Enter a valid email address');
+      return false;
+    }
+    setEmailError('');
+    return true;
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -31,6 +46,7 @@ const LoginComponent: React.FC = () => {
       ...prev,
       [name]: value
     }));
+    if (name === 'email') validateEmail(value);
   };
 
   const onCreateAccount = () => {
@@ -46,6 +62,7 @@ const LoginComponent: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validateEmail(formData.email)) return; // Block submit if invalid email
     setIsLoading(true);
     setError('')
     try {
@@ -88,8 +105,8 @@ const LoginComponent: React.FC = () => {
           <p className="text-gray-600">Welcome back to your business network</p>
         </div>
 
-        {/* Login Form */}
-        <div className="space-y-6">
+  {/* Login Form */}
+  <form className="space-y-6" onSubmit={handleSubmit}>
           {/* Email */}
           <div>
             <div className="relative">
@@ -99,9 +116,13 @@ const LoginComponent: React.FC = () => {
                 placeholder="Email address"
                 value={formData.email}
                 onChange={handleInputChange}
+                onBlur={(e) => validateEmail(e.target.value)}
                 leftIcon={ <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
                 </svg>}
+                error={emailError}
+                autoComplete="email"
+                inputMode="email"
                 required
               />
             </div>
@@ -135,14 +156,13 @@ const LoginComponent: React.FC = () => {
           {/* Sign In Button */}
           <button
             type="submit"
-            onClick={handleSubmit}
             disabled={isLoading}
             className="w-full py-3 px-4 bg-button-gradient text-white font-semibold rounded-lg transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
           >
             {isLoading ? 'Signing In...' : 'Sign In'}
           </button>
 
-        </div>
+        </form>
 
         {/* Create Account Link */}
         <div className="text-center mt-6">
