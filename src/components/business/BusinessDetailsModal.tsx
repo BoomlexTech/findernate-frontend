@@ -321,6 +321,12 @@ const BusinessDetailsModal: React.FC<Props> = ({
   };
 
   const handleSubmit = async () => {
+    // Client-side guard: require non-empty business name
+    const isBusinessNameValid = !!form.businessName?.trim();
+    if (!isBusinessNameValid) {
+      // Optionally, you could set a local error state or toast; keep minimal for now
+      return;
+    }
     setLoading(true);
     try {
       let response;
@@ -405,6 +411,9 @@ const BusinessDetailsModal: React.FC<Props> = ({
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white text-gray-800 placeholder-gray-500" 
                     required 
                   />
+              {!form.businessName?.trim() && (
+                <p className="text-sm text-yellow-600">Business name is required.</p>
+              )}
                 </div>
                 
                 <div className="space-y-2">
@@ -756,7 +765,7 @@ const BusinessDetailsModal: React.FC<Props> = ({
                 variant="outline" 
                 size="lg" 
                 onClick={handleSubmit} 
-                disabled={loading || fetchingData}
+                disabled={loading || fetchingData || !form.businessName?.trim()}
                 className="w-full bg-button-gradient text-white py-4 rounded-lg font-semibold text-lg transition-all duration-200 transform hover:scale-[1.02] focus:ring-4 focus:ring-blue-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
               >
                 {getSubmitButtonText()}

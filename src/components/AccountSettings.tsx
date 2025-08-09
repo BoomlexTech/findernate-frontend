@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import PlanSelectionModal from './business/PlanSelectionModal';
 import BusinessDetailsModal from './business/BusinessDetailsModal';
+import { PaymentMethodsModal } from './business/PaymentMethodModal';
 import { ChevronDown } from 'lucide-react';
 import { UpdateBusinessCategory, GetBusinessCategory } from '@/api/business';
 import { CreateBusinessRequest } from '@/types';
@@ -33,6 +34,8 @@ const businessCategories = [
 export default function AccountSettings() {
   const [showPlanModal, setShowPlanModal] = useState(false);
   const [showBusinessDetailsModal, setShowBusinessDetailsModal] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [isBusiness, setIsBusiness] = useState(false);
   const [currentCategory, setCurrentCategory] = useState('');
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
@@ -123,7 +126,8 @@ export default function AccountSettings() {
   // Upgrade flow only for non-business users
   const handleSwitchToBusiness = () => {
     if (!isBusiness) {
-      setShowBusinessDetailsModal(true);
+      // Start the same flow as Settings: plan -> payment -> details
+      setShowPlanModal(true);
     }
   };
 
@@ -249,10 +253,30 @@ export default function AccountSettings() {
       <PlanSelectionModal
         isOpen={showPlanModal}
         onClose={() => setShowPlanModal(false)}
-        onSelectPlan={() => {
+        onSelectPlan={(plan: string) => {
+          setSelectedPlan(plan);
           setShowPlanModal(false);
+          // Open payment for paid plans; for free we could go straight to details
+          if (plan === 'Small Business' || plan === 'Corporate') {
+            setShowPaymentModal(true);
+          } else {
+            setShowBusinessDetailsModal(true);
+          }
         }}
-        currentPlan="Small Business" // or whatever the current plan is
+        currentPlan={selectedPlan || 'Free'}
+      />
+
+      {/* Payment Modal */}
+      <PaymentMethodsModal
+        isOpen={showPaymentModal}
+        onClose={() => {
+          setShowPaymentModal(false);
+          setSelectedPlan(null);
+        }}
+        onPaymentOptionClick={() => {
+          setShowPaymentModal(false);
+          setShowBusinessDetailsModal(true);
+        }}
       />
 
       {/* Business Details Modal */}
