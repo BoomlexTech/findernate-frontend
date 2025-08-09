@@ -83,7 +83,7 @@ const BusinessDetailsForm: React.FC<BusinessPostFormProps> = ({
         type="number"
         name="discount"
         placeholder="Enter discount"
-        value={formData.business.promotions[0].discount}
+        value={(formData.business?.promotions?.[0]?.discount ?? 0).toString()}
         onChange={onChange}
         className="w-full p-3 text-black border border-gray-300 rounded-lg placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-yellow-500"
         required
@@ -93,7 +93,7 @@ const BusinessDetailsForm: React.FC<BusinessPostFormProps> = ({
       <label className="block text-sm font-medium text-gray-700 mb-1">Is Active</label>
       <select
         name="isActive"
-        value={formData.business.promotions[0].isActive.toString()}
+        value={(formData.business?.promotions?.[0]?.isActive ? 'Active' : 'inactive')}
         onChange={onChange}
         className='w-full p-3 text-black border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500'
         required
@@ -111,7 +111,7 @@ const BusinessDetailsForm: React.FC<BusinessPostFormProps> = ({
       type="date"
       name="validUntil"
       placeholder="Select expiry date"
-      value={formData.business.promotions[0].validUntil}
+      value={formData.business?.promotions?.[0]?.validUntil ?? ''}
       onChange={onChange}
       className="w-full p-3 text-black border border-gray-300 rounded-lg placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-yellow-500"
       required

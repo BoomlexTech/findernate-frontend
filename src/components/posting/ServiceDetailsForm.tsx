@@ -12,8 +12,6 @@ const ServiceDetailsForm: React.FC<ServiceDetailsFormProps> = ({
 }) => {
 
     const currency=['INR', 'USD', 'EUR'];
-    const niche= ['Business', 'Technology', 'Education', 'Health & Wellness']
-    const type= ['in-person', 'online', 'hybrid']
 
     const [schedule, setSchedule] = useState(
     daysOfWeek.reduce((acc, day) => {
@@ -107,43 +105,7 @@ const ServiceDetailsForm: React.FC<ServiceDetailsFormProps> = ({
           />
         </div>
       
-      <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 mb-1"></label>
-        <select
-          name="subcategory"
-          value={formData.service.subcategory}
-          onChange={onChange}
-          className={`w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500
-            ${formData.service.subcategory === '' ? 'text-gray-500' : 'text-gray-900'}`}
-          required
-        >
-          {niche.map((niche) => (
-            <option key={niche} value={niche}>{niche}</option>
-          ))}
-        </select>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-        <input
-          name="duration"
-          placeholder="Duration"
-          value={formData.service.duration}
-          onChange={onChange}
-          className="w-full p-3 text-black border border-gray-300 rounded-lg placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-yellow-500"
-        />
-        <select
-          name="currency"
-          value={formData.service.serviceType}
-          onChange={onChange}
-          className={`w-full p-3 text-black border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500
-            ${formData.service.serviceType === '' ? 'text-gray-500' : 'text-gray-900'}`}
-          required
-        >
-          {type.map((type) => (
-            <option key={type} value={type}>{type}</option>
-          ))}
-        </select>
-      </div>
+      {/* Removed: subcategory, duration, and serviceType fields as requested */}
 
 
 

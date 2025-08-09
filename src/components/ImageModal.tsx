@@ -248,7 +248,7 @@ export default function ImageModal({ isOpen, onClose, post }: ImageModalProps) {
                   }}
                 >
                   <video
-                    src={currentMedia.url}
+                    src={currentMedia.url && currentMedia.url.trim() ? currentMedia.url : undefined}
                     controls
                     autoPlay
                     loop
@@ -285,7 +285,7 @@ export default function ImageModal({ isOpen, onClose, post }: ImageModalProps) {
                   }}
                 >
                   <Image
-                    src={currentMedia.url}
+                    src={currentMedia.url && currentMedia.url.trim() ? currentMedia.url : '/placeholderimg.png'}
                     alt="Post image"
                     width={1200}
                     height={900}
@@ -344,13 +344,13 @@ export default function ImageModal({ isOpen, onClose, post }: ImageModalProps) {
               >
                 {media.type === 'video' ? (
                   <video
-                    src={media.url}
+                    src={media.url && media.url.trim() ? media.url : undefined}
                     className="w-full h-full object-cover"
                     muted
                   />
                 ) : (
                   <Image
-                    src={media.url}
+                    src={media.url && media.url.trim() ? media.url : '/placeholderimg.png'}
                     alt={`Thumbnail ${index + 1}`}
                     width={48}
                     height={48}
