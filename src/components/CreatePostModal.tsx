@@ -455,44 +455,40 @@ const handleProductChange = (
               Regular Post
             </Button>
 
-            {/* Business Post Types - Only for business profiles */}
-            {isBusinessProfile && (
-              <>
-                <Button
-                  variant='custom'
-                  onClick={() => setPostType('Product')}
-                  className={`px-4 py-2 rounded-lg border transition-colors ${
-                    postType === 'Product'
-                      ? 'border-yellow-500 bg-yellow-50 text-yellow-700'
-                      : 'border-gray-300 text-gray-600 hover:bg-gray-50'
-                  }`}
-                >
-                  <ShoppingBag className='mr-2' size={16} /> Product
-                </Button>
-                <Button
-                  variant='custom'
-                  onClick={() => setPostType('Service')}
-                  className={`px-4 py-2 rounded-lg border transition-colors ${
-                    postType === 'Service'
-                      ? 'border-yellow-500 bg-yellow-50 text-yellow-700'
-                      : 'border-gray-300 text-gray-600 hover:bg-gray-50'
-                  }`}
-                >
-                  <BriefcaseBusiness className='mr-2' size={16} /> Service
-                </Button>
-                <Button
-                  variant='custom'
-                  onClick={() => setPostType('Business')}
-                  className={`px-4 py-2 rounded-lg border transition-colors ${
-                    postType === 'Business'
-                      ? 'border-yellow-500 bg-yellow-50 text-yellow-700'
-                      : 'border-gray-300 text-gray-600 hover:bg-gray-50'
-                  }`}
-                >
-                  <Building2 className='mr-2' size={16} /> Business
-                </Button>
-              </>
-            )}
+            {/* Business Post Types - Available for all users */}
+            <Button
+              variant='custom'
+              onClick={() => setPostType('Product')}
+              className={`px-4 py-2 rounded-lg border transition-colors ${
+                postType === 'Product'
+                  ? 'border-yellow-500 bg-yellow-50 text-yellow-700'
+                  : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              <ShoppingBag className='mr-2' size={16} /> Product
+            </Button>
+            <Button
+              variant='custom'
+              onClick={() => setPostType('Service')}
+              className={`px-4 py-2 rounded-lg border transition-colors ${
+                postType === 'Service'
+                  ? 'border-yellow-500 bg-yellow-50 text-yellow-700'
+                  : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              <BriefcaseBusiness className='mr-2' size={16} /> Service
+            </Button>
+            <Button
+              variant='custom'
+              onClick={() => setPostType('Business')}
+              className={`px-4 py-2 rounded-lg border transition-colors ${
+                postType === 'Business'
+                  ? 'border-yellow-500 bg-yellow-50 text-yellow-700'
+                  : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              <Building2 className='mr-2' size={16} /> Business
+            </Button>
           </div>
 
           {/* Post Content */}
@@ -513,20 +509,20 @@ const handleProductChange = (
               onChange={handleRegularChange}
             />
           )}
-          {isBusinessProfile && postType === 'Product' && (
+          {postType === 'Product' && (
             <ProductDetailsForm
               formData={productForm}
               onChange={handleProductChange}
             />
           )}
-          {isBusinessProfile && postType === 'Service' && (
+          {postType === 'Service' && (
             <ServiceDetailsForm
               formData={serviceForm}
               onChange={handleServiceChange}
               categories={['Consulting', 'Repair', 'Education', 'Other']}
             />
           )}
-          {isBusinessProfile && postType === 'Business' && (
+          {postType === 'Business' && (
             <BusinessDetailsForm
               formData={businessForm.formData}
               onChange={handleBusinessChange}
