@@ -20,8 +20,8 @@ interface createPostModalProps {
 const CreatePostModal = ({closeModal}: createPostModalProps ) => {
   const { user } = useUserStore();
 
-  // Check if user is a business profile to determine available post types
-  const isBusinessProfile = user?.isBusinessProfile || false;
+  // Temporarily show all post types everywhere
+  const isBusinessProfile = true;
 
   // Set default post type to Regular for all users
   const [postType, setPostType] = useState('Regular');
@@ -113,8 +113,8 @@ const [serviceForm, setServiceForm] = useState({
 const [businessForm, setBusinessForm] = useState({
   formData: {
     postType: 'photo',
-    caption: 'Grand Opening!',
-    description: 'Welcome to our new business.',
+    caption: '',
+    description: '',
     image: [],
     mentions: [],
     settings: {
@@ -124,50 +124,32 @@ const [businessForm, setBusinessForm] = useState({
     },
     status: 'scheduled',
     business: {
-      businessName: 'Sample Business',
-      businessType: 'Cafe', // REQUIRED
-      description: 'A trendy new cafe with artisan coffee and snacks.',
-      category: 'Food & Beverage', // REQUIRED
-      subcategory: 'Cafe',
+      businessName: '',
+      businessType: '',
+      description: '',
+      category: '',
+      subcategory: '',
       contact: {
-        phone: '+91-9876543210', // REQUIRED
-        email: 'info@samplebusiness.com', // REQUIRED
-        website: 'https://samplebusiness.com',
-        socialMedia: [
-          { platform: 'Instagram', url: 'https://instagram.com/samplebusiness' }
-        ],
+        phone: '',
+        email: '',
+        website: '',
+        socialMedia: [],
       },
       location: {
-        address: '123 Main Street',
-        city: 'Delhi', // REQUIRED
-        state: 'Delhi', // REQUIRED
-        country: 'India', // REQUIRED
-        postalCode: '110001', // REQUIRED
+        address: '',
+        city: '',
+        state: '',
+        country: '',
+        postalCode: '',
       },
-      hours: [
-        { day: 'Monday', openTime: '08:00', closeTime: '22:00', isClosed: false },
-        { day: 'Tuesday', openTime: '08:00', closeTime: '22:00', isClosed: false },
-        { day: 'Wednesday', openTime: '08:00', closeTime: '22:00', isClosed: false },
-        { day: 'Thursday', openTime: '08:00', closeTime: '22:00', isClosed: false },
-        { day: 'Friday', openTime: '08:00', closeTime: '23:00', isClosed: false },
-        { day: 'Saturday', openTime: '09:00', closeTime: '23:00', isClosed: false },
-        { day: 'Sunday', openTime: '09:00', closeTime: '21:00', isClosed: false }
-      ],
-      features: ['Free WiFi', 'Outdoor Seating', 'Live Music'],
-      priceRange: '₹₹',
-      rating: 4.8,
-      tags: ['cafe', 'coffee', 'delhi', 'grandopening'],
-      announcement: 'Grand opening this weekend! Free coffee for the first 50 guests.',
-      promotions: [
-        {
-          title: 'Opening Offer',
-          description: 'Buy 1 Get 1 Free on all coffees.',
-          discount: 50,
-          validUntil: '2025-08-01T23:59:59.000Z',
-          isActive: true
-        }
-      ],
-      link: 'https://samplebusiness.com',
+      hours: [],
+      features: [],
+      priceRange: '',
+      rating: 0,
+      tags: [],
+      announcement: '',
+      promotions: [],
+      link: '',
     }
   },
 });
@@ -401,7 +383,7 @@ const handleProductChange = (
     <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
       <div className="bg-white rounded-2xl hide-scrollbar shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b">
+        <div className="sticky top-0 z-10 bg-white flex items-center justify-between p-6 border-b">
           <h2 className="text-xl font-semibold text-gray-800">Create Post</h2>
           <button
             onClick={handleCloseModal}
