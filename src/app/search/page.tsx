@@ -8,6 +8,7 @@ import {
   Hash,
   Package,
   Building,
+  Wrench,
   ChevronDown,
   Plus,
   Calendar,
@@ -63,7 +64,7 @@ export default function SearchPage() {
     { id: "all", label: "All", icon: Search },
     { id: "normal", label: "Normal", icon: Hash },
     { id: "product", label: "Product", icon: Package },
-    { id: "service", label: "Service", icon: Building },
+    { id: "service", label: "Service", icon: Wrench },
     { id: "business", label: "Business", icon: Building },
   ];
 
