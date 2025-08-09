@@ -19,6 +19,10 @@ import {
 import { FeedPost } from '@/types';
 import { Badge } from './ui/badge';
 import { useState } from 'react';
+import { useUserStore } from '@/store/useUserStore';
+import { messageAPI } from '@/api/message';
+import { useRouter } from 'next/navigation';
+import { getOtherUserProfile } from '@/api/user';
 
 interface ProductServiceDetailsProps {
   post: FeedPost;
@@ -28,6 +32,9 @@ interface ProductServiceDetailsProps {
 
 const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServiceDetailsProps) => {
   const [isBooking, setIsBooking] = useState(false);
+  const [resolvedOwnerId, setResolvedOwnerId] = useState<string | null>(null);
+  const user = useUserStore(state => state.user);
+  const router = useRouter();
 
   // Mock data - replace with actual post data when available
   const mockProductData = {
@@ -79,19 +86,90 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
   const isBusiness = post.contentType === 'business';
   const data = isProduct ? mockProductData : isBusiness ? mockBusinessData : mockServiceData;
 
-  const handleBooking = () => {
-    setIsBooking(true);
-    // Simulate booking process
-    setTimeout(() => {
-      setIsBooking(false);
-      if (isProduct) {
-        alert('Product added to cart!');
-      } else if (isBusiness) {
-        alert('Contact information shared!');
-      } else {
-        alert('Service booking request sent!');
+  const handleGetContact = async () => {
+    if (isBooking) return;
+    if (!user?._id) {
+      router.push('/signin');
+      return;
+    }
+
+    // Extract post owner's id (object form or string fallback). Add defensive checks & logging.
+    let targetUserId: string | undefined | null = resolvedOwnerId;
+    try {
+      if (!targetUserId && post) {
+        const rawUserId: any = (post as any).userId;
+        if (typeof rawUserId === 'string') {
+          targetUserId = rawUserId;
+        } else if (rawUserId && typeof rawUserId === 'object') {
+          targetUserId = rawUserId._id;
+        }
+        // Additional fallback fields sometimes used in feeds
+        if (!targetUserId && (post as any).ownerId) targetUserId = (post as any).ownerId;
+        if (!targetUserId && (post as any).authorId) targetUserId = (post as any).authorId;
+        // If still no id but we have a username, fetch profile
+        if (!targetUserId && (post as any).username) {
+          try {
+            const profile = await getOtherUserProfile((post as any).username);
+            if (profile?._id) {
+              targetUserId = profile._id;
+              setResolvedOwnerId(profile._id); // cache for future clicks
+            }
+          } catch (fetchErr) {
+            console.warn('Failed to fetch owner profile by username:', fetchErr);
+          }
+        }
       }
-    }, 2000);
+    } catch (ex) {
+      console.warn('Error extracting target user id from post:', ex);
+    }
+
+    if (!targetUserId) {
+      console.warn('Post object when failing to get owner id:', post);
+      alert('Unable to identify post owner.');
+      return;
+    }
+
+    if (targetUserId === user._id) {
+      router.push('/chats');
+      return;
+    }
+
+    try {
+      setIsBooking(true);
+
+  // 1. Try to find an existing direct chat with this user to avoid duplicates
+      let chatId: string | null = null;
+      try {
+        const active = await messageAPI.getActiveChats(1, 50); // first page
+        const existing = active.chats.find(c => 
+          c.chatType === 'direct' &&
+          c.participants.some(p => p && p._id === user._id) &&
+          c.participants.some(p => p && p._id === targetUserId)
+        );
+        if (existing) chatId = existing._id;
+      } catch (inner) {
+        // Non-fatal, we'll just attempt to create
+        console.warn('Could not fetch active chats before creating:', inner);
+      }
+
+      // 2. If none found, create one
+      if (!chatId) {
+        const chat = await messageAPI.createChat([user._id, targetUserId], 'direct');
+        chatId = chat._id;
+      }
+
+      // 3. Navigate to chats page focusing this chat
+      router.push(`/chats?chatId=${chatId}`);
+
+      // (Optional) To send an automatic first message, uncomment:
+      // await messageAPI.sendMessage(chatId, 'Hi! I am interested in your post.');
+    } catch (err: any) {
+      console.error('Failed to open chat:', err);
+      router.push('/chats');
+      alert(err?.response?.data?.message || 'Could not open chat. Redirecting to chats.');
+    } finally {
+      setIsBooking(false);
+    }
   };
 
   if (isSidebar) {
@@ -234,7 +312,7 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
         {/* Sticky Button at Bottom */}
         <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 z-10 flex-shrink-0">
           <button
-            onClick={handleBooking}
+            onClick={handleGetContact}
             disabled={isBooking}
             className={`w-full py-3 px-4 rounded-xl font-bold text-white text-sm transition-all duration-200 shadow-lg hover:shadow-xl ${
               isProduct
@@ -244,13 +322,13 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
                 : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800'
             } ${isBooking ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.02]'}`}
           >
-            {isBooking ? (
-              <div className="flex items-center justify-center gap-2">
-                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                {isProduct ? 'Adding...' : isBusiness ? 'Getting...' : 'Booking...'}
-              </div>
-            ) : (
-              isProduct ? 'Add to Cart' : isBusiness ? 'Get Contact' : 'Book Now'
+              {isBooking ? (
+                <div className="flex items-center justify-center gap-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                  Opening Chat...
+                </div>
+              ) : (
+             'Get Contact info' 
             )}
           </button>
         </div>
@@ -415,7 +493,7 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
           {/* Book Button */}
           <div className="pt-4">
             <button
-              onClick={handleBooking}
+              onClick={handleGetContact}
               disabled={isBooking}
               className={`w-full py-4 px-6 rounded-xl font-bold text-white text-lg transition-all duration-200 shadow-lg hover:shadow-xl ${
                 isProduct
@@ -428,10 +506,10 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
               {isBooking ? (
                 <div className="flex items-center justify-center gap-2">
                   <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
-                  {isProduct ? 'Adding to Cart...' : isBusiness ? 'Getting Contact Info...' : 'Booking...'}
+                  Opening Chat...
                 </div>
               ) : (
-                isProduct ? 'Add to Cart' : isBusiness ? 'Get Contact Info' : 'Book Now'
+                'Get Contact Info'
               )}
             </button>
           </div>
