@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { BadgeCheck, Settings, Pencil, Shield, Check, X, UserPlus, UserMinus, MessageCircle } from "lucide-react";
+import { BadgeCheck, Settings, Pencil, Shield, Check, X, UserPlus, UserMinus, MessageCircle, Flag } from "lucide-react";
+import ReportModal from './ReportModal';
 import { Button } from "./ui/button";
 import SettingsModal from "./SettingsModal";
 import { UserProfile as UserProfileType } from "@/types";
@@ -54,6 +55,7 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
   const [showFollowersModal, setShowFollowersModal] = useState(false);
   const [followersModalTab, setFollowersModalTab] = useState<'followers' | 'following'>('followers');
+  const [showReportModal, setShowReportModal] = useState(false);
 
   // Helper function to check if all stories have been viewed by current user
   const areAllStoriesViewed = () => {
@@ -525,6 +527,17 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
     }
   };
 
+  const handleOpenReport = () => {
+    // Prevent self-reporting
+    if (isCurrentUser) return;
+    // Require auth
+    if (!currentUser?._id) {
+      router.push('/signin');
+      return;
+    }
+    setShowReportModal(true);
+  };
+
   // Handle followers/following click
   const handleFollowersClick = (tab: 'followers' | 'following') => {
     setFollowersModalTab(tab);
@@ -850,6 +863,15 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
                   )}
                   <span className="hidden sm:inline">{creatingChat ? 'Creating...' : 'Message'}</span>
                 </Button>
+                <Button
+                  onClick={handleOpenReport}
+                  variant="outline"
+                  className="border px-2.5 py-1.5 rounded-md text-sm sm:text-md font-medium text-red-600 hover:bg-red-50 flex items-center gap-1"
+                  aria-label="Report User"
+                >
+                  <Flag className="w-4 h-4" />
+                  <span className="hidden sm:inline">Report</span>
+                </Button>
               </>
             )}
           </div>
@@ -915,6 +937,14 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
         isOpen={showFollowersModal}
         onClose={() => setShowFollowersModal(false)}
         initialTab={followersModalTab}
+      />
+      {/* Report User Modal */}
+      <ReportModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        contentType="user"
+        contentId={profile._id}
+        title={`Report @${profile.username}`}
       />
     </div>
   );

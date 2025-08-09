@@ -24,6 +24,8 @@ const UserCard: React.FC<UserCardProps> = ({ user, onFollow }) => {
   const [showReportModal, setShowReportModal] = useState(false);
   const router = useRouter();
   const { requireAuth, showAuthDialog, closeAuthDialog } = useAuthGuard();
+  const currentUser = useUserStore(state => state.user);
+  const isCurrentUser = currentUser?._id === user._id;
 
   // Update local state when user prop changes
   useEffect(() => {
@@ -153,12 +155,17 @@ const UserCard: React.FC<UserCardProps> = ({ user, onFollow }) => {
       <div
         className="w-full max-w-2xl bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden group cursor-pointer"
         onClick={(e) => {
-          // Prevent navigation if clicking the follow or message button
-          if ((e.target as HTMLElement).closest('button')) return;
-          requireAuth(() => {
-            router.push(`/userprofile/${user.username}`);
-          });
-        }}
+          // Prevent navigation if clicking any button inside
+            if ((e.target as HTMLElement).closest('button')) return;
+            requireAuth(() => {
+              if (isCurrentUser) {
+                // Navigate to dedicated self profile route if available
+                router.push('/profile');
+              } else {
+                router.push(`/userprofile/${user.username}`);
+              }
+            });
+          }}
       >
         {/* Header with profile image and basic info */}
         <div className="p-4 pb-3">
@@ -209,7 +216,8 @@ const UserCard: React.FC<UserCardProps> = ({ user, onFollow }) => {
                     </div>
                   )}  */}
                 </div>
-                {/* Action Buttons */}
+                {/* Action Buttons - hide for current logged-in user's own card */}
+                {!isCurrentUser && (
                 <div className="ml-3 flex gap-2">
                   <button
                     onClick={(e) => { e.stopPropagation(); handleFollowClick(); }}
@@ -270,6 +278,7 @@ const UserCard: React.FC<UserCardProps> = ({ user, onFollow }) => {
                     )}
                   </div>
                 </div>
+                )}
               </div>
             </div>
           </div>
