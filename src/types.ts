@@ -58,7 +58,7 @@ export interface ProductDetailsFormProps {
   };
   product: {
     name: string;
-    price: string;
+    price: number;
     currency: string;
     inStock: boolean;
     link: string;
@@ -103,7 +103,7 @@ export interface ServiceDetailsFormProps {
   service: {
     name: string;
     description: string;
-    price: string; // Keep as string for input, convert to number for API
+    price: number;
     currency: string;
     category: string;
     subcategory: string;

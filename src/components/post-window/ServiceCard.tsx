@@ -23,16 +23,16 @@ const ServiceCard = ({ post }: ServiceCardProps) => {
   
   return (
     // Main card container
-    <div className="w-full rounded-xl bg-blue-100 p-4 shadow-md font-sans border border-blue-500">
+    <div className="w-full rounded-xl bg-blue-100/70 p-4 shadow-md font-sans border border-blue-500">
       
       {/* Top section: Service Name */}
-      <div className="flex items-center gap-3 rounded-lg bg-blue-300 p-2 text-blue-800 border-1 border-blue-600">
+      <div className="flex items-center gap-3 rounded-lg bg-blue-300/70 p-2 text-blue-800 border-1 border-blue-600">
         <Bell size={18} />
         <h1 className="text-md font-medium ">{serviceName}</h1>
       </div>
 
       {/* Middle section: Location & Price */}
-      <div className="mt-3 rounded-lg bg-gradient-to-r from-green-100 to-green-200 p-2 border-1 border-green-600">
+      <div className="mt-3 rounded-lg bg-gradient-to-r from-green-100/70 to-green-200/70 p-2 border-1 border-green-600">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-2">
             <MapPin size={16} className="text-green-700" />

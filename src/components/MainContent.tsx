@@ -51,19 +51,53 @@ type RawFeedItem = {
       tags?: string[];
     };
     service?: {
-      description: string;
-      category?: string;
+      name?: string;
+      description?: string;
+      price?: number;
       currency?: string;
+      category?: string;
+      subcategory?: string;
+      duration?: number;
+      serviceType?: string;
+      location?: {
+        name: string;
+        coordinates?: {
+          type: string;
+          coordinates: [number, number];
+        };
+      };
+      requirements?: string[];
       deliverables?: string[];
+      tags?: string[];
+      link?: string;
       availability?: {
-        schedule: [];
+        schedule: Array<{
+          day: string;
+          timeSlots: Array<{ startTime: string; endTime: string }>;
+        }>;
         timezone: string;
         bookingAdvance: number;
         maxBookingsPerDay: number;
       };
     };
+    product?: {
+      name?: string;
+      price?: number;
+      currency?: string;
+      inStock?: boolean;
+      link?: string;
+      location?: {
+        name: string;
+        coordinates?: {
+          type: string;
+          coordinates: [number, number];
+        };
+      };
+    };
   };
 };
+
+type RawComment = { replies?: unknown[] };
 
 export default function MainContent() {
   const [feed, setFeed] = useState<FeedPost[]>([]);
@@ -73,18 +107,17 @@ export default function MainContent() {
   const [initialLoad, setInitialLoad] = useState(true);
   const loaderRef = useRef<HTMLDivElement>(null);
 
-  const fetchPosts = async (pageNum: number) => {
+  const fetchPosts = useCallback(async (pageNum: number) => {
     try {
       setLoading(true);
       const res = await getHomeFeed({ page: pageNum, limit: 10 });
-      //console.log(res)
-      const mappedFeed: FeedPost[] = res.data.feed.map((item: RawFeedItem & { comments?: any[] }) => {
+      const incoming: FeedPost[] = res.data.feed.map((item: RawFeedItem & { comments?: RawComment[] }) => {
         // Calculate actual comment count from comments array
         let actualCommentCount = 0;
         if (item.comments && Array.isArray(item.comments)) {
           // Count top-level comments + replies
-          actualCommentCount = item.comments.reduce((total, comment) => {
-            const repliesCount = comment.replies ? comment.replies.length : 0;
+          actualCommentCount = item.comments.reduce((total, comment: RawComment) => {
+            const repliesCount = Array.isArray(comment.replies) ? comment.replies.length : 0;
             return total + 1 + repliesCount; // 1 for the comment itself + replies
           }, 0);
         }
@@ -104,6 +137,7 @@ export default function MainContent() {
           media: item.media as MediaItem[],
           isLikedBy: item.isLikedBy,
           likedBy: item.likedBy,
+          customization: item.customization,
           engagement: {
             ...(item.engagement || {}),
             comments: actualCommentCount, // Use calculated count
@@ -114,31 +148,39 @@ export default function MainContent() {
             shares: item.engagement?.shares || 0,
             views: item.engagement?.views || 0,
           },
-          location: item.customization?.normal?.location || null,
+          location:
+            item.customization?.normal?.location ||
+            item.customization?.service?.location ||
+            item.customization?.product?.location ||
+            item.customization?.business?.location ||
+            null,
           tags: item.customization?.normal?.tags || [],
         };
       });
 
-      const newPosts = mappedFeed.filter(
-        newPost => !feed.some(existingPost => existingPost._id === newPost._id)
-      );
+      // Deduplicate and append using functional update to avoid stale deps
+      let addedCount = 0;
+      setFeed(prev => {
+        if (pageNum === 1) {
+          // Replace on first page
+          addedCount = incoming.length;
+          return incoming;
+        }
+        const existingIds = new Set(prev.map(p => p._id));
+        const deduped = incoming.filter(p => !existingIds.has(p._id));
+        addedCount = deduped.length;
+        return [...prev, ...deduped];
+      });
 
-      if (pageNum === 1) {
-        setFeed(mappedFeed);
-      } else {
-        setFeed(prev => [...prev, ...newPosts]);
-      }
-
-      if (mappedFeed.length < 10 || newPosts.length === 0) {
-        setHasMore(false);
-      }
+      // Update hasMore based on incoming page size and whether anything was added
+      setHasMore(incoming.length >= 10 && addedCount > 0);
     } catch (err) {
       console.error("Error fetching posts:", err);
     } finally {
       setLoading(false);
       if (initialLoad) setInitialLoad(false);
     }
-  };
+  }, [initialLoad]);
 
   const handleObserver = useCallback((entries: IntersectionObserverEntry[]) => {
     const [target] = entries;
@@ -154,20 +196,21 @@ export default function MainContent() {
       threshold: 0.1
     });
 
-    if (loaderRef.current) {
-      observer.observe(loaderRef.current);
+    const current = loaderRef.current;
+    if (current) {
+      observer.observe(current);
     }
 
     return () => {
-      if (loaderRef.current) {
-        observer.unobserve(loaderRef.current);
+      if (current) {
+        observer.unobserve(current);
       }
     };
   }, [handleObserver]);
 
   useEffect(() => {
     fetchPosts(page);
-  }, [page]);
+  }, [page, fetchPosts]);
 
   return (
     <div className="max-w-3xl mx-auto py-4 px-2 sm:px-4">

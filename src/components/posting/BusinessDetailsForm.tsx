@@ -22,7 +22,6 @@ const BusinessDetailsForm: React.FC<BusinessPostFormProps> = ({
             value={formData.business.businessName}
             onChange={onChange}
             className="w-full p-3 text-black border border-gray-300 rounded-lg placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-yellow-500"
-            required
           />
         </div>
          <div className='mb-4'>
@@ -33,7 +32,6 @@ const BusinessDetailsForm: React.FC<BusinessPostFormProps> = ({
             value={formData.business.link}
             onChange={onChange}
             className="w-full p-3 border text-gray-900 border-gray-300 rounded-lg placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-yellow-500"
-            required
           />
         </div>
       </div>
@@ -45,7 +43,6 @@ const BusinessDetailsForm: React.FC<BusinessPostFormProps> = ({
             value={formData.business.announcement}
             onChange={onChange}
             className="w-full p-3 text-black border border-gray-300 rounded-lg placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-yellow-500"
-            required
           />
         </div>
 
@@ -96,7 +93,6 @@ const BusinessDetailsForm: React.FC<BusinessPostFormProps> = ({
         value={(formData.business?.promotions?.[0]?.isActive ? 'Active' : 'inactive')}
         onChange={onChange}
         className='w-full p-3 text-black border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500'
-        required
       >
         {isActive.map((active) => (
           <option key={active} value={active}>{active}</option>
@@ -113,8 +109,7 @@ const BusinessDetailsForm: React.FC<BusinessPostFormProps> = ({
       placeholder="Select expiry date"
       value={formData.business?.promotions?.[0]?.validUntil ?? ''}
       onChange={onChange}
-      className="w-full p-3 text-black border border-gray-300 rounded-lg placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-yellow-500"
-      required
+            className="w-full p-3 text-black border border-gray-300 rounded-lg placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-yellow-500"
     />
   </div>
 </div>

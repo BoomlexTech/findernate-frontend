@@ -54,6 +54,17 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
   const [isOnProfilePage, setIsOnProfilePage] = useState(false);
   const [showImageModal, setShowImageModal] = useState(false);
 
+  // Derive a human-readable location name to avoid rendering [object Object]
+  const locationName: string | undefined = (
+    post.customization?.business?.location?.name ||
+    post.customization?.service?.location?.name ||
+    post.customization?.product?.location?.name ||
+    (typeof post.location === 'string'
+      ? post.location
+      : (post.location?.name || (post.location as any)?.label || (post.location as any)?.address)) ||
+    undefined
+  );
+
   // Check if we're on a profile page to show delete button
   useEffect(() => {
     setIsOnProfilePage(pathname.includes('/profile') || pathname.includes('/userprofile'));
@@ -653,19 +664,10 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
                   </h3>
                   {post.contentType && <Badge className='bg-button-gradient' variant='outline'>{post.contentType}</Badge>}
                 </div>
-                {post.location && (
+                {locationName && (
                   <div className="flex items-center gap-1 text-gray-700">
                     <MapPin className="w-3 h-3 text-yellow-500" />
-                    <p className="text-xs">
-                      {typeof post.location === 'object' ? 
-                        (post.location.name || 
-                         (post.location as any).label || 
-                         (post.location as any).address || 
-                         String(post.location))
-                        : 
-                        String(post.location)
-                      }
-                    </p>
+                    <p className="text-xs">{locationName}</p>
                   </div>
                 )}
               </div>
@@ -894,19 +896,10 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
                   </h3>
                   {post.contentType && <Badge className='bg-button-gradient' variant='outline'>{post.contentType}</Badge>}
                     </div>
-                {post.location && (
+                {locationName && (
                 <div className="flex items-center gap-1 text-gray-700">
                   <MapPin className="w-3 h-3 text-yellow-500" />
-                  <p className="text-xs">
-                    {typeof post.location === 'object' ? 
-                      (post.location.name || 
-                       (post.location as any).label || 
-                       (post.location as any).address || 
-                       String(post.location))
-                      : 
-                      String(post.location)
-                    }
-                  </p>
+                  <p className="text-xs">{locationName}</p>
                 </div>
                   )}
                 </div>

@@ -22,10 +22,10 @@ const ProductCard = ({ post }: ProductCardProps) => {
   
   return (
     // Main card container
-    <div className="w-full rounded-2xl border border-violet-500 bg-violet-200 p-2 shadow-lg font-sans">
+    <div className="w-full rounded-2xl border border-violet-500 bg-violet-200/70 p-2 shadow-lg font-sans">
       
       {/* Top section: Product Name */}
-      <div className="flex items-center gap-3 border border-violet-600 rounded-lg bg-violet-300 p-3 text-violet-900">
+      <div className="flex items-center gap-3 border border-violet-600 rounded-lg bg-violet-300/70 p-3 text-violet-900">
         <ShoppingBag size={22} className="text-violet-800" />
         <h1 className="text-lg font-lg">{productName}</h1>
       </div>
