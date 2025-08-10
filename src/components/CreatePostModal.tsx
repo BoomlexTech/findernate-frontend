@@ -240,38 +240,37 @@ const handleProductChange = (
   ) => {
     const { name, value } = e.target;
     setBusinessForm((prev) => {
-    const formData = JSON.parse(JSON.stringify(prev.formData));
-    
-    if (
-      formData.business &&
-      typeof formData.business.location === 'object' &&
-      formData.business.location !== null &&
-      name in formData.business.location
-    ) {
-      formData.business.location[name] = value;
-    }
-      else if (formData.business && typeof formData.business === 'object' && name in formData.business) {
-        formData.business[name] = value;
+      const formData = { ...prev.formData };
+      
+      // Handle location fields
+      if (name === 'address') {
+        formData.business.location.address = value;
       }
-       // Handle top-level business fields
-       else if (formData.business && name in formData.business) {
-        formData.business[name] = value;
-      }
-      // Handle nested fields
-      else if (name === "discount" || name === "isActive" || name === "validUntil") {
+      // Handle promotion fields
+      else if (name === 'discount' || name === 'isActive' || name === 'validUntil') {
         if (!formData.business.promotions[0]) {
-          formData.business.promotions[0] = { title: '', description: '', discount: 0, validUntil: '', isActive: false };
+          (formData.business.promotions as any)[0] = { 
+            title: '', 
+            description: '', 
+            discount: 0, 
+            validUntil: '', 
+            isActive: false 
+          };
         }
-        if (name === "discount") {
-          formData.business.promotions[0].discount = Number(value);
-        } else if (name === "isActive") {
-          formData.business.promotions[0].isActive = value === "Active";
-        } else if (name === "validUntil") {
-          formData.business.promotions[0].validUntil = value;
-        }  
+        
+        if (name === 'discount') {
+          (formData.business.promotions as any)[0].discount = Number(value);
+        } else if (name === 'isActive') {
+          (formData.business.promotions as any)[0].isActive = value === 'Active';
+        } else if (name === 'validUntil') {
+          (formData.business.promotions as any)[0].validUntil = value;
+        }
       }
-      // Add more cases as needed for other nested fields
-  
+      // Handle all other business fields
+      else if (name in formData.business) {
+        formData.business[name] = value;
+      }
+      
       return { ...prev, formData };
     });
   };
@@ -318,8 +317,81 @@ const handleProductChange = (
   }
 };
 
+  // Business form validation function
+  const validateBusinessForm = () => {
+    const business = businessForm.formData.business;
+    
+    if (!business.businessName?.trim()) {
+      toast.error('Business name is required', {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+      return false;
+    }
+    
+    if (!business.link?.trim()) {
+      toast.error('Business link is required', {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+      return false;
+    }
+    
+    if (!business.announcement?.trim()) {
+      toast.error('Business announcement is required', {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+      return false;
+    }
+    
+    if (!business.location?.address?.trim()) {
+      toast.error('Business location is required', {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+      return false;
+    }
+    
+    if (!business.description?.trim()) {
+      toast.error('Business description is required', {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+      return false;
+    }
+    
+    return true;
+  };
+
   const handlePost = async () => {
+    // Validate business form before submission
+    if (postType === 'Business' && !validateBusinessForm()) {
+      return;
+    }
+    
     const finalPayload = buildPostPayload();
+    console.log('Final payload for business post:', finalPayload);
     setLoading(true);
     setError(null);
     
@@ -350,7 +422,11 @@ const handleProductChange = (
 
       // Only show success toast if we actually got a successful response
       if (response && (response.status === 200 || response.status === 201 || response.success)) {
-        toast.success('Post created successfully!', {
+        const successMessage = postType === 'Business' 
+          ? 'Business post created successfully!' 
+          : 'Post created successfully!';
+        
+        toast.success(successMessage, {
           position: "top-right",
           autoClose: 3000,
           hideProgressBar: false,
@@ -366,6 +442,7 @@ const handleProductChange = (
         throw new Error('Post creation failed - unexpected response');
       }
       
+
     } catch (error: unknown) {
       console.error('Error creating post:', error);
       let userMessage = 'Failed to create post. Please try again.';
@@ -377,6 +454,18 @@ const handleProductChange = (
       setError(userMessage);
       // Show error message to user (you can replace this with a toast or modal)
       alert(userMessage);
+
+      
+      // Show error toast instead of alert
+      toast.error(errorMessage, {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+      
     } finally {
       setLoading(false);
     }

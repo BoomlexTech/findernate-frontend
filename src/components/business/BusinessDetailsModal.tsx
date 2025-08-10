@@ -2,6 +2,7 @@ import { AddBusinessDetails, UpdateBusinessDetails, GetBusinessDetails } from "@
 import React, { useState, useEffect } from "react";
 import { Button } from "../ui/button";
 import { ChevronDown } from 'lucide-react';
+import { toast } from 'react-toastify';
 
 const businessCategories = [
   'Technology & Software',
@@ -320,13 +321,65 @@ const BusinessDetailsModal: React.FC<Props> = ({
     }));
   };
 
+  // Validation function
+  const validateForm = () => {
+    if (!form.businessName?.trim()) {
+      toast.error('Business name is required', {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+      return false;
+    }
+
+    if (!form.businessType?.trim()) {
+      toast.error('Business type is required', {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+      return false;
+    }
+
+    if (!form.category?.trim()) {
+      toast.error('Business category is required', {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+      return false;
+    }
+
+    if (!form.description?.trim()) {
+      toast.error('Business description is required', {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+      return false;
+    }
+
+    return true;
+  };
+
   const handleSubmit = async () => {
-    // Client-side guard: require non-empty business name
-    const isBusinessNameValid = !!form.businessName?.trim();
-    if (!isBusinessNameValid) {
-      // Optionally, you could set a local error state or toast; keep minimal for now
+    // Validate form before submission
+    if (!validateForm()) {
       return;
     }
+
     setLoading(true);
     try {
       let response;
@@ -340,13 +393,38 @@ const BusinessDetailsModal: React.FC<Props> = ({
       }
       
       console.log('Success:', response);
+      
+      // Show success toast
+      const successMessage = isEdit 
+        ? 'Business details updated successfully!' 
+        : 'Business details submitted successfully!';
+      
+      toast.success(successMessage, {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+      
       onClose(); // Close modal on success
       onSubmit(form);
-      // You might want to show a success toast/notification here
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error:', error);
-      // You might want to show an error toast/notification here
+      
+      // Show error toast
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to submit business details. Please try again.';
+      
+      toast.error(errorMessage, {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
     } finally {
       setLoading(false);
     }
