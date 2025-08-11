@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { FeedPost } from '@/types';
 import { Badge } from './ui/badge';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useUserStore } from '@/store/useUserStore';
 import { messageAPI } from '@/api/message';
 import { useRouter } from 'next/navigation';
@@ -36,55 +36,83 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
   const user = useUserStore(state => state.user);
   const router = useRouter();
 
-  // Mock data - replace with actual post data when available
-  const mockProductData = {
-    name: post.customization?.product?.name || post.caption || "Premium Product",
-    price: "₹1,299",
-    duration: "Immediate",
-    category: "Electronics",
-    type: "Physical",
-    location: (typeof post.location === 'string' ? post.location : post.location?.name) || "Delhi, India",
-    timing: "9 AM - 9 PM",
-    availability: "In Stock",
-    requirements: ["Valid ID", "Payment confirmation"],
-    whatYouGet: ["Product warranty", "Free shipping", "24/7 support"],
-    inStock: true,
-    link: "#"
+  // Build data from post payload (no static placeholders)
+  const formatPrice = (price?: string | number, currency?: string) => {
+    const hasPrice = typeof price === 'number' ? true : !!price;
+    if (!hasPrice && !currency) return '-';
+    if (!hasPrice) return currency || '-';
+    const priceStr = typeof price === 'number' ? String(price) : price!;
+    if (!currency) return priceStr;
+    return `${currency} ${priceStr}`;
   };
 
-  const mockServiceData = {
-    name: post.customization?.service?.name || post.caption || "Professional Service",
-    price: "₹500/hour",
-    duration: "60 minutes",
-    category: "Health & Wellness",
-    type: "In-person",
-    location: (typeof post.location === 'string' ? post.location : post.location?.name) || "Delhi, India", 
-    timing: "10 AM - 6 PM",
-    availability: "Available",
-    requirements: ["Advance booking", "Valid ID"],
-    whatYouGet: ["Professional consultation", "Certificate", "Follow-up support"],
-    serviceType: "in-person",
-    link: "#"
+  const resolvedLocation = (() => {
+    const fromCustomization =
+      post.customization?.product?.location?.name ||
+      post.customization?.service?.location?.name ||
+      post.customization?.business?.location?.name;
+    if (fromCustomization) return fromCustomization;
+    if (typeof post.location === 'string') return post.location || '-';
+    return post.location?.name || '-';
+  })();
+
+  const productData = {
+    name: post.customization?.product?.name || post.caption || '-',
+    price: formatPrice(post.customization?.product?.price, post.customization?.product?.currency),
+    duration: '-',
+    category: '-',
+    type: 'Product',
+    location: resolvedLocation,
+    timing: '-',
+    availability: post.customization?.product?.inStock === true ? 'In Stock' : post.customization?.product?.inStock === false ? 'Out of Stock' : '-',
+    requirements: [] as string[],
+    whatYouGet: [] as string[],
+    inStock: !!post.customization?.product?.inStock,
+    link: post.customization?.product?.link || '#'
   };
 
-  const mockBusinessData = {
-    name: post.customization?.business?.businessName || post.caption || "Local Business",
-    price: "Contact for pricing",
-    duration: "Business hours",
-    category: "Food & Dining",
-    type: "Physical Location",
-    location: (typeof post.location === 'string' ? post.location : post.location?.name) || "Delhi, India",
-    timing: "9 AM - 10 PM",
-    availability: "Open",
-    requirements: ["No special requirements"],
-    whatYouGet: ["Quality service", "Customer support", "Satisfaction guarantee"],
-    businessType: "Restaurant",
-    link: "#"
+  const serviceData = {
+    name: post.customization?.service?.name || post.caption || '-',
+    price: formatPrice(post.customization?.service?.price, post.customization?.service?.currency),
+    duration: typeof post.customization?.service?.duration === 'number' && !Number.isNaN(post.customization?.service?.duration)
+      ? `${post.customization?.service?.duration} min`
+      : '-',
+    category: post.customization?.service?.category || '-',
+    type: post.customization?.service?.serviceType || 'Service',
+    location: resolvedLocation,
+    timing: '-',
+    availability: '-',
+    requirements: [] as string[],
+    whatYouGet: [] as string[],
+    link: '#'
+  };
+
+  const businessData = {
+    name: post.customization?.business?.businessName || post.caption || '-',
+    price: '-',
+    duration: '-',
+    category: post.customization?.business?.category || '-',
+    type: post.customization?.business?.businessType || 'Business',
+    location: resolvedLocation,
+    timing: '-',
+    availability: '-',
+    requirements: [] as string[],
+    whatYouGet: [] as string[],
+    link: '#'
   };
 
   const isProduct = post.contentType === 'product';
   const isBusiness = post.contentType === 'business';
-  const data = isProduct ? mockProductData : isBusiness ? mockBusinessData : mockServiceData;
+  const data = isProduct ? productData : isBusiness ? businessData : serviceData;
+
+  // Log when modal opens and what data is shown
+  useEffect(() => {
+    console.log('[ProductServiceDetails] showing data', {
+      postId: post._id,
+      contentType: post.contentType,
+      data,
+    });
+  }, [post._id, post.contentType, data]);
 
   const handleGetContact = async () => {
     if (isBooking) return;

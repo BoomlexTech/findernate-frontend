@@ -1,6 +1,6 @@
 // components/BusinessPostCard.jsx
 
-import { Building2, Megaphone, Ticket } from 'lucide-react';
+import { Building2, Megaphone } from 'lucide-react';
 import { useState } from 'react';
 import ProductServiceDetails from '../ProductServiceDetails';
 import { FeedPost } from '@/types';
@@ -21,7 +21,7 @@ const BusinessPostCard = ({ post }: BusinessPostCardProps) => {
   
   return (
     // Main card container
-    <div className="w-full rounded-2xl border border-violet-500 bg-violet-200 p-2 shadow-md font-sans">
+    <div className="w-full rounded-2xl border border-violet-500 bg-violet-200/70 p-2 shadow-md font-sans">
       
       {/* Header section: Business Name */}
       <div className="flex items-center justify-between px-1 py-2">
@@ -31,21 +31,23 @@ const BusinessPostCard = ({ post }: BusinessPostCardProps) => {
         </div>
       </div>
 
-      {/* Business Type Section */}
-      <div className="rounded-lg border border-amber-400 bg-amber-100 p-3">
-        <div className="flex items-center gap-2">
-          <Megaphone size={16} className="text-amber-600" />
-          <span className="text-xs font-bold uppercase text-amber-600">
-            {businessType}
-          </span>
+      {/* Business Type Section - removed from UI */}
+      {false && (
+        <div className="rounded-lg border border-amber-400 bg-amber-100 p-3">
+          <div className="flex items-center gap-2">
+            <Megaphone size={16} className="text-amber-600" />
+            <span className="text-xs font-bold uppercase text-amber-600">
+              {businessType}
+            </span>
+          </div>
+          <p className="mt-1 font-semibold text-orange-800">
+            {businessCategory}
+          </p>
         </div>
-        <p className="mt-1 font-semibold text-orange-800">
-          {businessCategory}
-        </p>
-      </div>
+      )}
       
       {/* Description Section */}
-      <div className="mt-3 rounded-lg border border-red-300 bg-red-50 p-3">
+      <div className="mt-3 rounded-lg border border-red-300 bg-red-50/70 p-3">
         <div>
           <p className="font-bold text-gray-800">{businessName}</p>
           <p className="mt-1 text-sm text-gray-600">{businessDescription}</p>

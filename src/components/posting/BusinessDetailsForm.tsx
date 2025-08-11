@@ -24,7 +24,6 @@ const BusinessDetailsForm: React.FC<BusinessPostFormProps> = ({
             value={formData.business.businessName}
             onChange={onChange}
             className="w-full p-3 text-black border border-gray-300 rounded-lg placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-yellow-500"
-            required
           />
         </div>
 
@@ -39,7 +38,6 @@ const BusinessDetailsForm: React.FC<BusinessPostFormProps> = ({
             value={formData.business.link}
             onChange={onChange}
             className="w-full p-3 border text-gray-900 border-gray-300 rounded-lg placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-yellow-500"
-            required
           />
         </div>
 
@@ -54,7 +52,6 @@ const BusinessDetailsForm: React.FC<BusinessPostFormProps> = ({
             onChange={onChange}
             className="w-full p-3 text-black border border-gray-300 rounded-lg placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-yellow-500"
             rows={3}
-            required
           />
         </div>
 
@@ -69,7 +66,6 @@ const BusinessDetailsForm: React.FC<BusinessPostFormProps> = ({
             onChange={onChange}
             className="w-full p-3 text-black border border-gray-300 rounded-lg placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-yellow-500"
             rows={3}
-            required
           />
         </div>
       </div>
@@ -88,7 +84,6 @@ const BusinessDetailsForm: React.FC<BusinessPostFormProps> = ({
             value={formData.business?.location?.address || ''}
             onChange={onChange}
             className="w-full p-3 text-black border border-gray-300 rounded-lg placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-yellow-500"
-            required
           />
         </div>
       </div>

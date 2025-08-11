@@ -23,7 +23,6 @@ const ProductDetailsForm: React.FC<ProductDetailsFormProps> = ({
             value={formData.product.name}
             onChange={onChange}
             className="w-full p-3 border text-gray-900 border-gray-300 rounded-lg placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-yellow-500"
-            required
           />
         </div>
         <div>
@@ -35,7 +34,6 @@ const ProductDetailsForm: React.FC<ProductDetailsFormProps> = ({
             value={formData.product.price}
             onChange={onChange}
             className="w-full p-3 border text-gray-900 border-gray-300 rounded-lg placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-yellow-500"
-            required
           />
         </div>
       </div>
@@ -46,10 +44,9 @@ const ProductDetailsForm: React.FC<ProductDetailsFormProps> = ({
           value={formData.product.currency}
           onChange={onChange}
           className={`w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500
-            ${formData.product.currency === '' ? 'text-gray-400' : 'text-gray-900'}`} 
-          required
+            ${formData.product.currency === '' ? 'text-gray-400' : 'text-gray-900'}`}
         >
-          <option value="" disabled>Select category</option>
+          <option value="" disabled>Select currency</option>
           {currency.map((curr: string) => (
             <option key={curr} value={curr}>{curr}</option>
           ))}
@@ -63,7 +60,6 @@ const ProductDetailsForm: React.FC<ProductDetailsFormProps> = ({
             value={formData.product.link}
             onChange={onChange}
             className="w-full p-3 border text-gray-900 border-gray-300 rounded-lg placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-yellow-500"
-            required
           />
         </div>
 

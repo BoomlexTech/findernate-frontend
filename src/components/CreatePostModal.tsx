@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { X, Camera, MapPin, ShoppingBag, BriefcaseBusiness, Building2  } from 'lucide-react';
 import Image from 'next/image';
 import { Button } from './ui/button';
+import { isAxiosError } from 'axios';
 import ProductDetailsForm from './posting/ProductDetailsForm';
 import ServiceDetailsForm from './posting/ServiceDetailsForm';
 import BusinessDetailsForm from './posting/BusinessDetailsForm';
@@ -20,8 +21,7 @@ interface createPostModalProps {
 const CreatePostModal = ({closeModal}: createPostModalProps ) => {
   const { user } = useUserStore();
 
-  // Temporarily show all post types everywhere
-  const isBusinessProfile = true;
+  // Temporarily show all post types everywhere (unused flag removed)
 
   // Set default post type to Regular for all users
   const [postType, setPostType] = useState('Regular');
@@ -60,7 +60,7 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
     }, 
     product: {
       name: '',
-      price: '',
+      price: 0,
       currency: '',
       link:'',
       inStock: true,
@@ -83,7 +83,7 @@ const [serviceForm, setServiceForm] = useState({
   service: {
     name: '',
     description: '',
-    price: '',
+    price: 0,
     currency: 'INR',
     category: '',
     subcategory: '',
@@ -172,7 +172,7 @@ const handleProductChange = (
     ...prev,
     product: {
       ...prev.product,
-      [name]: type === 'checkbox' ? (target as HTMLInputElement).checked : value,
+      [name]: name === 'price' ? (value === '' ? 0 : Number(value)) : (type === 'checkbox' ? (target as HTMLInputElement).checked : value),
     },
   }));
 };
@@ -184,11 +184,15 @@ const handleProductChange = (
     setServiceForm((prev) => {
       // 1. Fields inside service
       if (name in prev.service) {
+        const computedValue =
+          name === 'price'
+            ? (value === '' ? 0 : Number(value))
+            : (type === 'checkbox' ? (e.target as HTMLInputElement).checked : value);
         return {
           ...prev,
           service: {
             ...prev.service,
-            [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value,
+            [name]: computedValue,
           }
         };
       }
@@ -438,10 +442,19 @@ const handleProductChange = (
         throw new Error('Post creation failed - unexpected response');
       }
       
-    } catch (err: any) {
-      console.error('Error creating post:', err);
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to create post. Please try again.';
-      setError(errorMessage);
+
+    } catch (error: unknown) {
+      console.error('Error creating post:', error);
+      let userMessage = 'Failed to create post. Please try again.';
+      if (isAxiosError(error)) {
+        userMessage = (error.response?.data as any)?.message || error.message || userMessage;
+      } else if (error instanceof Error) {
+        userMessage = error.message || userMessage;
+      }
+      setError(userMessage);
+      // Show error message to user (you can replace this with a toast or modal)
+      alert(userMessage);
+
       
       // Show error toast instead of alert
       toast.error(errorMessage, {
@@ -452,6 +465,7 @@ const handleProductChange = (
         pauseOnHover: true,
         draggable: true,
       });
+      
     } finally {
       setLoading(false);
     }
