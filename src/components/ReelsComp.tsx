@@ -1,7 +1,6 @@
 "use client"
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Play, Volume2, VolumeX, ChevronUp, ChevronDown, Heart, MessageCircle, Share2, Bookmark, BookmarkCheck, MoreVertical } from 'lucide-react';
-import Image from 'next/image';
+import { Play, Volume2, VolumeX, ChevronUp, ChevronDown } from 'lucide-react';
 import { getReels } from '@/api/reels';
 
 interface Reel {
@@ -14,10 +13,10 @@ interface ReelsComponentProps {
   reelsData?: Reel[];
   onReelChange?: (index: number) => void;
   apiReelsData?: any[]; // Accept reels data from parent component
-  onLikeToggle?: () => void;
+  onLikeToggle?: () => Promise<void>;
   onCommentClick?: () => void;
   onShareClick?: () => void;
-  onSaveToggle?: () => void;
+  onSaveToggle?: () => Promise<void>;
   onMoreClick?: () => void;
   isLiked?: boolean;
   isSaved?: boolean;
@@ -27,7 +26,7 @@ interface ReelsComponentProps {
   isMobile?: boolean;
   username?: string;
   description?: string;
-  hashtags?: string[];
+  hashtags?: any;
 }
 
 const ReelsComponent: React.FC<ReelsComponentProps> = ({ 
@@ -38,15 +37,15 @@ const ReelsComponent: React.FC<ReelsComponentProps> = ({
   onShareClick,
   onSaveToggle,
   onMoreClick,
-  isLiked = false,
-  isSaved = false,
-  likesCount = 0,
-  commentsCount = 0,
-  sharesCount = 0,
-  isMobile = false,
-  username = '',
-  description = '',
-  hashtags = []
+  isLiked,
+  isSaved,
+  likesCount,
+  commentsCount,
+  sharesCount,
+  isMobile,
+  username,
+  description,
+  hashtags
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
@@ -321,136 +320,14 @@ const ReelsComponent: React.FC<ReelsComponentProps> = ({
     }
   }, [currentIndex, reels.length, onReelChange]);
 
-  // Format number for display
-  const formatNumber = (num: number) => {
-    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
-    return num.toString();
-  };
-
-  // Mobile overlay controls component
-  const MobileOverlayControls = () => (
-    <div className="absolute right-4 bottom-20 flex flex-col items-center space-y-6 z-20">
-      {/* Like Button - Exact same as desktop */}
-      <div className="flex flex-col items-center space-y-1">
+  return (
+    <div className="relative w-96 mx-auto aspect-[9/16] flex-shrink-0">
+      {/* Video container with overflow hidden */}
+      <div className="absolute inset-0 rounded-2xl bg-black overflow-hidden shadow-2xl">
+        
+        {/* Up/Down Scroll Buttons - Overlaid on the reel video */}
         <button
-          onClick={onLikeToggle}
-          className="p-2.5 bg-black/20 backdrop-blur-sm rounded-full text-white hover:bg-black/30 transition-all duration-200 active:scale-95 mobile-touch-target"
-        >
-          <Heart 
-            size={22} 
-            className={`${isLiked ? 'fill-current text-red-500' : 'text-white'} transition-all duration-200`}
-          />
-        </button>
-        <span className="text-white text-xs font-medium drop-shadow-lg">
-          {formatNumber(likesCount)}
-        </span>
-      </div>
-
-      {/* Comment Button */}
-      <div className="flex flex-col items-center space-y-1">
-        <button
-          onClick={onCommentClick}
-          className="p-2.5 bg-black/20 backdrop-blur-sm rounded-full text-white hover:bg-black/30 transition-all duration-200 active:scale-95 mobile-touch-target"
-        >
-          <MessageCircle size={22} />
-        </button>
-        <span className="text-white text-xs font-medium drop-shadow-lg">
-          {formatNumber(commentsCount)}
-        </span>
-      </div>
-
-      {/* Share Button - Exact same as desktop */}
-      <div className="flex flex-col items-center space-y-1">
-        <button
-          onClick={onShareClick}
-          className="p-2.5 bg-black/20 backdrop-blur-sm rounded-full text-white hover:bg-black/30 transition-all duration-200 active:scale-95 mobile-touch-target"
-        >
-          <Image 
-            src="/reply.png" 
-            alt="Share" 
-            width={22} 
-            height={22} 
-            className="w-5.5 h-5.5 brightness-0 invert"
-          />
-        </button>
-        <span className="text-white text-xs font-medium drop-shadow-lg">
-          {formatNumber(sharesCount)}
-        </span>
-      </div>
-
-      {/* Save Button - Exact same as desktop */}
-      <div className="flex flex-col items-center space-y-1">
-        <button
-          onClick={onSaveToggle}
-          className="p-2.5 bg-black/20 backdrop-blur-sm rounded-full text-white hover:bg-black/30 transition-all duration-200 active:scale-95 mobile-touch-target"
-        >
-          {isSaved ? (
-            <BookmarkCheck size={22} className="text-yellow-600" />
-          ) : (
-            <Bookmark size={22} className="text-white" />
-          )}
-        </button>
-      </div>
-
-      {/* More Options Button */}
-      <div className="flex flex-col items-center space-y-1">
-        <button
-          onClick={onMoreClick}
-          className="p-2.5 bg-black/20 backdrop-blur-sm rounded-full text-white hover:bg-black/30 transition-all duration-200 active:scale-95 mobile-touch-target"
-        >
-          <MoreVertical size={22} />
-        </button>
-      </div>
-    </div>
-  );
-
-  // Progress indicator component
-  const ProgressIndicator = () => (
-    <div className="absolute bottom-0 left-0 right-0 z-30">
-      <div className="flex space-x-1 p-4">
-        {reels.map((_, index) => (
-          <div
-            key={index}
-            className={`h-1 flex-1 rounded-full transition-all duration-300 ${
-              index === currentIndex 
-                ? 'bg-white' 
-                : index < currentIndex 
-                  ? 'bg-white/50' 
-                  : 'bg-white/20'
-            }`}
-          />
-        ))}
-      </div>
-    </div>
-  );
-
-  // User info overlay component for mobile
-  const UserInfoOverlay = () => (
-    <div className="absolute bottom-20 left-4 right-20 z-20">
-      <div className="text-white">
-        <div className="flex items-center mb-2">
-          <span className="font-semibold text-lg mr-2">@{username}</span>
-        </div>
-        <p className="text-sm mb-2 line-clamp-2">{description}</p>
-        {hashtags && hashtags.length > 0 && (
-          <div className="flex flex-wrap gap-1">
-            {hashtags.slice(0, 3).map((tag, index) => (
-              <span key={index} className="text-yellow-400 text-sm">#{tag}</span>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
-  // Desktop layout
-  if (!isMobile) {
-    return (
-      <div className="relative w-96 mx-auto aspect-[9/16] flex-shrink-0">
-        {/* Up/Down Scroll Buttons - Outside the video container */}
-        <button
-          className="absolute -right-14 top-1/3 z-[9999] bg-black/40 hover:bg-black/80 text-white rounded-full p-2 shadow-lg transition-colors disabled:opacity-40"
+          className="absolute right-4 top-1/3 z-[9999] bg-black/30 hover:bg-black/50 rounded-full p-3 shadow-lg transition-colors disabled:opacity-40"
           style={{ transform: 'translateY(-50%)' }}
           onClick={() => {
             if (currentIndex > 0) {
@@ -461,10 +338,10 @@ const ReelsComponent: React.FC<ReelsComponentProps> = ({
           disabled={currentIndex === 0}
           aria-label="Scroll Up"
         >
-          <ChevronUp size={28} />
+          <ChevronUp size={28} className="text-white opacity-90 drop-shadow-lg" />
         </button>
         <button
-          className="absolute -right-14 bottom-1/3 z-[9999] bg-black/40 hover:bg-black/80 text-white rounded-full p-2 shadow-lg transition-colors disabled:opacity-40"
+          className="absolute right-4 bottom-1/3 z-[9999] bg-black/30 hover:bg-black/50 rounded-full p-3 shadow-lg transition-colors disabled:opacity-40"
           style={{ transform: 'translateY(50%)' }}
           onClick={() => {
             if (currentIndex < reels.length - 1) {
@@ -475,117 +352,14 @@ const ReelsComponent: React.FC<ReelsComponentProps> = ({
           disabled={currentIndex === reels.length - 1}
           aria-label="Scroll Down"
         >
-          <ChevronDown size={28} />
+          <ChevronDown size={28} className="text-white opacity-100 " />
         </button>
 
-        {/* Video container with overflow hidden */}
-        <div className="absolute inset-0 rounded-2xl bg-black overflow-hidden shadow-2xl">
-
-        {loading && reels.length === 0 && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-60 z-30">
-            <div className="text-white text-lg">Loading reels...</div>
-          </div>
-        )}
-
-        {/* Reels container */}
-        <div
-          ref={containerRef}
-          className="h-full overflow-y-auto snap-y snap-mandatory scrollbar-hide"
-          onScroll={handleScroll}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-        >
-          {reels.map((reel, index) => (
-            <div
-              key={reel.id}
-              className="relative h-full w-full snap-start flex-shrink-0"
-            >
-              {/* Video */}
-              <video
-                ref={(el) => {
-                  videoRefs.current[index] = el;
-                }}
-                className="w-full h-full object-cover"
-                src={reel.videoUrl}
-                poster={reel.thumbnail}
-                loop
-                playsInline
-                muted={isMuted}
-                autoPlay={index === currentIndex}
-                onClick={() => {
-                  const video = videoRefs.current[index];
-                  if (video) {
-                    if (isPlaying) {
-                      safePause(video, index);
-                      setIsPlaying(false);
-                    } else {
-                      safePlay(video, index);
-                      setIsPlaying(true);
-                    }
-                  }
-                }}
-              />
-
-              {/* Overlay gradient */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-
-              {/* Play/Pause button */}
-              {!isPlaying && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <button
-                    onClick={() => {
-                      const video = videoRefs.current[currentIndex];
-                      if (video) {
-                        safePlay(video, currentIndex);
-                        setIsPlaying(true);
-                      }
-                    }}
-                    className="p-4 bg-black/50 rounded-full text-white"
-                  >
-                    <Play size={32} fill="white" />
-                  </button>
-                </div>
-              )}
-
-              {/* Top controls - Only mute button */}
-              <div className="absolute top-4 right-4 z-10">
-                <button
-                  onClick={() => setIsMuted(!isMuted)}
-                  className="p-2 bg-black/30 rounded-full text-white"
-                >
-                  {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-        </div>
-
-        <style jsx>{`
-          .scrollbar-hide {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-          }
-          .scrollbar-hide::-webkit-scrollbar {
-            display: none;
-          }
-        `}</style>
-      </div>
-    );
-  }
-
-  // Mobile layout - Full screen Instagram-style
-  return (
-    <div className="fixed inset-0 bg-black z-50">
       {loading && reels.length === 0 && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black z-30">
+        <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-60 z-30">
           <div className="text-white text-lg">Loading reels...</div>
         </div>
       )}
-
-      {/* Progress Indicator */}
-      <ProgressIndicator />
 
       {/* Reels container */}
       <div
@@ -627,22 +401,13 @@ const ReelsComponent: React.FC<ReelsComponentProps> = ({
               }}
             />
 
-            {/* Overlay gradient for better text visibility */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+            {/* Overlay gradient */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
 
-            {/* Top controls - Mute button */}
-            <div className="absolute top-12 right-4 z-20">
-              <button
-                onClick={() => setIsMuted(!isMuted)}
-                className="p-3 bg-black/20 backdrop-blur-sm rounded-full text-white hover:bg-black/30 transition-all duration-200 active:scale-95"
-              >
-                {isMuted ? <VolumeX size={24} /> : <Volume2 size={24} />}
-              </button>
-            </div>
 
-            {/* Play/Pause overlay */}
+            {/* Play/Pause button */}
             {!isPlaying && (
-              <div className="absolute inset-0 flex items-center justify-center z-30">
+              <div className="absolute inset-0 flex items-center justify-center">
                 <button
                   onClick={() => {
                     const video = videoRefs.current[currentIndex];
@@ -651,20 +416,25 @@ const ReelsComponent: React.FC<ReelsComponentProps> = ({
                       setIsPlaying(true);
                     }
                   }}
-                  className="p-6 bg-black/50 backdrop-blur-sm rounded-full text-white hover:bg-black/60 transition-all duration-200 active:scale-95"
+                  className="p-4 bg-black/50 rounded-full text-white"
                 >
-                  <Play size={48} fill="white" />
+                  <Play size={32} fill="white" />
                 </button>
               </div>
             )}
 
-            {/* Right side overlay controls */}
-            <MobileOverlayControls />
-            
-            {/* User info overlay */}
-            <UserInfoOverlay />
+            {/* Top controls - Only mute button */}
+            <div className="absolute top-4 right-4 z-10">
+              <button
+                onClick={() => setIsMuted(!isMuted)}
+                className="p-2 bg-black/30 rounded-full text-white"
+              >
+                {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
+              </button>
+            </div>
           </div>
         ))}
+      </div>
       </div>
 
       <style jsx>{`
