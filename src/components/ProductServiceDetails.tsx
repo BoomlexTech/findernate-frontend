@@ -33,9 +33,22 @@ interface ProductServiceDetailsProps {
 const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServiceDetailsProps) => {
   const [isBooking, setIsBooking] = useState(false);
   const [resolvedOwnerId, setResolvedOwnerId] = useState<string | null>(null);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const user = useUserStore(state => state.user);
   const router = useRouter();
 
+  const showToastMessage = (message: string) => {
+    setToastMessage(message);
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 3000);
+  };
+
+  const showSuccessMessage = () => {
+    setShowSuccessPopup(true);
+    setTimeout(() => setShowSuccessPopup(false), 4000);
+  };
   // Build data from post payload (no static placeholders)
   const formatPrice = (price?: string | number, currency?: string) => {
     const hasPrice = typeof price === 'number' ? true : !!price;
@@ -153,48 +166,41 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
 
     if (!targetUserId) {
       console.warn('Post object when failing to get owner id:', post);
-      alert('Unable to identify post owner.');
+      showToastMessage('Unable to identify post owner.');
       return;
     }
 
     if (targetUserId === user._id) {
-      router.push('/chats');
+      showToastMessage('Cannot send contact request to yourself');
       return;
     }
 
     try {
       setIsBooking(true);
 
-  // 1. Try to find an existing direct chat with this user to avoid duplicates
-      let chatId: string | null = null;
+      // 1. Check if there's an existing direct chat with this user
+      let existingChat = null;
       try {
         const active = await messageAPI.getActiveChats(1, 50); // first page
-        const existing = active.chats.find(c => 
+        existingChat = active.chats.find(c => 
           c.chatType === 'direct' &&
           c.participants.some(p => p && p._id === user._id) &&
           c.participants.some(p => p && p._id === targetUserId)
         );
-        if (existing) chatId = existing._id;
       } catch (inner) {
-        // Non-fatal, we'll just attempt to create
-        console.warn('Could not fetch active chats before creating:', inner);
+        console.warn('Could not fetch active chats:', inner);
       }
 
-      // 2. If none found, create one
-      if (!chatId) {
-        const chat = await messageAPI.createChat([user._id, targetUserId], 'direct');
-        chatId = chat._id;
+      if (existingChat) {
+        // If chat exists, open the existing chat
+        router.push(`/chats?chatId=${existingChat._id}`);
+      } else {
+        // If no existing chat, show success popup for contact request
+        showSuccessMessage();
       }
-
-      // 3. Navigate to chats page focusing this chat
-      router.push(`/chats?chatId=${chatId}`);
-
-      // (Optional) To send an automatic first message, uncomment:
-      // await messageAPI.sendMessage(chatId, 'Hi! I am interested in your post.');
     } catch (err: any) {
-      console.error('Failed to open chat:', err);
-      router.push('/chats');
-      alert(err?.response?.data?.message || 'Could not open chat. Redirecting to chats.');
+      console.error('Failed to process contact request:', err);
+      showToastMessage(err?.response?.data?.message || 'Failed to send contact request. Please try again.');
     } finally {
       setIsBooking(false);
     }
@@ -203,6 +209,27 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
   if (isSidebar) {
     return (
       <div className="bg-white h-full flex flex-col border-gray-200">
+        {/* Toast Notification */}
+        {showToast && (
+          <div className="fixed top-4 right-4 z-50 bg-gray-800 text-white px-4 py-2 rounded-lg shadow-lg transition-all duration-300">
+            {toastMessage}
+          </div>
+        )}
+
+        {/* Success Popup */}
+        {showSuccessPopup && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl p-8 max-w-sm w-full mx-4 text-center shadow-2xl transform animate-in slide-in-from-bottom-4 duration-300">
+              <div className="flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mx-auto mb-4">
+                <CheckCircle className="w-8 h-8 text-green-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Request Sent!</h3>
+              <p className="text-gray-600 text-sm leading-relaxed">
+                Your request has been sent. Once accepted, their contact info will appear in your messages.
+              </p>
+            </div>
+          </div>
+        )}
         {/* Header */}
         <div className="sticky top-0 bg-gradient-to-r from-yellow-50 to-amber-50 border-b border-gray-200 p-4 z-10 flex-shrink-0">
           <div className="flex items-center justify-between">
@@ -376,6 +403,27 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
         e.stopPropagation();
       }}
     >
+      {/* Toast Notification */}
+      {showToast && (
+        <div className="fixed top-4 right-4 z-[60] bg-gray-800 text-white px-4 py-2 rounded-lg shadow-lg transition-all duration-300">
+          {toastMessage}
+        </div>
+      )}
+
+      {/* Success Popup */}
+      {showSuccessPopup && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-8 max-w-sm w-full mx-4 text-center shadow-2xl transform animate-in slide-in-from-bottom-4 duration-300">
+            <div className="flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mx-auto mb-4">
+              <CheckCircle className="w-8 h-8 text-green-600" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Request Sent!</h3>
+            <p className="text-gray-600 text-sm leading-relaxed">
+              Your request has been sent. Once accepted, their contact info will appear in your messages.
+            </p>
+          </div>
+        </div>
+      )}
       <div 
         className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-2xl border border-gray-200"
         onClick={(e) => e.stopPropagation()}
