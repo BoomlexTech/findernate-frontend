@@ -20,7 +20,7 @@ import { FeedPost } from '@/types';
 import { Badge } from './ui/badge';
 import { useState, useEffect } from 'react';
 import { useUserStore } from '@/store/useUserStore';
-import { messageAPI } from '@/api/message';
+import { messageAPI, Chat } from '@/api/message';
 import { useRouter } from 'next/navigation';
 import { getOtherUserProfile } from '@/api/user';
 
@@ -179,14 +179,14 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
       setIsBooking(true);
 
       // 1. Check if there's an existing direct chat with this user
-      let existingChat = null;
+      let existingChat: Chat | null = null;
       try {
         const active = await messageAPI.getActiveChats(1, 50); // first page
         existingChat = active.chats.find(c => 
           c.chatType === 'direct' &&
           c.participants.some(p => p && p._id === user._id) &&
           c.participants.some(p => p && p._id === targetUserId)
-        );
+        ) || null;
       } catch (inner) {
         console.warn('Could not fetch active chats:', inner);
       }

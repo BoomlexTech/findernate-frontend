@@ -13,9 +13,40 @@ interface ReelsComponentProps {
   reelsData?: Reel[];
   onReelChange?: (index: number) => void;
   apiReelsData?: any[]; // Accept reels data from parent component
+  onLikeToggle?: () => Promise<void>;
+  onCommentClick?: () => void;
+  onShareClick?: () => void;
+  onSaveToggle?: () => Promise<void>;
+  onMoreClick?: () => void;
+  isLiked?: boolean;
+  isSaved?: boolean;
+  likesCount?: number;
+  commentsCount?: number;
+  sharesCount?: number;
+  isMobile?: boolean;
+  username?: string;
+  description?: string;
+  hashtags?: any;
 }
 
-const ReelsComponent: React.FC<ReelsComponentProps> = ({ onReelChange, apiReelsData }) => {
+const ReelsComponent: React.FC<ReelsComponentProps> = ({ 
+  onReelChange, 
+  apiReelsData,
+  onLikeToggle,
+  onCommentClick,
+  onShareClick,
+  onSaveToggle,
+  onMoreClick,
+  isLiked,
+  isSaved,
+  likesCount,
+  commentsCount,
+  sharesCount,
+  isMobile,
+  username,
+  description,
+  hashtags
+}) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMuted, setIsMuted] = useState(true);
