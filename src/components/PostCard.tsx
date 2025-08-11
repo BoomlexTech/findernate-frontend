@@ -1045,7 +1045,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
               <div className="flex items-center">
                 <div className="flex items-center space-x-2 sm:space-x-4">
                   <button 
-                    onClick={handleLikeToggle}
+                    onClick={(e) => { e.stopPropagation(); handleLikeToggle(); }}
                     disabled={isLoading}
                     className={`flex items-center space-x-1 sm:space-x-2 p-1 sm:p-2 rounded-lg transition-colors ${
                       isLiked 
@@ -1106,7 +1106,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
                 <button 
-                  onClick={handleLikeToggle}
+                  onClick={(e) => { e.stopPropagation(); handleLikeToggle(); }}
                   disabled={isLoading}
                   className={`flex items-center space-x-2 p-2 rounded-lg transition-colors ${
                     isLiked 
