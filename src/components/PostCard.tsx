@@ -618,7 +618,16 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
         className={`w-full bg-white ${showCommentDrawer ? 'rounded-t-3xl shadow-none border-b-0' : 'rounded-3xl shadow-sm'} border border-gray-200 overflow-hidden hover:shadow-md transition-all duration-200 relative ${
           pathname.includes('/post/') ? 'cursor-default' : 'cursor-pointer'
         }`}
-        onClick={handlePostClick}
+        onClick={(e) => {
+          // Only open post in new tab if not clicking the image
+          const target = e.target as HTMLElement;
+          if (target.closest('.post-media')) {
+            // If the click originated from the image, do nothing (image click handles modal)
+            return;
+          }
+          // Open post in new tab
+          window.open(`/post/${post._id}`, '_blank');
+        }}
         data-post-id={post._id}
       >
         {/* Desktop Layout: Media + Info Side-by-Side | Mobile Layout: Stacked */}
@@ -800,11 +809,15 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
                   src={imageUrl}
                   alt="Post content"
                   fill
-                  className="rounded-xl object-cover"
+                  className="rounded-xl object-cover cursor-zoom-in"
                   unoptimized
                   onError={() => {
                     console.warn('Media image failed to load for post:', post._id, 'URL:', imageUrl);
                     setMediaImageError(true);
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowImageModal(true);
                   }}
                 />
               );
