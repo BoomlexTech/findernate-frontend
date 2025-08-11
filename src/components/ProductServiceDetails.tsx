@@ -228,7 +228,7 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
         </div>
 
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto hide-scrollbar">
+        <div className="flex-1 overflow-y-auto subtle-scrollbar">
           <div className="p-4 space-y-4 pb-20">
           {/* Price and Duration */}
           <div className="grid grid-cols-1 gap-3">
@@ -377,7 +377,7 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
       }}
     >
       <div 
-        className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto hide-scrollbar shadow-2xl border border-gray-200"
+        className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-2xl border border-gray-200"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -413,7 +413,7 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto subtle-scrollbar p-6 space-y-6">
           {/* Price and Duration */}
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
@@ -518,29 +518,29 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
             </ul>
           </div>
 
-          {/* Book Button */}
-          <div className="pt-4">
-            <button
-              onClick={handleGetContact}
-              disabled={isBooking}
-              className={`w-full py-4 px-6 rounded-xl font-bold text-white text-lg transition-all duration-200 shadow-lg hover:shadow-xl ${
-                isProduct
-                  ? 'bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800'
-                  : isBusiness
-                  ? 'bg-gradient-to-r from-violet-600 to-purple-700 hover:from-violet-700 hover:to-purple-800'
-                  : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800'
-              } ${isBooking ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.02]'}`}
-            >
-              {isBooking ? (
-                <div className="flex items-center justify-center gap-2">
-                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
-                  Opening Chat...
-                </div>
-              ) : (
-                'Get Contact Info'
-              )}
-            </button>
-          </div>
+        </div>
+        {/* Footer CTA */}
+        <div className="border-t bg-white p-4 rounded-b-3xl">
+          <button
+            onClick={handleGetContact}
+            disabled={isBooking}
+            className={`w-full py-3 px-4 rounded-xl font-bold text-white text-lg transition-all duration-200 shadow-lg hover:shadow-xl ${
+              isProduct
+                ? 'bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800'
+                : isBusiness
+                ? 'bg-gradient-to-r from-violet-600 to-purple-700 hover:from-violet-700 hover:to-purple-800'
+                : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800'
+            } ${isBooking ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.02]'}`}
+          >
+            {isBooking ? (
+              <div className="flex items-center justify-center gap-2">
+                <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+                Opening Chat...
+              </div>
+            ) : (
+              'Get Contact Info'
+            )}
+          </button>
         </div>
       </div>
     </div>
