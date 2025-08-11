@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Search } from 'lucide-react';
+import { Search, ChevronDown } from 'lucide-react';
 import PostCard from '@/components/PostCard';
 import CreatePostModal from '@/components/CreatePostModal';
 import FloatingHeader from '@/components/FloatingHeader';
@@ -22,6 +22,10 @@ const BusinessesPage = () => {
   const [page, setPage] = useState(1);
   const [hasNextPage, setHasNextPage] = useState(true);
   const [showCreatePostModal, setShowCreatePostModal] = useState(false);
+  const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
+  const [locationDropdownOpen, setLocationDropdownOpen] = useState(false);
+  const [priceDropdownOpen, setPriceDropdownOpen] = useState(false);
+  const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
 
   const categories = [
     "Retail & Shopping",
@@ -35,6 +39,32 @@ const BusinessesPage = () => {
   ];
 
   const locations = ["Bangalore, Karnataka", "Chennai, Tamil Nadu", "Mumbai, Maharashtra", "Delhi, India"];
+
+  const priceOptions = [
+    { value: '', label: 'All Prices' },
+    { value: '0-5000', label: 'Under ₹5,000' },
+    { value: '5000-25000', label: '₹5,000 - ₹25,000' },
+    { value: '25000-50000', label: '₹25,000 - ₹50,000' },
+    { value: '50000-100000', label: '₹50,000 - ₹1,00,000' },
+    { value: '100000+', label: 'Above ₹1,00,000' },
+  ];
+
+  const sortOptions = [
+    { value: 'likes', label: 'Most Liked' },
+    { value: 'views', label: 'Most Viewed' },
+    { value: 'engagement', label: 'Most Engaging' },
+    { value: 'time', label: 'Recently Added' },
+  ];
+
+  const getPriceLabel = (value: string) => (priceOptions.find(o => o.value === value)?.label || 'All Prices');
+  const getSortLabel = (value: string) => (sortOptions.find(o => o.value === value)?.label || 'Sort');
+
+  const closeAllDropdowns = () => {
+    setCategoryDropdownOpen(false);
+    setLocationDropdownOpen(false);
+    setPriceDropdownOpen(false);
+    setSortDropdownOpen(false);
+  };
 
   const clearFilters = () => {
     setSearchTerm("");
@@ -226,63 +256,156 @@ const BusinessesPage = () => {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            <select
-              className="w-full px-4 py-2 border text-black border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-            >
-              <option value="">All Categories</option>
-              {categories.map((category) => (
-                <option key={category} value={category}>
-                  {category}
-                </option>
-              ))}
-            </select>
+            {/* Category Dropdown */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => {
+                  setCategoryDropdownOpen(v => !v);
+                  setLocationDropdownOpen(false);
+                  setPriceDropdownOpen(false);
+                  setSortDropdownOpen(false);
+                }}
+                className="flex items-center justify-between w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+              >
+                <span className="truncate">{selectedCategory || 'All Categories'}</span>
+                <ChevronDown className={`w-4 h-4 transition-transform ${categoryDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {categoryDropdownOpen && (
+                <div className="absolute top-full left-0 mt-2 w-full bg-white border border-gray-200 rounded-xl shadow-lg z-50 max-h-60 overflow-y-auto">
+                  <button
+                    type="button"
+                    onClick={() => { setSelectedCategory(''); setCategoryDropdownOpen(false); }}
+                    className={`w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors ${selectedCategory === '' ? 'bg-yellow-50 text-yellow-800' : 'text-gray-700'}`}
+                  >
+                    All Categories
+                  </button>
+                  {categories.map(category => (
+                    <button
+                      key={category}
+                      type="button"
+                      onClick={() => { setSelectedCategory(category); setCategoryDropdownOpen(false); }}
+                      className={`w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors ${selectedCategory === category ? 'bg-yellow-50 text-yellow-800' : 'text-gray-700'}`}
+                    >
+                      {category}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
 
-            <select
-              className="w-full px-4 py-2 text-black border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-              value={selectedLocation}
-              onChange={(e) => setSelectedLocation(e.target.value)}
-            >
-              <option value="">All Locations</option>
-              {locations.map((location) => (
-                <option key={location} value={location}>
-                  {location}
-                </option>
-              ))}
-            </select>
+            {/* Location Dropdown */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => {
+                  setLocationDropdownOpen(v => !v);
+                  setCategoryDropdownOpen(false);
+                  setPriceDropdownOpen(false);
+                  setSortDropdownOpen(false);
+                }}
+                className="flex items-center justify-between w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+              >
+                <span className="truncate">{selectedLocation || 'All Locations'}</span>
+                <ChevronDown className={`w-4 h-4 transition-transform ${locationDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {locationDropdownOpen && (
+                <div className="absolute top-full left-0 mt-2 w-full bg-white border border-gray-200 rounded-xl shadow-lg z-50 max-h-60 overflow-y-auto">
+                  <button
+                    type="button"
+                    onClick={() => { setSelectedLocation(''); setLocationDropdownOpen(false); }}
+                    className={`w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors ${selectedLocation === '' ? 'bg-yellow-50 text-yellow-800' : 'text-gray-700'}`}
+                  >
+                    All Locations
+                  </button>
+                  {locations.map(location => (
+                    <button
+                      key={location}
+                      type="button"
+                      onClick={() => { setSelectedLocation(location); setLocationDropdownOpen(false); }}
+                      className={`w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors ${selectedLocation === location ? 'bg-yellow-50 text-yellow-800' : 'text-gray-700'}`}
+                    >
+                      {location}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
 
-            <select
-              className="w-full px-4 py-2 border text-black border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-              value={selectedPrice}
-              onChange={(e) => setSelectedPrice(e.target.value)}
-            >
-              <option value="">All Prices</option>
-              <option value="0-5000">Under ₹5,000</option>
-              <option value="5000-25000">₹5,000 - ₹25,000</option>
-              <option value="25000-50000">₹25,000 - ₹50,000</option>
-              <option value="50000-100000">₹50,000 - ₹1,00,000</option>
-              <option value="100000+">Above ₹1,00,000</option>
-            </select>
+            {/* Price Dropdown */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => {
+                  setPriceDropdownOpen(v => !v);
+                  setCategoryDropdownOpen(false);
+                  setLocationDropdownOpen(false);
+                  setSortDropdownOpen(false);
+                }}
+                className="flex items-center justify-between w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+              >
+                <span className="truncate">{getPriceLabel(selectedPrice)}</span>
+                <ChevronDown className={`w-4 h-4 transition-transform ${priceDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {priceDropdownOpen && (
+                <div className="absolute top-full left-0 mt-2 w-full bg-white border border-gray-200 rounded-xl shadow-lg z-50 max-h-60 overflow-y-auto">
+                  {priceOptions.map(opt => (
+                    <button
+                      key={opt.value || 'all'}
+                      type="button"
+                      onClick={() => { setSelectedPrice(opt.value); setPriceDropdownOpen(false); }}
+                      className={`w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors ${selectedPrice === opt.value ? 'bg-yellow-50 text-yellow-800' : 'text-gray-700'}`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
 
-            <select
-              className="w-full px-4 py-2 border text-black border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-            >
-              <option value="likes">Most Liked</option>
-              <option value="views">Most Viewed</option>
-              <option value="engagement">Most Engaging</option>
-              <option value="time">Recently Added</option>
-            </select>
+            {/* Sort Dropdown */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => {
+                  setSortDropdownOpen(v => !v);
+                  setCategoryDropdownOpen(false);
+                  setLocationDropdownOpen(false);
+                  setPriceDropdownOpen(false);
+                }}
+                className="flex items-center justify-between w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+              >
+                <span className="truncate">{getSortLabel(sortBy)}</span>
+                <ChevronDown className={`w-4 h-4 transition-transform ${sortDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {sortDropdownOpen && (
+                <div className="absolute top-full left-0 mt-2 w-full bg-white border border-gray-200 rounded-xl shadow-lg z-50 max-h-60 overflow-y-auto">
+                  {sortOptions.map(opt => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => { setSortBy(opt.value); setSortDropdownOpen(false); }}
+                      className={`w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors ${sortBy === opt.value ? 'bg-yellow-50 text-yellow-800' : 'text-gray-700'}`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
 
+            {/* Clear Filters */}
             <button
               onClick={clearFilters}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
             >
               Clear Filters
             </button>
           </div>
+
+          {(categoryDropdownOpen || locationDropdownOpen || priceDropdownOpen || sortDropdownOpen) && (
+            <div className="fixed inset-0 z-40" onClick={closeAllDropdowns} />
+          )}
         </div>
 
         {/* Businesses Grid */}
