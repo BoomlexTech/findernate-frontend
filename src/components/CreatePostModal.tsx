@@ -479,7 +479,7 @@ const handleProductChange = (
 
   return (
     <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-white rounded-2xl hide-scrollbar shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="sticky top-0 z-10 bg-white flex items-center justify-between p-6 border-b">
           <h2 className="text-xl font-semibold text-gray-800">Create Post</h2>
@@ -492,7 +492,7 @@ const handleProductChange = (
         </div>
 
         {/* Content */}
-        <div className="p-6">
+        <div className="flex-1 overflow-y-auto subtle-scrollbar p-6">
           {/* User Info */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center">

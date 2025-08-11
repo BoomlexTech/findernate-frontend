@@ -33,16 +33,8 @@ interface ProductServiceDetailsProps {
 const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServiceDetailsProps) => {
   const [isBooking, setIsBooking] = useState(false);
   const [resolvedOwnerId, setResolvedOwnerId] = useState<string | null>(null);
-  const [showToast, setShowToast] = useState(false);
-  const [toastMessage, setToastMessage] = useState('');
   const user = useUserStore(state => state.user);
   const router = useRouter();
-
-  const showToastMessage = (message: string) => {
-    setToastMessage(message);
-    setShowToast(true);
-    setTimeout(() => setShowToast(false), 3000);
-  };
 
   // Build data from post payload (no static placeholders)
   const formatPrice = (price?: string | number, currency?: string) => {
@@ -161,42 +153,48 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
 
     if (!targetUserId) {
       console.warn('Post object when failing to get owner id:', post);
-      showToastMessage('Unable to identify post owner.');
+      alert('Unable to identify post owner.');
       return;
     }
 
     if (targetUserId === user._id) {
-      showToastMessage('Cannot send contact request to yourself');
+      router.push('/chats');
       return;
     }
 
     try {
       setIsBooking(true);
 
-      // 1. Check if there's an existing direct chat with this user
-  let existingChat: import("@/api/message").Chat | null = null;
+  // 1. Try to find an existing direct chat with this user to avoid duplicates
+      let chatId: string | null = null;
       try {
         const active = await messageAPI.getActiveChats(1, 50); // first page
-        const foundChat: import("@/api/message").Chat | undefined = active.chats.find(c => 
+        const existing = active.chats.find(c => 
           c.chatType === 'direct' &&
           c.participants.some(p => p && p._id === user._id) &&
           c.participants.some(p => p && p._id === targetUserId)
         );
-        existingChat = foundChat ?? null;
+        if (existing) chatId = existing._id;
       } catch (inner) {
-        console.warn('Could not fetch active chats:', inner);
+        // Non-fatal, we'll just attempt to create
+        console.warn('Could not fetch active chats before creating:', inner);
       }
 
-      if (existingChat && typeof existingChat._id === 'string') {
-        // If chat exists, open the existing chat
-        router.push(`/chats?chatId=${existingChat._id}`);
-      } else {
-        // If no existing chat, show contact request sent message (simulate sending request)
-        showToastMessage('Contact request has been sent');
+      // 2. If none found, create one
+      if (!chatId) {
+        const chat = await messageAPI.createChat([user._id, targetUserId], 'direct');
+        chatId = chat._id;
       }
+
+      // 3. Navigate to chats page focusing this chat
+      router.push(`/chats?chatId=${chatId}`);
+
+      // (Optional) To send an automatic first message, uncomment:
+      // await messageAPI.sendMessage(chatId, 'Hi! I am interested in your post.');
     } catch (err: any) {
-      console.error('Failed to process contact request:', err);
-      showToastMessage(err?.response?.data?.message || 'Failed to send contact request. Please try again.');
+      console.error('Failed to open chat:', err);
+      router.push('/chats');
+      alert(err?.response?.data?.message || 'Could not open chat. Redirecting to chats.');
     } finally {
       setIsBooking(false);
     }
@@ -205,12 +203,6 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
   if (isSidebar) {
     return (
       <div className="bg-white h-full flex flex-col border-gray-200">
-        {/* Toast Notification */}
-        {showToast && (
-          <div className="fixed top-4 right-4 z-50 bg-gray-800 text-white px-4 py-2 rounded-lg shadow-lg transition-all duration-300">
-            {toastMessage}
-          </div>
-        )}
         {/* Header */}
         <div className="sticky top-0 bg-gradient-to-r from-yellow-50 to-amber-50 border-b border-gray-200 p-4 z-10 flex-shrink-0">
           <div className="flex items-center justify-between">
@@ -236,7 +228,7 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
         </div>
 
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto hide-scrollbar">
+        <div className="flex-1 overflow-y-auto subtle-scrollbar">
           <div className="p-4 space-y-4 pb-20">
           {/* Price and Duration */}
           <div className="grid grid-cols-1 gap-3">
@@ -361,10 +353,10 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
               {isBooking ? (
                 <div className="flex items-center justify-center gap-2">
                   <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                  Sending Request...
+                  Opening Chat...
                 </div>
               ) : (
-             'Get Contact Info' 
+             'Get Contact info' 
             )}
           </button>
         </div>
@@ -384,14 +376,8 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
         e.stopPropagation();
       }}
     >
-      {/* Toast Notification */}
-      {showToast && (
-        <div className="fixed top-4 right-4 z-[60] bg-gray-800 text-white px-4 py-2 rounded-lg shadow-lg transition-all duration-300">
-          {toastMessage}
-        </div>
-      )}
       <div 
-        className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto hide-scrollbar shadow-2xl border border-gray-200"
+        className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-2xl border border-gray-200"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -427,7 +413,7 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto subtle-scrollbar p-6 space-y-6">
           {/* Price and Duration */}
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
@@ -532,29 +518,29 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
             </ul>
           </div>
 
-          {/* Book Button */}
-          <div className="pt-4">
-            <button
-              onClick={handleGetContact}
-              disabled={isBooking}
-              className={`w-full py-4 px-6 rounded-xl font-bold text-white text-lg transition-all duration-200 shadow-lg hover:shadow-xl ${
-                isProduct
-                  ? 'bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800'
-                  : isBusiness
-                  ? 'bg-gradient-to-r from-violet-600 to-purple-700 hover:from-violet-700 hover:to-purple-800'
-                  : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800'
-              } ${isBooking ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.02]'}`}
-            >
-              {isBooking ? (
-                <div className="flex items-center justify-center gap-2">
-                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
-                  Sending Request...
-                </div>
-              ) : (
-                'Get Contact Info'
-              )}
-            </button>
-          </div>
+        </div>
+        {/* Footer CTA */}
+        <div className="border-t bg-white p-4 rounded-b-3xl">
+          <button
+            onClick={handleGetContact}
+            disabled={isBooking}
+            className={`w-full py-3 px-4 rounded-xl font-bold text-white text-lg transition-all duration-200 shadow-lg hover:shadow-xl ${
+              isProduct
+                ? 'bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800'
+                : isBusiness
+                ? 'bg-gradient-to-r from-violet-600 to-purple-700 hover:from-violet-700 hover:to-purple-800'
+                : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800'
+            } ${isBooking ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.02]'}`}
+          >
+            {isBooking ? (
+              <div className="flex items-center justify-center gap-2">
+                <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+                Opening Chat...
+              </div>
+            ) : (
+              'Get Contact Info'
+            )}
+          </button>
         </div>
       </div>
     </div>
