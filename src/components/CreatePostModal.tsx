@@ -457,7 +457,7 @@ const handleProductChange = (
 
       
       // Show error toast instead of alert
-      toast.error(errorMessage, {
+  toast.error(userMessage, {
         position: "top-right",
         autoClose: 5000,
         hideProgressBar: false,
