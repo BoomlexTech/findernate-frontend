@@ -33,8 +33,16 @@ interface ProductServiceDetailsProps {
 const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServiceDetailsProps) => {
   const [isBooking, setIsBooking] = useState(false);
   const [resolvedOwnerId, setResolvedOwnerId] = useState<string | null>(null);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
   const user = useUserStore(state => state.user);
   const router = useRouter();
+
+  const showToastMessage = (message: string) => {
+    setToastMessage(message);
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 3000);
+  };
 
   // Build data from post payload (no static placeholders)
   const formatPrice = (price?: string | number, currency?: string) => {
@@ -153,48 +161,41 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
 
     if (!targetUserId) {
       console.warn('Post object when failing to get owner id:', post);
-      alert('Unable to identify post owner.');
+      showToastMessage('Unable to identify post owner.');
       return;
     }
 
     if (targetUserId === user._id) {
-      router.push('/chats');
+      showToastMessage('Cannot send contact request to yourself');
       return;
     }
 
     try {
       setIsBooking(true);
 
-  // 1. Try to find an existing direct chat with this user to avoid duplicates
-      let chatId: string | null = null;
+      // 1. Check if there's an existing direct chat with this user
+      let existingChat = null;
       try {
         const active = await messageAPI.getActiveChats(1, 50); // first page
-        const existing = active.chats.find(c => 
+        existingChat = active.chats.find(c => 
           c.chatType === 'direct' &&
           c.participants.some(p => p && p._id === user._id) &&
           c.participants.some(p => p && p._id === targetUserId)
         );
-        if (existing) chatId = existing._id;
       } catch (inner) {
-        // Non-fatal, we'll just attempt to create
-        console.warn('Could not fetch active chats before creating:', inner);
+        console.warn('Could not fetch active chats:', inner);
       }
 
-      // 2. If none found, create one
-      if (!chatId) {
-        const chat = await messageAPI.createChat([user._id, targetUserId], 'direct');
-        chatId = chat._id;
+      if (existingChat) {
+        // If chat exists, open the existing chat
+        router.push(`/chats?chatId=${existingChat._id}`);
+      } else {
+        // If no existing chat, show contact request sent message (simulate sending request)
+        showToastMessage('Contact request has been sent');
       }
-
-      // 3. Navigate to chats page focusing this chat
-      router.push(`/chats?chatId=${chatId}`);
-
-      // (Optional) To send an automatic first message, uncomment:
-      // await messageAPI.sendMessage(chatId, 'Hi! I am interested in your post.');
     } catch (err: any) {
-      console.error('Failed to open chat:', err);
-      router.push('/chats');
-      alert(err?.response?.data?.message || 'Could not open chat. Redirecting to chats.');
+      console.error('Failed to process contact request:', err);
+      showToastMessage(err?.response?.data?.message || 'Failed to send contact request. Please try again.');
     } finally {
       setIsBooking(false);
     }
@@ -203,6 +204,12 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
   if (isSidebar) {
     return (
       <div className="bg-white h-full flex flex-col border-gray-200">
+        {/* Toast Notification */}
+        {showToast && (
+          <div className="fixed top-4 right-4 z-50 bg-gray-800 text-white px-4 py-2 rounded-lg shadow-lg transition-all duration-300">
+            {toastMessage}
+          </div>
+        )}
         {/* Header */}
         <div className="sticky top-0 bg-gradient-to-r from-yellow-50 to-amber-50 border-b border-gray-200 p-4 z-10 flex-shrink-0">
           <div className="flex items-center justify-between">
@@ -353,10 +360,10 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
               {isBooking ? (
                 <div className="flex items-center justify-center gap-2">
                   <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                  Opening Chat...
+                  Sending Request...
                 </div>
               ) : (
-             'Get Contact info' 
+             'Get Contact Info' 
             )}
           </button>
         </div>
@@ -376,6 +383,12 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
         e.stopPropagation();
       }}
     >
+      {/* Toast Notification */}
+      {showToast && (
+        <div className="fixed top-4 right-4 z-[60] bg-gray-800 text-white px-4 py-2 rounded-lg shadow-lg transition-all duration-300">
+          {toastMessage}
+        </div>
+      )}
       <div 
         className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto hide-scrollbar shadow-2xl border border-gray-200"
         onClick={(e) => e.stopPropagation()}
@@ -534,7 +547,7 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
               {isBooking ? (
                 <div className="flex items-center justify-center gap-2">
                   <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
-                  Opening Chat...
+                  Sending Request...
                 </div>
               ) : (
                 'Get Contact Info'
