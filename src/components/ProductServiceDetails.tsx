@@ -174,19 +174,20 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
       setIsBooking(true);
 
       // 1. Check if there's an existing direct chat with this user
-      let existingChat = null;
+  let existingChat: import("@/api/message").Chat | null = null;
       try {
         const active = await messageAPI.getActiveChats(1, 50); // first page
-        existingChat = active.chats.find(c => 
+        const foundChat: import("@/api/message").Chat | undefined = active.chats.find(c => 
           c.chatType === 'direct' &&
           c.participants.some(p => p && p._id === user._id) &&
           c.participants.some(p => p && p._id === targetUserId)
         );
+        existingChat = foundChat ?? null;
       } catch (inner) {
         console.warn('Could not fetch active chats:', inner);
       }
 
-      if (existingChat) {
+      if (existingChat && typeof existingChat._id === 'string') {
         // If chat exists, open the existing chat
         router.push(`/chats?chatId=${existingChat._id}`);
       } else {
