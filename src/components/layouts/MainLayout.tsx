@@ -47,7 +47,7 @@ const MainLayout = ({children}:{children:React.ReactNode}) => {
         <div className="fixed bottom-4 left-4 z-50 md:hidden">
           <button
             onClick={toggleSidebar}
-            className="p-3 bg-white rounded-full shadow-lg border border-gray-200 hover:bg-gray-50"
+            className="p-3 bg-white rounded-full shadow-xl border border-gray-200 hover:bg-gray-50 text-gray-700 hover:text-gray-900"
           >
             {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
