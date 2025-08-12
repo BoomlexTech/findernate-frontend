@@ -62,7 +62,7 @@ export default function LeftSidebar({togglePost, onItemClick}: leftSidebarProps)
 	  {/* Scrollable content area */}
 	  <div className="flex-1 overflow-y-auto px-6 pb-6">
 		{/* Navigation */}
-		<nav className="mb-8">
+		<nav className="mb-8 mt-2">
 		  <ul className="space-y-2">
 			{navigationItems.map((item, index) => (
 			  <li key={index}>

@@ -191,7 +191,7 @@ const Notifications = () => {
   // Show loading state while checking authentication
   if (isLoading) {
     return (
-      <div className="w-[50rem] min-h-screen mx-auto pt-2 bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden flex items-center justify-center">
+      <div className="w-full sm:w-[50rem] min-h-screen mx-auto pt-2 bg-white border border-gray-200 rounded-none sm:rounded-xl shadow-sm overflow-hidden flex items-center justify-center px-3 sm:px-0">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-yellow-500 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading...</p>
@@ -260,7 +260,7 @@ const Notifications = () => {
   // Show authenticated notifications page
   return (
     <>
-      <div className="w-[50rem] min-h-screen mx-auto pt-2 bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+      <div className="w-full sm:w-[50rem] min-h-screen mx-auto pt-2 bg-white border border-gray-200 rounded-none sm:rounded-xl shadow-sm overflow-hidden px-3 sm:px-0">
         {/* Header */}
         <div className="bg-button-gradient px-6 py-4">
           <div className="flex items-center justify-between">
@@ -284,7 +284,7 @@ const Notifications = () => {
         <div className="overflow-y-auto max-h-[calc(100vh-120px)]">
           {/* Loading State */}
           {loading && (
-            <div className="flex flex-col items-center justify-center py-16">
+            <div className="flex flex-col items-center justify-center py-16 px-3 sm:px-6">
               <Loader2 className="w-8 h-8 text-yellow-500 animate-spin mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">Loading notifications</h3>
               <p className="text-gray-500">Please wait while we fetch your updates...</p>
@@ -293,7 +293,7 @@ const Notifications = () => {
 
           {/* Error State */}
           {error && !loading && (
-            <div className="flex flex-col items-center justify-center py-16 px-6">
+            <div className="flex flex-col items-center justify-center py-16 px-3 sm:px-6">
               <div className="bg-red-100 p-4 rounded-full mb-4">
                 <AlertCircle className="w-8 h-8 text-red-500" />
               </div>
@@ -311,7 +311,7 @@ const Notifications = () => {
 
           {/* Empty State */}
           {!loading && !error && notifications.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-16 px-6">
+            <div className="flex flex-col items-center justify-center py-16 px-3 sm:px-6">
               <div className="bg-gray-100 p-6 rounded-full mb-6">
                 <Bell className="w-12 h-12 text-gray-400" />
               </div>
@@ -333,7 +333,7 @@ const Notifications = () => {
                   <div
                     key={notification._id || `notification-${index}`}
                     onClick={() => handleNotificationClick(notification)}
-                    className={`relative flex items-start p-4 hover:bg-gray-50 transition-all duration-200 cursor-pointer group ${
+                    className={`relative flex items-start p-4 hover:bg-gray-50 transition-all duration-200 cursor-pointer group flex-row ${
                       !notification.isRead ? 'bg-blue-50/50' : ''
                     }`}
                   >
@@ -365,7 +365,7 @@ const Notifications = () => {
                             </span>
                             <span className="text-gray-600">{" "+notification.message}</span>
                           </p>
-                          <div className="flex items-center mt-1 space-x-2">
+                          <div className="flex items-center mt-1 space-x-2 flex-wrap gap-2">
                             <span className="text-xs text-gray-500">
                               {formatTimeAgo(notification.createdAt)}
                             </span>
@@ -381,7 +381,7 @@ const Notifications = () => {
                     </div>
 
                     {/* Hover arrow */}
-                    <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 ml-2">
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 ml-2 hidden sm:block">
                       <div className="w-6 h-6 flex items-center justify-center">
                         <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
