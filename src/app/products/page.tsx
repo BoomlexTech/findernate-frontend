@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search } from 'lucide-react';
 import PostCard from '@/components/PostCard';
-import FloatingHeader from '@/components/FloatingHeader';
+//import FloatingHeader from '@/components/FloatingHeader';
 import { getExploreFeed } from '@/api/exploreFeed';
 import { transformExploreFeedToFeedPost } from '@/utils/transformExploreFeed';
 import { searchAllContent } from '@/api/search';
@@ -305,9 +305,9 @@ const ProductsPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 pt-5">
         {/* FloatingHeader */}
-        <FloatingHeader
+        {/*<FloatingHeader
           paragraph="Discover amazing products from local sellers and businesses"
           heading="Products"
           username="user"

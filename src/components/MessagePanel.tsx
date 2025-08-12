@@ -37,7 +37,6 @@ export default function MessagePanel() {
     setSearchQuery,
     activeTab,
     setActiveTab,
-    allChatsCache,
     setAllChatsCache,
     selected,
     filteredChats,
@@ -73,9 +72,7 @@ export default function MessagePanel() {
     handleSendMessage,
     handleDeleteMessage,
     handleInputChange,
-    scrollToBottom,
-    markUnreadMessagesAsSeen,
-    stopTypingIndicator
+    scrollToBottom
   } = useMessageManagement({ selectedChat, user, setChats });
 
   // File upload
@@ -102,17 +99,14 @@ export default function MessagePanel() {
     showNewChatModal,
     setShowNewChatModal,
     showGroupModal,
-    setShowGroupModal,
     showGroupDetails,
     setShowGroupDetails,
     showEmojiPicker,
-    setShowEmojiPicker,
     groupName,
     setGroupName,
     groupDescription,
     setGroupDescription,
     selectedGroupMembers,
-    setSelectedGroupMembers,
     handleNewChat,
     handleNewGroup,
     handleEmojiClick,
@@ -204,7 +198,7 @@ export default function MessagePanel() {
         loading={loading}
       />
 
-      <div className="flex-1 flex items-center justify-center bg-gray-50">
+      <div className={`flex-1 flex items-center justify-center bg-gray-50 ${selected ? 'flex' : 'hidden'} sm:flex`}>
         {selected ? (
           <RightPanel
             selected={selected}
@@ -214,6 +208,7 @@ export default function MessagePanel() {
             getChatAvatar={getChatAvatar}
             getChatDisplayName={getChatDisplayName}
             onProfileClick={(chat) => handleProfileClick(chat, setShowGroupDetails)}
+            onBack={() => setSelectedChat(null)}
             onContextMenu={(messageId, x, y) => setShowContextMenu({ messageId, x, y })}
             newMessage={newMessage}
             setNewMessage={setNewMessage}

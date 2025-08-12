@@ -48,7 +48,7 @@ export const LeftPanel: React.FC<LeftPanelProps> = ({
   loading
 }) => {
   return (
-    <div className="w-1/3 border-r bg-white flex flex-col">
+    <div className={`border-r bg-white flex flex-col w-full sm:w-1/3 ${selectedChat ? 'hidden sm:flex' : 'flex'}`}>
       <div className="px-6 pt-6">
         <ChatTabs
           activeTab={activeTab}
