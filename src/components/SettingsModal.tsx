@@ -1,6 +1,6 @@
 "use client";
 
-import { User, HelpCircle, LogOut, Shield, MapPin, Phone, ChevronRight, Layers, X } from "lucide-react";
+import { User, HelpCircle, LogOut, Shield, ChevronRight, Layers, X } from "lucide-react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { logout } from "@/api/auth";
@@ -16,8 +16,8 @@ import { getUserProfile } from "@/api/user";
 
 const SettingsModal = ({ onClose }: { onClose: () => void }) => {
   //const [muteNotifications, setMuteNotifications] = useState(false);
-  const [hideAddress, setHideAddress] = useState(false);
-  const [hideNumber, setHideNumber] = useState(false);
+  //const [hideAddress, setHideAddress] = useState(false);
+  //const [hideNumber, setHideNumber] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [showBusinessPlans, setShowBusinessPlans] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -205,7 +205,8 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
               title="Edit Your Business Details"
               onClick={requireBusiness(() => setShowEditBusinessDetails(true))}
             />
-            <SettingToggle
+            {/* TODO: Add back in when we have a way to hide the address and number */}
+            {/* <SettingToggle
               icon={<MapPin />}
               title="Hide Address"
               enabled={hideAddress}
@@ -216,7 +217,7 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
               title="Hide Number"
               enabled={hideNumber}
               onToggle={requireBusiness(() => setHideNumber(!hideNumber))}
-            />
+            /> */}
           </div>
         </div>
 
@@ -302,42 +303,42 @@ const SettingItem = ({
   </div>
 );
 
-const SettingToggle = ({
-  icon,
-  title,
-  enabled,
-  onToggle,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  enabled: boolean;
-  onToggle: () => void;
-}) => (
-  <div className="flex items-center justify-between py-4">
-    <div className="flex items-center gap-3">
-      <span className="text-gray-600">{icon}</span>
-      <span className="text-gray-900 font-medium">{title}</span>
-    </div>
-    <label className="inline-flex items-center cursor-pointer">
-      <input
-        type="checkbox"
-        className="sr-only peer"
-        checked={enabled}
-        onChange={onToggle}
-      />
-      <div
-        className={`relative w-12 h-6 rounded-full transition-colors duration-200 ${
-          enabled ? "bg-gray-400" : "bg-gray-300"
-        }`}
-      >
-        <div
-          className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform duration-200 ${
-            enabled ? "translate-x-6" : "translate-x-0.5"
-          }`}
-        ></div>
-      </div>
-    </label>
-  </div>
-);
+// const SettingToggle = ({
+//   icon,
+//   title,
+//   enabled,
+//   onToggle,
+// }: {
+//   icon: React.ReactNode;
+//   title: string;
+//   enabled: boolean;
+//   onToggle: () => void;
+// }) => (
+//   <div className="flex items-center justify-between py-4">
+//     <div className="flex items-center gap-3">
+//       <span className="text-gray-600">{icon}</span>
+//       <span className="text-gray-900 font-medium">{title}</span>
+//     </div>
+//     <label className="inline-flex items-center cursor-pointer">
+//       <input
+//         type="checkbox"
+//         className="sr-only peer"
+//         checked={enabled}
+//         onChange={onToggle}
+//       />
+//       <div
+//         className={`relative w-12 h-6 rounded-full transition-colors duration-200 ${
+//           enabled ? "bg-gray-400" : "bg-gray-300"
+//         }`}
+//       >
+//         <div
+//           className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform duration-200 ${
+//             enabled ? "translate-x-6" : "translate-x-0.5"
+//           }`}
+//         ></div>
+//       </div>
+//     </label>
+//   </div>
+// );
 
 export default SettingsModal;
