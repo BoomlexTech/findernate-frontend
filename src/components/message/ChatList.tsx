@@ -130,16 +130,15 @@ export const ChatList: React.FC<ChatListProps> = ({
           chats.map((chat) => (
             <div 
               key={chat._id} 
-              className={`flex items-start gap-3 p-3 rounded-lg transition ${
+              className={`flex items-start gap-3 p-3 rounded-lg transition cursor-pointer ${
                 activeTab === 'requests' 
-                  ? "hover:bg-orange-50" 
-                  : `cursor-pointer hover:bg-yellow-50 ${selectedChat === chat._id ? "bg-yellow-50 border border-yellow-300" : ""}`
+                  ? `hover:bg-orange-50 ${selectedChat === chat._id ? "bg-orange-50 border border-orange-300" : ""}` 
+                  : `hover:bg-yellow-50 ${selectedChat === chat._id ? "bg-yellow-50 border border-yellow-300" : ""}`
               }`} 
               onClick={() => {
-                if (activeTab !== 'requests') {
-                  console.log('Selecting chat:', chat._id);
-                  setSelectedChat(chat._id);
-                }
+                console.log('Selecting chat:', chat._id, 'from tab:', activeTab);
+                // Only set selected chat, don't auto-accept or switch tabs for requests
+                setSelectedChat(chat._id);
               }}
             >
               <Image 

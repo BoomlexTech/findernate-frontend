@@ -52,7 +52,10 @@ export default function MessagePanel() {
     getChatDisplayName,
     getChatAvatar,
     formatTime,
-    isIncomingRequest
+    isIncomingRequest,
+    viewedRequests,
+    markRequestAsViewed,
+    clearViewedRequest
   } = useChatManagement({ user });
 
   // Message management
@@ -66,6 +69,7 @@ export default function MessagePanel() {
     setTypingUsers,
     showContextMenu,
     setShowContextMenu,
+    isRequestChat,
     messagesEndRef,
     messageInputRef,
     messagesContainerRef,
@@ -73,7 +77,7 @@ export default function MessagePanel() {
     handleDeleteMessage,
     handleInputChange,
     scrollToBottom
-  } = useMessageManagement({ selectedChat, user, setChats });
+  } = useMessageManagement({ selectedChat, user, setChats, messageRequests, viewedRequests, markRequestAsViewed });
 
   // File upload
   const {
@@ -229,6 +233,7 @@ export default function MessagePanel() {
             fileInputRef={fileInputRef}
             messagesEndRef={messagesEndRef}
             messagesContainerRef={messagesContainerRef}
+            isRequestChat={isRequestChat}
           />
         ) : (
           <EmptyState onNewChat={handleNewChatWithLoad} />

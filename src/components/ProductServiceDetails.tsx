@@ -35,7 +35,6 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
   const [resolvedOwnerId, setResolvedOwnerId] = useState<string | null>(null);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
-  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const user = useUserStore(state => state.user);
   const router = useRouter();
 
@@ -45,10 +44,6 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
     setTimeout(() => setShowToast(false), 3000);
   };
 
-  const showSuccessMessage = () => {
-    setShowSuccessPopup(true);
-    setTimeout(() => setShowSuccessPopup(false), 4000);
-  };
   // Build data from post payload (no static placeholders)
   const formatPrice = (price?: string | number, currency?: string) => {
     const hasPrice = typeof price === 'number' ? true : !!price;
@@ -178,6 +173,9 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
     try {
       setIsBooking(true);
 
+      // Create a pre-filled message for the user to start the conversation.
+      const initialMessage = `Hi, I'm interested in your post: "${data.name}". Is it still available?`;
+
       // 1. Check if there's an existing direct chat with this user
       let existingChat: Chat | null = null;
       try {
@@ -192,11 +190,12 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
       }
 
       if (existingChat) {
-        // If chat exists, open the existing chat
-        router.push(`/chats?chatId=${existingChat._id}`);
+        // If chat exists, open the existing chat with pre-filled message
+        router.push(`/chats?chatId=${existingChat._id}&message=${encodeURIComponent(initialMessage)}`);
       } else {
-        // If no existing chat, show success popup for contact request
-        showSuccessMessage();
+        // If no existing chat, redirect to chats with user info and pre-filled message
+        // Add a special flag to indicate this is from "Get Contact Info" and should bypass follow requirements
+        router.push(`/chats?userId=${targetUserId}&message=${encodeURIComponent(initialMessage)}&fromContactInfo=true`);
       }
     } catch (err: any) {
       console.error('Failed to process contact request:', err);
@@ -216,20 +215,6 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
           </div>
         )}
 
-        {/* Success Popup */}
-        {showSuccessPopup && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl p-8 max-w-sm w-full mx-4 text-center shadow-2xl transform animate-in slide-in-from-bottom-4 duration-300">
-              <div className="flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mx-auto mb-4">
-                <CheckCircle className="w-8 h-8 text-green-600" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Request Sent!</h3>
-              <p className="text-gray-600 text-sm leading-relaxed">
-                Your request has been sent. Once accepted, their contact info will appear in your messages.
-              </p>
-            </div>
-          </div>
-        )}
         {/* Header */}
         <div className="sticky top-0 bg-gradient-to-r from-yellow-50 to-amber-50 border-b border-gray-200 p-4 z-10 flex-shrink-0">
           <div className="flex items-center justify-between">
@@ -414,20 +399,6 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
         </div>
       )}
 
-      {/* Success Popup */}
-      {showSuccessPopup && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-8 max-w-sm w-full mx-4 text-center shadow-2xl transform animate-in slide-in-from-bottom-4 duration-300">
-            <div className="flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mx-auto mb-4">
-              <CheckCircle className="w-8 h-8 text-green-600" />
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Request Sent!</h3>
-            <p className="text-gray-600 text-sm leading-relaxed">
-              Your request has been sent. Once accepted, their contact info will appear in your messages.
-            </p>
-          </div>
-        </div>
-      )}
       <div 
         className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-2xl border border-gray-200"
         onClick={(e) => e.stopPropagation()}
