@@ -769,7 +769,7 @@ const handleProductChange = (
           )}
 
           {/* Post Type Tabs */}
-          <div className="flex space-x-4 mb-6">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:space-x-4 sm:gap-0 mb-6">
             {/* Regular Post - Available for everyone */}
             <Button
               variant='custom'
@@ -778,7 +778,7 @@ const handleProductChange = (
                 postType === 'Regular'
                   ? 'border-yellow-500 bg-yellow-50 text-yellow-700'
                   : 'border-gray-300 text-gray-600 hover:bg-gray-50'
-              }`}
+              } w-full sm:w-auto justify-center`}
             >
               Regular Post
             </Button>
@@ -791,7 +791,7 @@ const handleProductChange = (
                 postType === 'Product'
                   ? 'border-yellow-500 bg-yellow-50 text-yellow-700'
                   : 'border-gray-300 text-gray-600 hover:bg-gray-50'
-              }`}
+              } w-full sm:w-auto justify-center`}
             >
               <ShoppingBag className='mr-2' size={16} /> Product
             </Button>
@@ -802,7 +802,7 @@ const handleProductChange = (
                 postType === 'Service'
                   ? 'border-yellow-500 bg-yellow-50 text-yellow-700'
                   : 'border-gray-300 text-gray-600 hover:bg-gray-50'
-              }`}
+              } w-full sm:w-auto justify-center`}
             >
               <BriefcaseBusiness className='mr-2' size={16} /> Service
             </Button>
@@ -813,7 +813,7 @@ const handleProductChange = (
                 postType === 'Business'
                   ? 'border-yellow-500 bg-yellow-50 text-yellow-700'
                   : 'border-gray-300 text-gray-600 hover:bg-gray-50'
-              }`}
+              } w-full sm:w-auto justify-center`}
             >
               <Building2 className='mr-2' size={16} /> Business
             </Button>

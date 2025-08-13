@@ -11,7 +11,7 @@ import {
   CheckCircle,
   Globe,
   Users,
-  Shield,
+  //Shield,
   // ArrowLeft,
   X,
   Building2
@@ -329,37 +329,41 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
             </div>
           </div>
 
-          {/* Requirements */}
-          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3">
-            <div className="flex items-center gap-2 mb-2">
-              <Shield className="w-4 h-4 text-yellow-600" />
-              <span className="text-xs font-semibold text-yellow-800 uppercase">Requirements</span>
-            </div>
-            <ul className="space-y-1">
-              {data.requirements.map((req: string, index: number) => (
-                <li key={index} className="flex items-center gap-2">
-                  <CheckCircle className="w-3 h-3 text-yellow-600" />
-                  <span className="text-xs text-gray-700">{req}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+          {/**
+           * Requirements (temporarily hidden)
+           * <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3">
+           *   <div className="flex items-center gap-2 mb-2">
+           *     <Shield className="w-4 h-4 text-yellow-600" />
+           *     <span className="text-xs font-semibold text-yellow-800 uppercase">Requirements</span>
+           *   </div>
+           *   <ul className="space-y-1">
+           *     {data.requirements.map((req: string, index: number) => (
+           *       <li key={index} className="flex items-center gap-2">
+           *         <CheckCircle className="w-3 h-3 text-yellow-600" />
+           *         <span className="text-xs text-gray-700">{req}</span>
+           *       </li>
+           *     ))}
+           *   </ul>
+           * </div>
+           */}
 
-          {/* What You Get */}
-          <div className="bg-teal-50 border border-teal-200 rounded-xl p-3">
-            <div className="flex items-center gap-2 mb-2">
-              <Star className="w-4 h-4 text-teal-600" />
-              <span className="text-xs font-semibold text-teal-800 uppercase">What You Get</span>
-            </div>
-            <ul className="space-y-1">
-              {data.whatYouGet.map((item: string, index: number) => (
-                <li key={index} className="flex items-center gap-2">
-                  <CheckCircle className="w-3 h-3 text-teal-600" />
-                  <span className="text-xs text-gray-700">{item}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+          {/**
+           * What You Get (temporarily hidden)
+           * <div className="bg-teal-50 border border-teal-200 rounded-xl p-3">
+           *   <div className="flex items-center gap-2 mb-2">
+           *     <Star className="w-4 h-4 text-teal-600" />
+           *     <span className="text-xs font-semibold text-teal-800 uppercase">What You Get</span>
+           *   </div>
+           *   <ul className="space-y-1">
+           *     {data.whatYouGet.map((item: string, index: number) => (
+           *       <li key={index} className="flex items-center gap-2">
+           *         <CheckCircle className="w-3 h-3 text-teal-600" />
+           *         <span className="text-xs text-gray-700">{item}</span>
+           *       </li>
+           *     ))}
+           *   </ul>
+           * </div>
+           */}
 
           </div>
         </div>
@@ -534,37 +538,41 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
             </div>
           </div>
 
-          {/* Requirements */}
-          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <Shield className="w-5 h-5 text-yellow-600" />
-              <span className="text-sm font-semibold text-yellow-800 uppercase">Requirements</span>
-            </div>
-            <ul className="space-y-2">
-              {data.requirements.map((req: string, index: number) => (
-                <li key={index} className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-yellow-600" />
-                  <span className="text-gray-700">{req}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+          {/**
+           * Requirements (temporarily hidden)
+           * <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+           *   <div className="flex items-center gap-2 mb-3">
+           *     <Shield className="w-5 h-5 text-yellow-600" />
+           *     <span className="text-sm font-semibold text-yellow-800 uppercase">Requirements</span>
+           *   </div>
+           *   <ul className="space-y-2">
+           *     {data.requirements.map((req: string, index: number) => (
+           *       <li key={index} className="flex items-center gap-2">
+           *         <CheckCircle className="w-4 h-4 text-yellow-600" />
+           *         <span className="text-gray-700">{req}</span>
+           *       </li>
+           *     ))}
+           *   </ul>
+           * </div>
+           */}
 
-          {/* What You Get */}
-          <div className="bg-teal-50 border border-teal-200 rounded-xl p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <Star className="w-5 h-5 text-teal-600" />
-              <span className="text-sm font-semibold text-teal-800 uppercase">What You Get</span>
-            </div>
-            <ul className="space-y-2">
-              {data.whatYouGet.map((item: string, index: number) => (
-                <li key={index} className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-teal-600" />
-                  <span className="text-gray-700">{item}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+          {/**
+           * What You Get (temporarily hidden)
+           * <div className="bg-teal-50 border border-teal-200 rounded-xl p-4">
+           *   <div className="flex items-center gap-2 mb-3">
+           *     <Star className="w-5 h-5 text-teal-600" />
+           *     <span className="text-sm font-semibold text-teal-800 uppercase">What You Get</span>
+           *   </div>
+           *   <ul className="space-y-2">
+           *     {data.whatYouGet.map((item: string, index: number) => (
+           *       <li key={index} className="flex items-center gap-2">
+           *         <CheckCircle className="w-4 h-4 text-teal-600" />
+           *         <span className="text-gray-700">{item}</span>
+           *       </li>
+           *     ))}
+           *   </ul>
+           * </div>
+           */}
 
         </div>
         {/* Footer CTA */}

@@ -181,7 +181,7 @@ const PostPage = () => {
         
       } catch (error) {
         console.error('Error loading post:', error);
-        setError('Failed to load post. Please try again.');
+        setError('This Post has been deleted.');
       } finally {
         setLoading(false);
       }
