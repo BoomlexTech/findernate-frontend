@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { getNotifications } from '@/api/notification';
 import { Bell, User, Heart, MessageCircle, FileText, Loader2, AlertCircle, RefreshCw, LogIn } from 'lucide-react';
 import { useAuthGuard } from '@/hooks/useAuthGuard';
+import { useUserStore } from '@/store/useUserStore';
 
 interface Notification {
   _id: string;
@@ -81,8 +82,36 @@ const Notifications = () => {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const { isAuthenticated, isLoading } = useAuthGuard();
+  const { user } = useUserStore();
+
+  const getStorageKey = () => `seen_notifications_${user?._id || 'anon'}`;
+
+  const loadSeenNotifications = (): Set<string> => {
+    if (typeof window === 'undefined') return new Set();
+    try {
+      const raw = localStorage.getItem(getStorageKey());
+      if (!raw) return new Set();
+      const arr = JSON.parse(raw) as string[];
+      return new Set(Array.isArray(arr) ? arr : []);
+    } catch {
+      return new Set();
+    }
+  };
+
+  const persistSeenNotifications = (ids: Set<string>) => {
+    if (typeof window === 'undefined') return;
+    try {
+      localStorage.setItem(getStorageKey(), JSON.stringify(Array.from(ids)));
+    } catch {}
+  };
 
   const handleNotificationClick = (notification: Notification) => {
+    // Optimistically mark as read and persist locally
+    setNotifications(prev => prev.map(n => n._id === notification._id ? { ...n, isRead: true } : n));
+    const seen = loadSeenNotifications();
+    seen.add(notification._id);
+    persistSeenNotifications(seen);
+
     if (notification.type === 'follow' && notification.senderId) {
       // Navigate to the user's profile
       router.push(`/userprofile/${notification.senderId.username}`);
@@ -173,20 +202,24 @@ const Notifications = () => {
         const validNotifications = rawNotifications.filter((notification: Notification) => 
           notification && notification.senderId && notification.senderId._id
         );
-        
-        setNotifications(validNotifications);
+        // Merge with locally seen set to avoid showing New for previously visited ones
+        const seen = loadSeenNotifications();
+        const merged = validNotifications.map(n => ({ ...n, isRead: n.isRead || seen.has(n._id) }));
+        setNotifications(merged);
       } catch (err) {
         console.error('Failed to fetch notifications:', err);
         setError('Failed to load notifications');
         // Use fallback data if API fails
-        setNotifications(fallbackNotifications);
+        const seen = loadSeenNotifications();
+        const mergedFallback = fallbackNotifications.map(n => ({ ...n, isRead: n.isRead || seen.has(n._id) }));
+        setNotifications(mergedFallback);
       } finally {
         setLoading(false);
       }
     };
 
     fetchNotifications();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, user?._id]);
 
   // Show loading state while checking authentication
   if (isLoading) {

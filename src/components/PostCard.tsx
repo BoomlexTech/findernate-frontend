@@ -19,6 +19,7 @@ import { AuthDialog } from '@/components/AuthDialog';
 import CommentDrawer from './CommentDrawer';
 import ReportModal from './ReportModal';
 import ImageModal from './ImageModal';
+import { toast } from 'react-toastify';
 
 export interface PostCardProps {
   post: FeedPost;
@@ -443,7 +444,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
       } else {
         // Fallback: copy to clipboard
         navigator.clipboard.writeText(`${window.location.origin}/post/${post._id}`);
-        alert('Link copied to clipboard!');
+        toast.success('Link copied to clipboard!', { autoClose: 2000 });
       }
     });
   };
@@ -465,7 +466,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
           updateSavedPostsCache(post._id, false);
           
           console.log('Post unsaved successfully');
-          alert('Post removed from saved!');
+          toast.info('Post removed from saved!', { autoClose: 2000 });
         } else {
           console.log(`Saving post ${post._id}`);
           await savePost(post._id);
@@ -475,13 +476,13 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
           updateSavedPostsCache(post._id, true);
           
           console.log('Post saved successfully');
-          alert('Post saved successfully!');
+          toast.success('Post saved successfully!', { autoClose: 2000 });
         }
         setShowDropdown(false);
       } catch (error) {
         console.error('Error toggling save status:', error);
         setIsPostSaved(previousSavedState); // Revert state on error
-        alert(`Error ${isPostSaved ? 'removing' : 'saving'} post. Please try again.`);
+        toast.error(`Error ${isPostSaved ? 'removing' : 'saving'} post. Please try again.`);
       } finally {
         setIsSaving(false);
       }
@@ -509,11 +510,37 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
     }
   };
 
+  // Toast-based confirm helper
+  const confirmWithToast = (message: string): Promise<boolean> => {
+    return new Promise((resolve) => {
+      const id = toast(
+        <div className="flex flex-col gap-3">
+          <p className="text-sm text-gray-900">{message}</p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => { toast.dismiss(id); resolve(true); }}
+              className="px-3 py-1 rounded-md bg-red-600 text-white text-xs"
+            >
+              Delete
+            </button>
+            <button
+              onClick={() => { toast.dismiss(id); resolve(false); }}
+              className="px-3 py-1 rounded-md border text-xs"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>,
+        { autoClose: false, closeOnClick: false }
+      );
+    });
+  };
+
   const handleDeletePost = async () => {
     requireAuth(async () => {
       if (isDeleting) return;
       
-      const confirmDelete = window.confirm('Are you sure you want to delete this post? This action cannot be undone.');
+      const confirmDelete = await confirmWithToast('Are you sure you want to delete this post? This action cannot be undone.');
       if (!confirmDelete) return;
       
       setIsDeleting(true);
@@ -529,10 +556,10 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
           onPostDeleted(post._id);
         }
         
-        alert('Post deleted successfully!');
+        toast.success('Post deleted successfully!', { autoClose: 2000 });
       } catch (error) {
         console.error('Error deleting post:', error);
-        alert('Error deleting post. Please try again.');
+        toast.error('Error deleting post. Please try again.');
       } finally {
         setIsDeleting(false);
       }

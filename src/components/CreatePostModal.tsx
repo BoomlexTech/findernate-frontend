@@ -700,12 +700,8 @@ const handleProductChange = (
         userMessage = error.message || userMessage;
       }
       setError(userMessage);
-      // Show error message to user (you can replace this with a toast or modal)
-      alert(userMessage);
-
       
-      // Show error toast instead of alert
-  toast.error(userMessage, {
+    toast.error(userMessage, {
         position: "top-right",
         autoClose: 5000,
         hideProgressBar: false,
