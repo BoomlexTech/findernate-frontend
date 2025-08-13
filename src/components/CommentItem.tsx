@@ -27,7 +27,8 @@ const CommentItem = ({ comment, onUpdate, onDelete, onReplyAdded, isReply = fals
   const [showOptions, setShowOptions] = useState(false);
   const [isLikeLoading, setIsLikeLoading] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
-  const [showReplyInput, setShowReplyInput] = useState(false);
+  const [showReplyBox, setShowReplyBox] = useState(false);
+  const [replies, setReplies] = useState<Comment[]>(comment.replies || []);
   const [showReplies, setShowReplies] = useState(false);
 
   const isOwnComment = user?._id === comment.userId;
@@ -116,17 +117,32 @@ const CommentItem = ({ comment, onUpdate, onDelete, onReplyAdded, isReply = fals
   };
 
   const handleReplyAdded = (reply: Comment) => {
+    // Add reply to local state for immediate display
+    setReplies(prev => [reply, ...prev]);
+    setShowReplyBox(false);
+    setShowReplies(true);
+    
+    // Also notify parent component if callback is provided
     if (onReplyAdded) {
       onReplyAdded(reply);
     }
-    setShowReplyInput(false);
-    setShowReplies(true); // Show replies when a new one is added
+  };
+
+  const handleReplyUpdate = (updatedReply: Comment) => {
+    setReplies(prev => 
+      prev.map(reply => 
+        reply._id === updatedReply._id ? updatedReply : reply
+      )
+    );
+  };
+
+  const handleReplyDelete = (replyId: string) => {
+    setReplies(prev => prev.filter(reply => reply._id !== replyId));
   };
 
   const handleReplyClick = () => {
-    setShowReplyInput(!showReplyInput);
+    setShowReplyBox(!showReplyBox);
   };
-
 
   return (
     <div className={`flex gap-3 ${isReply ? 'ml-8 pt-3' : ''}`}>
@@ -262,55 +278,53 @@ const CommentItem = ({ comment, onUpdate, onDelete, onReplyAdded, isReply = fals
             {likesCount > 0 && <span>{likesCount}</span>}
           </button>
 
-          <button 
-            className="flex items-center gap-1 hover:text-blue-600"
-            onClick={handleReplyClick}
-          >
-            <MessageCircle className="w-3 h-3" />
-            Reply
-          </button>
+          {!isReply && (
+            <button 
+              onClick={handleReplyClick}
+              className="flex items-center gap-1 hover:text-blue-600"
+            >
+              <MessageCircle className="w-3 h-3" />
+              Reply
+            </button>
+          )}
+
+          {replies.length > 0 && !isReply && (
+            <button 
+              onClick={() => setShowReplies(!showReplies)}
+              className="flex items-center gap-1 hover:text-blue-600"
+            >
+              {showReplies ? 'Hide' : 'Show'} {replies.length} {replies.length === 1 ? 'reply' : 'replies'}
+            </button>
+          )}
 
           <span>{formatPostDate(comment.createdAt)}</span>
         </div>
 
-        {/* Reply Input */}
-        {showReplyInput && !isReply && (
+        {/* Reply Box */}
+        {showReplyBox && !isReply && (
           <div className="mt-3">
             <AddComment
               postId={comment.postId}
               parentCommentId={comment._id}
               onCommentAdded={handleReplyAdded}
-              placeholder={`Reply to ${comment.user?.fullName || comment.user?.username || 'user'}...`}
+              placeholder={`Reply to ${comment.user?.fullName || comment.user?.username || 'this comment'}...`}
               shouldFocus={true}
             />
           </div>
         )}
 
         {/* Replies */}
-        {!isReply && comment.replies && comment.replies.length > 0 && (
-          <div className="mt-3">
-            {/* Toggle replies button */}
-            <button
-              onClick={() => setShowReplies(!showReplies)}
-              className="text-xs text-blue-600 hover:text-blue-700 mb-2"
-            >
-              {showReplies ? 'Hide' : 'Show'} {comment.replies.length} {comment.replies.length === 1 ? 'reply' : 'replies'}
-            </button>
-
-            {/* Replies list */}
-            {showReplies && (
-              <div className="space-y-2">
-                {comment.replies.map((reply) => (
-                  <CommentItem
-                    key={reply._id}
-                    comment={reply}
-                    onUpdate={onUpdate}
-                    onDelete={onDelete}
-                    isReply={true}
-                  />
-                ))}
-              </div>
-            )}
+        {showReplies && replies.length > 0 && !isReply && (
+          <div className="mt-3 space-y-3">
+            {replies.map((reply) => (
+              <CommentItem
+                key={reply._id}
+                comment={reply}
+                onUpdate={handleReplyUpdate}
+                onDelete={handleReplyDelete}
+                isReply={true}
+              />
+            ))}
           </div>
         )}
       </div>
