@@ -903,9 +903,9 @@ const Page = () => {
         {/* Mobile Comments Drawer */}
         {showComments && (
           <div className="fixed inset-0 bg-black/50 z-[70] flex items-end">
-            <div className="bg-white w-full h-4/5 rounded-t-3xl">
+            <div className="bg-white w-full h-4/5 rounded-t-3xl flex flex-col">
               {/* Header */}
-              <div className="flex items-center justify-between p-4 border-b border-gray-200">
+              <div className="flex items-center justify-between p-4 border-b border-gray-200 flex-shrink-0">
                 <h3 className="text-lg font-semibold text-gray-900">Comments ({commentsCount})</h3>
                 <button 
                   onClick={() => setShowComments(false)}
@@ -918,13 +918,15 @@ const Page = () => {
               </div>
               
               {/* Comments Content */}
-              <div className="flex-1 overflow-y-auto p-4">
-                <ReelCommentsSection
-                  postId={currentModalData._id}
-                  initialCommentCount={commentsCount}
-                  onCommentCountChange={handleCommentCountChange}
-                  maxVisible={20}
-                />
+              <div className="flex-1 overflow-y-auto p-4 min-h-0 overscroll-behavior-contain">
+                <div className="pb-4">
+                  <ReelCommentsSection
+                    postId={currentModalData._id}
+                    initialCommentCount={commentsCount}
+                    onCommentCountChange={handleCommentCountChange}
+                    maxVisible={50}
+                  />
+                </div>
               </div>
             </div>
           </div>

@@ -28,6 +28,28 @@ const ReelCommentsSection = ({ postId, initialCommentCount = 0, onCommentCountCh
     setTotalCommentCount((prev) => prev + 1);
   };
 
+  const handleReplyAdded = (reply: Comment) => {
+    // Ensure user info is present for reply
+    let replyWithUser = reply;
+    if (!reply.user && typeof reply.userId === 'object' && reply.userId !== null) {
+      replyWithUser = { ...reply, user: reply.userId };
+    }
+
+    // Add reply to the parent comment's replies array
+    setComments((prev) => 
+      prev.map((comment) => {
+        if (comment._id === reply.parentCommentId) {
+          return {
+            ...comment,
+            replies: [...(comment.replies || []), replyWithUser]
+          };
+        }
+        return comment;
+      })
+    );
+    setTotalCommentCount((prev) => prev + 1);
+  };
+
   useEffect(() => {
     setLoading(true);
     getCommentsByPost(postId, 1, maxVisible)
@@ -87,6 +109,7 @@ const ReelCommentsSection = ({ postId, initialCommentCount = 0, onCommentCountCh
               comment={comment}
               onUpdate={() => {}}
               onDelete={() => {}}
+              onReplyAdded={handleReplyAdded}
             />
           ))}
         </>

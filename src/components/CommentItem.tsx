@@ -1,3 +1,6 @@
+Here’s the resolved file with conflicts removed and everything else preserved.
+
+```tsx
 'use client';
 
 import { useState } from 'react';
@@ -60,7 +63,7 @@ const CommentItem = ({ comment, onUpdate, onDelete, onReplyAdded, isReply = fals
         try {
           await likeComment(comment._id);
         } catch (likeError: any) {
-              // Handle "already liked" error or self-like restriction
+          // Handle "already liked" error or self-like restriction
           if (likeError?.response?.status === 409) {
             console.log(`Comment ${comment._id} already liked or self-like not allowed - treating as successful`);
             return; // Keep the optimistic update
@@ -117,9 +120,11 @@ const CommentItem = ({ comment, onUpdate, onDelete, onReplyAdded, isReply = fals
   };
 
   const handleReplyAdded = (reply: Comment) => {
+    // Add reply to local state for immediate display
     setReplies(prev => [reply, ...prev]);
     setShowReplyBox(false);
     setShowReplies(true);
+    // Also notify parent component if callback is provided
     onReplyAdded?.(reply);
   };
 
@@ -134,7 +139,6 @@ const CommentItem = ({ comment, onUpdate, onDelete, onReplyAdded, isReply = fals
   const handleReplyDelete = (replyId: string) => {
     setReplies(prev => prev.filter(reply => reply._id !== replyId));
   };
-
 
   return (
     <div className={`flex gap-3 ${isReply ? 'ml-8 pt-3' : ''}`}>
@@ -293,7 +297,7 @@ const CommentItem = ({ comment, onUpdate, onDelete, onReplyAdded, isReply = fals
         </div>
 
         {/* Reply Box */}
-        {showReplyBox && (
+        {showReplyBox && !isReply && (
           <div className="mt-3">
             <AddComment
               postId={comment.postId}
@@ -306,7 +310,7 @@ const CommentItem = ({ comment, onUpdate, onDelete, onReplyAdded, isReply = fals
         )}
 
         {/* Replies */}
-        {showReplies && replies.length > 0 && (
+        {showReplies && replies.length > 0 && !isReply && (
           <div className="mt-3 space-y-3">
             {replies.map((reply) => (
               <CommentItem
@@ -333,3 +337,4 @@ const CommentItem = ({ comment, onUpdate, onDelete, onReplyAdded, isReply = fals
 };
 
 export default CommentItem;
+```
