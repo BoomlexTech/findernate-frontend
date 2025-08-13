@@ -11,7 +11,7 @@ import {
   CheckCircle,
   Globe,
   Users,
-  Shield,
+  //Shield,
   // ArrowLeft,
   X,
   Building2
@@ -20,7 +20,7 @@ import { FeedPost } from '@/types';
 import { Badge } from './ui/badge';
 import { useState, useEffect } from 'react';
 import { useUserStore } from '@/store/useUserStore';
-import { messageAPI } from '@/api/message';
+import { messageAPI, Chat } from '@/api/message';
 import { useRouter } from 'next/navigation';
 import { getOtherUserProfile } from '@/api/user';
 
@@ -35,6 +35,7 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
   const [resolvedOwnerId, setResolvedOwnerId] = useState<string | null>(null);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const user = useUserStore(state => state.user);
   const router = useRouter();
 
@@ -44,6 +45,10 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
     setTimeout(() => setShowToast(false), 3000);
   };
 
+  const showSuccessMessage = () => {
+    setShowSuccessPopup(true);
+    setTimeout(() => setShowSuccessPopup(false), 4000);
+  };
   // Build data from post payload (no static placeholders)
   const formatPrice = (price?: string | number, currency?: string) => {
     const hasPrice = typeof price === 'number' ? true : !!price;
@@ -174,25 +179,24 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
       setIsBooking(true);
 
       // 1. Check if there's an existing direct chat with this user
-  let existingChat: import("@/api/message").Chat | null = null;
+      let existingChat: Chat | null = null;
       try {
         const active = await messageAPI.getActiveChats(1, 50); // first page
-        const foundChat: import("@/api/message").Chat | undefined = active.chats.find(c => 
+        existingChat = active.chats.find(c => 
           c.chatType === 'direct' &&
           c.participants.some(p => p && p._id === user._id) &&
           c.participants.some(p => p && p._id === targetUserId)
-        );
-        existingChat = foundChat ?? null;
+        ) || null;
       } catch (inner) {
         console.warn('Could not fetch active chats:', inner);
       }
 
-      if (existingChat && typeof existingChat._id === 'string') {
+      if (existingChat) {
         // If chat exists, open the existing chat
         router.push(`/chats?chatId=${existingChat._id}`);
       } else {
-        // If no existing chat, show contact request sent message (simulate sending request)
-        showToastMessage('Contact request has been sent');
+        // If no existing chat, show success popup for contact request
+        showSuccessMessage();
       }
     } catch (err: any) {
       console.error('Failed to process contact request:', err);
@@ -209,6 +213,21 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
         {showToast && (
           <div className="fixed top-4 right-4 z-50 bg-gray-800 text-white px-4 py-2 rounded-lg shadow-lg transition-all duration-300">
             {toastMessage}
+          </div>
+        )}
+
+        {/* Success Popup */}
+        {showSuccessPopup && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl p-8 max-w-sm w-full mx-4 text-center shadow-2xl transform animate-in slide-in-from-bottom-4 duration-300">
+              <div className="flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mx-auto mb-4">
+                <CheckCircle className="w-8 h-8 text-green-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Request Sent!</h3>
+              <p className="text-gray-600 text-sm leading-relaxed">
+                Your request has been sent. Once accepted, their contact info will appear in your messages.
+              </p>
+            </div>
           </div>
         )}
         {/* Header */}
@@ -236,7 +255,7 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
         </div>
 
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto hide-scrollbar">
+        <div className="flex-1 overflow-y-auto subtle-scrollbar">
           <div className="p-4 space-y-4 pb-20">
           {/* Price and Duration */}
           <div className="grid grid-cols-1 gap-3">
@@ -310,37 +329,41 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
             </div>
           </div>
 
-          {/* Requirements */}
-          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3">
-            <div className="flex items-center gap-2 mb-2">
-              <Shield className="w-4 h-4 text-yellow-600" />
-              <span className="text-xs font-semibold text-yellow-800 uppercase">Requirements</span>
-            </div>
-            <ul className="space-y-1">
-              {data.requirements.map((req: string, index: number) => (
-                <li key={index} className="flex items-center gap-2">
-                  <CheckCircle className="w-3 h-3 text-yellow-600" />
-                  <span className="text-xs text-gray-700">{req}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+          {/**
+           * Requirements (temporarily hidden)
+           * <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3">
+           *   <div className="flex items-center gap-2 mb-2">
+           *     <Shield className="w-4 h-4 text-yellow-600" />
+           *     <span className="text-xs font-semibold text-yellow-800 uppercase">Requirements</span>
+           *   </div>
+           *   <ul className="space-y-1">
+           *     {data.requirements.map((req: string, index: number) => (
+           *       <li key={index} className="flex items-center gap-2">
+           *         <CheckCircle className="w-3 h-3 text-yellow-600" />
+           *         <span className="text-xs text-gray-700">{req}</span>
+           *       </li>
+           *     ))}
+           *   </ul>
+           * </div>
+           */}
 
-          {/* What You Get */}
-          <div className="bg-teal-50 border border-teal-200 rounded-xl p-3">
-            <div className="flex items-center gap-2 mb-2">
-              <Star className="w-4 h-4 text-teal-600" />
-              <span className="text-xs font-semibold text-teal-800 uppercase">What You Get</span>
-            </div>
-            <ul className="space-y-1">
-              {data.whatYouGet.map((item: string, index: number) => (
-                <li key={index} className="flex items-center gap-2">
-                  <CheckCircle className="w-3 h-3 text-teal-600" />
-                  <span className="text-xs text-gray-700">{item}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+          {/**
+           * What You Get (temporarily hidden)
+           * <div className="bg-teal-50 border border-teal-200 rounded-xl p-3">
+           *   <div className="flex items-center gap-2 mb-2">
+           *     <Star className="w-4 h-4 text-teal-600" />
+           *     <span className="text-xs font-semibold text-teal-800 uppercase">What You Get</span>
+           *   </div>
+           *   <ul className="space-y-1">
+           *     {data.whatYouGet.map((item: string, index: number) => (
+           *       <li key={index} className="flex items-center gap-2">
+           *         <CheckCircle className="w-3 h-3 text-teal-600" />
+           *         <span className="text-xs text-gray-700">{item}</span>
+           *       </li>
+           *     ))}
+           *   </ul>
+           * </div>
+           */}
 
           </div>
         </div>
@@ -361,10 +384,10 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
               {isBooking ? (
                 <div className="flex items-center justify-center gap-2">
                   <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                  Sending Request...
+                  Opening Chat...
                 </div>
               ) : (
-             'Get Contact Info' 
+             'Get Contact info' 
             )}
           </button>
         </div>
@@ -390,8 +413,23 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
           {toastMessage}
         </div>
       )}
+
+      {/* Success Popup */}
+      {showSuccessPopup && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-8 max-w-sm w-full mx-4 text-center shadow-2xl transform animate-in slide-in-from-bottom-4 duration-300">
+            <div className="flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mx-auto mb-4">
+              <CheckCircle className="w-8 h-8 text-green-600" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Request Sent!</h3>
+            <p className="text-gray-600 text-sm leading-relaxed">
+              Your request has been sent. Once accepted, their contact info will appear in your messages.
+            </p>
+          </div>
+        </div>
+      )}
       <div 
-        className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto hide-scrollbar shadow-2xl border border-gray-200"
+        className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-2xl border border-gray-200"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -427,7 +465,7 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto subtle-scrollbar p-6 space-y-6">
           {/* Price and Duration */}
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
@@ -500,61 +538,65 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
             </div>
           </div>
 
-          {/* Requirements */}
-          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <Shield className="w-5 h-5 text-yellow-600" />
-              <span className="text-sm font-semibold text-yellow-800 uppercase">Requirements</span>
-            </div>
-            <ul className="space-y-2">
-              {data.requirements.map((req: string, index: number) => (
-                <li key={index} className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-yellow-600" />
-                  <span className="text-gray-700">{req}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+          {/**
+           * Requirements (temporarily hidden)
+           * <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+           *   <div className="flex items-center gap-2 mb-3">
+           *     <Shield className="w-5 h-5 text-yellow-600" />
+           *     <span className="text-sm font-semibold text-yellow-800 uppercase">Requirements</span>
+           *   </div>
+           *   <ul className="space-y-2">
+           *     {data.requirements.map((req: string, index: number) => (
+           *       <li key={index} className="flex items-center gap-2">
+           *         <CheckCircle className="w-4 h-4 text-yellow-600" />
+           *         <span className="text-gray-700">{req}</span>
+           *       </li>
+           *     ))}
+           *   </ul>
+           * </div>
+           */}
 
-          {/* What You Get */}
-          <div className="bg-teal-50 border border-teal-200 rounded-xl p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <Star className="w-5 h-5 text-teal-600" />
-              <span className="text-sm font-semibold text-teal-800 uppercase">What You Get</span>
-            </div>
-            <ul className="space-y-2">
-              {data.whatYouGet.map((item: string, index: number) => (
-                <li key={index} className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-teal-600" />
-                  <span className="text-gray-700">{item}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+          {/**
+           * What You Get (temporarily hidden)
+           * <div className="bg-teal-50 border border-teal-200 rounded-xl p-4">
+           *   <div className="flex items-center gap-2 mb-3">
+           *     <Star className="w-5 h-5 text-teal-600" />
+           *     <span className="text-sm font-semibold text-teal-800 uppercase">What You Get</span>
+           *   </div>
+           *   <ul className="space-y-2">
+           *     {data.whatYouGet.map((item: string, index: number) => (
+           *       <li key={index} className="flex items-center gap-2">
+           *         <CheckCircle className="w-4 h-4 text-teal-600" />
+           *         <span className="text-gray-700">{item}</span>
+           *       </li>
+           *     ))}
+           *   </ul>
+           * </div>
+           */}
 
-          {/* Book Button */}
-          <div className="pt-4">
-            <button
-              onClick={handleGetContact}
-              disabled={isBooking}
-              className={`w-full py-4 px-6 rounded-xl font-bold text-white text-lg transition-all duration-200 shadow-lg hover:shadow-xl ${
-                isProduct
-                  ? 'bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800'
-                  : isBusiness
-                  ? 'bg-gradient-to-r from-violet-600 to-purple-700 hover:from-violet-700 hover:to-purple-800'
-                  : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800'
-              } ${isBooking ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.02]'}`}
-            >
-              {isBooking ? (
-                <div className="flex items-center justify-center gap-2">
-                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
-                  Sending Request...
-                </div>
-              ) : (
-                'Get Contact Info'
-              )}
-            </button>
-          </div>
+        </div>
+        {/* Footer CTA */}
+        <div className="border-t bg-white p-4 rounded-b-3xl">
+          <button
+            onClick={handleGetContact}
+            disabled={isBooking}
+            className={`w-full py-3 px-4 rounded-xl font-bold text-white text-lg transition-all duration-200 shadow-lg hover:shadow-xl ${
+              isProduct
+                ? 'bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800'
+                : isBusiness
+                ? 'bg-gradient-to-r from-violet-600 to-purple-700 hover:from-violet-700 hover:to-purple-800'
+                : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800'
+            } ${isBooking ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.02]'}`}
+          >
+            {isBooking ? (
+              <div className="flex items-center justify-center gap-2">
+                <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+                Opening Chat...
+              </div>
+            ) : (
+              'Get Contact Info'
+            )}
+          </button>
         </div>
       </div>
     </div>

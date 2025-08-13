@@ -3,7 +3,7 @@
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { discoverItems, navigationItems } from '@/constants/uiItems';
 import { Plus } from 'lucide-react';
@@ -17,12 +17,27 @@ interface leftSidebarProps {
 export default function LeftSidebar({togglePost, onItemClick}: leftSidebarProps) {
 	const { isAuthenticated } = useAuthGuard();
 	const [isActive, setIsActive] = useState(0);
-	useEffect(() => {
-	  const saved = localStorage.getItem('sidebarActiveIndex');
-	  if (saved !== null) {
-		setIsActive(Number(saved));
-	  }
-	}, []);
+  const pathname = usePathname();
+
+  // Compute active index from current route so programmatic navigations are reflected
+  useEffect(() => {
+    const allItems = [...navigationItems, ...discoverItems];
+    let activeIndex = -1;
+    // Prefer exact match for home route
+    if (pathname === '/') {
+      activeIndex = allItems.findIndex((item) => item.route === '/');
+    } else {
+      // Find first whose route is a prefix of pathname (excluding '/')
+      activeIndex = allItems.findIndex(
+        (item) => item.route !== '/' && pathname.startsWith(item.route)
+      );
+    }
+    if (activeIndex === -1) activeIndex = 0;
+    setIsActive(activeIndex);
+    try {
+      localStorage.setItem('sidebarActiveIndex', String(activeIndex));
+    } catch {}
+  }, [pathname]);
 
 	const router = useRouter();
 
@@ -47,7 +62,7 @@ export default function LeftSidebar({togglePost, onItemClick}: leftSidebarProps)
 	  {/* Scrollable content area */}
 	  <div className="flex-1 overflow-y-auto px-6 pb-6">
 		{/* Navigation */}
-		<nav className="mb-8">
+		<nav className="mb-8 mt-2">
 		  <ul className="space-y-2">
 			{navigationItems.map((item, index) => (
 			  <li key={index}>

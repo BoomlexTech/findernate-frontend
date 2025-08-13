@@ -1,6 +1,7 @@
 import React from 'react';
 import Image from 'next/image';
 import { Chat } from '@/api/message';
+import { ChevronLeft } from 'lucide-react';
 
 interface ChatHeaderProps {
   selected: Chat;
@@ -8,6 +9,7 @@ interface ChatHeaderProps {
   getChatAvatar: (chat: Chat) => string;
   getChatDisplayName: (chat: Chat) => string;
   onProfileClick: (chat: Chat) => void;
+  onBack?: () => void;
 }
 
 export const ChatHeader: React.FC<ChatHeaderProps> = ({
@@ -15,15 +17,27 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   typingUsers,
   getChatAvatar,
   getChatDisplayName,
-  onProfileClick
+  onProfileClick,
+  onBack
 }) => {
   return (
     <div className="p-6 border-b border-gray-200 bg-white">
       <div className="flex items-center justify-between">
-        <div 
-          className="flex items-center space-x-4 cursor-pointer hover:bg-gray-50 -m-2 p-2 rounded-lg transition-colors"
-          onClick={() => onProfileClick(selected)}
-        >
+        <div className="flex items-center">
+          {onBack && (
+            <button
+              type="button"
+              onClick={onBack}
+              className="sm:hidden p-2 mr-2 rounded-full hover:bg-gray-100 text-gray-700"
+              aria-label="Back to chats"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+          )}
+          <div 
+            className="flex items-center space-x-4 cursor-pointer hover:bg-gray-50 -m-2 p-2 rounded-lg transition-colors"
+            onClick={() => onProfileClick(selected)}
+          >
           <Image 
             width={12} 
             height={12} 
@@ -49,6 +63,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                   : 'Click to view profile'
               )}
             </p>
+          </div>
           </div>
         </div>
         <div className="flex items-center space-x-4 text-gray-500">

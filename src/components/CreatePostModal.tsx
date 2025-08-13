@@ -35,6 +35,204 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
   tags: [] as string [],
 });
 
+  const [videoDuration, setVideoDuration] = useState<number | null>(null);
+  const [isOptimizing, setIsOptimizing] = useState(false);
+
+  // Image compression utility
+  const compressImage = (file: File, quality: number = 0.8, maxWidth: number = 1920): Promise<File> => {
+    return new Promise((resolve) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d')!;
+      const img = new window.Image();
+      
+      img.onload = () => {
+        // Calculate new dimensions
+        const { width, height } = img;
+        const aspectRatio = width / height;
+        
+        let newWidth = width;
+        let newHeight = height;
+        
+        if (width > maxWidth) {
+          newWidth = maxWidth;
+          newHeight = maxWidth / aspectRatio;
+        }
+        
+        canvas.width = newWidth;
+        canvas.height = newHeight;
+        
+        // Draw and compress
+        ctx.drawImage(img, 0, 0, newWidth, newHeight);
+        
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const compressedFile = new File([blob], file.name, {
+              type: file.type,
+              lastModified: Date.now(),
+            });
+            resolve(compressedFile);
+          } else {
+            resolve(file);
+          }
+        }, file.type, quality);
+      };
+      
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
+  // Video compression utility using canvas and ffmpeg-like approach
+  const compressVideo = async (file: File): Promise<File> => {
+    return new Promise((resolve, reject) => {
+      const video = document.createElement('video');
+      video.src = URL.createObjectURL(file);
+      
+      video.onloadedmetadata = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d')!;
+        
+        // Set compressed dimensions (reduce by 50% if too large)
+        const maxWidth = 1280;
+        const maxHeight = 720;
+        
+        let { videoWidth: width, videoHeight: height } = video;
+        const aspectRatio = width / height;
+        
+        if (width > maxWidth) {
+          width = maxWidth;
+          height = maxWidth / aspectRatio;
+        }
+        if (height > maxHeight) {
+          height = maxHeight;
+          width = maxHeight * aspectRatio;
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        // Create MediaRecorder for video compression
+        const stream = canvas.captureStream(25); // 25 FPS
+        const mediaRecorder = new MediaRecorder(stream, {
+          mimeType: 'video/webm;codecs=vp9',
+          videoBitsPerSecond: 1000000 // 1Mbps
+        });
+        
+        const chunks: BlobPart[] = [];
+        
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            chunks.push(event.data);
+          }
+        };
+        
+        mediaRecorder.onstop = () => {
+          const compressedBlob = new Blob(chunks, { type: 'video/webm' });
+          const compressedFile = new File([compressedBlob], 
+            file.name.replace(/\.[^/.]+$/, '.webm'), {
+            type: 'video/webm',
+            lastModified: Date.now(),
+          });
+          resolve(compressedFile);
+        };
+        
+        // Start recording and play video
+        mediaRecorder.start();
+        video.currentTime = 0;
+        video.play();
+        
+        video.ontimeupdate = () => {
+          if (video.currentTime < video.duration) {
+            ctx.drawImage(video, 0, 0, width, height);
+          } else {
+            video.pause();
+            mediaRecorder.stop();
+            URL.revokeObjectURL(video.src);
+          }
+        };
+      };
+      
+      video.onerror = () => reject(new Error('Failed to load video for compression'));
+    });
+  };
+
+  // Optimize file based on type and size
+  const optimizeFile = async (file: File): Promise<File> => {
+    const maxSizeBytes = 10 * 1024 * 1024; // 10MB limit for Cloudinary
+    
+    if (file.size <= maxSizeBytes) {
+      return file; // No optimization needed
+    }
+    
+    setIsOptimizing(true);
+    
+    try {
+      if (file.type.startsWith('image/')) {
+        // Compress image with progressive quality reduction
+        let quality = 0.8;
+        let optimizedFile = await compressImage(file, quality);
+        
+        // Keep reducing quality until under size limit
+        while (optimizedFile.size > maxSizeBytes && quality > 0.3) {
+          quality -= 0.1;
+          optimizedFile = await compressImage(file, quality, 1280); // Also reduce max width
+        }
+        
+        return optimizedFile;
+      } else if (file.type === 'video/mp4') {
+        // For large videos, use basic compression
+        const optimizedFile = await compressVideo(file);
+        return optimizedFile;
+      }
+    } catch (error) {
+      console.error('File optimization failed:', error);
+      toast.error('File optimization failed. Please try a smaller file.');
+    } finally {
+      setIsOptimizing(false);
+    }
+    
+    return file;
+  };
+
+  const detectVideoDuration = (file: File): Promise<number> => {
+    return new Promise((resolve, reject) => {
+      const video = document.createElement('video');
+      video.preload = 'metadata';
+      
+      video.onloadedmetadata = () => {
+        window.URL.revokeObjectURL(video.src);
+        const duration = video.duration;
+        resolve(duration);
+      };
+      
+      video.onerror = () => {
+        window.URL.revokeObjectURL(video.src);
+        reject(new Error('Failed to load video metadata'));
+      };
+      
+      video.src = URL.createObjectURL(file);
+    });
+  };
+
+  const updatePostTypeBasedOnVideo = async (file: File) => {
+    if (file.type === 'video/mp4') {
+      try {
+        const duration = await detectVideoDuration(file);
+        setVideoDuration(duration);
+        
+        // Update regularForm postType based on duration
+        if (duration <= 60) { // 60 seconds = 1 minute
+          setRegularForm(prev => ({ ...prev, postType: 'reel' }));
+        } else {
+          setRegularForm(prev => ({ ...prev, postType: 'video' }));
+        }
+      } catch (error) {
+        console.error('Error detecting video duration:', error);
+        // Default to video if we can't detect duration
+        setRegularForm(prev => ({ ...prev, postType: 'video' }));
+      }
+    }
+  };
+
   const [regularForm, setRegularForm] = useState({
     postType: 'photo',
     mood: 'Content', // Default mood since UI field is hidden
@@ -275,21 +473,71 @@ const handleProductChange = (
     });
   };
 
-  const handleImageUpload = (e:React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e:React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-     if (files.length + sharedForm.image.length <= 5) {
-    setSharedForm((prev) => ({
-      ...prev,
-      image: [...prev.image, ...files]
-    }));
-  } else {
-    // Optional: show error or toast if limit exceeded
-    console.warn('You can upload a maximum of 5 images.');
-  }
+    
+    if (files.length + sharedForm.image.length <= 5) {
+      const optimizedFiles: File[] = [];
+      
+      // Show optimization progress
+      if (files.some(file => file.size > 10 * 1024 * 1024)) {
+        toast.info('Large files detected. Optimizing for upload...', {
+          position: "top-right",
+          autoClose: 3000,
+        });
+      }
+      
+      // Optimize each file
+      for (const file of files) {
+        try {
+          const optimizedFile = await optimizeFile(file);
+          optimizedFiles.push(optimizedFile);
+          
+          // Check for MP4 videos and update post type accordingly
+          if (file.type === 'video/mp4' || optimizedFile.type.startsWith('video/')) {
+            await updatePostTypeBasedOnVideo(optimizedFile);
+          }
+        } catch (error) {
+          console.error('Failed to optimize file:', file.name, error);
+          toast.error(`Failed to optimize ${file.name}. Please try a smaller file.`);
+          return;
+        }
+      }
+      
+      setSharedForm((prev) => ({
+        ...prev,
+        image: [...prev.image, ...optimizedFiles]
+      }));
+      
+      // Show success message if files were optimized
+      const originalSize = files.reduce((acc, file) => acc + file.size, 0);
+      const optimizedSize = optimizedFiles.reduce((acc, file) => acc + file.size, 0);
+      
+      if (originalSize > optimizedSize) {
+        const savedMB = ((originalSize - optimizedSize) / 1024 / 1024).toFixed(1);
+        toast.success(`Files optimized! Saved ${savedMB}MB of upload data.`, {
+          position: "top-right",
+          autoClose: 3000,
+        });
+      }
+      
+    } else {
+      toast.error('You can upload a maximum of 5 files.', {
+        position: "top-right",
+        autoClose: 3000,
+      });
+    }
   };
 
   const removeImage = (index: number) => {
+    const removedFile = sharedForm.image[index];
     setSharedForm({...sharedForm, image: sharedForm.image.filter((_, i) => i !== index)});
+    
+    // Reset video duration and post type if removing a video
+    if (removedFile.type === 'video/mp4') {
+      setVideoDuration(null);
+      setRegularForm(prev => ({ ...prev, postType: 'photo' }));
+    }
   };
 
   const buildPostPayload = () => {
@@ -478,8 +726,8 @@ const handleProductChange = (
   };
 
   return (
-    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-white rounded-2xl hide-scrollbar shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-[10000]">
+      <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="sticky top-0 z-10 bg-white flex items-center justify-between p-6 border-b">
           <h2 className="text-xl font-semibold text-gray-800">Create Post</h2>
@@ -492,7 +740,7 @@ const handleProductChange = (
         </div>
 
         {/* Content */}
-        <div className="p-6">
+        <div className="flex-1 overflow-y-auto subtle-scrollbar p-6">
           {/* User Info */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center">
@@ -507,7 +755,7 @@ const handleProductChange = (
             <Button
               onClick={handlePost}
               className="px-6 py-2 bg-button-gradient text-white rounded-lg hover:bg-yellow-700 transition-colors cursor-pointer"
-              disabled={loading}
+              disabled={loading || isOptimizing}
             >
               {loading ? 'Posting...' : 'Submit Post'}
             </Button>
@@ -521,7 +769,7 @@ const handleProductChange = (
           )}
 
           {/* Post Type Tabs */}
-          <div className="flex space-x-4 mb-6">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:space-x-4 sm:gap-0 mb-6">
             {/* Regular Post - Available for everyone */}
             <Button
               variant='custom'
@@ -530,7 +778,7 @@ const handleProductChange = (
                 postType === 'Regular'
                   ? 'border-yellow-500 bg-yellow-50 text-yellow-700'
                   : 'border-gray-300 text-gray-600 hover:bg-gray-50'
-              }`}
+              } w-full sm:w-auto justify-center`}
             >
               Regular Post
             </Button>
@@ -543,7 +791,7 @@ const handleProductChange = (
                 postType === 'Product'
                   ? 'border-yellow-500 bg-yellow-50 text-yellow-700'
                   : 'border-gray-300 text-gray-600 hover:bg-gray-50'
-              }`}
+              } w-full sm:w-auto justify-center`}
             >
               <ShoppingBag className='mr-2' size={16} /> Product
             </Button>
@@ -554,7 +802,7 @@ const handleProductChange = (
                 postType === 'Service'
                   ? 'border-yellow-500 bg-yellow-50 text-yellow-700'
                   : 'border-gray-300 text-gray-600 hover:bg-gray-50'
-              }`}
+              } w-full sm:w-auto justify-center`}
             >
               <BriefcaseBusiness className='mr-2' size={16} /> Service
             </Button>
@@ -565,7 +813,7 @@ const handleProductChange = (
                 postType === 'Business'
                   ? 'border-yellow-500 bg-yellow-50 text-yellow-700'
                   : 'border-gray-300 text-gray-600 hover:bg-gray-50'
-              }`}
+              } w-full sm:w-auto justify-center`}
             >
               <Building2 className='mr-2' size={16} /> Business
             </Button>
@@ -609,23 +857,23 @@ const handleProductChange = (
             />
           )}
 
-          {/* Images Section */}
+          {/* Media Section */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-4">
-              <span className="text-sm text-gray-600">Images</span>
+              <span className="text-sm text-gray-600">Media</span>
               <span className="text-sm text-gray-500">{sharedForm.image.length}/5</span>
             </div>
             
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
               <Camera className="mx-auto mb-4 text-gray-400" size={48} />
-              <h3 className="text-lg font-medium text-gray-700 mb-2">Add Photos</h3>
+              <h3 className="text-lg font-medium text-gray-700 mb-2">Add Photos & Videos</h3>
               <p className="text-sm text-gray-500 mb-4">
-                Upload up to 5 images (JPG, PNG, GIF - max 5MB each)
+                Upload up to 5 images (JPG, PNG, GIF) or MP4 videos
               </p>
               <input
                 type="file"
                 multiple
-                accept="image/*"
+                accept="image/*,video/mp4"
                 onChange={handleImageUpload}
                 className="hidden"
                 id="image-upload"
@@ -634,25 +882,57 @@ const handleProductChange = (
                 htmlFor="image-upload"
                 className="inline-flex items-center px-4 py-2 bg-button-gradient text-white rounded-lg hover:bg-yellow-700 cursor-pointer transition-colors"
               >
-                📎 Add Images
+                📎 Add Images & Videos
               </label>
               <p className="text-xs text-gray-400 mt-2">
-                Tip: Upload high-quality images to showcase your content better
+                Tip: Large files are automatically optimized. MP4 videos under 1 minute become reels, longer videos become regular video posts.
               </p>
+              {isOptimizing && (
+                <div className="mt-2 flex items-center justify-center text-yellow-600">
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-yellow-600 border-t-transparent mr-2"></div>
+                  Optimizing files for upload...
+                </div>
+              )}
             </div>
 
-            {/* Image Preview */}
+            {/* Media Preview */}
             {sharedForm.image.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-4">
-                {sharedForm.image.map((image, index) => (
+                {sharedForm.image.map((file, index) => (
                   <div key={index} className="relative">
-                    <Image
-                      width={100}
-                      height={100}
-                      src={URL.createObjectURL(image)}
-                      alt={`Preview ${index + 1}`}
-                      className="w-20 h-20 object-cover rounded-lg border"
-                    />
+                    {file.type.startsWith('image/') ? (
+                      <div className="w-20 h-20 relative">
+                        <Image
+                          width={100}
+                          height={100}
+                          src={URL.createObjectURL(file)}
+                          alt={`Preview ${index + 1}`}
+                          className="w-full h-full object-cover rounded-lg border"
+                        />
+                        <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-1 rounded-b-lg">
+                          {(file.size / 1024 / 1024).toFixed(1)}MB
+                        </div>
+                      </div>
+                    ) : file.type === 'video/mp4' ? (
+                      <div className="w-20 h-20 relative">
+                        <video
+                          src={URL.createObjectURL(file)}
+                          className="w-full h-full object-cover rounded-lg border"
+                          muted
+                        />
+                        <div className="absolute inset-0 bg-black/30 rounded-lg flex flex-col items-center justify-center p-1">
+                          <div className="text-white text-xs font-semibold bg-black/50 px-1 rounded mb-1">
+                            {file.type === 'video/mp4' && videoDuration ? 
+                              `${Math.round(videoDuration)}s ${videoDuration <= 60 ? '(Reel)' : '(Video)'}` : 
+                              'Video'
+                            }
+                          </div>
+                          <div className="text-white text-xs bg-black/50 px-1 rounded">
+                            {(file.size / 1024 / 1024).toFixed(1)}MB
+                          </div>
+                        </div>
+                      </div>
+                    ) : null}
                     <button
                       onClick={() => removeImage(index)}
                       className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600"
@@ -691,14 +971,14 @@ const handleProductChange = (
           <Button
             onClick={handleCloseModal}
             className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
-            disabled={loading}
+            disabled={loading || isOptimizing}
           >
             Cancel
           </Button>
           <Button
             onClick={handlePost}
             className="px-6 py-2 bg-button-gradient text-white rounded-lg hover:bg-yellow-700 transition-colors cursor-pointer"
-            disabled={loading}
+            disabled={loading || isOptimizing}
           >
             {loading ? 'Posting...': 'Post'}
           </Button>

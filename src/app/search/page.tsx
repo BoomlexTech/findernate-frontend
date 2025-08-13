@@ -482,7 +482,7 @@ export default function SearchPage() {
             </div>
 
             {/* Advanced Search Filters */}
-            <div className="flex flex-wrap gap-4 mb-8">
+            <div className="flex flex-wrap gap-4 xl:gap-3 mb-8">
               {/* Location Dropdown */}
               <div className="relative">
                 <button
@@ -492,7 +492,7 @@ export default function SearchPage() {
                     setPostTypeDropdownOpen(false);
                   }}
                   disabled={loading}
-                  className={`flex items-center justify-between w-48 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors ${
+                  className={`flex items-center justify-between w-44 xl:w-40 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors ${
                     loading ? "opacity-50 cursor-not-allowed" : ""
                   }`}
                 >
@@ -581,7 +581,7 @@ export default function SearchPage() {
                       setPostTypeDropdownOpen(false);
                     }}
                     disabled={loading}
-                    className={`flex items-center justify-between w-48 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors ${
+                    className={`flex items-center justify-between w-44 xl:w-40 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors ${
                       loading ? "opacity-50 cursor-not-allowed" : ""
                     }`}
                   >
@@ -628,7 +628,7 @@ export default function SearchPage() {
                       setContentTypeDropdownOpen(false);
                     }}
                     disabled={loading}
-                    className={`flex items-center justify-between w-48 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors ${
+                    className={`flex items-center justify-between w-44 xl:w-40 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors ${
                       loading ? "opacity-50 cursor-not-allowed" : ""
                     }`}
                   >
@@ -677,7 +677,7 @@ export default function SearchPage() {
                   startDate={startDate}
                   endDate={endDate}
                   placeholderText="Start Date"
-                  className="w-28 bg-transparent text-sm focus:outline-none text-black"
+                  className="w-28 xl:w-24 bg-transparent text-sm focus:outline-none text-black"
                   disabled={loading}
                 />
                 <span className="text-gray-400">to</span>
@@ -689,7 +689,7 @@ export default function SearchPage() {
                   endDate={endDate}
                   minDate={startDate || undefined}
                   placeholderText="End Date"
-                  className="w-28 bg-transparent text-sm focus:outline-none text-black"
+                  className="w-28 xl:w-24 bg-transparent text-sm focus:outline-none text-black"
                   disabled={loading}
                 />
               </div>

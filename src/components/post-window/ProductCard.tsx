@@ -72,7 +72,7 @@ const ProductCard = ({ post }: ProductCardProps) => {
                 : 'bg-gray-400 cursor-not-allowed'
             }`}
           >
-            {inStock ? 'SHOP NOW' : 'UNAVAILABLE'}
+            {inStock ? 'VIEW DETAILS' : 'UNAVAILABLE'}
           </button>
         </div>
       </div>

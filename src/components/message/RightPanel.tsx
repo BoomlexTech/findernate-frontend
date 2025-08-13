@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React from 'react';
 import { Chat, Message } from '@/api/message';
 import { ChatHeader } from './ChatHeader';
 import { MessageItem } from './MessageItem';
@@ -8,11 +8,12 @@ import { EmojiClickData } from 'emoji-picker-react';
 interface RightPanelProps {
   selected: Chat;
   messages: Message[];
-  user: any;
+  user: { _id?: string } | null;
   typingUsers: Map<string, string>;
   getChatAvatar: (chat: Chat) => string;
   getChatDisplayName: (chat: Chat) => string;
   onProfileClick: (chat: Chat) => void;
+  onBack?: () => void;
   onContextMenu: (messageId: string, x: number, y: number) => void;
   
   // Message input props
@@ -45,6 +46,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
   getChatAvatar,
   getChatDisplayName,
   onProfileClick,
+  onBack,
   onContextMenu,
   newMessage,
   setNewMessage,
@@ -74,6 +76,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
         getChatAvatar={getChatAvatar}
         getChatDisplayName={getChatDisplayName}
         onProfileClick={onProfileClick}
+        onBack={onBack}
       />
 
       <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-6 bg-gray-50">

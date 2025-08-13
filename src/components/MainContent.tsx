@@ -215,8 +215,8 @@ export default function MainContent() {
   return (
     <div className="max-w-3xl mx-auto py-4 px-2 sm:px-4">
       {initialLoad ? (
-        <div className="text-center py-12">
-          <div className="text-6xl mb-4">⏳</div>
+        <div className="flex flex-col items-center justify-center min-h-[60vh]">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-[#FCD45C] border-t-transparent mb-4"></div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
             Loading Posts...
           </h2>
