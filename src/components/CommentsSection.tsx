@@ -89,38 +89,70 @@ const CommentsSection = ({ postId, onCommentCountChange, initialCommentCount = 0
         }
       
       // Process comments and extract user data properly 
-      const processedComments = rawComments.map((comment) => {
-        // Check if we already have user data for this comment in cache
-        const cachedComment = userCommentsRef.current[comment._id];
-        if (cachedComment && cachedComment.user) {
-          return { ...comment, user: cachedComment.user };
-        }
-        
-        // Extract user data from the userId field (which can be string or user object)
-        const userData = comment.userId;
-        if (userData && typeof userData === 'object' && '_id' in userData && userData._id) {
+      const processedComments = rawComments
+        .filter(comment => !comment.parentCommentId) // Only show top-level comments
+        .map((comment) => {
+          // Check if we already have user data for this comment in cache
+          const cachedComment = userCommentsRef.current[comment._id];
+          if (cachedComment && cachedComment.user) {
+            return { ...comment, user: cachedComment.user };
+          }
+          
+          // Extract user data from the userId field (which can be string or user object)
+          const userData = comment.userId;
+          if (userData && typeof userData === 'object' && '_id' in userData && userData._id) {
+            // Find replies for this comment
+            const commentReplies = rawComments
+              .filter(reply => reply.parentCommentId === comment._id)
+              .map(reply => {
+                const replyUserData = reply.userId;
+                if (replyUserData && typeof replyUserData === 'object' && '_id' in replyUserData && replyUserData._id) {
+                  return {
+                    ...reply,
+                    userId: replyUserData._id,
+                    user: {
+                      _id: replyUserData._id,
+                      username: replyUserData.username || 'User',
+                      fullName: replyUserData.fullName || replyUserData.username || 'User',
+                      profileImageUrl: replyUserData.profileImageUrl || ''
+                    }
+                  };
+                }
+                return {
+                  ...reply,
+                  user: {
+                    _id: typeof reply.userId === 'string' ? reply.userId : '',
+                    username: 'User',
+                    fullName: 'User',
+                    profileImageUrl: ''
+                  }
+                };
+              });
+
+            return {
+              ...comment,
+              userId: userData._id, // Convert userId back to string for compatibility
+              user: {
+                _id: userData._id,
+                username: userData.username || 'User',
+                fullName: userData.fullName || userData.username || 'User',
+                profileImageUrl: userData.profileImageUrl || ''
+              },
+              replies: commentReplies
+            };
+          }
+          
+          // Fallback for comments without proper user data
           return {
             ...comment,
-            userId: userData._id, // Convert userId back to string for compatibility
             user: {
-              _id: userData._id,
-              username: userData.username || 'User',
-              fullName: userData.fullName || userData.username || 'User',
-              profileImageUrl: userData.profileImageUrl || ''
-            }
+              _id: typeof comment.userId === 'string' ? comment.userId : '',
+              username: 'User',
+              fullName: 'User',
+              profileImageUrl: ''
+            },
+            replies: []
           };
-        }
-        
-        // Fallback for comments without proper user data
-        return {
-          ...comment,
-          user: {
-            _id: typeof comment.userId === 'string' ? comment.userId : '',
-            username: 'User',
-            fullName: 'User',
-            profileImageUrl: ''
-          }
-        };
         });
         
         setComments(processedComments);
@@ -154,6 +186,13 @@ const CommentsSection = ({ postId, onCommentCountChange, initialCommentCount = 0
       setCurrentPage(1);
       fetchComments(1);
     }
+  };
+
+  const handleReplyAdded = (reply: Comment) => {
+    // For replies, we don't need to update the main comments list
+    // The CommentItem component handles its own replies
+    // But we should update the total comment count
+    setTotalCommentCount(prev => prev + 1);
   };
 
   const handlePageChange = (newPage: number) => {
@@ -285,6 +324,7 @@ const CommentsSection = ({ postId, onCommentCountChange, initialCommentCount = 0
                 comment={comment}
                 onUpdate={handleCommentUpdate}
                 onDelete={handleCommentDelete}
+                onReplyAdded={handleReplyAdded}
               />
             ))}
             

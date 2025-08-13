@@ -392,8 +392,8 @@ export interface CreateBusinessRequest {
   location: CreateBusinessLocation;
   tags: string[];
   website: string;
-  gstNumber: string;
-  aadhaarNumber: string;
+  gstNumber: string | null;
+  aadhaarNumber: string | null;
 }
 
 // Update Business Request Type  
@@ -406,6 +406,8 @@ export interface UpdateBusinessRequest {
   location: UpdateBusinessLocation;
   website: string;
   tags: string[];
+  gstNumber?: string | null;
+  aadhaarNumber?: string | null;
 }
 
 export interface SavedPost {

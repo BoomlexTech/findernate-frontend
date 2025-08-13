@@ -384,12 +384,19 @@ const BusinessDetailsModal: React.FC<Props> = ({
     try {
       let response;
       
+      // Prepare form data with proper null handling for GST
+      const formDataToSubmit = {
+        ...form,
+        gstNumber: form.gstNumber?.trim() || null,
+        aadhaarNumber: form.aadhaarNumber?.trim() || null,
+      };
+      
       if (isEdit) {
         // Edit mode: PATCH API
-        response = await UpdateBusinessDetails(form);
+        response = await UpdateBusinessDetails(formDataToSubmit);
       } else {
         // Create mode: POST API
-        response = await AddBusinessDetails(form);
+        response = await AddBusinessDetails(formDataToSubmit);
       }
       
       console.log('Success:', response);
