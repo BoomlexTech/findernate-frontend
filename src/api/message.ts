@@ -129,8 +129,13 @@ export const messageAPI = {
 
   // Get messages for a specific chat
   getChatMessages: async (chatId: string, page = 1, limit = 50): Promise<MessagesResponse> => {
-    const response = await axiosInstance.get(`/chats/${chatId}/messages?page=${page}&limit=${limit}`);
-    return response.data.data;
+    try {
+      const response = await axiosInstance.get(`/chats/${chatId}/messages?page=${page}&limit=${limit}`);
+      return response.data.data;
+    } catch (error: any) {
+      console.error('Error fetching chat messages:', error.response?.data || error.message);
+      throw error;
+    }
   },
 
   // Send a message

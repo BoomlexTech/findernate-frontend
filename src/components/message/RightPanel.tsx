@@ -36,6 +36,7 @@ interface RightPanelProps {
   fileInputRef: React.RefObject<HTMLInputElement | null>;
   messagesEndRef: React.RefObject<HTMLDivElement | null>;
   messagesContainerRef: React.RefObject<HTMLDivElement | null>;
+  isRequestChat?: boolean;
 }
 
 export const RightPanel: React.FC<RightPanelProps> = ({
@@ -66,7 +67,8 @@ export const RightPanel: React.FC<RightPanelProps> = ({
   messageInputRef,
   fileInputRef,
   messagesEndRef,
-  messagesContainerRef
+  messagesContainerRef,
+  isRequestChat = false
 }) => {
   return (
     <div className="flex flex-col w-full h-full">
@@ -99,25 +101,40 @@ export const RightPanel: React.FC<RightPanelProps> = ({
         <div ref={messagesEndRef} />
       </div>
 
-      <MessageInput
-        newMessage={newMessage}
-        setNewMessage={setNewMessage}
-        onSendMessage={onSendMessage}
-        onInputChange={onInputChange}
-        onFileSelect={onFileSelect}
-        onFileUpload={onFileUpload}
-        onRemoveFile={onRemoveFile}
-        onEmojiClick={onEmojiClick}
-        onEmojiSelect={onEmojiSelect}
-        sendingMessage={sendingMessage}
-        uploadingFile={uploadingFile}
-        selectedFile={selectedFile}
-        filePreview={filePreview}
-        showEmojiPicker={showEmojiPicker}
-        emojiPickerRef={emojiPickerRef}
-        messageInputRef={messageInputRef}
-        fileInputRef={fileInputRef}
-      />
+      {isRequestChat ? (
+        <div className="p-4 border-t bg-orange-50 border-orange-200">
+          <div className="flex items-center justify-center">
+            <div className="bg-orange-100 border border-orange-300 rounded-lg p-3 text-center">
+              <p className="text-orange-800 font-medium text-sm">
+                📩 This is a message request. Accept or decline to continue.
+              </p>
+              <p className="text-orange-600 text-xs mt-1">
+                You can read the messages above, but cannot reply until you accept the request.
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <MessageInput
+          newMessage={newMessage}
+          setNewMessage={setNewMessage}
+          onSendMessage={onSendMessage}
+          onInputChange={onInputChange}
+          onFileSelect={onFileSelect}
+          onFileUpload={onFileUpload}
+          onRemoveFile={onRemoveFile}
+          onEmojiClick={onEmojiClick}
+          onEmojiSelect={onEmojiSelect}
+          sendingMessage={sendingMessage}
+          uploadingFile={uploadingFile}
+          selectedFile={selectedFile}
+          filePreview={filePreview}
+          showEmojiPicker={showEmojiPicker}
+          emojiPickerRef={emojiPickerRef}
+          messageInputRef={messageInputRef}
+          fileInputRef={fileInputRef}
+        />
+      )}
     </div>
   );
 };

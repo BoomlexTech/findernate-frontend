@@ -1,6 +1,3 @@
-Here’s the resolved file with conflicts removed and everything else preserved.
-
-```tsx
 'use client';
 
 import { useState } from 'react';
@@ -337,4 +334,3 @@ const CommentItem = ({ comment, onUpdate, onDelete, onReplyAdded, isReply = fals
 };
 
 export default CommentItem;
-```
