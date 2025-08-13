@@ -34,6 +34,9 @@ const CommentItem = ({ comment, onUpdate, onDelete, onReplyAdded, isReply = fals
   const isOwnComment = user?._id === comment.userId;
   const canLikeComment = !isOwnComment; // Disable like for own comments
 
+// conflicts
+
+
   const getInitials = (name: string) => {
     return name
       .split(" ")
