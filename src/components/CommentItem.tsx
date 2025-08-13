@@ -34,9 +34,6 @@ const CommentItem = ({ comment, onUpdate, onDelete, onReplyAdded, isReply = fals
   const isOwnComment = user?._id === comment.userId;
   const canLikeComment = !isOwnComment; // Disable like for own comments
 
-// conflicts
-
-
   const getInitials = (name: string) => {
     return name
       .split(" ")
@@ -126,9 +123,7 @@ const CommentItem = ({ comment, onUpdate, onDelete, onReplyAdded, isReply = fals
     setShowReplies(true);
     
     // Also notify parent component if callback is provided
-    if (onReplyAdded) {
-      onReplyAdded(reply);
-    }
+    onReplyAdded?.(reply);
   };
 
   const handleReplyUpdate = (updatedReply: Comment) => {
@@ -141,10 +136,6 @@ const CommentItem = ({ comment, onUpdate, onDelete, onReplyAdded, isReply = fals
 
   const handleReplyDelete = (replyId: string) => {
     setReplies(prev => prev.filter(reply => reply._id !== replyId));
-  };
-
-  const handleReplyClick = () => {
-    setShowReplyBox(!showReplyBox);
   };
 
   return (
@@ -283,7 +274,7 @@ const CommentItem = ({ comment, onUpdate, onDelete, onReplyAdded, isReply = fals
 
           {!isReply && (
             <button 
-              onClick={handleReplyClick}
+              onClick={() => setShowReplyBox(!showReplyBox)}
               className="flex items-center gap-1 hover:text-blue-600"
             >
               <MessageCircle className="w-3 h-3" />
