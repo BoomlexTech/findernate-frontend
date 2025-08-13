@@ -783,13 +783,17 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
               if (isVideo) {
                 return (
                   <video
-                    className="w-full h-full object-cover rounded-xl"
+                    className="w-full h-full object-cover rounded-xl cursor-zoom-in"
                     poster={safeThumb}
                     muted
                     loop
                     style={{ objectFit: 'cover' }}
                     onMouseEnter={(e) => e.currentTarget.play()}
                     onMouseLeave={(e) => e.currentTarget.pause()}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowImageModal(true);
+                    }}
                   >
                     {/* Only render source if we have a valid URL */}
                     {safeUrl && <source src={safeUrl} type="video/mp4" />}

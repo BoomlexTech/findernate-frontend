@@ -93,6 +93,12 @@ export default function ImageModal({ isOpen, onClose, post }: ImageModalProps) {
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
+    // Don't start dragging if clicking on video controls
+    const target = e.target as HTMLElement;
+    if (target.tagName === 'VIDEO' || target.closest('video')) {
+      return;
+    }
+    
     if (zoomLevel > 1.2) {
       setIsDragging(true);
       setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
@@ -154,6 +160,12 @@ export default function ImageModal({ isOpen, onClose, post }: ImageModalProps) {
   };
 
   const handleWheel = (e: React.WheelEvent) => {
+    // Don't zoom if hovering over video controls
+    const target = e.target as HTMLElement;
+    if (target.tagName === 'VIDEO' || target.closest('video')) {
+      return;
+    }
+    
     e.preventDefault();
     if (e.deltaY < 0) {
       handleZoomIn();
@@ -241,34 +253,45 @@ export default function ImageModal({ isOpen, onClose, post }: ImageModalProps) {
               {currentMedia.type === 'video' ? (
                 <div 
                   ref={mediaRef}
-                  className="w-full h-full flex items-center justify-center"
+                  className="w-full h-full flex items-center justify-center relative"
                   style={{ 
                     minHeight: 'calc(95vh - 120px)',
                     minWidth: 'calc(100vw - 80px)'
                   }}
                 >
-                  <video
-                    src={currentMedia.url && currentMedia.url.trim() ? currentMedia.url : undefined}
-                    controls
-                    autoPlay
-                    loop
-                    muted
-                    onLoadedMetadata={handleVideoLoad}
-                    className={`max-w-full max-h-full object-contain transition-opacity duration-300 ${
-                      videoLoaded ? 'opacity-100' : 'opacity-0'
-                    }`}
-                    style={{ 
-                      maxHeight: 'calc(95vh - 120px)',
-                      width: 'auto',
-                      height: 'auto',
-                      minWidth: '400px',
-                      minHeight: '300px',
+                  <div
+                    className="relative"
+                    style={{
                       transform: `scale(${zoomLevel}) translate(${position.x / zoomLevel}px, ${position.y / zoomLevel}px)`,
-                      transition: isDragging ? 'none' : 'transform 0.1s ease-out'
+                      transition: isDragging ? 'none' : 'transform 0.1s ease-out',
+                      transformOrigin: 'center center'
                     }}
                   >
-                    Your browser does not support the video tag.
-                  </video>
+                    <video
+                      src={currentMedia.url && currentMedia.url.trim() ? currentMedia.url : undefined}
+                      controls
+                      autoPlay
+                      loop
+                      muted
+                      onLoadedMetadata={handleVideoLoad}
+                      className={`max-w-full max-h-full object-contain transition-opacity duration-300 ${
+                        videoLoaded ? 'opacity-100' : 'opacity-0'
+                      }`}
+                      style={{ 
+                        maxHeight: 'calc(95vh - 120px)',
+                        width: 'auto',
+                        height: 'auto',
+                        minWidth: '400px',
+                        minHeight: '300px'
+                      }}
+                      onError={(e) => {
+                        console.error('Video failed to load:', currentMedia.url);
+                        setVideoLoaded(false);
+                      }}
+                    >
+                      Your browser does not support the video tag.
+                    </video>
+                  </div>
                   {!videoLoaded && (
                     <div className="absolute inset-0 flex items-center justify-center">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
@@ -284,22 +307,29 @@ export default function ImageModal({ isOpen, onClose, post }: ImageModalProps) {
                     minWidth: 'calc(100vw - 80px)'
                   }}
                 >
-                  <Image
-                    src={currentMedia.url && currentMedia.url.trim() ? currentMedia.url : '/placeholderimg.png'}
-                    alt="Post image"
-                    width={1200}
-                    height={900}
-                    className="max-w-full max-h-full object-contain"
-                    style={{ 
-                      maxHeight: 'calc(95vh - 120px)',
-                      width: 'auto',
-                      height: 'auto',
-                      minWidth: '800px',
-                      minHeight: '500px',
+                  <div
+                    className="relative"
+                    style={{
                       transform: `scale(${zoomLevel}) translate(${position.x / zoomLevel}px, ${position.y / zoomLevel}px)`,
-                      transition: isDragging ? 'none' : 'transform 0.1s ease-out'
+                      transition: isDragging ? 'none' : 'transform 0.1s ease-out',
+                      transformOrigin: 'center center'
                     }}
-                  />
+                  >
+                    <Image
+                      src={currentMedia.url && currentMedia.url.trim() ? currentMedia.url : '/placeholderimg.png'}
+                      alt="Post image"
+                      width={1200}
+                      height={900}
+                      className="max-w-full max-h-full object-contain"
+                      style={{ 
+                        maxHeight: 'calc(95vh - 120px)',
+                        width: 'auto',
+                        height: 'auto',
+                        minWidth: '800px',
+                        minHeight: '500px'
+                      }}
+                    />
+                  </div>
                 </div>
               )}
             </div>

@@ -8,15 +8,17 @@ import { Comment, likeComment, unlikeComment, updateComment, deleteComment } fro
 import { useUserStore } from '@/store/useUserStore';
 import formatPostDate from '@/utils/formatDate';
 import ReportModal from './ReportModal';
+import AddComment from './AddComment';
 
 interface CommentItemProps {
   comment: Comment;
   onUpdate: (updatedComment: Comment) => void;
   onDelete: (commentId: string) => void;
+  onReplyAdded?: (reply: Comment) => void;
   isReply?: boolean;
 }
 
-const CommentItem = ({ comment, onUpdate, onDelete, isReply = false }: CommentItemProps) => {
+const CommentItem = ({ comment, onUpdate, onDelete, onReplyAdded, isReply = false }: CommentItemProps) => {
   const { user } = useUserStore();
   const [isLiked, setIsLiked] = useState(comment.isLikedByUser || false);
   const [likesCount, setLikesCount] = useState(comment.likesCount || 0);
@@ -25,6 +27,9 @@ const CommentItem = ({ comment, onUpdate, onDelete, isReply = false }: CommentIt
   const [showOptions, setShowOptions] = useState(false);
   const [isLikeLoading, setIsLikeLoading] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [showReplyBox, setShowReplyBox] = useState(false);
+  const [replies, setReplies] = useState<Comment[]>(comment.replies || []);
+  const [showReplies, setShowReplies] = useState(false);
 
   const isOwnComment = user?._id === comment.userId;
   const canLikeComment = !isOwnComment; // Disable like for own comments
@@ -109,6 +114,25 @@ const CommentItem = ({ comment, onUpdate, onDelete, isReply = false }: CommentIt
         console.error('Error deleting comment:', error);
       }
     }
+  };
+
+  const handleReplyAdded = (reply: Comment) => {
+    setReplies(prev => [reply, ...prev]);
+    setShowReplyBox(false);
+    setShowReplies(true);
+    onReplyAdded?.(reply);
+  };
+
+  const handleReplyUpdate = (updatedReply: Comment) => {
+    setReplies(prev => 
+      prev.map(reply => 
+        reply._id === updatedReply._id ? updatedReply : reply
+      )
+    );
+  };
+
+  const handleReplyDelete = (replyId: string) => {
+    setReplies(prev => prev.filter(reply => reply._id !== replyId));
   };
 
 
@@ -246,13 +270,55 @@ const CommentItem = ({ comment, onUpdate, onDelete, isReply = false }: CommentIt
             {likesCount > 0 && <span>{likesCount}</span>}
           </button>
 
-          <button className="flex items-center gap-1 hover:text-blue-600">
-            <MessageCircle className="w-3 h-3" />
-            Reply
-          </button>
+          {!isReply && (
+            <button 
+              onClick={() => setShowReplyBox(!showReplyBox)}
+              className="flex items-center gap-1 hover:text-blue-600"
+            >
+              <MessageCircle className="w-3 h-3" />
+              Reply
+            </button>
+          )}
+
+          {replies.length > 0 && !isReply && (
+            <button 
+              onClick={() => setShowReplies(!showReplies)}
+              className="flex items-center gap-1 hover:text-blue-600"
+            >
+              {showReplies ? 'Hide' : 'Show'} {replies.length} {replies.length === 1 ? 'reply' : 'replies'}
+            </button>
+          )}
 
           <span>{formatPostDate(comment.createdAt)}</span>
         </div>
+
+        {/* Reply Box */}
+        {showReplyBox && (
+          <div className="mt-3">
+            <AddComment
+              postId={comment.postId}
+              parentCommentId={comment._id}
+              onCommentAdded={handleReplyAdded}
+              placeholder={`Reply to ${comment.user?.fullName || comment.user?.username || 'this comment'}...`}
+              shouldFocus={true}
+            />
+          </div>
+        )}
+
+        {/* Replies */}
+        {showReplies && replies.length > 0 && (
+          <div className="mt-3 space-y-3">
+            {replies.map((reply) => (
+              <CommentItem
+                key={reply._id}
+                comment={reply}
+                onUpdate={handleReplyUpdate}
+                onDelete={handleReplyDelete}
+                isReply={true}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Report Modal */}
