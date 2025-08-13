@@ -72,7 +72,7 @@ const ServiceCard = ({ post }: ServiceCardProps) => {
           }}
           className="w-full rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 px-4 py-2 text-sm font-bold text-white shadow-md hover:opacity-90"
         >
-          BOOK NOW
+          VIEW DETAILS
         </button>
       </div>
       
