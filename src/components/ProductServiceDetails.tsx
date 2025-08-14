@@ -165,6 +165,20 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
       return;
     }
 
+    // Validate ObjectId format
+    const objectIdRegex = /^[a-fA-F0-9]{24}$/;
+    if (!objectIdRegex.test(targetUserId)) {
+      console.error('Invalid targetUserId format:', targetUserId);
+      showToastMessage('Invalid user ID format.');
+      return;
+    }
+
+    if (!objectIdRegex.test(user._id)) {
+      console.error('Invalid current user ID format:', user._id);
+      showToastMessage('Invalid current user ID format.');
+      return;
+    }
+
     if (targetUserId === user._id) {
       showToastMessage('Cannot send contact request to yourself');
       return;
@@ -173,11 +187,14 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
     try {
       setIsBooking(true);
 
-      // Create a pre-filled message for the user to start the conversation.
-      const initialMessage = `Hi, I'm interested in your post: "${data.name}". Is it still available?`;
+      // Create a professional automated message
+      const contentType = isProduct ? 'product' : isBusiness ? 'business listing' : 'service';
+      const initialMessage = `Hi! I'm interested in your ${contentType}: "${data.name}". Could you please share more details? I'd like to know about availability and next steps. Thank you!`;
 
       // 1. Check if there's an existing direct chat with this user
       let existingChat: Chat | null = null;
+      let chatId: string | null = null;
+      
       try {
         const active = await messageAPI.getActiveChats(1, 50); // first page
         existingChat = active.chats.find(c => 
@@ -190,12 +207,52 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
       }
 
       if (existingChat) {
-        // If chat exists, open the existing chat with pre-filled message
-        router.push(`/chats?chatId=${existingChat._id}&message=${encodeURIComponent(initialMessage)}`);
+        // Use existing chat
+        chatId = existingChat._id;
       } else {
-        // If no existing chat, redirect to chats with user info and pre-filled message
-        // Add a special flag to indicate this is from "Get Contact Info" and should bypass follow requirements
-        router.push(`/chats?userId=${targetUserId}&message=${encodeURIComponent(initialMessage)}&fromContactInfo=true`);
+        // Create new chat
+        try {
+          const newChatResponse = await messageAPI.createChat([user._id, targetUserId], 'direct');
+          chatId = newChatResponse._id;
+        } catch (createError: any) {
+          console.error('Failed to create chat:', {
+            error: createError,
+            response: createError?.response?.data,
+            status: createError?.response?.status,
+            participants: [user._id, targetUserId]
+          });
+          // Fallback to the original redirect method
+          router.push(`/chats?userId=${targetUserId}&message=${encodeURIComponent(initialMessage)}&fromContactInfo=true`);
+          return;
+        }
+      }
+
+      // 2. Automatically send the message to the chat
+      if (chatId) {
+        try {
+          await messageAPI.sendMessage(chatId, initialMessage, 'text');
+          
+          // Show success message
+          showToastMessage('Contact request sent successfully!');
+          
+          // 3. Redirect to the chat to continue conversation
+          router.push(`/chats?chatId=${chatId}`);
+        } catch (sendError: any) {
+          console.error('Failed to send message:', {
+            error: sendError,
+            response: sendError?.response?.data,
+            status: sendError?.response?.status,
+            chatId,
+            message: initialMessage
+          });
+          
+          // Show specific error message if available
+          const errorMessage = sendError?.response?.data?.message || 'Failed to send message automatically';
+          showToastMessage(errorMessage);
+          
+          // Fallback: redirect with pre-filled message
+          router.push(`/chats?chatId=${chatId}&message=${encodeURIComponent(initialMessage)}`);
+        }
       }
     } catch (err: any) {
       console.error('Failed to process contact request:', err);
