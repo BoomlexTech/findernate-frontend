@@ -867,6 +867,21 @@ const Page = () => {
     
     return (
       <div className="relative">
+        {/* Reels-specific arrow to open sidebar (transparent bg, closer to left) */}
+        <button
+          onClick={() => {
+            try {
+              const evt = new Event('open-mobile-sidebar');
+              window.dispatchEvent(evt);
+            } catch {}
+          }}
+          className="fixed left-2 top-1/2 -translate-y-1/2 z-[65] md:hidden p-2"
+          aria-label="Open Menu"
+        >
+          <svg className="w-7 h-7 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
         {/* Auth Dialog */}
         <AuthDialog isOpen={showAuthDialog} onClose={closeAuthDialog} />
         
