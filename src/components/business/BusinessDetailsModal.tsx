@@ -200,7 +200,7 @@ const BusinessDetailsModal: React.FC<Props> = ({
       }));
     } else if (name.startsWith("contact.")) {
       setForm((prev) => ({
-        ...prev,
+        ...prev, 
         contact: { ...prev.contact, [name.split(".")[1]]: value },
       }));
     } else {

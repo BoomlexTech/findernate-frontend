@@ -37,6 +37,8 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
 
   const [videoDuration, setVideoDuration] = useState<number | null>(null);
   const [isOptimizing, setIsOptimizing] = useState(false);
+  const [showReelVisibility, setShowReelVisibility] = useState(false);
+  const [reelVisibility, setReelVisibility] = useState(false);
 
   // Image compression utility
   const compressImage = (file: File, quality: number = 0.8, maxWidth: number = 1920): Promise<File> => {
@@ -219,15 +221,21 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
         const duration = await detectVideoDuration(file);
         setVideoDuration(duration);
         
-        // Update regularForm postType based on duration
+        // Show reel visibility option if video is under 1 minute
         if (duration <= 60) { // 60 seconds = 1 minute
-          setRegularForm(prev => ({ ...prev, postType: 'reel' }));
+          setShowReelVisibility(true);
+          // Don't automatically set to reel - let user choose
+          setRegularForm(prev => ({ ...prev, postType: 'video' }));
         } else {
+          setShowReelVisibility(false);
+          setReelVisibility(false);
           setRegularForm(prev => ({ ...prev, postType: 'video' }));
         }
       } catch (error) {
         console.error('Error detecting video duration:', error);
         // Default to video if we can't detect duration
+        setShowReelVisibility(false);
+        setReelVisibility(false);
         setRegularForm(prev => ({ ...prev, postType: 'video' }));
       }
     }
@@ -536,34 +544,59 @@ const handleProductChange = (
     // Reset video duration and post type if removing a video
     if (removedFile.type === 'video/mp4') {
       setVideoDuration(null);
+      setShowReelVisibility(false);
+      setReelVisibility(false);
       setRegularForm(prev => ({ ...prev, postType: 'photo' }));
     }
   };
 
-  const buildPostPayload = () => {
-  // Create shared form with caption set to description value
-  const sharedFormWithCaption = { 
-    ...sharedForm, 
-    caption: sharedForm.description 
+  const organizeMediaForReel = (mediaFiles: File[]) => {
+    if (!reelVisibility || !showReelVisibility) {
+      return mediaFiles;
+    }
+    
+    // Separate videos and images
+    const videos = mediaFiles.filter(file => file.type === 'video/mp4');
+    const images = mediaFiles.filter(file => file.type.startsWith('image/'));
+    
+    // Put videos first, then images
+    return [...videos, ...images];
   };
-  
-  switch (postType) {
-    case 'Regular':
-      return { ...sharedFormWithCaption, ...regularForm };
-    case 'Product':
-      return { ...sharedFormWithCaption, ...productForm };
-    case 'Service':
-      return { ...sharedFormWithCaption, ...serviceForm };
-    case 'Business':
-      return {
-        ...businessForm.formData,  // Get the business form data
-        ...sharedFormWithCaption,  // Override with shared form data (images, etc.)
-        business: businessForm.formData.business  // Keep the business object
-      };
-    default:
-      return { ...sharedFormWithCaption };
-  }
-};
+
+  const buildPostPayload = () => {
+    // Organize media if reel visibility is enabled
+    const organizedMedia = organizeMediaForReel(sharedForm.image);
+    
+    // Create shared form with caption set to description value and organized media
+    const sharedFormWithCaption = { 
+      ...sharedForm, 
+      caption: sharedForm.description,
+      image: organizedMedia
+    };
+    
+    // Determine the final post type for regular posts
+    let finalRegularForm = { ...regularForm };
+    if (postType === 'Regular' && reelVisibility && showReelVisibility) {
+      finalRegularForm = { ...regularForm, postType: 'reel' };
+    }
+    
+    switch (postType) {
+      case 'Regular':
+        return { ...sharedFormWithCaption, ...finalRegularForm };
+      case 'Product':
+        return { ...sharedFormWithCaption, ...productForm };
+      case 'Service':
+        return { ...sharedFormWithCaption, ...serviceForm };
+      case 'Business':
+        return {
+          ...businessForm.formData,  // Get the business form data
+          ...sharedFormWithCaption,  // Override with shared form data (images, etc.)
+          business: businessForm.formData.business  // Keep the business object
+        };
+      default:
+        return { ...sharedFormWithCaption };
+    }
+  };
 
   // Business form validation function
   const validateBusinessForm = () => {
@@ -881,7 +914,7 @@ const handleProductChange = (
                 📎 Add Images & Videos
               </label>
               <p className="text-xs text-gray-400 mt-2">
-                Tip: Large files are automatically optimized. MP4 videos under 1 minute become reels, longer videos become regular video posts.
+                Tip: Large files are automatically optimized. MP4 videos under 1 minute are eligible for reels with the "Reel Visibility" option below.
               </p>
               {isOptimizing && (
                 <div className="mt-2 flex items-center justify-center text-yellow-600">
@@ -940,6 +973,42 @@ const handleProductChange = (
               </div>
             )}
           </div>
+
+          {/* Reel Visibility Option */}
+          {showReelVisibility && (
+            <div className="mb-6">
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm font-semibold text-yellow-800 mb-1">
+                      🎬 Reel Visibility
+                    </h4>
+                    <p className="text-xs text-yellow-700">
+                      Your video is under 1 minute and eligible for reels. Enable this option to show it in the reels section.
+                      {sharedForm.image.some(file => file.type.startsWith('image/')) && 
+                        " Videos will appear first in the reel slider, followed by images."
+                      }
+                    </p>
+                  </div>
+                  <label className="flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={reelVisibility}
+                      onChange={(e) => setReelVisibility(e.target.checked)}
+                      className="sr-only"
+                    />
+                    <div className={`relative w-11 h-6 rounded-full transition-colors ${
+                      reelVisibility ? 'bg-yellow-500' : 'bg-gray-300'
+                    }`}>
+                      <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
+                        reelVisibility ? 'translate-x-5' : 'translate-x-0'
+                      }`} />
+                    </div>
+                  </label>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Location Input */}
           <div className="mb-6">
