@@ -73,6 +73,13 @@ const CommentsSection = ({ postId, onCommentCountChange, initialCommentCount = 0
       const commentsData = await getCommentsByPost(postId, page, commentsPerPage);
       console.log('Comments data received:', commentsData);
       
+      // Log individual comment structure to debug user data
+      if (commentsData?.comments && commentsData.comments.length > 0) {
+        console.log('First comment structure:', commentsData.comments[0]);
+        console.log('First comment userId type:', typeof commentsData.comments[0].userId);
+        console.log('First comment userId value:', commentsData.comments[0].userId);
+      }
+      
       // Handle pagination response
       if (commentsData) {
         // Update pagination info
@@ -88,7 +95,7 @@ const CommentsSection = ({ postId, onCommentCountChange, initialCommentCount = 0
           rawComments = commentsData;
         }
       
-      // Process comments and extract user data properly 
+      // Process comments using simpler approach (like ReelCommentsSection)
       const processedComments = rawComments
         .filter(comment => !comment.parentCommentId) // Only show top-level comments
         .map((comment) => {
@@ -98,23 +105,44 @@ const CommentsSection = ({ postId, onCommentCountChange, initialCommentCount = 0
             return { ...comment, user: cachedComment.user };
           }
           
-          // Extract user data from the userId field (which can be string or user object)
-          const userData = comment.userId;
-          if (userData && typeof userData === 'object' && '_id' in userData && userData._id) {
-            // Find replies for this comment
+          // Simple user data extraction - if userId is an object, use it directly as user
+          if (comment.user) {
+            // Already has user data - ensure profileImageUrl exists
+            return {
+              ...comment,
+              user: {
+                ...comment.user,
+                profileImageUrl: comment.user.profileImageUrl || ''
+              }
+            };
+          } else if (typeof comment.userId === 'object' && comment.userId !== null) {
+            // userId is populated user object, use it as user
+            const userObj = comment.userId as any;
+            console.log('Processing comment user object:', userObj);
+            const commentWithUser = {
+              ...comment,
+              user: {
+                _id: userObj._id,
+                username: userObj.username || 'User',
+                fullName: userObj.fullName || userObj.username || 'User',
+                profileImageUrl: userObj.profileImageUrl || ''
+              }
+            };
+            
+            // Process replies
             const commentReplies = rawComments
               .filter(reply => reply.parentCommentId === comment._id)
               .map(reply => {
-                const replyUserData = reply.userId;
-                if (replyUserData && typeof replyUserData === 'object' && '_id' in replyUserData && replyUserData._id) {
+                if (reply.user) return reply;
+                if (typeof reply.userId === 'object' && reply.userId !== null) {
+                  const replyUserObj = reply.userId as any;
                   return {
                     ...reply,
-                    userId: replyUserData._id,
                     user: {
-                      _id: replyUserData._id,
-                      username: replyUserData.username || 'User',
-                      fullName: replyUserData.fullName || replyUserData.username || 'User',
-                      profileImageUrl: replyUserData.profileImageUrl || ''
+                      _id: replyUserObj._id,
+                      username: replyUserObj.username || 'User',
+                      fullName: replyUserObj.fullName || replyUserObj.username || 'User',
+                      profileImageUrl: replyUserObj.profileImageUrl || ''
                     }
                   };
                 }
@@ -128,31 +156,22 @@ const CommentsSection = ({ postId, onCommentCountChange, initialCommentCount = 0
                   }
                 };
               });
-
+            
+            return { ...commentWithUser, replies: commentReplies };
+          } else {
+            // userId is string, no user data available
+            console.warn('Comment userId is string (no user data populated):', comment);
             return {
               ...comment,
-              userId: userData._id, // Convert userId back to string for compatibility
               user: {
-                _id: userData._id,
-                username: userData.username || 'User',
-                fullName: userData.fullName || userData.username || 'User',
-                profileImageUrl: userData.profileImageUrl || ''
+                _id: typeof comment.userId === 'string' ? comment.userId : '',
+                username: 'User',
+                fullName: 'User',
+                profileImageUrl: ''
               },
-              replies: commentReplies
+              replies: []
             };
           }
-          
-          // Fallback for comments without proper user data
-          return {
-            ...comment,
-            user: {
-              _id: typeof comment.userId === 'string' ? comment.userId : '',
-              username: 'User',
-              fullName: 'User',
-              profileImageUrl: ''
-            },
-            replies: []
-          };
         });
         
         setComments(processedComments);

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { Heart, MessageCircle, MoreHorizontal, Edit, Trash2, Flag } from 'lucide-react';
 import { Button } from './ui/button';
 import { Comment, likeComment, unlikeComment, updateComment, deleteComment } from '@/api/comment';
@@ -20,6 +21,7 @@ interface CommentItemProps {
 
 const CommentItem = ({ comment, onUpdate, onDelete, onReplyAdded, isReply = false }: CommentItemProps) => {
   const { user } = useUserStore();
+  const router = useRouter();
   const [isLiked, setIsLiked] = useState(comment.isLikedByUser || false);
   const [likesCount, setLikesCount] = useState(comment.likesCount || 0);
   const [isEditing, setIsEditing] = useState(false);
@@ -41,6 +43,17 @@ const CommentItem = ({ comment, onUpdate, onDelete, onReplyAdded, isReply = fals
       .join("")
       .toUpperCase()
       .slice(0, 2);
+  };
+
+  const handleProfileClick = () => {
+    if (comment.user?.username) {
+      // Check if this is the current user's own comment
+      if (user?._id === comment.userId) {
+        router.push('/profile');
+      } else {
+        router.push(`/userprofile/${comment.user.username}`);
+      }
+    }
   };
 
   const handleLikeToggle = async () => {
@@ -141,21 +154,26 @@ const CommentItem = ({ comment, onUpdate, onDelete, onReplyAdded, isReply = fals
     <div className={`flex gap-3 ${isReply ? 'ml-8 pt-3' : ''}`}>
       {/* Profile Image */}
       <div className="flex-shrink-0">
-        {comment.user?.profileImageUrl ? (
-          <Image
-            src={comment.user.profileImageUrl}
-            alt={comment.user.username || 'User'}
-            width={32}
-            height={32}
-            className="rounded-full object-cover"
-          />
-        ) : (
-          <div className="w-8 h-8 rounded-full bg-button-gradient flex items-center justify-center">
-            <span className="text-white text-xs font-bold">
-              {getInitials(comment.user?.fullName || comment.user?.username || 'U')}
-            </span>
-          </div>
-        )}
+        <button 
+          onClick={handleProfileClick}
+          className="focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-1 rounded-full"
+        >
+          {comment.user?.profileImageUrl ? (
+            <Image
+              src={comment.user.profileImageUrl}
+              alt={comment.user.username || 'User'}
+              width={32}
+              height={32}
+              className="rounded-full object-cover hover:ring-2 hover:ring-yellow-400 transition-all cursor-pointer"
+            />
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-button-gradient flex items-center justify-center hover:ring-2 hover:ring-yellow-400 transition-all cursor-pointer">
+              <span className="text-white text-xs font-bold">
+                {getInitials(comment.user?.fullName || comment.user?.username || 'U')}
+              </span>
+            </div>
+          )}
+        </button>
       </div>
 
       {/* Comment Content */}
@@ -163,9 +181,12 @@ const CommentItem = ({ comment, onUpdate, onDelete, onReplyAdded, isReply = fals
         <div className="bg-gray-50 rounded-lg px-3 py-2">
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-2">
-              <span className="font-semibold text-sm text-gray-900">
+              <button 
+                onClick={handleProfileClick}
+                className="font-semibold text-sm text-gray-900 hover:text-yellow-600 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-1 rounded"
+              >
                 {comment.user?.fullName || comment.user?.username || 'Unknown User'}
-              </span>
+              </button>
               {comment.isEdited && (
                 <span className="text-xs text-gray-500">(edited)</span>
               )}
