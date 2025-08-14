@@ -111,6 +111,7 @@ export default function MainContent() {
     try {
       setLoading(true);
       const res = await getHomeFeed({ page: pageNum, limit: 10 });
+      // Logs removed per request
       const incoming: FeedPost[] = res.data.feed.map((item: RawFeedItem & { comments?: RawComment[] }) => {
         // Calculate actual comment count from comments array
         let actualCommentCount = 0;
@@ -122,8 +123,6 @@ export default function MainContent() {
           }, 0);
         }
         
-        // Debug logging for engagement data
-        console.log(`Post ${item._id} - Original engagement:`, item.engagement, `- Calculated comments: ${actualCommentCount}`);
         
         const safeUsername = item.userId?.username || 'Deleted User';
         const safeProfileImageUrl = item.userId?.profileImageUrl || '/placeholderimg.png';
