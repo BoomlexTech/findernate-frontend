@@ -28,8 +28,19 @@ const MainLayout = ({children}:{children:React.ReactNode}) => {
     
     checkScreenSize();
     window.addEventListener('resize', checkScreenSize);
-    return () => window.removeEventListener('resize', checkScreenSize);
+		return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
+
+	// Listen for global event to open mobile sidebar (used by reels page arrow)
+	useEffect(() => {
+		const handleOpenSidebar = () => {
+			setSidebarOpen(true);
+		};
+		window.addEventListener('open-mobile-sidebar', handleOpenSidebar as EventListener);
+		return () => {
+			window.removeEventListener('open-mobile-sidebar', handleOpenSidebar as EventListener);
+		};
+	}, []);
 
   const handlePostOpen = () => setPostToggle(true);
   const handlePostClose = () => {
@@ -42,8 +53,8 @@ const MainLayout = ({children}:{children:React.ReactNode}) => {
 
   return (
     <>
-      {/* Mobile Hamburger Menu */}
-      {!isNoSidebar && isMobile && (
+      {/* Mobile Hamburger Menu (hidden on reels page) */}
+      {!isNoSidebar && isMobile && !pathname.startsWith('/reels') && (
         <div className="fixed bottom-4 left-4 z-50 md:hidden">
           <button
             onClick={toggleSidebar}

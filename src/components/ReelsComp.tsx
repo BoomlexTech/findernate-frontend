@@ -1,6 +1,7 @@
 "use client"
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Play, Volume2, VolumeX, ChevronUp, ChevronDown } from 'lucide-react';
+import Image from 'next/image';
+import { Play, Volume2, VolumeX, ChevronUp, ChevronDown, Heart, MessageCircle, MoreVertical } from 'lucide-react';
 import { getReels } from '@/api/reels';
 
 interface Reel {
@@ -18,6 +19,7 @@ interface ReelsComponentProps {
   onShareClick?: () => void;
   onSaveToggle?: () => Promise<void>;
   onMoreClick?: () => void;
+  onProfileClick?: (username: string) => void;
   isLiked?: boolean;
   isSaved?: boolean;
   likesCount?: number;
@@ -26,7 +28,8 @@ interface ReelsComponentProps {
   isMobile?: boolean;
   username?: string;
   description?: string;
-  hashtags?: any;
+  hashtags?: string[];
+  profileImageUrl?: string;
 }
 
 const ReelsComponent: React.FC<ReelsComponentProps> = ({ 
@@ -37,6 +40,7 @@ const ReelsComponent: React.FC<ReelsComponentProps> = ({
   onShareClick,
   onSaveToggle,
   onMoreClick,
+  onProfileClick,
   isLiked,
   isSaved,
   likesCount,
@@ -45,13 +49,15 @@ const ReelsComponent: React.FC<ReelsComponentProps> = ({
   isMobile,
   username,
   description,
-  hashtags
+  hashtags,
+  profileImageUrl
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMuted, setIsMuted] = useState(true);
   const [reels, setReels] = useState<Reel[]>([]);
   const [loading, setLoading] = useState(false);
+  const [showMoreLocal, setShowMoreLocal] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
@@ -320,40 +326,52 @@ const ReelsComponent: React.FC<ReelsComponentProps> = ({
     }
   }, [currentIndex, reels.length, onReelChange]);
 
+  const containerClasses = isMobile
+    ? "relative w-screen h-screen mx-auto flex-shrink-0"
+    : "relative w-96 mx-auto aspect-[9/16] flex-shrink-0";
+
+  const shellClasses = isMobile
+    ? "absolute inset-0 bg-black overflow-hidden"
+    : "absolute inset-0 rounded-2xl bg-black overflow-hidden shadow-2xl";
+
   return (
-    <div className="relative w-96 mx-auto aspect-[9/16] flex-shrink-0">
+    <div className={containerClasses}>
       {/* Video container with overflow hidden */}
-      <div className="absolute inset-0 rounded-2xl bg-black overflow-hidden shadow-2xl">
+      <div className={shellClasses}>
         
-        {/* Up/Down Scroll Buttons - Overlaid on the reel video */}
-        <button
-          className="absolute right-4 top-1/3 z-[9999] bg-black/30 hover:bg-black/50 rounded-full p-3 shadow-lg transition-colors disabled:opacity-40"
-          style={{ transform: 'translateY(-50%)' }}
-          onClick={() => {
-            if (currentIndex > 0) {
-              setCurrentIndex(currentIndex - 1);
-              scrollToReel(currentIndex - 1);
-            }
-          }}
-          disabled={currentIndex === 0}
-          aria-label="Scroll Up"
-        >
-          <ChevronUp size={28} className="text-white opacity-90 drop-shadow-lg" />
-        </button>
-        <button
-          className="absolute right-4 bottom-1/3 z-[9999] bg-black/30 hover:bg-black/50 rounded-full p-3 shadow-lg transition-colors disabled:opacity-40"
-          style={{ transform: 'translateY(50%)' }}
-          onClick={() => {
-            if (currentIndex < reels.length - 1) {
-              setCurrentIndex(currentIndex + 1);
-              scrollToReel(currentIndex + 1);
-            }
-          }}
-          disabled={currentIndex === reels.length - 1}
-          aria-label="Scroll Down"
-        >
-          <ChevronDown size={28} className="text-white opacity-100 " />
-        </button>
+        {/* Up/Down Scroll Buttons - Hide on small screens */}
+        {!isMobile && (
+          <>
+            <button
+              className="absolute right-4 top-1/3 z-[9999] bg-black/30 hover:bg-black/50 rounded-full p-3 shadow-lg transition-colors disabled:opacity-40"
+              style={{ transform: 'translateY(-50%)' }}
+              onClick={() => {
+                if (currentIndex > 0) {
+                  setCurrentIndex(currentIndex - 1);
+                  scrollToReel(currentIndex - 1);
+                }
+              }}
+              disabled={currentIndex === 0}
+              aria-label="Scroll Up"
+            >
+              <ChevronUp size={28} className="text-white opacity-90 drop-shadow-lg" />
+            </button>
+            <button
+              className="absolute right-4 bottom-1/3 z-[9999] bg-black/30 hover:bg-black/50 rounded-full p-3 shadow-lg transition-colors disabled:opacity-40"
+              style={{ transform: 'translateY(50%)' }}
+              onClick={() => {
+                if (currentIndex < reels.length - 1) {
+                  setCurrentIndex(currentIndex + 1);
+                  scrollToReel(currentIndex + 1);
+                }
+              }}
+              disabled={currentIndex === reels.length - 1}
+              aria-label="Scroll Down"
+            >
+              <ChevronDown size={28} className="text-white opacity-100 " />
+            </button>
+          </>
+        )}
 
       {loading && reels.length === 0 && (
         <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-60 z-30">
@@ -364,7 +382,7 @@ const ReelsComponent: React.FC<ReelsComponentProps> = ({
       {/* Reels container */}
       <div
         ref={containerRef}
-        className="h-full overflow-y-auto snap-y snap-mandatory scrollbar-hide"
+        className="h-full w-full overflow-y-auto snap-y snap-mandatory scrollbar-hide"
         onScroll={handleScroll}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
@@ -373,7 +391,7 @@ const ReelsComponent: React.FC<ReelsComponentProps> = ({
         {reels.map((reel, index) => (
           <div
             key={reel.id}
-            className="relative h-full w-full snap-start flex-shrink-0"
+              className="relative h-full w-full snap-start flex-shrink-0"
           >
             {/* Video */}
             <video
@@ -402,7 +420,7 @@ const ReelsComponent: React.FC<ReelsComponentProps> = ({
             />
 
             {/* Overlay gradient */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
 
 
             {/* Play/Pause button */}
@@ -432,6 +450,113 @@ const ReelsComponent: React.FC<ReelsComponentProps> = ({
                 {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
               </button>
             </div>
+
+            {/* Removed top header; will render profile + username in the bottom-left */}
+
+            {/* Mobile action bar (like, comment, share, save, more) */}
+            {isMobile && (
+              <div className="absolute right-3 bottom-24 z-10 flex flex-col items-center gap-4 text-white">
+                <button
+                  onClick={onLikeToggle}
+                  className="flex flex-col items-center hover:opacity-90 active:scale-95 transition"
+                  aria-label="Like"
+                >
+                  <Heart className={`w-7 h-7 ${isLiked ? 'fill-red-500 text-red-500' : 'text-white'}`} />
+                  <span className="text-xs mt-1">{typeof likesCount === 'number' ? likesCount : 0}</span>
+                </button>
+                <button
+                  onClick={onCommentClick}
+                  className="flex flex-col items-center hover:opacity-90 active:scale-95 transition"
+                  aria-label="Comments"
+                >
+                  <MessageCircle className="w-7 h-7" />
+                  <span className="text-xs mt-1">{typeof commentsCount === 'number' ? commentsCount : 0}</span>
+                </button>
+                <button
+                  onClick={onShareClick}
+                  className="flex flex-col items-center hover:opacity-90 active:scale-95 transition"
+                  aria-label="Share"
+                >
+                  <Image src="/reply.png" alt="Share" width={28} height={28} className="w-7 h-7 filter brightness-0 invert" />
+                  <span className="text-xs mt-1">{typeof sharesCount === 'number' ? sharesCount : 0}</span>
+                </button>
+                <div className="relative flex flex-col items-center">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setShowMoreLocal(prev => !prev); }}
+                    className="flex flex-col items-center hover:opacity-90 active:scale-95 transition"
+                    aria-label="More"
+                  >
+                    <MoreVertical className="w-7 h-7" />
+                  </button>
+                  {showMoreLocal && (
+                    <div className="absolute right-10 bottom-0 bg-white text-gray-800 rounded-lg shadow-lg py-2 w-40">
+                      <button
+                        className="w-full text-left px-4 py-2 hover:bg-gray-100 text-sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (onSaveToggle) onSaveToggle();
+                          setShowMoreLocal(false);
+                        }}
+                      >
+                        {isSaved ? 'Unsave' : 'Save'}
+                      </button>
+                      <button
+                        className="w-full text-left px-4 py-2 hover:bg-gray-100 text-sm text-red-600"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (onMoreClick) onMoreClick();
+                          setShowMoreLocal(false);
+                        }}
+                      >
+                        Report
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Mobile footer: profile + username + description + hashtags */}
+            {isMobile && (
+              <div className="absolute left-4 right-24 bottom-6 z-10 text-white">
+                <div className="flex items-center gap-3 mb-2">
+                  <div
+                    className="cursor-pointer"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (onProfileClick && username) onProfileClick(username);
+                    }}
+                  >
+                    <Image
+                      src={profileImageUrl || '/placeholderimg.png'}
+                      alt={username || 'User'}
+                      width={36}
+                      height={36}
+                      className="w-9 h-9 rounded-full object-cover border border-white/30"
+                    />
+                  </div>
+                  <button
+                    className="text-white font-semibold"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (onProfileClick && username) onProfileClick(username);
+                    }}
+                  >
+                    @{username || 'Unknown User'}
+                  </button>
+                </div>
+                {description && (
+                  <p className="text-sm leading-snug mb-1 line-clamp-2">{description}</p>
+                )}
+                {Array.isArray(hashtags) && hashtags.length > 0 && (
+                  <div className="flex flex-wrap gap-2 text-xs">
+                    {hashtags.slice(0, 4).map((tag, idx) => (
+                      <span key={idx} className="text-yellow-300">#{tag}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         ))}
       </div>
