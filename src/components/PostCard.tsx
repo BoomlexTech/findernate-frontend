@@ -1,16 +1,17 @@
 'use client';
 
-import { Heart, MessageCircle, MapPin, ChevronLeft, ChevronRight, MoreVertical, Bookmark, BookmarkCheck, Flag, Trash2 } from 'lucide-react';
+import { Heart, MessageCircle, MapPin, ChevronLeft, ChevronRight, MoreVertical, Bookmark, BookmarkCheck, Flag, Trash2, Pencil } from 'lucide-react';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { FeedPost, SavedPostsResponse } from '@/types';
 import formatPostDate from '@/utils/formatDate';
 import { useState, useEffect } from 'react';
+import { useUserStore } from '@/store/useUserStore';
 import ServiceCard from './post-window/ServiceCard';
 import { Badge } from './ui/badge';
 import ProductCard from './post-window/ProductCard';
 import BusinessPostCard from './post-window/BusinessCard';
-import { likePost, unlikePost, savePost, unsavePost, getSavedPost, deletePost } from '@/api/post';
+import { likePost, unlikePost, savePost, unsavePost, getSavedPost, deletePost, editPost, EditPostPayload } from '@/api/post';
 //import { createComment } from '@/api/comment';
 import { postEvents } from '@/utils/postEvents';
 import { AxiosError } from 'axios';
@@ -24,13 +25,15 @@ import { toast } from 'react-toastify';
 export interface PostCardProps {
   post: FeedPost;
   onPostDeleted?: (postId: string) => void; // Optional callback for when post is deleted
-  onPostClick?: () => void; // Optional callback for when post is clicked
+  // onPostClick is currently unused within this component; keep prop for compatibility
+  onPostClick?: () => void;
   showComments?: boolean; // Whether to display comments inline
 }
 
 export default function PostCard({ post, onPostDeleted, onPostClick, showComments = false }: PostCardProps) {
   const pathname = usePathname();
   const { requireAuth, showAuthDialog, closeAuthDialog } = useAuthGuard();
+  const { user } = useUserStore();
   
   const [profileImageError, setProfileImageError] = useState(false);
   const [mediaImageError, setMediaImageError] = useState(false);
@@ -52,8 +55,27 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
   const [showCommentDrawer, setShowCommentDrawer] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isOnProfilePage, setIsOnProfilePage] = useState(false);
+  //const [isOnProfilePage, setIsOnProfilePage] = useState(false);
   const [showImageModal, setShowImageModal] = useState(false);
+  const [isEditingPost, setIsEditingPost] = useState(false);
+  const [editForm, setEditForm] = useState<EditPostPayload>({
+    caption: post.caption || '',
+    description: post.description || '',
+    mood: (post as any)?.mood || '',
+    activity: (post as any)?.activity || '',
+    tags: Array.isArray(post.tags) ? post.tags.map(t => (typeof t === 'string' ? t : String(t))) : []
+  });
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+
+  // Allow editing on own profile ("/profile") and on own userprofile page
+  const canEdit = (
+    pathname.includes('/profile') ||
+    (
+      pathname.includes('/userprofile') &&
+      !!user?.username &&
+      ((post.username || post.userId?.username) === user.username)
+    )
+  );
 
   // Derive a human-readable location name to avoid rendering [object Object]
   const locationName: string | undefined = (
@@ -66,10 +88,10 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
     undefined
   );
 
-  // Check if we're on a profile page to show delete button
-  useEffect(() => {
-    setIsOnProfilePage(pathname.includes('/profile') || pathname.includes('/userprofile'));
-  }, [pathname]);
+  // Track whether we're on any profile-like page (for UI decisions)
+  // useEffect(() => {
+  //   setIsOnProfilePage(pathname.includes('/profile') || pathname.includes('/userprofile'));
+  // }, [pathname]);
 
   // Sync local state with prop changes (important for page refreshes)
   useEffect(() => {
@@ -107,6 +129,9 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
     console.log(`PostCard comments array:`, post.comments);
     console.log(`PostCard showComments prop:`, showComments);
   }, [post._id, post.comments, showComments]);
+
+  // No-op effect to mark onPostClick as used (prop is consumed by parent flows like Search page)
+  useEffect(() => {}, [onPostClick]);
 
   // Load like status and comment count from localStorage on component mount (for persistence across refreshes)
   // Skip this on individual post pages since the page level handles localStorage
@@ -304,6 +329,35 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
     );
   };
 
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isSavingEdit) return;
+    try {
+      setIsSavingEdit(true);
+      const payload: EditPostPayload = {
+        caption: editForm.caption?.trim() || '',
+        description: editForm.description?.trim() || '',
+        mood: editForm.mood || '',
+        activity: editForm.activity || '',
+        tags: (editForm.tags || []).filter(Boolean)
+      };
+      await editPost(post._id, payload);
+      // Optimistically update visible fields
+      (post as any).caption = payload.caption;
+      (post as any).description = payload.description;
+      (post as any).mood = payload.mood;
+      (post as any).activity = payload.activity;
+      (post as any).tags = payload.tags;
+      setIsEditingPost(false);
+      toast.success('Post updated');
+    } catch (err) {
+      console.error('Failed to update post', err);
+      toast.error('Failed to update post');
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
   // Touch handlers for swipe functionality
   const handleTouchStart = (e: React.TouchEvent) => {
     setTouchEnd(null);
@@ -329,31 +383,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
     }
   };
 
-  const handlePostClick = (e: React.MouseEvent) => {
-    // Check if we're already on a post page (single post view)
-    if (pathname.includes('/post/')) {
-      return; // Don't open new tab if already on post page
-    }
-    
-    // Prevent opening if clicking on interactive elements or modal content
-    const target = e.target as HTMLElement;
-    if (target.closest('button') || target.closest('a') || target.closest('input') || 
-        target.closest('.fixed') || target.closest('[role="dialog"]') || 
-        target.classList.contains('fixed')) {
-      return;
-    }
-    
-    // Require authentication before opening post
-    requireAuth(() => {
-      // If onPostClick prop is provided, use it (for search page)
-      if (onPostClick) {
-        onPostClick();
-      } else {
-        // Default behavior: open image modal
-        setShowImageModal(true);
-      }
-    });
-  };
+  // (removed unused handlePostClick helper)
 
   // const handleCommentSubmit = async (e: React.FormEvent) => {
   //   e.preventDefault();
@@ -646,10 +676,22 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
           pathname.includes('/post/') ? 'cursor-default' : 'cursor-pointer'
         }`}
         onClick={(e) => {
-          // Only open post in new tab if not clicking the image
+          // Do not redirect while editing
+          if (isEditingPost) return;
+
+          // Only open post in new tab if not clicking interactive elements
           const target = e.target as HTMLElement;
-          if (target.closest('.post-media')) {
-            // If the click originated from the image, do nothing (image click handles modal)
+          if (
+            target.closest('.post-media') ||
+            target.closest('.edit-panel') ||
+            target.closest('button') ||
+            target.closest('a') ||
+            target.closest('input') ||
+            target.closest('textarea') ||
+            target.closest('select') ||
+            target.closest('.fixed') ||
+            target.closest('[role="dialog"]')
+          ) {
             return;
           }
           // Open post in new tab
@@ -754,8 +796,8 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
                     )}
                   </button>
                   
-                  {/* Delete button - only show on profile pages */}
-                  {isOnProfilePage && (
+                  {/* Delete button - only on self profile page */}
+                  {pathname.includes('/profile') && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -766,6 +808,27 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
                     >
                       <Trash2 className="w-4 h-4" />
                       {isDeleting ? 'Deleting...' : 'Delete'}
+                    </button>
+                  )}
+
+                  {/* Edit button - only show when allowed */}
+                  {canEdit && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditForm({
+                          caption: post.caption || '',
+                          description: post.description || '',
+                          mood: (post as any)?.mood || '',
+                          activity: (post as any)?.activity || '',
+                          tags: Array.isArray(post.tags) ? post.tags.map(t => (typeof t === 'string' ? t : String(t))) : []
+                        });
+                        setIsEditingPost(true);
+                      }}
+                      className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                    >
+                      <Pencil className="w-4 h-4" />
+                      Edit
                     </button>
                   )}
                   
@@ -783,6 +846,105 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
               )}
             </div>
           </div>
+
+          {/* Mobile: Edit Panel */}
+          {canEdit && isEditingPost && (
+            <form
+              onSubmit={handleEditSubmit}
+              onClick={(e) => e.stopPropagation()}
+              className="md:hidden mt-2 bg-yellow-50 border border-yellow-200 rounded-xl p-4 text-black edit-panel shadow-sm"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Pencil className="w-4 h-4 text-yellow-700" />
+                  <span className="font-semibold">Edit Post</span>
+                </div>
+                <button
+                  type="button"
+                  aria-label="Close edit"
+                  onClick={(e) => { e.stopPropagation(); setIsEditingPost(false); }}
+                  className="px-2 py-1 rounded-md text-sm text-yellow-800 hover:bg-yellow-100"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="grid gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-yellow-800 mb-1">Caption</label>
+                  <input
+                    type="text"
+                    value={editForm.caption || ''}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, caption: e.target.value }))}
+                    placeholder="Write a catchy caption"
+                    className="w-full border border-yellow-300 rounded-md p-2 text-sm text-black placeholder-gray-600 bg-yellow-50 focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-yellow-800 mb-1">Description</label>
+                  <textarea
+                    value={editForm.description || ''}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="Add more details about your post"
+                    className="w-full border border-yellow-300 rounded-md p-2 text-sm text-black placeholder-gray-600 bg-yellow-50 focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none"
+                    rows={3}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-yellow-800 mb-1">Mood</label>
+                    <input
+                      type="text"
+                      value={editForm.mood || ''}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, mood: e.target.value }))}
+                      placeholder="e.g., excited, chill"
+                      className="w-full border border-yellow-300 rounded-md p-2 text-sm text-black placeholder-gray-600 bg-yellow-50 focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-yellow-800 mb-1">Activity</label>
+                    <input
+                      type="text"
+                      value={editForm.activity || ''}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, activity: e.target.value }))}
+                      placeholder="e.g., testing, coding"
+                      className="w-full border border-yellow-300 rounded-md p-2 text-sm text-black placeholder-gray-600 bg-yellow-50 focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-yellow-800 mb-1">Tags</label>
+                  <input
+                    type="text"
+                    value={(editForm.tags || []).join(', ')}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, tags: e.target.value.split(',').map(t => t.trim()).filter(Boolean) }))}
+                    placeholder="Comma separated (e.g., updated, edited)"
+                    className="w-full border border-yellow-300 rounded-md p-2 text-sm text-black placeholder-gray-600 bg-yellow-50 focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 mt-4">
+                <button
+                  type="button"
+                  onClick={() => setIsEditingPost(false)}
+                  className="px-3 py-2 rounded-md text-sm bg-white/70 hover:bg-white text-gray-800 border border-amber-300"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingEdit}
+                  className={`px-4 py-2 rounded-md text-sm text-white ${isSavingEdit ? 'bg-gray-400' : 'bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600'} shadow`}
+                >
+                  {isSavingEdit ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          )}
 
           {/* Business/Service/Product Details - Mobile Only (Before Media) */}
           <div className="md:hidden mb-2">
@@ -990,8 +1152,8 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
                       )}
                     </button>
                     
-                    {/* Delete button - only show on profile pages */}
-                    {isOnProfilePage && (
+                  {/* Delete button - only on self profile page */}
+                  {pathname.includes('/profile') && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -1002,6 +1164,28 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
                       >
                         <Trash2 className="w-4 h-4" />
                         {isDeleting ? 'Deleting...' : 'Delete'}
+                      </button>
+                    )}
+                    
+                    {/* Edit button - only show on profile page */}
+                    {canEdit && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditForm({
+                            caption: post.caption || '',
+                            description: post.description || '',
+                            mood: (post as any)?.mood || '',
+                            activity: (post as any)?.activity || '',
+                            tags: Array.isArray(post.tags) ? post.tags.map(t => (typeof t === 'string' ? t : String(t))) : []
+                          });
+                          setIsEditingPost(true);
+                          setShowDropdown(false);
+                        }}
+                        className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                      >
+                        <Pencil className="w-4 h-4" />
+                        Edit
                       </button>
                     )}
                     
@@ -1021,6 +1205,103 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
             </div>
 
             <p className="text-gray-900 leading-relaxed">{post.caption}</p>
+            {canEdit && isEditingPost && (
+              <form
+                onSubmit={handleEditSubmit}
+                onClick={(e) => e.stopPropagation()}
+                className="mt-2 bg-yellow-50 border border-yellow-200 rounded-xl p-4 text-black edit-panel shadow-sm"
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Pencil className="w-4 h-4 text-yellow-700" />
+                    <span className="font-semibold">Edit Post</span>
+                  </div>
+                  <button
+                    type="button"
+                    aria-label="Close edit"
+                    onClick={(e) => { e.stopPropagation(); setIsEditingPost(false); }}
+                    className="px-2 py-1 rounded-md text-sm text-yellow-800 hover:bg-yellow-100"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <div className="grid gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-yellow-800 mb-1">Caption</label>
+                    <input
+                      type="text"
+                      value={editForm.caption || ''}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, caption: e.target.value }))}
+                      placeholder="Write a catchy caption"
+                      className="w-full border border-yellow-300 rounded-md p-2 text-sm text-black placeholder-gray-600 bg-yellow-50 focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-yellow-800 mb-1">Description</label>
+                    <textarea
+                      value={editForm.description || ''}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, description: e.target.value }))}
+                      placeholder="Add more details about your post"
+                      className="w-full border border-yellow-300 rounded-md p-2 text-sm text-black placeholder-gray-600 bg-yellow-50 focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none"
+                      rows={3}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-yellow-800 mb-1">Mood</label>
+                      <input
+                        type="text"
+                        value={editForm.mood || ''}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, mood: e.target.value }))}
+                        placeholder="e.g., excited, chill"
+                        className="w-full border border-yellow-300 rounded-md p-2 text-sm text-black placeholder-gray-600 bg-yellow-50 focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-yellow-800 mb-1">Activity</label>
+                      <input
+                        type="text"
+                        value={editForm.activity || ''}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, activity: e.target.value }))}
+                        placeholder="e.g., testing, coding"
+                        className="w-full border border-yellow-300 rounded-md p-2 text-sm text-black placeholder-gray-600 bg-yellow-50 focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-yellow-800 mb-1">Tags</label>
+                    <input
+                      type="text"
+                      value={(editForm.tags || []).join(', ')}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, tags: e.target.value.split(',').map(t => t.trim()).filter(Boolean) }))}
+                      placeholder="Comma separated (e.g., updated, edited)"
+                      className="w-full border border-yellow-300 rounded-md p-2 text-sm text-black placeholder-gray-600 bg-yellow-50 focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-2 mt-4">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingPost(false)}
+                    className="px-3 py-2 rounded-md text-sm bg-white/70 hover:bg-white text-gray-800 border border-amber-300"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSavingEdit}
+                    className={`px-4 py-2 rounded-md text-sm text-white ${isSavingEdit ? 'bg-gray-400' : 'bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600'} shadow`}
+                  >
+                    {isSavingEdit ? 'Saving...' : 'Save Changes'}
+                  </button>
+                </div>
+              </form>
+            )}
 
             {/* Desktop: Business/Service/Product Details */}
             {post.contentType === 'service' && <ServiceCard post={post} />}

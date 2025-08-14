@@ -8,9 +8,9 @@ import { FeedPost, MediaItem } from "@/types";
 type RawFeedItem = {
   _id: string;
   userId: {
-    username: string;
-    profileImageUrl: string;
-  };
+    username?: string;
+    profileImageUrl?: string;
+  } | null;
   description: string;
   caption: string;
   contentType: 'normal' | 'business' | 'service' | 'product'; 
@@ -125,10 +125,13 @@ export default function MainContent() {
         // Debug logging for engagement data
         console.log(`Post ${item._id} - Original engagement:`, item.engagement, `- Calculated comments: ${actualCommentCount}`);
         
+        const safeUsername = item.userId?.username || 'Deleted User';
+        const safeProfileImageUrl = item.userId?.profileImageUrl || '/placeholderimg.png';
+
         return {
           _id: item._id,
-          username: item.userId.username,
-          profileImageUrl: item.userId.profileImageUrl,
+          username: safeUsername,
+          profileImageUrl: safeProfileImageUrl,
           description: item.description,
           caption: item.caption,
           contentType: item.contentType,
@@ -234,7 +237,7 @@ export default function MainContent() {
         <>
           <div className="space-y-4 sm:space-y-6 mt-6">
             {feed
-            .filter(post => post.username !== null)
+            .filter(post => !!post && !!post._id)
             .map((post) => (
               <PostCard key={post._id} post={post} />
             ))}
