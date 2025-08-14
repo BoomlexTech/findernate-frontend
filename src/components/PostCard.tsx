@@ -87,6 +87,13 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
       : (post.location?.name || (post.location as any)?.label || (post.location as any)?.address)) ||
     undefined
   );
+  const normalizedLocationName = typeof locationName === 'string' ? locationName.trim() : '';
+  const shouldShowLocation = Boolean(
+    normalizedLocationName &&
+    !/^unknown location$/i.test(normalizedLocationName) &&
+    !/^unknown$/i.test(normalizedLocationName) &&
+    normalizedLocationName.toLowerCase() !== 'n/a'
+  );
 
   // Track whether we're on any profile-like page (for UI decisions)
   // useEffect(() => {
@@ -742,10 +749,10 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
                   </h3>
                   {post.contentType && <Badge className='bg-button-gradient' variant='outline'>{post.contentType}</Badge>}
                 </div>
-                {locationName && (
+                {shouldShowLocation && (
                   <div className="flex items-center gap-1 text-gray-700">
                     <MapPin className="w-3 h-3 text-yellow-500" />
-                    <p className="text-xs">{locationName}</p>
+                    <p className="text-xs">{normalizedLocationName}</p>
                   </div>
                 )}
               </div>
@@ -1102,10 +1109,10 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
                   </h3>
                   {post.contentType && <Badge className='bg-button-gradient' variant='outline'>{post.contentType}</Badge>}
                     </div>
-                {locationName && (
+                {shouldShowLocation && (
                 <div className="flex items-center gap-1 text-gray-700">
                   <MapPin className="w-3 h-3 text-yellow-500" />
-                  <p className="text-xs">{locationName}</p>
+                  <p className="text-xs">{normalizedLocationName}</p>
                 </div>
                   )}
                 </div>
