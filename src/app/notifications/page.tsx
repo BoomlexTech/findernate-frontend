@@ -84,9 +84,38 @@ const Notifications = () => {
   const { isAuthenticated, isLoading } = useAuthGuard();
   const { user } = useUserStore();
 
-  const getStorageKey = () => `seen_notifications_${user?._id || 'anon'}`;
+  // Track last time user visited notifications to compute "new since last visit"
+  const getLastSeenKey = React.useCallback(() => `notifications_last_seen_at_${user?._id || 'anon'}`,[user?._id]);
+  const loadLastSeenAt = React.useCallback((): number => {
+    if (typeof window === 'undefined') return Date.now();
+    try {
+      const raw = localStorage.getItem(getLastSeenKey());
+      const ts = raw ? parseInt(raw, 10) : Date.now();
+      return Number.isFinite(ts) ? ts : Date.now();
+    } catch {
+      return Date.now();
+    }
+  }, [getLastSeenKey]);
+  const persistLastSeenAt = React.useCallback((ts: number) => {
+    if (typeof window === 'undefined') return;
+    try { localStorage.setItem(getLastSeenKey(), String(ts)); } catch {}
+  }, [getLastSeenKey]);
 
-  const loadSeenNotifications = (): Set<string> => {
+  const [lastSeenAt, setLastSeenAt] = useState<number>(Date.now());
+  useEffect(() => { setLastSeenAt(loadLastSeenAt()); }, [loadLastSeenAt]);
+  // Update last seen timestamp when leaving the page
+  useEffect(() => {
+    return () => { persistLastSeenAt(Date.now()); };
+  }, [persistLastSeenAt]);
+
+  const newSinceLastVisitCount = React.useMemo(
+    () => notifications.filter(n => new Date(n.createdAt).getTime() > lastSeenAt).length,
+    [notifications, lastSeenAt]
+  );
+
+  const getStorageKey = React.useCallback(() => `seen_notifications_${user?._id || 'anon'}`,[user?._id]);
+
+  const loadSeenNotifications = React.useCallback((): Set<string> => {
     if (typeof window === 'undefined') return new Set();
     try {
       const raw = localStorage.getItem(getStorageKey());
@@ -96,14 +125,14 @@ const Notifications = () => {
     } catch {
       return new Set();
     }
-  };
+  }, [getStorageKey]);
 
-  const persistSeenNotifications = (ids: Set<string>) => {
+  const persistSeenNotifications = React.useCallback((ids: Set<string>) => {
     if (typeof window === 'undefined') return;
     try {
       localStorage.setItem(getStorageKey(), JSON.stringify(Array.from(ids)));
     } catch {}
-  };
+  }, [getStorageKey]);
 
   const handleNotificationClick = (notification: Notification) => {
     // Optimistically mark as read and persist locally
@@ -219,7 +248,7 @@ const Notifications = () => {
     };
 
     fetchNotifications();
-  }, [isAuthenticated, user?._id]);
+  }, [isAuthenticated, user?._id, loadSeenNotifications]);
 
   // Show loading state while checking authentication
   if (isLoading) {
@@ -306,9 +335,9 @@ const Notifications = () => {
                 <p className="text-white/80 text-sm">Stay updated with your activity</p>
               </div>
             </div>
-            {!loading && notifications.length > 0 && (
+            {!loading && newSinceLastVisitCount > 0 && (
               <div className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full">
-                <span className="text-white text-sm font-medium">{notifications.length}</span>
+                <span className="text-white text-sm font-medium">{newSinceLastVisitCount}</span>
               </div>
             )}
           </div>
@@ -342,8 +371,8 @@ const Notifications = () => {
             </div>
           )}
 
-          {/* Empty State */}
-          {!loading && !error && notifications.length === 0 && (
+          {/* Empty State for no new since last visit */}
+          {!loading && !error && newSinceLastVisitCount === 0 && (
             <div className="flex flex-col items-center justify-center py-16 px-3 sm:px-6">
               <div className="bg-gray-100 p-6 rounded-full mb-6">
                 <Bell className="w-12 h-12 text-gray-400" />
@@ -367,7 +396,7 @@ const Notifications = () => {
                     key={notification._id || `notification-${index}`}
                     onClick={() => handleNotificationClick(notification)}
                     className={`relative flex items-start p-4 hover:bg-gray-50 transition-all duration-200 cursor-pointer group flex-row ${
-                      !notification.isRead ? 'bg-blue-50/50' : ''
+                      new Date(notification.createdAt).getTime() > lastSeenAt ? 'bg-blue-50/50' : ''
                     }`}
                   >
                     {/* Profile Image with Status Ring */}
@@ -402,7 +431,7 @@ const Notifications = () => {
                             <span className="text-xs text-gray-500">
                               {formatTimeAgo(notification.createdAt)}
                             </span>
-                            {!notification.isRead && (
+                            {new Date(notification.createdAt).getTime() > lastSeenAt && (
                               <div className="flex items-center space-x-1">
                                 <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
                                 <span className="text-xs text-yellow-600 font-medium">New</span>
