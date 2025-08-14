@@ -2,6 +2,14 @@ import axios from './base';
 import { BusinessPostFormProps, ProductDetailsFormProps, ServiceDetailsFormProps } from '@/types';
 import buildFormData from '@/utils/formDataBuilder';
 
+export type EditPostPayload = {
+  caption?: string;
+  description?: string;
+  mood?: string;
+  activity?: string;
+  tags?: string[];
+};
+
 export const createRegularPost = async (data: {
   description: string;
   location: { name: string };
@@ -196,4 +204,11 @@ export const unsavePost = async (postId: string) => {
 export const deletePost = async (postId: string) => {
   const response = await axios.delete(`/posts/${postId}`)
   return response.data
+}
+
+// Edit/Update post (user can only edit their own posts)
+export const editPost = async (postId: string, payload: EditPostPayload) => {
+  // Example endpoint provided by user shows /posts/edit/:postId
+  const response = await axios.put(`/posts/edit/${postId}`, payload);
+  return response.data;
 }
