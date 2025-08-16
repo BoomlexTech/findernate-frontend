@@ -98,7 +98,7 @@ export const getReports = async (params?: {
 
 // Update report status (for admin/moderation)
 export const updateReportStatus = async (reportId: string, status: Report['status']): Promise<Report> => {
-  const response = await apiClient.patch<ReportResponse>(`/posts/report/${reportId}/status`, { status });
+  const response = await apiClient.put<ReportResponse>(`/posts/report/${reportId}/status`, { status });
   return response.data.data;
 };
 
