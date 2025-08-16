@@ -87,15 +87,15 @@ const ReelsComponent: React.FC<ReelsComponentProps> = ({
 
   useEffect(() => {
     if (apiReelsData && apiReelsData.length > 0) {
-      console.log('Processing API reels data:', apiReelsData);
+      // console.log('Processing API reels data:', apiReelsData);
       // Map API reels data to Reel interface, extracting video URLs from media array
       const mappedReels: Reel[] = apiReelsData.map((item: any, idx: number) => {
         // Find the first video media item or any media with URL
         const videoMedia = item.media?.find((m: any) => m.type === 'video' || m.url) || item.media?.[0];
         
         // Log each reel's media structure for debugging
-        console.log(`Reel ${idx + 1} media:`, item.media);
-        console.log(`Selected video media:`, videoMedia);
+        // console.log(`Reel ${idx + 1} media:`, item.media);
+        // console.log(`Selected video media:`, videoMedia);
         
         return {
           id: idx + 1,
@@ -104,7 +104,7 @@ const ReelsComponent: React.FC<ReelsComponentProps> = ({
         };
       });
       
-      console.log('Mapped reels:', mappedReels);
+      // console.log('Mapped reels:', mappedReels);
       setReels(mappedReels);
       setLoading(false);
     } else {
@@ -114,7 +114,7 @@ const ReelsComponent: React.FC<ReelsComponentProps> = ({
         try {
           const res = await getReels();
           const apiReels = res?.reels;
-          console.log('API reels response:', apiReels);
+          // console.log('API reels response:', apiReels);
           // Map API response to Reel interface
           const mappedReels: Reel[] = Array.isArray(apiReels)
             ? apiReels.map((item: any, idx: number) => {
@@ -138,7 +138,7 @@ const ReelsComponent: React.FC<ReelsComponentProps> = ({
                   videoUrl = defaultReelsData[idx % defaultReelsData.length].videoUrl;
                 }
 
-                console.log(`Fallback reel ${idx + 1} media:`, { videoUrl, thumbnail });
+                // console.log(`Fallback reel ${idx + 1} media:`, { videoUrl, thumbnail });
                 return {
                   id: idx + 1,
                   videoUrl,
@@ -146,10 +146,10 @@ const ReelsComponent: React.FC<ReelsComponentProps> = ({
                 };
               })
             : [];
-          console.log('Fallback mapped reels:', mappedReels);
+          // console.log('Fallback mapped reels:', mappedReels);
           setReels(mappedReels.length > 0 ? mappedReels : defaultReelsData);
         } catch (err) {
-          console.log('Error fetching reels:', err);
+          // console.log('Error fetching reels:', err);
           setReels(defaultReelsData);
         } finally {
           setLoading(false);
@@ -462,7 +462,13 @@ const ReelsComponent: React.FC<ReelsComponentProps> = ({
                   aria-label="Like"
                 >
                   <Heart className={`w-7 h-7 ${isLiked ? 'fill-red-500 text-red-500' : 'text-white'}`} />
-                  <span className="text-xs mt-1">{typeof likesCount === 'number' ? likesCount : 0}</span>
+                  <span className="text-xs mt-1">{(() => {
+                    // Get likes count from current reel data instead of prop
+                    if (apiReelsData && apiReelsData[currentIndex]) {
+                      return apiReelsData[currentIndex].engagement?.likes || 0;
+                    }
+                    return typeof likesCount === 'number' ? likesCount : 0;
+                  })()}</span>
                 </button>
                 <button
                   onClick={onCommentClick}
@@ -470,7 +476,13 @@ const ReelsComponent: React.FC<ReelsComponentProps> = ({
                   aria-label="Comments"
                 >
                   <MessageCircle className="w-7 h-7" />
-                  <span className="text-xs mt-1">{typeof commentsCount === 'number' ? commentsCount : 0}</span>
+                  <span className="text-xs mt-1">{(() => {
+                    // Get comment count from current reel data instead of prop
+                    if (apiReelsData && apiReelsData[currentIndex]) {
+                      return apiReelsData[currentIndex].engagement?.comments || 0;
+                    }
+                    return typeof commentsCount === 'number' ? commentsCount : 0;
+                  })()}</span>
                 </button>
                 <button
                   onClick={onShareClick}
@@ -478,7 +490,6 @@ const ReelsComponent: React.FC<ReelsComponentProps> = ({
                   aria-label="Share"
                 >
                   <Image src="/reply.png" alt="Share" width={28} height={28} className="w-7 h-7 filter brightness-0 invert" />
-                  <span className="text-xs mt-1">{typeof sharesCount === 'number' ? sharesCount : 0}</span>
                 </button>
                 <div className="relative flex flex-col items-center">
                   <button
