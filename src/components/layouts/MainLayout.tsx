@@ -48,7 +48,16 @@ const MainLayout = ({children}:{children:React.ReactNode}) => {
   };
 
   const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
+    const newState = !sidebarOpen;
+    setSidebarOpen(newState);
+    
+    // Dispatch event when sidebar closes
+    if (!newState) {
+      try {
+        const evt = new Event('close-mobile-sidebar');
+        window.dispatchEvent(evt);
+      } catch {}
+    }
   };
 
   return (
@@ -81,7 +90,16 @@ const MainLayout = ({children}:{children:React.ReactNode}) => {
           }
           w-64
         `}>
-          <LeftSidebar togglePost={handlePostOpen} onItemClick={() => isMobile && setSidebarOpen(false)} />
+          <LeftSidebar togglePost={handlePostOpen} onItemClick={() => {
+            if (isMobile) {
+              setSidebarOpen(false);
+              // Dispatch event when sidebar closes
+              try {
+                const evt = new Event('close-mobile-sidebar');
+                window.dispatchEvent(evt);
+              } catch {}
+            }
+          }} />
         </div>
       )}
 

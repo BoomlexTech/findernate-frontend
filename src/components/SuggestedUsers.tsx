@@ -195,7 +195,7 @@ export default function SuggestedUsers({ users: initialUsers = defaultSuggestedU
   };
 
   return (
-    <div className="  bg-gray-100 rounded-xl shadow-sm border border-gray-200 p-6">
+    <div className="  bg-white rounded-xl shadow-sm border border-gray-200 p-6">
      <div className="flex items-center gap-2 mb-4">
   <svg
     xmlns="http://www.w3.org/2000/svg"

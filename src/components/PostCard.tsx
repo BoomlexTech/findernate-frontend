@@ -701,8 +701,10 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
           ) {
             return;
           }
-          // Open post in new tab
-          window.open(`/post/${post._id}`, '_blank');
+          // Check authentication before opening post
+          requireAuth(() => {
+            window.open(`/post/${post._id}`, '_blank');
+          });
         }}
         data-post-id={post._id}
       >

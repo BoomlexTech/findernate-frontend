@@ -14,7 +14,7 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { createComment, getCommentsByPost, Comment as CommentType } from '@/api/comment'
 import { getReels, likeReel, unlikeReel } from '@/api/reels'
-import { savePost, unsavePost, getSavedPost } from '@/api/post'
+import { savePost, unsavePost } from '@/api/post'
 import { followUser, unfollowUser } from '@/api/user'
 import { Heart, MoreVertical, Bookmark, BookmarkCheck } from 'lucide-react'
 import { useAuthGuard } from '@/hooks/useAuthGuard';
@@ -53,6 +53,21 @@ const Page = () => {
     
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  // Listen for sidebar close event to show arrow again
+  useEffect(() => {
+    const handleSidebarClose = () => {
+      setShowSidebarArrow(true);
+    };
+    
+    window.addEventListener('close-mobile-sidebar', handleSidebarClose as EventListener);
+    
+    return () => {
+      window.removeEventListener('close-mobile-sidebar', handleSidebarClose as EventListener);
+    };
+  }, []);
+
+
 
   // Manage body scroll for mobile reels
   useEffect(() => {
@@ -171,7 +186,7 @@ const Page = () => {
     const fetchReels = async () => {
       try {
         setLoading(true);
-        const response = await getReels();
+          const response = await getReels();
         console.log('Reels API response:', response);
         
         // Transform API response to match expected format
@@ -253,21 +268,22 @@ const Page = () => {
       } catch (error) {
         console.error('Error fetching reels:', error);
         // Fallback to static data if API fails
-        setReelsData(staticModalData);
+        setReelsData([]);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchReels();
+    fetchReels(); // Re-enabled to use real API data
+    // setLoading(false); // Commented out to use API data
   }, []);
 
   // Static modal data as fallback
   const staticModalData = [
     {
-      _id: '1',
+      _id: '507f1f77bcf86cd799439011', // Valid MongoDB ObjectId format
       userId: {
-        _id: 'user1',
+        _id: '507f1f77bcf86cd799439012', // Valid MongoDB ObjectId format
         username: 'demo_user',
         profileImageUrl: '/placeholderimg.png'
       },
@@ -298,15 +314,17 @@ const Page = () => {
     // Add other static data items...
   ];
 
-  const [commentsCount, setCommentsCount] = useState(0);
+  // Initialize state with static data values for immediate display
+  const [commentsCount, setCommentsCount] = useState(staticModalData[0].engagement.comments);
   const [comments, setComments] = useState<CommentType[]>([]);
-  const [likesCount, setLikesCount] = useState(0);
-  const [isLiked, setIsLiked] = useState(false);
+  const [likesCount, setLikesCount] = useState(staticModalData[0].engagement.likes);
+  const [isLiked, setIsLiked] = useState(staticModalData[0].isLikedBy);
   const [isSaved, setIsSaved] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
-  const [isFollowed, setIsFollowed] = useState(false);
+  const [isFollowed, setIsFollowed] = useState(staticModalData[0].isFollowed);
+  const [showSidebarArrow, setShowSidebarArrow] = useState(true);
   const [isProcessing, setIsProcessing] = useState({
     like: false,
     save: false,
@@ -465,6 +483,22 @@ const Page = () => {
   // Get current reel data dynamically
   const currentReel = getCurrentReelData();
 
+  // Initialize engagement counts immediately on component mount
+  useEffect(() => {
+    const currentData = getCurrentModalData();
+    console.log('Initial mount - setting engagement data:', {
+      comments: currentData.engagement?.comments,
+      likes: currentData.engagement?.likes,
+      isLikedBy: currentData.isLikedBy,
+      isFollowed: currentData.isFollowed
+    });
+    
+    setCommentsCount(currentData.engagement?.comments || 0);
+    setLikesCount(currentData.engagement?.likes || 0);
+    setIsLiked(Boolean(currentData.isLikedBy));
+    setIsFollowed(Boolean(currentData.isFollowed));
+  }, []); // Run only once on mount
+
   // Update counts and fetch comments when reel changes
   useEffect(() => {
     console.log('useEffect triggered - reelsData.length:', reelsData.length, 'currentReelIndex:', currentReelIndex);
@@ -483,11 +517,11 @@ const Page = () => {
       setIsLiked(Boolean(currentData.isLikedBy));
       
       // Debug follow state initialization
-      console.log('=== FOLLOW STATE INIT ===');
-      console.log('currentData.isFollowed:', currentData.isFollowed);
-      console.log('Boolean(currentData.isFollowed):', Boolean(currentData.isFollowed));
-      console.log('Setting isFollowed to:', Boolean(currentData.isFollowed));
-      console.log('=== END FOLLOW STATE INIT ===');
+      // console.log('=== FOLLOW STATE INIT ===');
+      // console.log('currentData.isFollowed:', currentData.isFollowed);
+      // console.log('Boolean(currentData.isFollowed):', Boolean(currentData.isFollowed));
+      // console.log('Setting isFollowed to:', Boolean(currentData.isFollowed));
+      // console.log('=== END FOLLOW STATE INIT ===');
       
       setIsFollowed(Boolean(currentData.isFollowed));
       
@@ -531,19 +565,20 @@ const Page = () => {
       setIsSaved(false);
     }
   }, [currentReelIndex, reelsData]);
-  // Initialize state when reelsData first loads
+  // Initialize state when reelsData first loads - this runs immediately when data is available
   useEffect(() => {
-    if (reelsData.length > 0 && !loading) {
-      console.log('Initializing state with fresh reels data');
+    if (reelsData.length > 0) {
+      console.log('Initializing state with fresh reels data, loading:', loading);
       const currentData = getCurrentModalData();
       console.log('Initial data:', {
         id: currentData._id,
         likes: currentData.engagement?.likes,
         isLikedBy: currentData.isLikedBy,
+        comments: currentData.engagement?.comments,
         isFollowed: currentData.isFollowed
       });
       
-      // Force state update to match server data
+      // Force state update to match server data immediately
       setLikesCount(currentData.engagement?.likes || 0);
       setIsLiked(Boolean(currentData.isLikedBy));
       setCommentsCount(currentData.engagement?.comments || 0);
@@ -555,7 +590,7 @@ const Page = () => {
       console.log('=== END INIT FOLLOW STATE ===');
       setIsFollowed(Boolean(currentData.isFollowed));
     }
-  }, [reelsData, loading]);
+  }, [reelsData]);
   // Use current modal data for comment operations
   const currentModalData = getCurrentModalData();
 
@@ -788,7 +823,8 @@ const Page = () => {
       await navigator.clipboard.writeText(window.location.href);
       showToastMessage('Link copied to clipboard!');
       setShowShareModal(false);
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Error copying link:', error);
       showToastMessage('Failed to copy link');
     }
   };
@@ -868,20 +904,23 @@ const Page = () => {
     return (
       <div className="relative">
         {/* Reels-specific arrow to open sidebar (transparent bg, closer to left) */}
-        <button
-          onClick={() => {
-            try {
-              const evt = new Event('open-mobile-sidebar');
-              window.dispatchEvent(evt);
-            } catch {}
-          }}
-          className="fixed left-2 top-1/2 -translate-y-1/2 z-[65] md:hidden p-2"
-          aria-label="Open Menu"
-        >
-          <svg className="w-7 h-7 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
+        {showSidebarArrow && (
+          <button
+            onClick={() => {
+              try {
+                const evt = new Event('open-mobile-sidebar');
+                window.dispatchEvent(evt);
+                setShowSidebarArrow(false); // Hide arrow after clicking
+              } catch {}
+            }}
+            className="fixed left-2 top-1/2 -translate-y-1/2 z-[65] md:hidden p-2"
+            aria-label="Open Menu"
+          >
+            <svg className="w-7 h-7 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        )}
         {/* Auth Dialog */}
         <AuthDialog isOpen={showAuthDialog} onClose={closeAuthDialog} />
         
@@ -913,6 +952,7 @@ const Page = () => {
           username={currentModalData.username || 'Unknown User'}
           description={currentModalData.description || ''}
           hashtags={currentModalData.hashtags || []}
+          onProfileClick={handleProfileClick}
         />
 
         {/* Mobile Comments Drawer */}
