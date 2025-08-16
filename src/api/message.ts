@@ -1,4 +1,5 @@
 import axiosInstance from './base';
+import { createMessageNotification, pushNotificationManager } from '../utils/pushNotifications';
 
 // Types for API responses
 export interface Message {
@@ -369,4 +370,32 @@ export const messageAPI = {
       throw error;
     }
   }
+};
+
+// Helper function to handle incoming messages and trigger notifications
+export const handleIncomingMessage = (message: Message, currentUserId: string) => {
+  // Only show notification if the message is not from the current user
+  if (message.sender._id !== currentUserId) {
+    const senderName = message.sender.fullName || message.sender.username || 'Unknown';
+    const notificationData = createMessageNotification(message, senderName);
+    
+    // Show local notification if the user is currently on the app but not focused on the chat
+    // or if the app is in the background
+    if (document.hidden || !document.hasFocus()) {
+      pushNotificationManager.showLocalNotification(notificationData);
+    }
+  }
+};
+
+// Helper function to setup real-time message listeners (for WebSocket/Socket.IO)
+export const setupMessageNotifications = (currentUserId: string) => {
+  // This function would typically be called when setting up WebSocket listeners
+  // For now, it's a placeholder for the integration point
+  console.log('Setting up message notifications for user:', currentUserId);
+  
+  // You would integrate this with your WebSocket/Socket.IO setup
+  // Example:
+  // socket.on('newMessage', (message: Message) => {
+  //   handleIncomingMessage(message, currentUserId);
+  // });
 };

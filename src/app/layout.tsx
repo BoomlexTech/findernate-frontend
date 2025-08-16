@@ -46,6 +46,11 @@ export default function RootLayout({
        <head>
         <link rel="icon" href="/Findernate.ico" type="image/ico" sizes="32x32" />
         <link rel="shortcut icon" href="/Findernate.ico" />
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#f59e0b" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="FinderNate" />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased relative`}
