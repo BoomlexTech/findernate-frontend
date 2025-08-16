@@ -216,7 +216,7 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
   };
 
   const updatePostTypeBasedOnVideo = async (file: File) => {
-    if (file.type === 'video/mp4') {
+    if (file.type === 'video/mp4' || file.type === 'video/quicktime' || file.type === 'video/webm') {
       try {
         const duration = await detectVideoDuration(file);
         setVideoDuration(duration);
@@ -502,7 +502,7 @@ const handleProductChange = (
           optimizedFiles.push(optimizedFile);
           
           // Check for MP4 videos and update post type accordingly
-          if (file.type === 'video/mp4' || optimizedFile.type.startsWith('video/')) {
+          if (file.type === 'video/mp4' || file.type === 'video/quicktime' || file.type === 'video/webm' || optimizedFile.type.startsWith('video/')) {
             await updatePostTypeBasedOnVideo(optimizedFile);
           }
         } catch (error) {
@@ -542,7 +542,7 @@ const handleProductChange = (
     setSharedForm({...sharedForm, image: sharedForm.image.filter((_, i) => i !== index)});
     
     // Reset video duration and post type if removing a video
-    if (removedFile.type === 'video/mp4') {
+    if (removedFile.type === 'video/mp4' || removedFile.type === 'video/quicktime' || removedFile.type === 'video/webm') {
       setVideoDuration(null);
       setShowReelVisibility(false);
       setReelVisibility(false);
@@ -556,7 +556,7 @@ const handleProductChange = (
     }
     
     // Separate videos and images
-    const videos = mediaFiles.filter(file => file.type === 'video/mp4');
+    const videos = mediaFiles.filter(file => file.type === 'video/mp4' || file.type === 'video/quicktime' || file.type === 'video/webm');
     const images = mediaFiles.filter(file => file.type.startsWith('image/'));
     
     // Put videos first, then images
@@ -897,12 +897,12 @@ const handleProductChange = (
               <Camera className="mx-auto mb-4 text-gray-400" size={48} />
               <h3 className="text-lg font-medium text-gray-700 mb-2">Add Photos & Videos</h3>
               <p className="text-sm text-gray-500 mb-4">
-                Upload up to 5 images (JPG, PNG, GIF) or MP4 videos
+                Upload up to 5 images (JPG, PNG, GIF) or videos (MP4, MOV, WebM)
               </p>
               <input
                 type="file"
                 multiple
-                accept="image/*,video/mp4"
+                accept="image/*,video/mp4,video/quicktime,video/mov"
                 onChange={handleImageUpload}
                 className="hidden"
                 id="image-upload"
@@ -914,7 +914,7 @@ const handleProductChange = (
                 📎 Add Images & Videos
               </label>
               <p className="text-xs text-gray-400 mt-2">
-                Tip: Large files are automatically optimized. MP4 videos under 1 minute are eligible for reels with the "Reel Visibility" option below.
+                Tip: Large files are automatically optimized. Videos (MP4, MOV, WebM) under 1 minute are eligible for reels with the &quot;Reel Visibility&quot; option below.
               </p>
               {isOptimizing && (
                 <div className="mt-2 flex items-center justify-center text-yellow-600">
@@ -942,7 +942,7 @@ const handleProductChange = (
                           {(file.size / 1024 / 1024).toFixed(1)}MB
                         </div>
                       </div>
-                    ) : file.type === 'video/mp4' ? (
+                    ) : (file.type === 'video/mp4' || file.type === 'video/quicktime' || file.type === 'video/webm') ? (
                       <div className="w-20 h-20 relative">
                         <video
                           src={URL.createObjectURL(file)}
@@ -951,7 +951,7 @@ const handleProductChange = (
                         />
                         <div className="absolute inset-0 bg-black/30 rounded-lg flex flex-col items-center justify-center p-1">
                           <div className="text-white text-xs font-semibold bg-black/50 px-1 rounded mb-1">
-                            {file.type === 'video/mp4' && videoDuration ? 
+                            {(file.type === 'video/mp4' || file.type === 'video/quicktime' || file.type === 'video/webm') && videoDuration ? 
                               `${Math.round(videoDuration)}s ${videoDuration <= 60 ? '(Reel)' : '(Video)'}` : 
                               'Video'
                             }
