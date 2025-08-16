@@ -2,15 +2,16 @@
 
 import { getBusinessProfile } from '@/api/user';
 import { getUserPosts } from '@/api/homeFeed';
-import FloatingHeader from '@/components/FloatingHeader';
+//import FloatingHeader from '@/components/FloatingHeader';
 import PostCard from '@/components/PostCard';
 import ProfilePostsSection from '@/components/ProfilePostsSection';
-import { FeedPost, UserProfile as UserProfileType } from '@/types';
+import { FeedPost } from '@/types';
 import { useParams } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
-import { Building2, MapPin, Globe, Users, Calendar } from 'lucide-react';
+import { Building2, Users } from 'lucide-react';
 import Image from 'next/image';
-import Link from 'next/link';
+import { useAuthGuard } from '@/hooks/useAuthGuard';
+import { AuthDialog } from '@/components/AuthDialog';
 
 interface BusinessProfile {
   _id: string;
@@ -39,6 +40,7 @@ const BusinessProfilePage = () => {
   const [isFollowLoading, setIsFollowLoading] = useState(false);
   const params = useParams();
   const businessName = params.businessId as string;
+  const { requireAuth, showAuthDialog, closeAuthDialog } = useAuthGuard();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -125,24 +127,27 @@ const BusinessProfilePage = () => {
   const handleFollowToggle = async () => {
     if (!businessData || isFollowLoading) return;
     
-    setIsFollowLoading(true);
-    try {
-      // TODO: Implement follow/unfollow business API call
-      // const response = await followBusiness(businessData._id);
-      console.log('Follow/unfollow business:', businessData._id);
-      
-      // Update local state
-      setBusinessData(prev => prev ? {
-        ...prev,
-        isFollowing: !prev.isFollowing,
-        followersCount: prev.isFollowing ? prev.followersCount - 1 : prev.followersCount + 1
-      } : null);
-      
-    } catch (error) {
-      console.error('Error toggling follow status:', error);
-    } finally {
-      setIsFollowLoading(false);
-    }
+    // Check authentication before allowing follow action
+    requireAuth(async () => {
+      setIsFollowLoading(true);
+      try {
+        // TODO: Implement follow/unfollow business API call
+        // const response = await followBusiness(businessData._id);
+        console.log('Follow/unfollow business:', businessData._id);
+        
+        // Update local state
+        setBusinessData(prev => prev ? {
+          ...prev,
+          isFollowing: !prev.isFollowing,
+          followersCount: prev.isFollowing ? prev.followersCount - 1 : prev.followersCount + 1
+        } : null);
+        
+      } catch (error) {
+        console.error('Error toggling follow status:', error);
+      } finally {
+        setIsFollowLoading(false);
+      }
+    });
   };
 
   const getJoinedDate = (dateString: string) => {
@@ -199,13 +204,13 @@ const BusinessProfilePage = () => {
   }
 
   return (
-    <div className='bg-gray-50 max-w-6xl mx-auto'>
-      <FloatingHeader
+    <div className='bg-gray-50 max-w-6xl mx-auto pt-5'>
+      {/*<FloatingHeader
         paragraph="Discover amazing businesses and their content"
         heading="Business Profile"
         username={businessData.businessName}
         accountBadge={true}
-      />
+      />*/}
 
       <div className='flex flex-col gap-6'>
         {/* Business Profile Card */}
@@ -354,6 +359,9 @@ const BusinessProfilePage = () => {
           />
         </div>
       </div>
+      
+      {/* Auth Dialog */}
+      <AuthDialog isOpen={showAuthDialog} onClose={closeAuthDialog} />
     </div>
   );
 };

@@ -71,7 +71,7 @@ export default function TrendingBusiness() {
   };
 
   return (
-    <div className="bg-gray-200 rounded-xl shadow-sm border border-gray-200 p-6 cursor-pointer">
+    <div className="bg-white rounded-xl shadow-lg border border-gray-300 p-6 cursor-pointer">
       {/* SVG and Heading aligned */}
       <div className="flex items-center gap-2 mb-4">
         <svg
@@ -116,7 +116,7 @@ export default function TrendingBusiness() {
             <Link
               key={business._id}
               href={`/business/${business.businessName.toLowerCase().replace(/\s+/g, '-')}`}
-              className="flex items-center justify-start gap-6 p-2 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+              className="flex items-center justify-start gap-6 p-2 rounded-lg hover:bg-gray-300 transition-colors cursor-pointer"
             >
               <Image
                 src="/placeholder.jpg"
@@ -127,7 +127,7 @@ export default function TrendingBusiness() {
                 onError={handleImageError}
               />
               <div className="flex flex-col">
-                <p className="font-semibold text-gray-900 text-sm hover:text-yellow-700 transition-colors">{business.businessName}</p>
+                <p className="font-semibold text-gray-900 text-sm transition-colors">{business.businessName}</p>
                 <span className="text-yellow-600 text-xs capitalize">{business.category}</span>
                 <p className="text-xs text-gray-500">{formatFollowers(business.followersCount)} followers</p>
               </div>

@@ -29,7 +29,7 @@ export default function Home() {
           </div>
 
           {/* Stories Bar - Sticky on desktop, scrollable on mobile */}
-          <div className="md:sticky md:top-0 md:z-10 bg-gray-50 pt-4 px-4">
+          <div className="md:sticky md:top-0 md:z-20 bg-gray-50 pt-4 px-4">
             <StoriesBar />
           </div>
 
