@@ -6,6 +6,7 @@ import { getNotifications } from '@/api/notification';
 import { Bell, User, Heart, MessageCircle, FileText, Loader2, AlertCircle, RefreshCw, LogIn } from 'lucide-react';
 import { useAuthGuard } from '@/hooks/useAuthGuard';
 import { useUserStore } from '@/store/useUserStore';
+import NotificationSettings from '@/components/notifications/NotificationSettings';
 
 interface Notification {
   _id: string;
@@ -341,6 +342,11 @@ const Notifications = () => {
               </div>
             )}
           </div>
+        </div>
+
+        {/* Push Notification Settings */}
+        <div className="px-6 py-4 border-b border-gray-200">
+          <NotificationSettings />
         </div>
 
         <div className="overflow-y-auto max-h-[calc(100vh-120px)]">

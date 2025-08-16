@@ -7,6 +7,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import { Menu, X } from 'lucide-react';
 import LeftSidebar from "@/components/LeftSidebar";
 import CreatePostModal from "@/components/CreatePostModal";
+import PushNotificationProvider from "@/components/providers/PushNotificationProvider";
 
 const MainLayout = ({children}:{children:React.ReactNode}) => {
 
@@ -61,7 +62,7 @@ const MainLayout = ({children}:{children:React.ReactNode}) => {
   };
 
   return (
-    <>
+    <PushNotificationProvider>
       {/* Mobile Hamburger Menu (hidden on reels page) */}
       {!isNoSidebar && isMobile && !pathname.startsWith('/reels') && (
         <div className="fixed bottom-4 left-4 z-50 md:hidden">
@@ -117,7 +118,7 @@ const MainLayout = ({children}:{children:React.ReactNode}) => {
 
       {/* Toast Container */}
       <ToastContainer />
-    </>    
+    </PushNotificationProvider>    
   )
 }
 
