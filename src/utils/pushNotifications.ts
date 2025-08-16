@@ -44,7 +44,7 @@ class PushNotificationManager {
     }
 
     const permission = Notification.permission;
-    let subscription = null;
+    let subscription: PushSubscription | null = null;
 
     try {
       const registration = await this.getServiceWorkerRegistration();

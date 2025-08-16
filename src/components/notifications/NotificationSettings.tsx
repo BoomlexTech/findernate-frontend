@@ -66,9 +66,9 @@ export default function NotificationSettings({ className = '' }: NotificationSet
     return 'Push notifications are available but not enabled';
   };
 
-  const isToggleDisabled = () => {
+  const isToggleDisabled = (): boolean => {
     return loading || !supported || permission === 'denied' || 
-           (error && (error.includes('not configured') || error.includes('Invalid VAPID key')));
+           (!!error && (error.includes('not configured') || error.includes('Invalid VAPID key')));
   };
 
   if (!supported) {
