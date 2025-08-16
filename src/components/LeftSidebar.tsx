@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { discoverItems, navigationItems } from '@/constants/uiItems';
 import { Plus } from 'lucide-react';
 import { useAuthGuard } from '@/hooks/useAuthGuard';
+import { useMessageCounts } from '@/hooks/useMessageCounts';
 
 interface leftSidebarProps {
 	togglePost?: () => void;
@@ -16,6 +17,7 @@ interface leftSidebarProps {
 
 export default function LeftSidebar({togglePost, onItemClick}: leftSidebarProps) {
 	const { isAuthenticated } = useAuthGuard();
+	const { totalCount } = useMessageCounts();
 	const [isActive, setIsActive] = useState(0);
   const pathname = usePathname();
 
@@ -82,7 +84,12 @@ export default function LeftSidebar({togglePost, onItemClick}: leftSidebarProps)
 				  ) : (
 					<item.icon className="w-6 h-6" />
 				  )}
-				  <span>{item.label}</span>
+				  <span className="flex-1 text-left">{item.label}</span>
+				  {item.label === 'Messages' && totalCount > 0 && (
+					<span className="bg-red-500 text-white text-xs min-w-[20px] h-5 flex items-center justify-center rounded-full px-1.5">
+					  {totalCount > 99 ? '99+' : totalCount}
+					</span>
+				  )}
 				</button>
 			  </li>
 			))}
