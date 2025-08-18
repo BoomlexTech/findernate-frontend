@@ -65,6 +65,15 @@ export default function SignupComponent() {
       }));
       return;
     }
+    // Special handling for username: remove spaces
+    if (name === 'username') {
+      const noSpaces = value.replace(/\s/g, '');
+      setFormData(prev => ({
+        ...prev,
+        [name]: noSpaces
+      }));
+      return;
+    }
     setFormData(prev => ({
       ...prev,
       [name]: value
