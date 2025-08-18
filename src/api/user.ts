@@ -144,3 +144,68 @@ export const getBusinessProfile = async (businessName: string) => {
         throw error;
     }
 }
+
+// Block user functionality
+export const blockUser = async (blockedUserId: string, reason?: string) => {
+    try {
+        const response = await axios.post('/users/block', { 
+            blockedUserId,
+            reason
+        });
+        return response.data;
+    } catch (error: any) {
+        console.error('Block user error:', {
+            status: error.response?.status,
+            message: error.response?.data?.message,
+            blockedUserId,
+            error: error.message
+        });
+        throw error;
+    }
+}
+
+export const unblockUser = async (blockedUserId: string) => {
+    try {
+        const response = await axios.post('/users/unblock', { 
+            blockedUserId 
+        });
+        return response.data;
+    } catch (error: any) {
+        console.error('Unblock user error:', {
+            status: error.response?.status,
+            message: error.response?.data?.message,
+            blockedUserId,
+            error: error.message
+        });
+        throw error;
+    }
+}
+
+export const getBlockedUsers = async () => {
+    try {
+        const response = await axios.get('/users/blocked-users');
+        return response.data.data?.blockedUsers || [];
+    } catch (error: any) {
+        console.error('Get blocked users error:', {
+            status: error.response?.status,
+            message: error.response?.data?.message,
+            error: error.message
+        });
+        throw error;
+    }
+}
+
+export const checkIfUserBlocked = async (userId: string) => {
+    try {
+        const response = await axios.get(`/users/check-block/${userId}`);
+        return response.data.data?.isBlocked || false;
+    } catch (error: any) {
+        console.error('Check if user blocked error:', {
+            status: error.response?.status,
+            message: error.response?.data?.message,
+            userId,
+            error: error.message
+        });
+        throw error;
+    }
+}

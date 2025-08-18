@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import Image from 'next/image';
-import { Send, Paperclip, Smile, Trash2 } from 'lucide-react';
+import { Send, Paperclip, Smile, Trash2, Ban } from 'lucide-react';
 import EmojiPicker, { EmojiClickData, EmojiStyle } from 'emoji-picker-react';
 
 interface MessageInputProps {
@@ -21,6 +21,12 @@ interface MessageInputProps {
   emojiPickerRef: React.RefObject<HTMLDivElement | null>;
   messageInputRef: React.RefObject<HTMLInputElement | null>;
   fileInputRef: React.RefObject<HTMLInputElement | null>;
+  isBlocked?: boolean;
+  blockedUserInfo?: {
+    username: string;
+    onUnblock: () => void;
+    isUnblocking?: boolean;
+  };
 }
 
 export const MessageInput: React.FC<MessageInputProps> = ({
@@ -40,8 +46,47 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   showEmojiPicker,
   emojiPickerRef,
   messageInputRef,
-  fileInputRef
+  fileInputRef,
+  isBlocked = false,
+  blockedUserInfo
 }) => {
+  // Show blocked user message instead of input
+  if (isBlocked && blockedUserInfo) {
+    return (
+      <div className="p-4 border-t border-gray-200 bg-gray-50">
+        <div className="flex items-center justify-center py-6">
+          <div className="text-center">
+            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
+              <Ban className="w-6 h-6 text-red-600" />
+            </div>
+            <p className="text-gray-700 text-sm mb-1">
+              You have blocked <span className="font-medium">@{blockedUserInfo.username}</span>
+            </p>
+            <p className="text-gray-500 text-xs mb-4">
+              Unblock them to send messages
+            </p>
+            <button
+              onClick={blockedUserInfo.onUnblock}
+              disabled={blockedUserInfo.isUnblocking}
+              className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded-md font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 mx-auto"
+            >
+              {blockedUserInfo.isUnblocking ? (
+                <>
+                  <div className="w-4 h-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  Unblocking...
+                </>
+              ) : (
+                <>
+                  Unblock @{blockedUserInfo.username}
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-4 border-t border-gray-200 bg-white relative">
       {selectedFile && (
