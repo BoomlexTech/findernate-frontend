@@ -46,7 +46,7 @@ const Page = () => {
   // Check if device is mobile
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 768);
+      setIsMobile(window.innerWidth < 640); // Only phones use mobile layout, all iPads use desktop
     };
     
     checkMobile();
@@ -1106,7 +1106,7 @@ const Page = () => {
 
   // Desktop layout - Original design
   return (
-    <div className="flex h-screen bg-gray-100 gap-6 p-6">
+    <div className="flex h-screen bg-gray-100 gap-6 p-6 xl:justify-start lg:justify-center">
   {/* Auth Dialog (shown if unauthenticated user triggers protected action) */}
   <AuthDialog isOpen={showAuthDialog} onClose={closeAuthDialog} />
       
@@ -1117,8 +1117,8 @@ const Page = () => {
         </div>
       )}
 
-      {/* Left Modal - Only show for business, product, or service reels */}
-      <div className="w-80 bg-white rounded-2xl overflow-y-auto border border-gray-200">
+      {/* Left Modal - Only show for business, product, or service reels and only on large screens */}
+      <div className="w-80 bg-white rounded-2xl overflow-y-auto border border-gray-200 hidden xl:block">
         {(() => {
           const currentData = getCurrentModalData();
           const contentType = currentData?.contentType?.toLowerCase();
@@ -1149,7 +1149,7 @@ const Page = () => {
       </div>
       
       {/* Center - Reels */}
-      <div className="flex-1 flex justify-center items-center">
+      <div className="flex-1 flex justify-center items-center xl:justify-center lg:justify-start">
         <ReelsComponent 
           onReelChange={setCurrentReelIndex} 
           apiReelsData={reelsData}
@@ -1158,7 +1158,8 @@ const Page = () => {
       </div>
 
       {/* Right sidebar - Profile Info + Comments */}
-      <div className="w-96 bg-white rounded-2xl border border-gray-200 flex flex-col">
+      <div className="w-96 flex items-center h-screen">
+        <div className="w-full bg-white rounded-2xl border border-gray-200 flex flex-col h-[80vh] my-auto">
         {/* Profile Section */}
         <div className="p-6 border-b border-gray-200">
           {/* User info */}
@@ -1292,7 +1293,7 @@ const Page = () => {
         </div>
 
         {/* Comments Section */}
-        <div className="overflow-y-auto">
+        <div className="overflow-y-auto flex-1">
           {/* Comments Section - show only top 4 comments, no add or pagination */}
           <div className="">
             <ReelCommentsSection
@@ -1301,7 +1302,7 @@ const Page = () => {
               onCommentCountChange={handleCommentCountChange}
               maxVisible={4}
             />
-            <div className="text-center mt-2">
+            <div className="text-center mt-2 pb-2">
               <button
                 className="text-yellow-600 hover:underline text-sm font-medium"
                 onClick={() => window.open(`/post/${currentModalData._id}`, '_blank')}
@@ -1310,6 +1311,7 @@ const Page = () => {
               </button>
             </div>
           </div>
+        </div>
         </div>
       </div>
     </div>

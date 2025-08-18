@@ -26,7 +26,7 @@ export const useBlockedUsers = () => {
       setBlockedUsers(blockedUsersData || []);
       
       // Create a Set of blocked user IDs for efficient lookup
-      const blockedIds = new Set((blockedUsersData || []).map((user: BlockedUser) => user.blockedUserId));
+      const blockedIds = new Set<string>((blockedUsersData || []).map((user: BlockedUser) => user.blockedUserId));
       setBlockedUserIds(blockedIds);
     } catch (err: any) {
       console.error('Error fetching blocked users:', err);

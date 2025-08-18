@@ -218,9 +218,9 @@ const Page = () => {
   };
 
   return (
-    <div className="flex flex-col md:flex-row w-full min-h-screen bg-[#f8f9fa]">
+    <div className="flex flex-col lg:flex-row w-full min-h-screen bg-[#f8f9fa]">
       {/* Left Sidebar / Main Feed */}
-      <div className="flex-1 p-4 md:pl-8 md:pr-6">
+      <div className="flex-1 p-4 lg:pl-8 lg:pr-6">
         {/* Enhanced Trending Posts Header */}
         <div className="mb-8">
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 relative overflow-hidden">
@@ -349,9 +349,9 @@ const Page = () => {
         )}
       </div>
        
-      {/* Right Sidebar / Trending Topics with Independent Scroll */}
-      <div className="w-full md:w-[320px] md:p-6 lg:p-0">
-        <aside className="w-full md:w-[20rem] max-w-full bg-white shadow-md rounded-lg md:sticky md:top-4 md:h-[calc(100vh-2rem)] overflow-y-auto">
+      {/* Right Sidebar / Trending Topics with Independent Scroll - Hidden on medium screens */}
+      <div className="w-full lg:w-[320px] lg:p-6 xl:p-0 hidden lg:block">
+        <aside className="w-full lg:w-[20rem] max-w-full bg-white shadow-md rounded-lg lg:sticky lg:top-4 lg:h-[calc(100vh-2rem)] overflow-y-auto">
           <div className="p-4 space-y-6">
             {/* <TrendingTopics /> */}
             <TrendingBusiness />

@@ -21,8 +21,8 @@ const MainLayout = ({children}:{children:React.ReactNode}) => {
   // Check screen size
   useEffect(() => {
     const checkScreenSize = () => {
-      setIsMobile(window.innerWidth < 768);
-      if (window.innerWidth >= 768) {
+      setIsMobile(window.innerWidth < 1024); // Changed from 768 to 1024 (lg breakpoint)
+      if (window.innerWidth >= 1024) {
         setSidebarOpen(false); // Close mobile sidebar on larger screens
       }
     };
@@ -63,9 +63,9 @@ const MainLayout = ({children}:{children:React.ReactNode}) => {
 
   return (
     <PushNotificationProvider>
-      {/* Mobile Hamburger Menu (hidden on reels page) */}
+      {/* Hamburger Menu for mobile and medium screens (hidden on reels page) */}
       {!isNoSidebar && isMobile && !pathname.startsWith('/reels') && (
-        <div className="fixed bottom-4 left-4 z-50 md:hidden">
+        <div className="fixed bottom-4 left-4 z-50 lg:hidden">
           <button
             onClick={toggleSidebar}
             className="p-3 bg-white rounded-full shadow-xl border border-gray-200 hover:bg-gray-50 text-gray-700 hover:text-gray-900"
@@ -75,9 +75,9 @@ const MainLayout = ({children}:{children:React.ReactNode}) => {
         </div>
       )}
 
-      {/* Mobile Sidebar Overlay */}
+      {/* Sidebar Overlay for mobile and medium screens */}
       {!isNoSidebar && isMobile && sidebarOpen && (
-        <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={toggleSidebar} />
+        <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={toggleSidebar} />
       )}
 
       {/* Left Sidebar */}
@@ -87,7 +87,7 @@ const MainLayout = ({children}:{children:React.ReactNode}) => {
             ? `fixed left-0 top-0 h-full bg-white border-r border-gray-200 overflow-y-auto z-50 transform transition-transform duration-300 ${
                 sidebarOpen ? 'translate-x-0' : '-translate-x-full'
               }`
-            : 'w-64 fixed left-0 h-full bg-white border-r border-gray-200 overflow-y-auto hidden md:block'
+            : 'w-64 fixed left-0 h-full bg-white border-r border-gray-200 overflow-y-auto hidden lg:block'
           }
           w-64
         `}>
@@ -112,7 +112,7 @@ const MainLayout = ({children}:{children:React.ReactNode}) => {
         )
       }
 
-      <div className={`${!isNoSidebar && !isMobile ? 'md:ml-64' : ''} min-h-screen bg-gray-50`}>
+      <div className={`${!isNoSidebar && !isMobile ? 'lg:ml-64' : ''} min-h-screen bg-gray-50`}>
         {children}
       </div>
 

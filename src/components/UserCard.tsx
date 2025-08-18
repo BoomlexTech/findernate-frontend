@@ -61,22 +61,42 @@ const UserCard: React.FC<UserCardProps> = ({ user, onFollow }) => {
         
         const errorMessage = error instanceof Error ? error.message : '';
         const responseMessage = error.response?.data?.message || '';
+        const status = error.response?.status;
         
-        // Handle specific error cases - same as UserProfile
-        if (responseMessage === 'Already following' || errorMessage === 'Already following') {
-          setIsFollowing(true);
-          console.log('User was already following - updating UI state');
-          onFollow?.(user._id);
-        } else if (responseMessage === 'Not following this user' || errorMessage === 'Not following this user') {
-          setIsFollowing(false);
-          console.log('User was not following - updating UI state');  
+        console.log('Error details:', {
+          status,
+          responseMessage,
+          errorMessage,
+          currentFollowState: isFollowing
+        });
+        
+        // Handle specific error cases - these are actually success cases
+        if (status === 400) {
+          if (responseMessage.includes('Already following') || errorMessage.includes('Already following')) {
+            console.log('Already following - user should see Unfollow button');
+            setIsFollowing(true); // User is following, show Unfollow
+            onFollow?.(user._id);
+          } else if (responseMessage.includes('Not following') || errorMessage.includes('Not following')) {
+            console.log('Not following - user should see Follow button');
+            setIsFollowing(false); // User is not following, show Follow
+            onFollow?.(user._id);
+          } else if (responseMessage.includes('yourself')) {
+            alert("You can't follow yourself");
+            setIsFollowing(false);
+          } else {
+            // For other 400 errors, revert to original state
+            console.log('Other 400 error, reverting state:', responseMessage || errorMessage);
+            setIsFollowing(user.isFollowing || false);
+          }
+        } else if (status === 409) {
+          // Conflict - status already updated, keep optimistic state
+          console.log('Conflict error - keeping optimistic state');
           onFollow?.(user._id);
         } else {
-          // Show user-friendly error message for other errors
-          alert(errorMessage || responseMessage || 'Failed to update follow status');
-          
-          // Reset state on other errors
+          // For other errors, revert the state
+          console.log('Reverting state due to error:', status);
           setIsFollowing(user.isFollowing || false);
+          alert(errorMessage || responseMessage || 'Failed to update follow status');
         }
       } finally {
         setIsLoading(false);
@@ -237,46 +257,6 @@ const UserCard: React.FC<UserCardProps> = ({ user, onFollow }) => {
                       </>
                     )}
                   </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleMessageClick(); }}
-                    disabled={creatingChat}
-                    className="px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200 flex items-center gap-1.5 bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {creatingChat ? (
-                      <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-md animate-spin" />
-                    ) : (
-                      <MessageCircle size={14} />
-                    )}
-                  </button>
-                  
-                  {/* More Options */}
-                  <div className="relative">
-                    <button
-                      onClick={(e) => { 
-                        e.stopPropagation(); 
-                        setShowDropdown(!showDropdown); 
-                      }}
-                      className="px-2 py-1.5 rounded-md text-sm font-medium transition-all duration-200 flex items-center bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300"
-                    >
-                      <MoreVertical size={14} />
-                    </button>
-
-                    {showDropdown && (
-                      <div className="absolute right-0 top-full mt-1 bg-white border rounded-lg shadow-lg z-10 min-w-[120px]">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setShowReportModal(true);
-                            setShowDropdown(false);
-                          }}
-                          className="w-full px-3 py-2 text-left text-sm text-gray-600 hover:bg-gray-50 flex items-center gap-2"
-                        >
-                          <Flag className="w-3 h-3" />
-                          Report User
-                        </button>
-                      </div>
-                    )}
-                  </div>
                 </div>
                 )}
               </div>
