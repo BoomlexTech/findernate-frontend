@@ -81,7 +81,12 @@ export const MessageItem: React.FC<MessageItemProps> = ({
           isCurrentUser ? "text-yellow-100" : "text-gray-500"
         }`}>
           <span className="flex-1 text-right">
-            {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            {new Date(msg.timestamp).toLocaleString([], { 
+              month: 'short', 
+              day: 'numeric', 
+              hour: '2-digit', 
+              minute: '2-digit' 
+            })}
           </span>
           {isCurrentUser && (
             <span className="ml-2 flex items-center">

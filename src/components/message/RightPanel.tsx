@@ -84,7 +84,19 @@ export const RightPanel: React.FC<RightPanelProps> = ({
       <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-6 bg-gray-50">
         {messages.length === 0 ? (
           <div className="flex justify-center items-center h-full">
-            <div className="text-gray-500">No messages yet. Start a conversation!</div>
+            <div className="text-center">
+              <div className="text-gray-500 mb-2">
+                {isRequestChat ? 
+                  "This is a message request. Messages will appear here once you accept the request." : 
+                  "No messages yet. Start a conversation!"
+                }
+              </div>
+              {isRequestChat && (
+                <div className="text-sm text-orange-600">
+                  💬 Check the message requests tab to accept this conversation
+                </div>
+              )}
+            </div>
           </div>
         ) : (
           messages.map((msg) => (

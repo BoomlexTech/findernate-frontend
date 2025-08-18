@@ -3,6 +3,7 @@ import { useRouter } from 'next/navigation';
 import { useUserStore } from '@/store/useUserStore';
 import { messageAPI, Chat, Message } from '@/api/message';
 import socketManager from '@/utils/socket';
+import { requestChatCache } from '@/utils/requestChatCache';
 
 interface UseSocketProps {
   selectedChat: string | null;
@@ -116,6 +117,14 @@ export const useSocket = ({
             return prev;
           }
           console.log('Socket: Adding new message to state');
+          
+          // If this is a request chat that we're currently viewing, update the cache as well
+          const chatInRequests = messageRequests.find(r => r._id === data.chatId);
+          if (chatInRequests) {
+            console.log('Adding message to cache for currently selected request chat');
+            requestChatCache.addMessage(data.chatId, data.message);
+          }
+          
           return [...prev, data.message];
         });
         scrollToBottom();
@@ -143,6 +152,10 @@ export const useSocket = ({
           return updatedChats.sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime());
         });
       } else if (chatInRequests) {
+        // Cache the message for request chats so recipients can see the full conversation
+        console.log('Caching message for request chat:', data.chatId, data.message.message);
+        requestChatCache.addMessage(data.chatId, data.message);
+        
         setMessageRequests(prev => {
           return prev.map(request =>
             request._id === data.chatId
