@@ -4,10 +4,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import PostCard from "@/components/PostCard";
 import { getHomeFeed } from "@/api/homeFeed";
 import { FeedPost, MediaItem } from "@/types";
+import { useBlockedUsers } from "@/hooks/useBlockedUsers";
 
 type RawFeedItem = {
   _id: string;
   userId: {
+    _id?: string;
     username?: string;
     profileImageUrl?: string;
   } | null;
@@ -106,13 +108,20 @@ export default function MainContent() {
   const [loading, setLoading] = useState(false);
   const [initialLoad, setInitialLoad] = useState(true);
   const loaderRef = useRef<HTMLDivElement>(null);
+  const { isUserBlocked } = useBlockedUsers();
 
   const fetchPosts = useCallback(async (pageNum: number) => {
     try {
       setLoading(true);
       const res = await getHomeFeed({ page: pageNum, limit: 10 });
       // Logs removed per request
-      const incoming: FeedPost[] = res.data.feed.map((item: RawFeedItem & { comments?: RawComment[] }) => {
+      const incoming: FeedPost[] = res.data.feed
+        // Filter out posts from blocked users
+        .filter((item: RawFeedItem) => {
+          if (!item.userId?._id) return true; // Keep posts with no user info (shouldn't happen)
+          return !isUserBlocked(item.userId._id);
+        })
+        .map((item: RawFeedItem & { comments?: RawComment[] }) => {
         // Calculate actual comment count from comments array
         let actualCommentCount = 0;
         if (item.comments && Array.isArray(item.comments)) {

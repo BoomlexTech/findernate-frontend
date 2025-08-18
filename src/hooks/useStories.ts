@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { storyAPI } from '@/api/story';
 import { Story, StoryUser, StoryFeed } from '@/types/story';
 import { useUserStore } from '@/store/useUserStore';
+import { useBlockedUsers } from '@/hooks/useBlockedUsers';
 import { toast } from 'react-toastify';
 
 export const useStories = () => {
@@ -10,6 +11,7 @@ export const useStories = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { user } = useUserStore();
+  const { isUserBlocked } = useBlockedUsers();
 
   // Transform stories array into grouped story users
   const transformStoriesToUsers = useCallback((storiesData: Story[]): StoryUser[] => {
@@ -30,9 +32,12 @@ export const useStories = () => {
       });
     }
 
-    // Add other users' stories
+    // Add other users' stories (excluding blocked users)
     storiesData.forEach(story => {
       if (story.userId._id === user._id) return; // Skip current user, already added
+      
+      // Skip blocked users
+      if (isUserBlocked(story.userId._id)) return;
 
       const userId = story.userId._id;
       if (!userMap.has(userId)) {
@@ -65,7 +70,7 @@ export const useStories = () => {
       const bLatest = new Date(b.stories[0]?.createdAt || 0).getTime();
       return bLatest - aLatest;
     });
-  }, [user]);
+  }, [user, isUserBlocked]);
 
   // Fetch stories feed
   const fetchStories = useCallback(async () => {

@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { Chat, Message } from '@/api/message';
 import { ChatHeader } from './ChatHeader';
 import { MessageItem } from './MessageItem';
 import { MessageInput } from './MessageInput';
 import { EmojiClickData } from 'emoji-picker-react';
+import { useBlockedUsers } from '@/hooks/useBlockedUsers';
+import { unblockUser } from '@/api/user';
 
 interface RightPanelProps {
   selected: Chat;
@@ -70,6 +72,37 @@ export const RightPanel: React.FC<RightPanelProps> = ({
   messagesContainerRef,
   isRequestChat = false
 }) => {
+  const { isUserBlocked, removeBlockedUser } = useBlockedUsers();
+  const [isUnblocking, setIsUnblocking] = useState(false);
+
+  // Check if the other participant in the chat is blocked
+  const blockedUserInfo = useMemo(() => {
+    if (!selected || selected.chatType !== 'direct' || !user) return null;
+
+    const otherParticipant = selected.participants.find(p => p._id !== user._id);
+    if (!otherParticipant || !isUserBlocked(otherParticipant._id)) return null;
+
+    return {
+      userId: otherParticipant._id,
+      username: otherParticipant.username,
+      fullName: otherParticipant.fullName,
+    };
+  }, [selected, user, isUserBlocked]);
+
+  const handleUnblock = async () => {
+    if (!blockedUserInfo || isUnblocking) return;
+
+    try {
+      setIsUnblocking(true);
+      await unblockUser(blockedUserInfo.userId);
+      removeBlockedUser(blockedUserInfo.userId);
+    } catch (error: any) {
+      console.error('Error unblocking user:', error);
+      alert(error?.response?.data?.message || error?.message || 'Failed to unblock user');
+    } finally {
+      setIsUnblocking(false);
+    }
+  };
   return (
     <div className="flex flex-col w-full h-full">
       <ChatHeader
@@ -145,6 +178,12 @@ export const RightPanel: React.FC<RightPanelProps> = ({
           emojiPickerRef={emojiPickerRef}
           messageInputRef={messageInputRef}
           fileInputRef={fileInputRef}
+          isBlocked={!!blockedUserInfo}
+          blockedUserInfo={blockedUserInfo ? {
+            username: blockedUserInfo.username,
+            onUnblock: handleUnblock,
+            isUnblocking: isUnblocking
+          } : undefined}
         />
       )}
     </div>

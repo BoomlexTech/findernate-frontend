@@ -2,12 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { BadgeCheck, Settings, Pencil, Shield, Check, X, UserPlus, UserMinus, MessageCircle, Flag } from "lucide-react";
+import { BadgeCheck, Settings, Pencil, Shield, Check, X, UserPlus, UserMinus, MessageCircle, Flag, Ban, UserX } from "lucide-react";
 import ReportModal from './ReportModal';
+import BlockedUsersModal from './BlockedUsersModal';
+import BlockConfirmModal from './BlockConfirmModal';
 import { Button } from "./ui/button";
 import SettingsModal from "./SettingsModal";
 import { UserProfile as UserProfileType } from "@/types";
-import { followUser, unfollowUser, editProfile } from "@/api/user";
+import { followUser, unfollowUser, editProfile, blockUser, unblockUser, checkIfUserBlocked } from "@/api/user";
 import { storyAPI } from "@/api/story";
 import { Story } from "@/types/story";
 import StoryViewer from "./StoryViewer";
@@ -56,6 +58,10 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
   const [showFollowersModal, setShowFollowersModal] = useState(false);
   const [followersModalTab, setFollowersModalTab] = useState<'followers' | 'following'>('followers');
   const [showReportModal, setShowReportModal] = useState(false);
+  const [showBlockedUsersModal, setShowBlockedUsersModal] = useState(false);
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [isBlocking, setIsBlocking] = useState(false);
+  const [showBlockConfirmModal, setShowBlockConfirmModal] = useState(false);
 
   // Helper function to check if all stories have been viewed by current user
   const areAllStoriesViewed = () => {
@@ -107,6 +113,7 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
     // Fetch stories for other users when component loads
     if (!isCurrentUser && userData._id) {
       fetchUserStories(userData._id);
+      checkBlockStatus(userData._id);
     }
   }, [userData, isCurrentUser]);
 
@@ -117,6 +124,16 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
     } catch (error) {
       console.error('Error fetching user stories:', error);
       setUserStories([]);
+    }
+  };
+
+  const checkBlockStatus = async (userId: string) => {
+    try {
+      const blocked = await checkIfUserBlocked(userId);
+      setIsBlocked(blocked);
+    } catch (error) {
+      console.error('Error checking block status:', error);
+      setIsBlocked(false);
     }
   };
 
@@ -494,6 +511,12 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
   const handleMessageClick = async () => {
     if (creatingChat) return;
     
+    // Prevent messaging blocked users
+    if (isBlocked) {
+      alert('You cannot message users you have blocked.');
+      return;
+    }
+    
     setCreatingChat(true);
     try {
       // Get current user from store
@@ -536,6 +559,73 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
       return;
     }
     setShowReportModal(true);
+  };
+
+  const handleBlockClick = () => {
+    if (isCurrentUser || isBlocking) return;
+    
+    // Require auth
+    if (!currentUser?._id) {
+      router.push('/signin');
+      return;
+    }
+
+    if (isBlocked) {
+      // If already blocked, unblock directly
+      handleUnblock();
+    } else {
+      // If not blocked, show confirmation modal
+      setShowBlockConfirmModal(true);
+    }
+  };
+
+  const handleBlock = async () => {
+    try {
+      setIsBlocking(true);
+      await blockUser(profile._id);
+      setIsBlocked(true);
+      setShowBlockConfirmModal(false);
+      
+      // If currently following, unfollow them
+      if (isFollowing) {
+        try {
+          await unfollowUser(profile._id);
+          setIsFollowing(false);
+          setFollowersCount(prev => prev - 1);
+        } catch (unfollowError) {
+          console.error('Error unfollowing user during block:', unfollowError);
+          // Still proceed with block even if unfollow fails
+          setIsFollowing(false);
+          setFollowersCount(prev => prev - 1);
+        }
+      }
+      
+    } catch (error: any) {
+      console.error('Error blocking user:', error);
+      
+      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to block user';
+      alert(errorMessage);
+    } finally {
+      setIsBlocking(false);
+    }
+  };
+
+  const handleUnblock = async () => {
+    if (isBlocking) return;
+
+    try {
+      setIsBlocking(true);
+      await unblockUser(profile._id);
+      setIsBlocked(false);
+      
+    } catch (error: any) {
+      console.error('Error unblocking user:', error);
+      
+      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to unblock user';
+      alert(errorMessage);
+    } finally {
+      setIsBlocking(false);
+    }
   };
 
   // Handle followers/following click
@@ -823,45 +913,81 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
                     >
                       <Settings className="w-4 h-4" />
                     </Button>
+                    <Button
+                      onClick={() => setShowBlockedUsersModal(true)}
+                      className="border px-2.5 py-1.5 rounded-md text-black hover:bg-gray-100"
+                      title="Blocked Users"
+                    >
+                      <UserX className="w-4 h-4" />
+                    </Button>
                   </>
                 )}
               </>
             ) : (
               <>
-                <Button
-                  onClick={handleFollowToggle}
-                  disabled={isFollowLoading}
-                  className={`px-3 sm:px-4 py-1.5 rounded-md text-sm sm:text-md font-medium flex items-center gap-1 ${
-                    isFollowing 
-                      ? 'bg-gray-500 hover:bg-gray-600 text-white border-gray-500' 
-                      : 'bg-yellow-600 hover:bg-yellow-700 text-white'
-                  }`}
-                >
-                  {isFollowLoading ? (
-                    <div className="w-4 h-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                  ) : isFollowing ? (
-                    <>
-                      <UserMinus className="w-4 h-4" /> <span className="hidden sm:inline">Unfollow</span>
-                    </>
-                  ) : (
-                    <>
-                      <UserPlus className="w-4 h-4" /> <span className="hidden sm:inline">Follow</span>
-                    </>
-                  )}
-                </Button>
+                {/* Show follow and message buttons only if user is not blocked */}
+                {!isBlocked && (
+                  <>
+                    <Button
+                      onClick={handleFollowToggle}
+                      disabled={isFollowLoading}
+                      className={`px-3 sm:px-4 py-1.5 rounded-md text-sm sm:text-md font-medium flex items-center gap-1 ${
+                        isFollowing 
+                          ? 'bg-gray-500 hover:bg-gray-600 text-white border-gray-500' 
+                          : 'bg-yellow-600 hover:bg-yellow-700 text-white'
+                      }`}
+                    >
+                      {isFollowLoading ? (
+                        <div className="w-4 h-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                      ) : isFollowing ? (
+                        <>
+                          <UserMinus className="w-4 h-4" /> <span className="hidden sm:inline">Unfollow</span>
+                        </>
+                      ) : (
+                        <>
+                          <UserPlus className="w-4 h-4" /> <span className="hidden sm:inline">Follow</span>
+                        </>
+                      )}
+                    </Button>
+                    
+                    <Button
+                      onClick={handleMessageClick}
+                      disabled={creatingChat}
+                      variant="outline"
+                      className="border px-3 sm:px-4 py-1.5 rounded-md text-sm sm:text-md font-medium text-gray-700 hover:bg-gray-100 flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {creatingChat ? (
+                        <div className="w-4 h-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                      ) : (
+                        <MessageCircle className="w-4 h-4" />
+                      )}
+                      <span className="hidden sm:inline">
+                        {creatingChat ? 'Creating...' : 'Message'}
+                      </span>
+                    </Button>
+                  </>
+                )}
                 
+                {/* Always show block/unblock and report buttons */}
                 <Button
-                  onClick={handleMessageClick}
-                  disabled={creatingChat}
+                  onClick={handleBlockClick}
+                  disabled={isBlocking}
                   variant="outline"
-                  className="border px-3 sm:px-4 py-1.5 rounded-md text-sm sm:text-md font-medium text-gray-700 hover:bg-gray-100 flex items-center gap-1"
+                  className={`border px-2.5 py-1.5 rounded-md text-sm sm:text-md font-medium flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed ${
+                    isBlocked 
+                      ? 'text-green-600 hover:bg-green-50 border-green-300' 
+                      : 'text-gray-700 hover:bg-gray-50'
+                  }`}
+                  aria-label={isBlocked ? "Unblock User" : "Block User"}
                 >
-                  {creatingChat ? (
+                  {isBlocking ? (
                     <div className="w-4 h-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
                   ) : (
-                    <MessageCircle className="w-4 h-4" />
+                    <Ban className="w-4 h-4" />
                   )}
-                  <span className="hidden sm:inline">{creatingChat ? 'Creating...' : 'Message'}</span>
+                  <span className="hidden sm:inline">
+                    {isBlocked ? (isBlocking ? 'Unblocking...' : 'Unblock') : (isBlocking ? 'Blocking...' : 'Block')}
+                  </span>
                 </Button>
                 <Button
                   onClick={handleOpenReport}
@@ -945,6 +1071,23 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
         contentType="user"
         contentId={profile._id}
         title={`Report @${profile.username}`}
+      />
+
+      {/* Blocked Users Modal */}
+      {isCurrentUser && (
+        <BlockedUsersModal
+          isOpen={showBlockedUsersModal}
+          onClose={() => setShowBlockedUsersModal(false)}
+        />
+      )}
+
+      {/* Block Confirmation Modal */}
+      <BlockConfirmModal
+        isOpen={showBlockConfirmModal}
+        onClose={() => setShowBlockConfirmModal(false)}
+        onConfirm={handleBlock}
+        username={profile.username}
+        isBlocking={isBlocking}
       />
     </div>
   );
