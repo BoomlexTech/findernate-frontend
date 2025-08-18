@@ -20,6 +20,7 @@ import { Area } from 'react-easy-crop';
 import { useUserStore } from "@/store/useUserStore";
 import { AxiosError } from "axios";
 import FollowersModal from "./FollowersModal";
+import { searchLocations, LocationSuggestion } from '@/api/location';
 
 interface UserProfileProps {
   userData: UserProfileType;
@@ -62,6 +63,13 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
   const [isBlocked, setIsBlocked] = useState(false);
   const [isBlocking, setIsBlocking] = useState(false);
   const [showBlockConfirmModal, setShowBlockConfirmModal] = useState(false);
+
+  // Location suggestion states
+  const [locationSuggestions, setLocationSuggestions] = useState<LocationSuggestion[]>([]);
+  const [showLocationSuggestions, setShowLocationSuggestions] = useState(false);
+  const [locationSearchTimeout, setLocationSearchTimeout] = useState<NodeJS.Timeout | null>(null);
+  const locationInputRef = useRef<HTMLInputElement>(null);
+  const locationDropdownRef = useRef<HTMLDivElement>(null);
 
   // Helper function to check if all stories have been viewed by current user
   const areAllStoriesViewed = () => {
@@ -117,6 +125,34 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
     }
   }, [userData, isCurrentUser]);
 
+  // Click outside handler for location dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        locationDropdownRef.current &&
+        !locationDropdownRef.current.contains(event.target as Node) &&
+        locationInputRef.current &&
+        !locationInputRef.current.contains(event.target as Node)
+      ) {
+        setShowLocationSuggestions(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Clean up timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (locationSearchTimeout) {
+        clearTimeout(locationSearchTimeout);
+      }
+    };
+  }, [locationSearchTimeout]);
+
   const fetchUserStories = async (userId: string) => {
     try {
       const stories = await storyAPI.fetchStoriesByUser(userId);
@@ -159,7 +195,67 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
     }
   };
 
+  // Location search functionality
+  const searchLocationSuggestions = async (query: string) => {
+    if (!query.trim() || query.length < 2) {
+      setLocationSuggestions([]);
+      setShowLocationSuggestions(false);
+      return;
+    }
 
+    try {
+      const suggestions = await searchLocations(query);
+      setLocationSuggestions(suggestions);
+      setShowLocationSuggestions(suggestions.length > 0);
+    } catch (error) {
+      console.error('Error fetching location suggestions:', error);
+      setLocationSuggestions([]);
+      setShowLocationSuggestions(false);
+    }
+  };
+
+  const handleLocationInputChange = (value: string) => {
+    handleInputChange("location", value);
+
+    // Clear previous timeout
+    if (locationSearchTimeout) {
+      clearTimeout(locationSearchTimeout);
+    }
+
+    // Debounce location search
+    const timeout = setTimeout(() => {
+      searchLocationSuggestions(value);
+    }, 300);
+
+    setLocationSearchTimeout(timeout);
+  };
+
+  const handleLocationSelect = (suggestion: LocationSuggestion) => {
+    // Extract city and state from suggestion
+    const formatLocationForProfile = (suggestion: LocationSuggestion) => {
+      const address = suggestion.address;
+      
+      // Try to get city/town name
+      const city = address.town || address.city || suggestion.name;
+      
+      // Get state
+      const state = address.state;
+      
+      // Format as "City, State" or just "City" if no state
+      if (city && state) {
+        return `${city}, ${state}`;
+      } else if (city) {
+        return city;
+      } else {
+        return suggestion.name; // Fallback to suggestion name
+      }
+    };
+
+    const formattedLocation = formatLocationForProfile(suggestion);
+    handleInputChange("location", formattedLocation);
+    setShowLocationSuggestions(false);
+    setLocationSuggestions([]);
+  };
 
   const joinedDate = getJoinedDate(profile?.createdAt);
 
@@ -803,25 +899,55 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
 
             {/* Location, Website, Email, Joined */}
             <div className="flex items-center gap-3 sm:gap-4 mt-4 text-xs sm:text-sm text-gray-600 flex-wrap">
-              {/* Location - TEMPORARILY HIDDEN */}
-              {/* {(profile?.location || isEditing) && (
-                <div className="flex items-center gap-1">
+              {/* Location with suggestions */}
+              {(profile?.location || isEditing) && (
+                <div className="flex items-center gap-1 relative">
                   📍
                   {isEditing ? (
-                    <input
-                      type="text"
-                      value={formData.location}
-                      onChange={(e) =>
-                        handleInputChange("location", e.target.value)
-                      }
-                      className="border-b border-gray-300 bg-transparent focus:outline-none focus:border-yellow-500 px-1"
-                      placeholder="Location"
-                    />
+                    <div className="relative">
+                      <input
+                        ref={locationInputRef}
+                        type="text"
+                        value={formData.location || ''}
+                        onChange={(e) => handleLocationInputChange(e.target.value)}
+                        className="border-b border-gray-300 bg-transparent focus:outline-none focus:border-yellow-500 px-1 min-w-[120px]"
+                        placeholder="Search location..."
+                      />
+                      
+                      {/* Location Suggestions Dropdown */}
+                      {showLocationSuggestions && locationSuggestions.length > 0 && (
+                        <div
+                          ref={locationDropdownRef}
+                          className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-48 overflow-y-auto min-w-[250px]"
+                        >
+                          {locationSuggestions.map((suggestion) => (
+                            <button
+                              key={suggestion.place_id}
+                              type="button"
+                              onClick={() => handleLocationSelect(suggestion)}
+                              className="w-full text-left px-3 py-2 hover:bg-gray-50 focus:bg-gray-50 focus:outline-none border-b border-gray-100 last:border-b-0"
+                            >
+                              <div className="flex items-start">
+                                <span className="text-gray-400 mr-2 text-xs">📍</span>
+                                <div className="min-w-0 flex-1">
+                                  <div className="text-xs font-medium text-gray-900 truncate">
+                                    {suggestion.name}
+                                  </div>
+                                  <div className="text-xs text-gray-500 truncate">
+                                    {suggestion.display_name}
+                                  </div>
+                                </div>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   ) : (
                     <span>{profile.location || "No location added"}</span>
                   )}
                 </div>
-              )} */}
+              )}
 
               {/* Website/Link */}
               {(profile?.link || isEditing) && (

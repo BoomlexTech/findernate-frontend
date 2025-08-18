@@ -1,5 +1,5 @@
 'use client'
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Camera, MapPin, ShoppingBag, BriefcaseBusiness, Building2  } from 'lucide-react';
 import Image from 'next/image';
 import { Button } from './ui/button';
@@ -13,6 +13,7 @@ import RegularPostForm from './posting/RegularDetailsForm';
 import { useUserStore } from '@/store/useUserStore';
 import TagInput from './TagInput';
 import { toast } from 'react-toastify';
+import { searchLocations, LocationSuggestion } from '@/api/location';
 
 interface createPostModalProps {
     closeModal: () => void;
@@ -39,6 +40,104 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [showReelVisibility, setShowReelVisibility] = useState(false);
   const [reelVisibility, setReelVisibility] = useState(false);
+  
+  // Location suggestion states
+  const [locationSuggestions, setLocationSuggestions] = useState<LocationSuggestion[]>([]);
+  const [showLocationSuggestions, setShowLocationSuggestions] = useState(false);
+  const [locationSearchTimeout, setLocationSearchTimeout] = useState<NodeJS.Timeout | null>(null);
+  const locationInputRef = useRef<HTMLInputElement>(null);
+  const locationDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Location search functionality
+  const searchLocationSuggestions = async (query: string) => {
+    if (!query.trim() || query.length < 2) {
+      setLocationSuggestions([]);
+      setShowLocationSuggestions(false);
+      return;
+    }
+
+    try {
+      const suggestions = await searchLocations(query);
+      setLocationSuggestions(suggestions);
+      setShowLocationSuggestions(suggestions.length > 0);
+    } catch (error) {
+      console.error('Error fetching location suggestions:', error);
+      setLocationSuggestions([]);
+      setShowLocationSuggestions(false);
+    }
+  };
+
+  const handleLocationInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSharedForm({...sharedForm, location: {name: value}});
+
+    // Clear previous timeout
+    if (locationSearchTimeout) {
+      clearTimeout(locationSearchTimeout);
+    }
+
+    // Debounce location search
+    const timeout = setTimeout(() => {
+      searchLocationSuggestions(value);
+    }, 300);
+
+    setLocationSearchTimeout(timeout);
+  };
+
+  const handleLocationSelect = (suggestion: LocationSuggestion) => {
+    // Extract city and state from suggestion
+    const formatLocationForPost = (suggestion: LocationSuggestion) => {
+      const address = suggestion.address;
+      
+      // Try to get city/town name
+      const city = address.town || address.city || suggestion.name;
+      
+      // Get state
+      const state = address.state;
+      
+      // Format as "City, State" or just "City" if no state
+      if (city && state) {
+        return `${city}, ${state}`;
+      } else if (city) {
+        return city;
+      } else {
+        return suggestion.name; // Fallback to suggestion name
+      }
+    };
+
+    const formattedLocation = formatLocationForPost(suggestion);
+    setSharedForm({...sharedForm, location: {name: formattedLocation}});
+    setShowLocationSuggestions(false);
+    setLocationSuggestions([]);
+  };
+
+  // Click outside handler for location dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        locationDropdownRef.current &&
+        !locationDropdownRef.current.contains(event.target as Node) &&
+        locationInputRef.current &&
+        !locationInputRef.current.contains(event.target as Node)
+      ) {
+        setShowLocationSuggestions(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Clean up timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (locationSearchTimeout) {
+        clearTimeout(locationSearchTimeout);
+      }
+    };
+  }, [locationSearchTimeout]);
 
   // Image compression utility
   const compressImage = (file: File, quality: number = 0.8, maxWidth: number = 1920): Promise<File> => {
@@ -1010,19 +1109,49 @@ const handleProductChange = (
             </div>
           )}
 
-          {/* Location Input */}
-          <div className="mb-6">
+          {/* Location Input with Suggestions */}
+          <div className="mb-6 relative">
             <label className="block text-sm font-medium text-gray-700 mb-2">
               <MapPin className="inline mr-2" size={16} />
               Location (Optional)
             </label>
             <input
+              ref={locationInputRef}
               type="text"
               value={sharedForm.location.name}
-              onChange={(e) => setSharedForm({...sharedForm, location: {name: e.target.value}})}
-              placeholder="Add location..."
+              onChange={handleLocationInputChange}
+              placeholder="Search for a location..."
               className="w-full p-3 border border-gray-300 placeholder:text-gray-500 text-black rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
             />
+            
+            {/* Location Suggestions Dropdown */}
+            {showLocationSuggestions && locationSuggestions.length > 0 && (
+              <div
+                ref={locationDropdownRef}
+                className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto"
+              >
+                {locationSuggestions.map((suggestion) => (
+                  <button
+                    key={suggestion.place_id}
+                    type="button"
+                    onClick={() => handleLocationSelect(suggestion)}
+                    className="w-full text-left px-4 py-3 hover:bg-gray-50 focus:bg-gray-50 focus:outline-none border-b border-gray-100 last:border-b-0"
+                  >
+                    <div className="flex items-start">
+                      <MapPin className="w-4 h-4 text-gray-400 mr-2 mt-0.5 flex-shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm font-medium text-gray-900 truncate">
+                          {suggestion.name}
+                        </div>
+                        <div className="text-xs text-gray-500 truncate">
+                          {suggestion.display_name}
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Hashtags Input */}
