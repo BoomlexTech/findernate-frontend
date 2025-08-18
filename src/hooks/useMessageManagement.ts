@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { messageAPI, Message, Chat } from '@/api/message';
 import socketManager from '@/utils/socket';
+import { requestChatCache } from '@/utils/requestChatCache';
 
 interface UseMessageManagementProps {
   selectedChat: string | null;
@@ -91,7 +92,7 @@ export const useMessageManagement = ({ selectedChat, user, setChats, messageRequ
         const hasBeenViewed = viewedRequests?.has(selectedChat) || false;
         
         if (isRequestChatFromState) {
-          console.log('Detected request chat from state.');
+          console.log('Detected request chat from state:', selectedChat);
           
           // Mark this as a request chat so we can disable messaging
           setIsRequestChat(true);
@@ -100,17 +101,66 @@ export const useMessageManagement = ({ selectedChat, user, setChats, messageRequ
           console.log('Loading messages directly for request chat:', selectedChat);
           try {
             const response = await messageAPI.getChatMessages(selectedChat);
-            console.log('Messages loaded for request chat:', response.messages.length);
-            setMessagesWithDebug(response.messages);
+            console.log('Messages loaded for request chat:', selectedChat, 'Count:', response.messages?.length || 0);
+            
+            if (response.messages && response.messages.length > 0) {
+              setMessagesWithDebug(response.messages);
+              console.log('Successfully loaded', response.messages.length, 'messages for request chat');
+            } else {
+              console.log('No messages returned for request chat, checking cached messages and lastMessage');
+              
+              // First, check if we have cached messages for this request chat
+              const cachedMessages = requestChatCache.getMessages(selectedChat);
+              const requestChat = messageRequests?.find(req => req._id === selectedChat);
+              
+              if (cachedMessages.length > 0) {
+                console.log('Found', cachedMessages.length, 'cached messages for request chat');
+                setMessagesWithDebug(cachedMessages);
+              } else if (requestChat && requestChat.lastMessage && requestChat.lastMessage.message) {
+                console.log('No cached messages, caching and displaying lastMessage');
+                
+                // Cache the lastMessage using the utility function
+                requestChatCache.addLastMessage(
+                  selectedChat, 
+                  requestChat.lastMessage, 
+                  requestChat.participants
+                );
+                
+                // Now get the cached messages (which should include the lastMessage we just cached)
+                const updatedCachedMessages = requestChatCache.getMessages(selectedChat);
+                setMessagesWithDebug(updatedCachedMessages);
+                console.log('Cached and displaying lastMessage, total messages:', updatedCachedMessages.length);
+              } else {
+                setMessagesWithDebug([]);
+              }
+            }
             
             // Mark this request as viewed for UI purposes
             markRequestAsViewed?.(selectedChat);
             
-          } catch (error) {
+          } catch (error: any) {
             console.error('Failed to load request messages:', error);
-            // For request chats, the backend might return empty messages or an error
-            // This is expected behavior - just show empty messages
-            setMessagesWithDebug([]);
+            
+            // For automated contact info messages, the sender can see them even if receiver can't initially
+            // Check if the current user is the sender (creator) of this chat
+            const requestChat = messageRequests?.find(req => req._id === selectedChat);
+            if (requestChat && requestChat.createdBy && requestChat.createdBy._id === user?._id) {
+              console.log('Current user is the sender of this request chat, trying regular message loading...');
+              try {
+                // Try loading as a regular chat since sender should always see their messages
+                const regularResponse = await messageAPI.getChatMessages(selectedChat);
+                console.log('Messages loaded as regular chat for sender:', regularResponse.messages.length);
+                setMessagesWithDebug(regularResponse.messages || []);
+                setIsRequestChat(false); // Allow sender to continue messaging
+              } catch (regularError) {
+                console.error('Failed to load messages even as sender:', regularError);
+                setMessagesWithDebug([]);
+              }
+            } else {
+              // This is a true request chat where receiver can't see messages yet
+              console.log('Receiver cannot see messages until acceptance - showing empty state');
+              setMessagesWithDebug([]);
+            }
           }
         } else {
           // Check if this is a temporarily accepted chat that should still be treated as a request

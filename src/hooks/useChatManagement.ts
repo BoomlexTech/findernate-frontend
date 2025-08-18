@@ -5,6 +5,7 @@ import { getFollowing } from '@/api/user';
 import { AxiosError } from 'axios';
 import { followEvents } from '@/utils/followEvents';
 import { isIncomingRequest, getChatDisplayName, getChatAvatar, formatTime, calculateUnreadCounts } from '@/utils/message/chatUtils';
+import { requestChatCache } from '@/utils/requestChatCache';
 
 const REQUEST_DECISIONS_KEY = 'message_request_decisions';
 const VIEWED_REQUESTS_KEY = 'viewedMessageRequests';
@@ -166,6 +167,18 @@ export const useChatManagement = ({ user }: UseChatManagementProps) => {
         setMessageRequests(sortedRequests);
         setAllChatsCache([...sortedActiveChats, ...sortedRequests]);
         
+        // Cache any existing lastMessages from the initial load
+        console.log('Caching initial lastMessages for', sortedRequests.length, 'request chats');
+        sortedRequests.forEach(request => {
+          if (request.lastMessage && request.lastMessage.message) {
+            requestChatCache.addLastMessage(
+              request._id, 
+              request.lastMessage, 
+              request.participants
+            );
+          }
+        });
+        
       } catch (error) {
         console.error('Failed to load chats:', error);
         const axiosError = error as AxiosError;
@@ -224,6 +237,24 @@ export const useChatManagement = ({ user }: UseChatManagementProps) => {
       categorizeChats(allChatsCache);
     }
   }, [userFollowingList, requestDecisionCache, allChatsCache, user]);
+
+  // Monitor messageRequests for lastMessage changes and cache them
+  useEffect(() => {
+    if (!user || messageRequests.length === 0) return;
+    
+    console.log('Monitoring message requests for lastMessage caching...');
+    
+    messageRequests.forEach(request => {
+      if (request.lastMessage && request.lastMessage.message) {
+        // Cache the lastMessage to preserve conversation history
+        requestChatCache.addLastMessage(
+          request._id, 
+          request.lastMessage, 
+          request.participants
+        );
+      }
+    });
+  }, [messageRequests, user]);
 
   // Handle chatId from URL parameters
   useEffect(() => {
@@ -553,6 +584,10 @@ export const useChatManagement = ({ user }: UseChatManagementProps) => {
       // Clear from viewed requests since it's now actually accepted
       clearViewedRequest(chatId);
 
+      // Clear cached messages since we'll now get them from backend
+      requestChatCache.clearChat(chatId);
+      console.log('Cleared cached messages for accepted request:', chatId);
+
       // Only switch to direct tab and select chat after explicit acceptance
       setSelectedChat(chatId);
       setActiveTab('direct');
@@ -578,6 +613,10 @@ export const useChatManagement = ({ user }: UseChatManagementProps) => {
 
       // Clear from viewed requests since it's now declined
       clearViewedRequest(chatId);
+
+      // Clear cached messages since the request is declined
+      requestChatCache.clearChat(chatId);
+      console.log('Cleared cached messages for declined request:', chatId);
 
     } catch (error) {
       console.error('Failed to decline request:', error);
