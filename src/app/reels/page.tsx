@@ -202,6 +202,15 @@ const Page = () => {
     }
   };
 
+  // Handle tag click navigation
+  const handleTagClick = (tag: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    // Remove the # if it exists and clean the tag
+    const cleanTag = tag.replace(/^#/, '').trim();
+    // Navigate to search page with the tag as query
+    router.push(`/search?q=${encodeURIComponent(cleanTag)}`);
+  };
+
   // Fetch reels data from API
   useEffect(() => {
     const fetchReels = async () => {
@@ -971,6 +980,7 @@ const Page = () => {
           description={currentModalData.description || ''}
           hashtags={currentModalData.hashtags || []}
           onProfileClick={handleProfileClick}
+          onTagClick={handleTagClick}
         />
 
         {/* Mobile Comments Drawer */}
@@ -1236,7 +1246,13 @@ const Page = () => {
           {currentModalData.hashtags && currentModalData.hashtags.length > 0 && (
             <div className="flex flex-wrap gap-1 mb-4">
               {currentModalData.hashtags.map((tag:string, index:number) => (
-                <span key={index} className="text-yellow-500 text-sm">#{tag}</span>
+                <button
+                  key={index}
+                  onClick={(e) => handleTagClick(tag, e)}
+                  className="text-yellow-500 hover:text-yellow-700 hover:underline transition-colors cursor-pointer text-sm"
+                >
+                  #{tag}
+                </button>
               ))}
             </div>
           )}

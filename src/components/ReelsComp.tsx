@@ -20,6 +20,7 @@ interface ReelsComponentProps {
   onSaveToggle?: () => Promise<void>;
   onMoreClick?: () => void;
   onProfileClick?: (username: string) => void;
+  onTagClick?: (tag: string, e: React.MouseEvent) => void;
   isLiked?: boolean;
   isSaved?: boolean;
   likesCount?: number;
@@ -41,6 +42,7 @@ const ReelsComponent: React.FC<ReelsComponentProps> = ({
   onSaveToggle,
   onMoreClick,
   onProfileClick,
+  onTagClick,
   isLiked,
   isSaved,
   likesCount,
@@ -562,7 +564,17 @@ const ReelsComponent: React.FC<ReelsComponentProps> = ({
                 {Array.isArray(hashtags) && hashtags.length > 0 && (
                   <div className="flex flex-wrap gap-2 text-xs">
                     {hashtags.slice(0, 4).map((tag, idx) => (
-                      <span key={idx} className="text-yellow-300">#{tag}</span>
+                      onTagClick ? (
+                        <button
+                          key={idx}
+                          onClick={(e) => onTagClick(tag, e)}
+                          className="text-yellow-300 hover:text-yellow-100 transition-colors cursor-pointer"
+                        >
+                          #{tag}
+                        </button>
+                      ) : (
+                        <span key={idx} className="text-yellow-300">#{tag}</span>
+                      )
                     ))}
                   </div>
                 )}

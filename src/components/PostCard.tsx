@@ -2,7 +2,7 @@
 
 import { Heart, MessageCircle, MapPin, ChevronLeft, ChevronRight, MoreVertical, Bookmark, BookmarkCheck, Flag, Trash2, Pencil } from 'lucide-react';
 import Image from 'next/image';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { FeedPost, SavedPostsResponse } from '@/types';
 import formatPostDate from '@/utils/formatDate';
 import { useState, useEffect } from 'react';
@@ -22,6 +22,50 @@ import ReportModal from './ReportModal';
 import ImageModal from './ImageModal';
 import { toast } from 'react-toastify';
 
+// Singleton cache for saved posts to prevent multiple API calls
+let savedPostsPromise: Promise<string[]> | null = null;
+const CACHE_KEY = 'saved_posts_cache';
+const CACHE_TIME_KEY = 'saved_posts_cache_time';
+const CACHE_EXPIRY = 2 * 60 * 1000; // 2 minutes
+
+const getSavedPostsCache = async (): Promise<string[]> => {
+  // If there's already a pending request, wait for it
+  if (savedPostsPromise) {
+    return savedPostsPromise;
+  }
+
+  // Check cache first
+  const cacheTime = localStorage.getItem(CACHE_TIME_KEY);
+  const currentTime = Date.now();
+
+  if (cacheTime && (currentTime - parseInt(cacheTime)) < CACHE_EXPIRY) {
+    const cachedData = localStorage.getItem(CACHE_KEY);
+    if (cachedData) {
+      return JSON.parse(cachedData);
+    }
+  }
+
+  // Create a new promise for the API call
+  savedPostsPromise = (async () => {
+    try {
+      const response: SavedPostsResponse = await getSavedPost();
+      const savedPostIds = response.data.savedPosts
+        .filter(savedPost => savedPost.postId?._id)
+        .map(savedPost => savedPost.postId!._id);
+      
+      localStorage.setItem(CACHE_KEY, JSON.stringify(savedPostIds));
+      localStorage.setItem(CACHE_TIME_KEY, currentTime.toString());
+      
+      return savedPostIds;
+    } finally {
+      // Clear the promise after completion (success or failure)
+      savedPostsPromise = null;
+    }
+  })();
+
+  return savedPostsPromise;
+};
+
 export interface PostCardProps {
   post: FeedPost;
   onPostDeleted?: (postId: string) => void; // Optional callback for when post is deleted
@@ -32,6 +76,7 @@ export interface PostCardProps {
 
 export default function PostCard({ post, onPostDeleted, onPostClick, showComments = false }: PostCardProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const { requireAuth, showAuthDialog, closeAuthDialog } = useAuthGuard();
   const { user } = useUserStore();
   
@@ -111,7 +156,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
       : post.engagement.comments;
     setCommentsCount(actualCommentsCount);
     
-    console.log(`PostCard ${post._id} - Setting comments count to ${actualCommentsCount} (from ${post.comments ? 'comments array' : 'engagement'})`);
+    // console.log(`PostCard ${post._id} - Setting comments count to ${actualCommentsCount} (from ${post.comments ? 'comments array' : 'engagement'})`);
   }, [post.isLikedBy, post.engagement.likes, post.engagement.comments, post.comments]);
 
   // Reset media index when post changes
@@ -132,10 +177,10 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
 
   // For debugging - log the initial state including comments
   useEffect(() => {
-    console.log(`PostCard loaded for post ${post._id}: isLikedBy=${post.isLikedBy}, likes=${post.engagement.likes}, comments=${post.engagement.comments}`);
-    console.log(`PostCard comments array:`, post.comments);
-    console.log(`PostCard showComments prop:`, showComments);
-  }, [post._id, post.comments, showComments]);
+    // console.log(`PostCard loaded for post ${post._id}: isLikedBy=${post.isLikedBy}, likes=${post.engagement.likes}, comments=${post.engagement.comments}`);
+    // console.log(`PostCard comments array:`, post.comments);
+    // console.log(`PostCard showComments prop:`, showComments);
+  }, [post._id, post.comments, showComments, post.tags]);
 
   // No-op effect to mark onPostClick as used (prop is consumed by parent flows like Search page)
   useEffect(() => {}, [onPostClick]);
@@ -152,7 +197,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
         const isLikedFromStorage = savedLikeStatus === 'true';
         const likesCountFromStorage = savedLikesCount ? parseInt(savedLikesCount) : post.engagement.likes;
         
-        console.log(`Loading like status from localStorage for post ${post._id}: isLiked=${isLikedFromStorage}, count=${likesCountFromStorage}`);
+        // console.log(`Loading like status from localStorage for post ${post._id}: isLiked=${isLikedFromStorage}, count=${likesCountFromStorage}`);
         setIsLiked(isLikedFromStorage);
         setLikesCount(likesCountFromStorage);
       }
@@ -161,7 +206,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
         const commentsCountFromStorage = parseInt(savedCommentsCount);
         // Only use saved count if it's higher than the server count (to account for new comments)
         if (commentsCountFromStorage > post.engagement.comments) {
-          console.log(`Loading comment count from localStorage for post ${post._id}: ${commentsCountFromStorage}`);
+          // console.log(`Loading comment count from localStorage for post ${post._id}: ${commentsCountFromStorage}`);
           setCommentsCount(commentsCountFromStorage);
         }
       }
@@ -173,7 +218,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
   // Listen for comment count changes from other tabs/components
   useEffect(() => {
     const cleanup = postEvents.on(post._id, 'commentCountChange', (newCount: number) => {
-      console.log(`Comment count updated for post ${post._id}: ${newCount}`);
+      // console.log(`Comment count updated for post ${post._id}: ${newCount}`);
       setCommentsCount(newCount);
     });
 
@@ -247,22 +292,22 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
         );
 
         if (shouldLike) {
-          console.log(`Liking post ${post._id}`);
+          // console.log(`API Call: Liking post ${post._id}`);
           try {
             await Promise.race([likePost(post._id), timeoutPromise]);
-            console.log(`Successfully liked post ${post._id}`);
+            // console.log(`API Call: Successfully liked post ${post._id}`);
           } catch (likeError) {
             // Handle "already liked" error
             const axiosError = likeError as AxiosError;
-            console.log('Like error details:', {
-              error: likeError,
-              responseData: axiosError?.response?.data,
-              responseStatus: axiosError?.response?.status,
-              code: axiosError?.code
-            });
+            // console.log('Like error details:', {
+            //   error: likeError,
+            //   responseData: axiosError?.response?.data,
+            //   responseStatus: axiosError?.response?.status,
+            //   code: axiosError?.code
+            // });
             
             if (axiosError?.response?.status === 409) {
-              console.log(`Post ${post._id} already liked - treating as successful like`);
+              // console.log(`Post ${post._id} already liked - treating as successful like`);
               // Don't revert the optimistic update since the post is effectively "liked"
               return;
             }
@@ -270,28 +315,28 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
             throw likeError;
           }
         } else {
-          console.log(`Unliking post ${post._id}`);
+          // console.log(`Unliking post ${post._id}`);
           try {
             await Promise.race([unlikePost(post._id), timeoutPromise]);
-            console.log(`Successfully unliked post ${post._id}`);
+            // console.log(`Successfully unliked post ${post._id}`);
           } catch (unlikeError) {
             // Handle specific "Like not found" error or timeout
             const axiosError = unlikeError as AxiosError;
             const errorMessage = (unlikeError as Error)?.message;
             
-            console.log('Unlike error details:', {
-              error: unlikeError,
-              axiosError: axiosError,
-              errorMessage: errorMessage,
-              responseData: axiosError?.response?.data,
-              responseStatus: axiosError?.response?.status,
-              code: axiosError?.code
-            });
+            // console.log('Unlike error details:', {
+            //   error: unlikeError,
+            //   axiosError: axiosError,
+            //   errorMessage: errorMessage,
+            //   responseData: axiosError?.response?.data,
+            //   responseStatus: axiosError?.response?.status,
+            //   code: axiosError?.code
+            // });
             
             if ((axiosError?.response?.data as any)?.message === 'Like not found for this post' || 
                 errorMessage?.includes('timeout') ||
                 axiosError?.code === 'ECONNABORTED') {
-              console.log(`Unlike failed (${errorMessage || 'Like not found'}) - treating as successful unlike`);
+              // console.log(`Unlike failed (${errorMessage || 'Like not found'}) - treating as successful unlike`);
               // Don't revert the optimistic update since the post is effectively "unliked"
               return;
             }
@@ -304,9 +349,9 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
         const axiosError = error as AxiosError;
         const errorMessage = (error as Error)?.message;
         
-        console.error(`Error ${shouldLike ? 'liking' : 'unliking'} post:`, error);
-        console.error('Error details:', axiosError?.response?.data || errorMessage);
-        console.error('Full error object:', error);
+        // console.error(`Error ${shouldLike ? 'liking' : 'unliking'} post:`, error);
+        // console.error('Error details:', axiosError?.response?.data || errorMessage);
+        // console.error('Full error object:', error);
         setIsLiked(previousIsLiked);
         setLikesCount(previousLikesCount);
         
@@ -316,7 +361,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
           localStorage.setItem(`post_likes_count_${post._id}`, previousLikesCount.toString());
         }
       } finally {
-        console.log(`=== LIKE TOGGLE END - Expected final state: isLiked: ${shouldLike}, loading: false ===`);
+        // console.log(`=== LIKE TOGGLE END - Expected final state: isLiked: ${shouldLike}, loading: false ===`);
         setIsLoading(false);
       }
     });
@@ -358,7 +403,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
       setIsEditingPost(false);
       toast.success('Post updated');
     } catch (err) {
-      console.error('Failed to update post', err);
+      // console.error('Failed to update post', err);
       toast.error('Failed to update post');
     } finally {
       setIsSavingEdit(false);
@@ -469,7 +514,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
     e.stopPropagation();
     requireAuth(() => {
       // Implement your share functionality here
-      console.log('Share post:', post._id);
+      // console.log('Share post:', post._id);
       
       // Example: Copy link to clipboard
       if (navigator.share) {
@@ -486,6 +531,14 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
     });
   };
 
+  const handleTagClick = (tag: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    // Remove the # if it exists and clean the tag
+    const cleanTag = tag.replace(/^#/, '').trim();
+    // Navigate to search page with the tag as query
+    router.push(`/search?q=${encodeURIComponent(cleanTag)}`);
+  };
+
   const handleToggleSavePost = async () => {
     requireAuth(async () => {
       if (isSaving) return;
@@ -495,29 +548,29 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
       
       try {
         if (isPostSaved) {
-          console.log(`Unsaving post ${post._id}`);
+          // console.log(`Unsaving post ${post._id}`);
           await unsavePost(post._id);
           setIsPostSaved(false);
           
           // Update cache
           updateSavedPostsCache(post._id, false);
           
-          console.log('Post unsaved successfully');
+          // console.log('Post unsaved successfully');
           toast.info('Post removed from saved!', { autoClose: 2000 });
         } else {
-          console.log(`Saving post ${post._id}`);
+          // console.log(`Saving post ${post._id}`);
           await savePost(post._id);
           setIsPostSaved(true);
           
           // Update cache
           updateSavedPostsCache(post._id, true);
           
-          console.log('Post saved successfully');
+          // console.log('Post saved successfully');
           toast.success('Post saved successfully!', { autoClose: 2000 });
         }
         setShowDropdown(false);
       } catch (error) {
-        console.error('Error toggling save status:', error);
+        // console.error('Error toggling save status:', error);
         setIsPostSaved(previousSavedState); // Revert state on error
         toast.error(`Error ${isPostSaved ? 'removing' : 'saving'} post. Please try again.`);
       } finally {
@@ -529,8 +582,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
   // Helper function to update cached saved posts
   const updateSavedPostsCache = (postId: string, isSaved: boolean) => {
     try {
-      const cacheKey = 'saved_posts_cache';
-      const cachedData = localStorage.getItem(cacheKey);
+      const cachedData = localStorage.getItem(CACHE_KEY);
       if (cachedData) {
         let savedPostIds: string[] = JSON.parse(cachedData);
         
@@ -540,10 +592,10 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
           savedPostIds = savedPostIds.filter(id => id !== postId);
         }
         
-        localStorage.setItem(cacheKey, JSON.stringify(savedPostIds));
+        localStorage.setItem(CACHE_KEY, JSON.stringify(savedPostIds));
       }
     } catch (error) {
-      console.error('Error updating cache:', error);
+      // console.error('Error updating cache:', error);
     }
   };
 
@@ -582,10 +634,10 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
       
       setIsDeleting(true);
       try {
-        console.log(`Deleting post ${post._id}`);
+        // console.log(`Deleting post ${post._id}`);
         await deletePost(post._id);
         
-        console.log('Post deleted successfully');
+        // console.log('Post deleted successfully');
         setShowDropdown(false);
         
         // Call the callback if provided to remove from UI
@@ -595,7 +647,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
         
         toast.success('Post deleted successfully!', { autoClose: 2000 });
       } catch (error) {
-        console.error('Error deleting post:', error);
+        // console.error('Error deleting post:', error);
         toast.error('Error deleting post. Please try again.');
       } finally {
         setIsDeleting(false);
@@ -628,51 +680,28 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
   useEffect(() => {
     const checkSavedStatus = async () => {
       try {
-        // Check cache first (cache for 2 minutes)
-        const cacheKey = 'saved_posts_cache';
-        const cacheTimeKey = 'saved_posts_cache_time';
-        const cacheTime = localStorage.getItem(cacheTimeKey);
-        const currentTime = Date.now();
-        const cacheExpiry = 2 * 60 * 1000; // 2 minutes
-
-        let savedPostIds: string[] = [];
-
-        if (cacheTime && (currentTime - parseInt(cacheTime)) < cacheExpiry) {
-          // Use cached data
-          const cachedData = localStorage.getItem(cacheKey);
-          if (cachedData) {
-            savedPostIds = JSON.parse(cachedData);
-          }
-        } else {
-          // Fetch fresh data and cache it
-          const response: SavedPostsResponse = await getSavedPost();
-          savedPostIds = response.data.savedPosts
-            .filter(savedPost => savedPost.postId?._id)
-            .map(savedPost => savedPost.postId!._id);
-          
-          localStorage.setItem(cacheKey, JSON.stringify(savedPostIds));
-          localStorage.setItem(cacheTimeKey, currentTime.toString());
-        }
-
-        // Check if current post ID exists in saved posts
+        const savedPostIds = await getSavedPostsCache();
         const isCurrentPostSaved = savedPostIds.includes(post._id);
         setIsPostSaved(isCurrentPostSaved);
       } catch (error) {
-        console.error('Error checking saved status:', error);
+        // console.error('Error checking saved status:', error);
         setIsPostSaved(false);
       } finally {
         setCheckingSaved(false);
       }
     };
 
-    if (isClient) {
+    if (isClient && user) {
       checkSavedStatus();
+    } else if (isClient && !user) {
+      setIsPostSaved(false);
+      setCheckingSaved(false);
     }
-  }, [post._id, isClient]);
+  }, [post._id, isClient, user]);
 
   // Don't render if essential post data is missing
   if (!post || !post._id || !post.media || post.media.length === 0) {
-    console.warn('PostCard: Essential post data missing', { post: post?._id, hasMedia: post?.media?.length > 0 });
+    // console.warn('PostCard: Essential post data missing', { post: post?._id, hasMedia: post?.media?.length > 0 });
     return null;
   }
 
@@ -986,8 +1015,20 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
                     muted
                     loop
                     style={{ objectFit: 'cover' }}
-                    onMouseEnter={(e) => e.currentTarget.play()}
-                    onMouseLeave={(e) => e.currentTarget.pause()}
+                    onMouseEnter={(e) => {
+                      const video = e.currentTarget;
+                      video.play().catch(() => {
+                        // Ignore play errors - video might already be playing or paused
+                      });
+                    }}
+                    onMouseLeave={(e) => {
+                      const video = e.currentTarget;
+                      try {
+                        video.pause();
+                      } catch {
+                        // Ignore pause errors
+                      }
+                    }}
                     onClick={(e) => {
                       e.stopPropagation();
                       setShowImageModal(true);
@@ -1014,7 +1055,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
                   className="rounded-xl object-cover cursor-zoom-in"
                   unoptimized
                   onError={() => {
-                    console.warn('Media image failed to load for post:', post._id, 'URL:', imageUrl);
+                    // console.warn('Media image failed to load for post:', post._id, 'URL:', imageUrl);
                     setMediaImageError(true);
                   }}
                   onClick={(e) => {
@@ -1321,9 +1362,13 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
             <div className="px-1 pb-2">
               <div className="flex flex-wrap gap-2">
                 {post.tags && Array.isArray(post.tags) && post.tags.length > 0 && post.tags.map((tag, index) => (
-                  <span key={index} className='text-yellow-600'>
+                  <button
+                    key={index}
+                    onClick={(e) => handleTagClick(typeof tag === 'string' ? tag : String(tag), e)}
+                    className='text-yellow-600 hover:text-yellow-800 hover:underline transition-colors cursor-pointer'
+                  >
                     #{typeof tag === 'string' ? tag : String(tag)}
-                  </span>
+                  </button>
                 ))}
               </div>
             </div>
@@ -1416,9 +1461,13 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
             {post.tags && Array.isArray(post.tags) && post.tags.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-2">
                 {post.tags.map((tag, index) => (
-                  <span key={index} className='text-yellow-600 text-sm'>
+                  <button
+                    key={index}
+                    onClick={(e) => handleTagClick(typeof tag === 'string' ? tag : String(tag), e)}
+                    className='text-yellow-600 hover:text-yellow-800 hover:underline transition-colors cursor-pointer text-sm'
+                  >
                     #{typeof tag === 'string' ? tag : String(tag)}
-                  </span>
+                  </button>
                 ))}
               </div>
             )}
