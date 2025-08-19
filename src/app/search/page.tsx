@@ -1,6 +1,7 @@
 "use client";
 
 import SearchBar from "@/components/ui/SearchBar";
+import LocationInput from "@/components/ui/LocationInput";
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import {
@@ -37,9 +38,8 @@ import { getCommentsByPost, Comment } from "@/api/comment";
 function SearchContent() {
   const searchParams = useSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedLocation, setSelectedLocation] = useState("All Locations");
+  const [selectedLocation, setSelectedLocation] = useState("");
   const [activeTab, setActiveTab] = useState("All");
-  const [locationDropdownOpen, setLocationDropdownOpen] = useState(false);
   const [contentTypeDropdownOpen, setContentTypeDropdownOpen] = useState(false);
   const [postTypeDropdownOpen, setPostTypeDropdownOpen] = useState(false);
   const [results, setResults] = useState<FeedPost[]>([]);
@@ -77,25 +77,7 @@ function SearchContent() {
     { id: "reel", label: "Reel", icon: Clapperboard },
   ];
 
-  const locations = [
-    "All Locations",
-    "Mumbai",
-    "Delhi", 
-    "Bangalore",
-    "Bengaluru",
-    "Chennai",
-    "Kolkata",
-    "Hyderabad",
-    "Pune",
-    "Mumbai, India",
-    "Delhi, India",
-    "Bangalore, India",
-    "Chennai, India",
-    "Kolkata, India",
-    "Hyderabad, India",
-    "Pune, India",
-  ];
-
+  // Remove the static locations array - now using LocationInput component with API
 
   // const getCurrentLocation = () => {
   //   if (navigator.geolocation) {
@@ -120,14 +102,9 @@ function SearchContent() {
   // };
 
   const handleLocationSelect = (location: string) => {
-    // if (location === "Current Location") {
-    //   getCurrentLocation();
-    // } else {
-      setSelectedLocation(location);
-      setUseCurrentLocation(false);
-      setCurrentCoordinates(null);
-    // }
-    setLocationDropdownOpen(false);
+    setSelectedLocation(location === "All Locations" ? "" : location);
+    setUseCurrentLocation(false);
+    setCurrentCoordinates(null);
   };
 
 
@@ -146,7 +123,7 @@ function SearchContent() {
   };
 
   const clearAllFilters = () => {
-    setSelectedLocation("All Locations");
+    setSelectedLocation("");
     setSelectedContentType(null);
     setSelectedPostType(null);
     setStartDate(null);
@@ -159,7 +136,7 @@ function SearchContent() {
 
   const hasActiveFilters = () => {
     return (
-      selectedLocation !== "All Locations" ||
+      selectedLocation !== "" || // Updated to match new empty string pattern
       selectedContentType !== null ||
       selectedPostType !== null ||
       startDate !== null ||
@@ -181,7 +158,7 @@ function SearchContent() {
       setLoading(true);
       setError(null);
 
-      const locationParam = !useCurrentLocation && selectedLocation !== "All Locations" 
+      const locationParam = !useCurrentLocation && selectedLocation !== "" 
         ? selectedLocation.split(',')[0].toLowerCase().trim() // Extract city name and lowercase it
         : undefined;
 
@@ -212,7 +189,7 @@ function SearchContent() {
       let filteredUsers = response.data.users || [];
 
       // Client-side location filtering for posts if not using current location
-      if (!useCurrentLocation && selectedLocation !== "All Locations") {
+      if (!useCurrentLocation && selectedLocation !== "") {
         console.log("Applying client-side location filtering for:", selectedLocation);
         
         filteredResults = filteredResults.filter((post) => {
@@ -500,71 +477,14 @@ function SearchContent() {
 
             {/* Advanced Search Filters */}
             <div className="flex flex-wrap gap-4 xl:gap-3 mb-8">
-              {/* Location Dropdown */}
-              <div className="relative">
-                <button
-                  onClick={() => {
-                    setLocationDropdownOpen(!locationDropdownOpen);
-                    setContentTypeDropdownOpen(false);
-                    setPostTypeDropdownOpen(false);
-                  }}
-                  disabled={loading}
-                  className={`flex items-center justify-between w-44 xl:w-40 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors ${
-                    loading ? "opacity-50 cursor-not-allowed" : ""
-                  }`}
-                >
-                  <span className="truncate flex items-center gap-2">
-                    {/* {useCurrentLocation ? (
-                      <>
-                        <Crosshair className="w-4 h-4" />
-                        Current Location
-                      </>
-                    ) : ( */}
-                      <>
-                        <MapPin className="w-4 h-4" />
-                        {selectedLocation}
-                      </>
-                    {/* )} */}
-                  </span>
-                  <ChevronDown
-                    className={`w-4 h-4 transition-transform ${
-                      locationDropdownOpen ? "rotate-180" : ""
-                    }`}
-                  />
-                </button>
-
-                {locationDropdownOpen && (
-                  <div className="absolute top-full left-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-lg z-50 max-h-60 overflow-y-auto">
-                    {/* 
-                    <button
-                      onClick={() => handleLocationSelect("Current Location")}
-                      className={`w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors flex items-center gap-2 ${
-                        useCurrentLocation
-                          ? "bg-yellow-50 text-yellow-800"
-                          : "text-gray-700"
-                      }`}
-                    >
-                      <Crosshair className="w-4 h-4" />
-                      Current Location
-                    </button> 
-                    */}
-                    {locations.map((location) => (
-                      <button
-                        key={location}
-                        onClick={() => handleLocationSelect(location)}
-                        className={`w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors flex items-center gap-2 ${
-                          selectedLocation === location && !useCurrentLocation
-                            ? "bg-yellow-50 text-yellow-800"
-                            : "text-gray-700"
-                        }`}
-                      >
-                        <MapPin className="w-4 h-4" />
-                        {location}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+              {/* Location Input with API */}
+              <LocationInput
+                selectedLocation={selectedLocation || "All Locations"}
+                onLocationSelect={handleLocationSelect}
+                placeholder="Search location..."
+                className="w-44 xl:w-40"
+                disabled={loading}
+              />
 
               {/* Radius Slider - Only show when using current location */}
               {/* {useCurrentLocation && (
@@ -596,7 +516,6 @@ function SearchContent() {
                   <button
                     onClick={() => {
                       setContentTypeDropdownOpen(!contentTypeDropdownOpen);
-                      setLocationDropdownOpen(false);
                       setPostTypeDropdownOpen(false);
                     }}
                     disabled={loading}
@@ -643,7 +562,6 @@ function SearchContent() {
                   <button
                     onClick={() => {
                       setPostTypeDropdownOpen(!postTypeDropdownOpen);
-                      setLocationDropdownOpen(false);
                       setContentTypeDropdownOpen(false);
                     }}
                     disabled={loading}
@@ -715,11 +633,10 @@ function SearchContent() {
             </div>
 
             {/* Click outside to close dropdowns */}
-            {(locationDropdownOpen || contentTypeDropdownOpen || postTypeDropdownOpen) && (
+            {(contentTypeDropdownOpen || postTypeDropdownOpen) && (
               <div
                 className="fixed inset-0 z-40"
                 onClick={() => {
-                  setLocationDropdownOpen(false);
                   setContentTypeDropdownOpen(false);
                   setPostTypeDropdownOpen(false);
                 }}
@@ -732,7 +649,7 @@ function SearchContent() {
                 {results.length > 0 || users.length > 0 ? (
                   <p>
                     Found {results.length} posts and {users.length} users
-                    {selectedLocation !== "All Locations" && !useCurrentLocation && (
+                    {selectedLocation !== "" && !useCurrentLocation && (
                       <span className="text-yellow-600"> in {selectedLocation}</span>
                     )}
                     {useCurrentLocation && (
@@ -741,7 +658,7 @@ function SearchContent() {
                   </p>
                 ) : (
                   <p>No results found for {searchQuery}
-                    {selectedLocation !== "All Locations" && !useCurrentLocation && (
+                    {selectedLocation !== "" && !useCurrentLocation && (
                       <span> in {selectedLocation}</span>
                     )}
                   </p>
