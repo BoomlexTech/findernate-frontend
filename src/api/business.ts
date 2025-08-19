@@ -25,3 +25,17 @@ export const GetBusinessCategory = async () => {
     const response = await axios.get("/business/my-category");
     return response.data;
 }
+
+export const switchToBusiness = async () => {
+    try {
+        const response = await axios.put("/business/switch-to-business");
+        return response.data;
+    } catch (error: any) {
+        console.error('Switch to business error:', {
+            status: error.response?.status,
+            message: error.response?.data?.message,
+            error: error.message
+        });
+        throw error;
+    }
+}

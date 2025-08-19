@@ -123,11 +123,15 @@ const UserProfilePage = () => {
               ...post,
               username: profileResponse.userId.username,
               profileImageUrl: profileResponse.userId.profileImageUrl,
-              // Handle tags/hashtags - check both fields
-              tags: Array.isArray(post.tags) ? post.tags : 
-                    Array.isArray(post.hashtags) ? post.hashtags :
-                    (post.tags ? [post.tags] : 
-                     post.hashtags ? [post.hashtags] : []),
+              // Handle tags/hashtags - check customization and top-level fields
+              tags: post.customization?.normal?.tags || 
+                    post.customization?.business?.tags || 
+                    post.customization?.service?.tags || 
+                    post.customization?.product?.tags || 
+                    (Array.isArray(post.tags) ? post.tags : 
+                     Array.isArray(post.hashtags) ? post.hashtags :
+                     (post.tags ? [post.tags] : 
+                      post.hashtags ? [post.hashtags] : [])),
               // Ensure location is properly structured - check multiple possible locations
               location: post.location || 
                        post.customization?.normal?.location ||
@@ -180,11 +184,15 @@ const UserProfilePage = () => {
               ...post,
               username: profileData.username,
               profileImageUrl: profileData.profileImageUrl,
-              // Handle tags/hashtags - check both fields
-              tags: Array.isArray(post.tags) ? post.tags : 
-                    Array.isArray(post.hashtags) ? post.hashtags :
-                    (post.tags ? [post.tags] : 
-                     post.hashtags ? [post.hashtags] : []),
+              // Handle tags/hashtags - check customization and top-level fields
+              tags: post.customization?.normal?.tags || 
+                    post.customization?.business?.tags || 
+                    post.customization?.service?.tags || 
+                    post.customization?.product?.tags || 
+                    (Array.isArray(post.tags) ? post.tags : 
+                     Array.isArray(post.hashtags) ? post.hashtags :
+                     (post.tags ? [post.tags] : 
+                      post.hashtags ? [post.hashtags] : [])),
               // Ensure location is properly structured - check multiple possible locations
               location: post.location || 
                        post.customization?.normal?.location ||
@@ -207,11 +215,15 @@ const UserProfilePage = () => {
               ...post,
               username: profileData.username,
               profileImageUrl: profileData.profileImageUrl,
-              // Handle tags/hashtags - check both fields
-              tags: Array.isArray(post.tags) ? post.tags : 
-                    Array.isArray(post.hashtags) ? post.hashtags :
-                    (post.tags ? [post.tags] : 
-                     post.hashtags ? [post.hashtags] : []),
+              // Handle tags/hashtags - check customization and top-level fields
+              tags: post.customization?.normal?.tags || 
+                    post.customization?.business?.tags || 
+                    post.customization?.service?.tags || 
+                    post.customization?.product?.tags || 
+                    (Array.isArray(post.tags) ? post.tags : 
+                     Array.isArray(post.hashtags) ? post.hashtags :
+                     (post.tags ? [post.tags] : 
+                      post.hashtags ? [post.hashtags] : [])),
               // Ensure location is properly structured - check multiple possible locations
               location: post.location || 
                        post.customization?.normal?.location ||
@@ -234,11 +246,15 @@ const UserProfilePage = () => {
               ...post,
               username: profileData.username,
               profileImageUrl: profileData.profileImageUrl,
-              // Handle tags/hashtags - check both fields
-              tags: Array.isArray(post.tags) ? post.tags : 
-                    Array.isArray(post.hashtags) ? post.hashtags :
-                    (post.tags ? [post.tags] : 
-                     post.hashtags ? [post.hashtags] : []),
+              // Handle tags/hashtags - check customization and top-level fields
+              tags: post.customization?.normal?.tags || 
+                    post.customization?.business?.tags || 
+                    post.customization?.service?.tags || 
+                    post.customization?.product?.tags || 
+                    (Array.isArray(post.tags) ? post.tags : 
+                     Array.isArray(post.hashtags) ? post.hashtags :
+                     (post.tags ? [post.tags] : 
+                      post.hashtags ? [post.hashtags] : [])),
               // Ensure location is properly structured - check multiple possible locations
               location: post.location || 
                        post.customization?.normal?.location ||

@@ -3,7 +3,7 @@ import PlanSelectionModal from './business/PlanSelectionModal';
 import BusinessDetailsModal from './business/BusinessDetailsModal';
 import { PaymentMethodsModal } from './business/PaymentMethodModal';
 import { ChevronDown } from 'lucide-react';
-import { UpdateBusinessCategory, GetBusinessCategory } from '@/api/business';
+import { UpdateBusinessCategory, GetBusinessCategory, switchToBusiness } from '@/api/business';
 import { CreateBusinessRequest } from '@/types';
 import { useUserStore } from '@/store/useUserStore';
 import { getUserProfile } from '@/api/user';
@@ -42,6 +42,7 @@ export default function AccountSettings() {
   const [isUpdatingCategory, setIsUpdatingCategory] = useState(false);
   const [updateMessage, setUpdateMessage] = useState('');
   const [isLoadingCategory, setIsLoadingCategory] = useState(true);
+  const [showBusinessOptions, setShowBusinessOptions] = useState(false);
   const { user, updateUser } = useUserStore();
 
   // Keep local flag in sync with store
@@ -123,11 +124,28 @@ export default function AccountSettings() {
     setTimeout(() => setUpdateMessage(''), 3000);
   };
 
-  // Upgrade flow only for non-business users
-  const handleSwitchToBusiness = () => {
+  // Switch to business account
+  const handleSwitchToBusiness = async () => {
     if (!isBusiness) {
-      // Start the same flow as Settings: plan -> payment -> details
-      setShowPlanModal(true);
+      try {
+        setUpdateMessage('Switching to business account...');
+        const response = await switchToBusiness();
+        
+        // Update local state
+        setIsBusiness(true);
+        
+        // Update user store
+        updateUser({ isBusinessProfile: true });
+        
+        setUpdateMessage('Successfully switched to business account!');
+        setTimeout(() => setUpdateMessage(''), 3000);
+        
+        console.log('Switch to business response:', response);
+      } catch (error: any) {
+        console.error('Failed to switch to business:', error);
+        setUpdateMessage(error.response?.data?.message || 'Failed to switch to business account');
+        setTimeout(() => setUpdateMessage(''), 5000);
+      }
     }
   };
 
@@ -148,22 +166,32 @@ export default function AccountSettings() {
           <div>
             <h2 className="text-xl font-semibold text-gray-900 mb-1">Business Account</h2>
             <p className="text-gray-600">
-              {isBusiness ? 'You are on a business account' : 'Switch to business account'}
+              {isBusiness 
+                ? (showBusinessOptions ? 'Manage your business settings' : 'Switch to business account')
+                : 'Switch to business account'
+              }
             </p>
           </div>
-          {!isBusiness && (
-            <button
-              className={`px-6 py-2 cursor-pointer rounded-lg transition-colors bg-yellow-600 text-white hover:bg-yellow-700`}
-              onClick={handleSwitchToBusiness}
-            >
-              Switch to Business
-            </button>
-          )}
+          <button
+            className={`px-6 py-2 mr-4 cursor-pointer rounded-lg transition-colors bg-yellow-600 text-white hover:bg-yellow-700 flex items-center gap-2`}
+            onClick={() => {
+              if (!isBusiness) {
+                handleSwitchToBusiness();
+              } else {
+                setShowBusinessOptions(!showBusinessOptions);
+              }
+            }}
+          >
+            {isBusiness && showBusinessOptions ? 'Switch to Personal' : 'Switch to Business'}
+            {isBusiness && (
+              <ChevronDown className={`w-4 h-4 transition-transform ${showBusinessOptions ? 'rotate-180' : ''}`} />
+            )}
+          </button>
         </div>
       </div>
 
       {/* Business Category Section */}
-      {isBusiness && (
+      {isBusiness && showBusinessOptions && (
         <div className="mb-8 p-6 bg-blue-50 rounded-lg border border-blue-100">
           <div className="flex items-center justify-between">
             <div>
@@ -209,7 +237,7 @@ export default function AccountSettings() {
                       <button
                         key={category}
                         onClick={() => handleCategorySelect(category)}
-                        className={`w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors border-b border-gray-100 last:border-b-0 ${
+                        className={`w-50 text-left px-4 py-3 hover:bg-blue-50 transition-colors border-b border-gray-100 last:border-b-0 ${
                           currentCategory === category ? 'bg-blue-100 text-blue-800 font-medium' : 'text-gray-700'
                         }`}
                       >
@@ -225,7 +253,7 @@ export default function AccountSettings() {
       )}
 
       {/* Subscription Plan Section */}
-      {isBusiness && (
+      {isBusiness && showBusinessOptions && (
         <div className="p-6 bg-yellow-50 rounded-lg border border-yellow-200">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
@@ -241,7 +269,7 @@ export default function AccountSettings() {
             </div>
             <button
               onClick={() => setShowPlanModal(true)}
-              className="px-6 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors"
+              className="w-50 px-6 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors"
             >
               Manage Plan
             </button>

@@ -260,6 +260,7 @@ export interface FeedPost {
       location?: {
         name: string;
       };
+      tags?: string[];
     };
     service?: {
       name: string;
@@ -273,6 +274,7 @@ export interface FeedPost {
       location?: {
         name: string;
       };
+      tags?: string[];
     };
     business?: {
       businessName: string;
@@ -283,11 +285,13 @@ export interface FeedPost {
       location?: {
         name: string;
       };
+      tags?: string[];
     };
     normal?: {
       location?: {
         name: string;
       };
+      tags?: string[];
     };
   };
   comments?: Comment[];

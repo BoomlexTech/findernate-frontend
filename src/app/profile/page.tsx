@@ -46,7 +46,7 @@ const Page = () => {
         // Fetch user posts
         const postsResponse = await getPostsByUserid(user._id);
         setPosts(postsResponse.data?.posts || []);
-        
+        console.log("Posts:", postsResponse.data?.posts);
       } catch (error) {
         console.error('Error fetching data:', error);
         setError('Failed to load profile data');
@@ -207,6 +207,11 @@ const Page = () => {
                 ...post,
                 username: post.userId?.username || '',
                 profileImageUrl: post.userId?.profileImageUrl || '',
+                tags: post.customization?.normal?.tags || 
+                      post.customization?.business?.tags || 
+                      post.customization?.service?.tags || 
+                      post.customization?.product?.tags || 
+                      post.tags || [],
               }))}  
             />
           </div>
