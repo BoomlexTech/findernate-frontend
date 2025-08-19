@@ -21,6 +21,8 @@ import { useUserStore } from "@/store/useUserStore";
 import { AxiosError } from "axios";
 import FollowersModal from "./FollowersModal";
 import { searchLocations, LocationSuggestion } from '@/api/location';
+import StarRating from './StarRating';
+import { getBusinessRatingSummary, rateBusiness } from '@/api/business';
 
 interface UserProfileProps {
   userData: UserProfileType;
@@ -63,6 +65,12 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
   const [isBlocked, setIsBlocked] = useState(false);
   const [isBlocking, setIsBlocking] = useState(false);
   const [showBlockConfirmModal, setShowBlockConfirmModal] = useState(false);
+  const [businessRating, setBusinessRating] = useState(0);
+  const [totalRatings, setTotalRatings] = useState(0);
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [ratingLoading, setRatingLoading] = useState(false);
+  const [selectedRating, setSelectedRating] = useState(0);
+  const [submittingRating, setSubmittingRating] = useState(false);
 
   // Location suggestion states
   const [locationSuggestions, setLocationSuggestions] = useState<LocationSuggestion[]>([]);
@@ -122,6 +130,11 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
     if (!isCurrentUser && userData._id) {
       fetchUserStories(userData._id);
       checkBlockStatus(userData._id);
+      
+      // Fetch business rating if this is a business profile
+      if (userData.isBusinessProfile) {
+        fetchBusinessRating(userData._id);
+      }
     }
   }, [userData, isCurrentUser]);
 
@@ -160,6 +173,50 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
     } catch (error) {
       console.error('Error fetching user stories:', error);
       setUserStories([]);
+    }
+  };
+
+  const fetchBusinessRating = async (businessId: string) => {
+    try {
+      setRatingLoading(true);
+      const response = await getBusinessRatingSummary(businessId);
+      console.log('Business rating response:', response);
+      
+      if (response.data?.business) {
+        setBusinessRating(response.data.business.averageRating || 0);
+        setTotalRatings(response.data.business.totalRatings || 0);
+      }
+    } catch (error) {
+      console.error('Error fetching business rating:', error);
+      setBusinessRating(0);
+      setTotalRatings(0);
+    } finally {
+      setRatingLoading(false);
+    }
+  };
+
+  const handleRatingSubmit = async () => {
+    if (selectedRating === 0 || !userData._id) return;
+    
+    try {
+      setSubmittingRating(true);
+      const response = await rateBusiness(userData._id, selectedRating);
+      console.log('Rating submitted:', response);
+      
+      // Refresh the business rating after successful submission
+      await fetchBusinessRating(userData._id);
+      
+      // Close modal and reset selected rating
+      setShowRatingModal(false);
+      setSelectedRating(0);
+      
+      // You could show a success message here
+      console.log('Rating submitted successfully!');
+    } catch (error) {
+      console.error('Error submitting rating:', error);
+      // You could show an error message here
+    } finally {
+      setSubmittingRating(false);
     }
   };
 
@@ -987,18 +1044,35 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
                 </div>
               )} */}
 
-              {/* Business Profile Badge */}
-              {profile?.isBusinessProfile && (
-                <div className="flex items-center gap-1">
-                  🏢
-                  <span className="text-blue-600 font-medium">Business Profile</span>
-                </div>
-              )}
-
               {/* Joined Date */}
               {joinedDate !== 'N/A' && (
                 <div className="flex items-center gap-1">
                   📅 Joined {joinedDate}
+                </div>
+              )}
+
+              {/* Business Rating - Only show for business profiles and other users */}
+              {profile?.isBusinessProfile && !isCurrentUser && (
+                <div className="flex items-center gap-2">
+                  {ratingLoading ? (
+                    <div className="flex items-center gap-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-yellow-500 border-t-transparent"></div>
+                      <span className="text-sm text-gray-500">Loading rating...</span>
+                    </div>
+                  ) : (
+                    <StarRating
+                      currentRating={businessRating}
+                      readonly={true}
+                      size="sm"
+                      showRateButton={true}
+                      onRateClick={() => setShowRatingModal(true)}
+                    />
+                  )}
+                  {totalRatings > 0 && !ratingLoading && (
+                    <span className="text-xs text-gray-500">
+                      ({totalRatings} rating{totalRatings !== 1 ? 's' : ''})
+                    </span>
+                  )}
                 </div>
               )}
             </div>
@@ -1215,6 +1289,55 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
         username={profile.username}
         isBlocking={isBlocking}
       />
+
+      {/* Rating Modal */}
+      {showRatingModal && (
+        <div className="fixed inset-0 bg-black/40 bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 max-w-sm w-full mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              Rate {profile.fullName}
+            </h3>
+            <p className="text-gray-600 text-sm mb-4">
+              Share your experience with this business
+            </p>
+            
+            <div className="flex justify-center mb-6">
+              <StarRating
+                currentRating={selectedRating}
+                onRatingChange={setSelectedRating}
+                size="lg"
+              />
+            </div>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowRatingModal(false);
+                  setSelectedRating(0);
+                }}
+                disabled={submittingRating}
+                className="flex-1 px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRatingSubmit}
+                disabled={selectedRating === 0 || submittingRating}
+                className="flex-1 px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {submittingRating ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                    Submitting...
+                  </>
+                ) : (
+                  'Submit Rating'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

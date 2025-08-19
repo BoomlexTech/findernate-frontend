@@ -74,24 +74,24 @@ export default function SearchPage() {
     { id: "reel", label: "Reel", icon: Clapperboard },
   ];
 
-  const locations = [
-    "All Locations",
-    "Mumbai",
-    "Delhi", 
-    "Bangalore",
-    "Bengaluru",
-    "Chennai",
-    "Kolkata",
-    "Hyderabad",
-    "Pune",
-    "Mumbai, India",
-    "Delhi, India",
-    "Bangalore, India",
-    "Chennai, India",
-    "Kolkata, India",
-    "Hyderabad, India",
-    "Pune, India",
-  ];
+  // const locations = [
+  //   "All Locations",
+  //   "Mumbai",
+  //   "Delhi", 
+  //   "Bangalore",
+  //   "Bengaluru",
+  //   "Chennai",
+  //   "Kolkata",
+  //   "Hyderabad",
+  //   "Pune",
+  //   "Mumbai, India",
+  //   "Delhi, India",
+  //   "Bangalore, India",
+  //   "Chennai, India",
+  //   "Kolkata, India",
+  //   "Hyderabad, India",
+  //   "Pune, India",
+  // ];
 
 
   const getCurrentLocation = () => {
@@ -492,7 +492,7 @@ export default function SearchPage() {
                     setPostTypeDropdownOpen(false);
                   }}
                   disabled={loading}
-                  className={`flex items-center justify-between w-44 xl:w-40 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors ${
+                  className={`flex items-center justify-between w-56 xl:w-52 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors ${
                     loading ? "opacity-50 cursor-not-allowed" : ""
                   }`}
                 >
@@ -516,35 +516,21 @@ export default function SearchPage() {
                   />
                 </button>
 
-                {locationDropdownOpen && (
-                  <div className="absolute top-full left-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-lg z-50 max-h-60 overflow-y-auto">
-                    <button
-                      onClick={() => handleLocationSelect("Current Location")}
-                      className={`w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors flex items-center gap-2 ${
-                        useCurrentLocation
-                          ? "bg-yellow-50 text-yellow-800"
-                          : "text-gray-700"
-                      }`}
-                    >
-                      <Crosshair className="w-4 h-4" />
-                      Current Location
-                    </button>
-                    {locations.map((location) => (
-                      <button
-                        key={location}
-                        onClick={() => handleLocationSelect(location)}
-                        className={`w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors flex items-center gap-2 ${
-                          selectedLocation === location && !useCurrentLocation
-                            ? "bg-yellow-50 text-yellow-800"
-                            : "text-gray-700"
-                        }`}
-                      >
-                        <MapPin className="w-4 h-4" />
-                        {location}
-                      </button>
-                    ))}
-                  </div>
-                )}
+                                 {locationDropdownOpen && (
+                   <div className="absolute top-full left-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-lg z-50 max-h-60 overflow-y-auto">
+                     <button
+                       onClick={() => handleLocationSelect("Current Location")}
+                       className={`w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors flex items-center gap-2 ${
+                         useCurrentLocation
+                           ? "bg-yellow-50 text-yellow-800"
+                           : "text-gray-700"
+                       }`}
+                     >
+                       <Crosshair className="w-4 h-4" />
+                       Current Location
+                     </button>
+                   </div>
+                 )}
               </div>
 
               {/* Radius Slider - Only show when using current location */}
