@@ -11,10 +11,10 @@ export const useStories = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { user } = useUserStore();
-  const { isUserBlocked } = useBlockedUsers();
+  const { blockedUserIds } = useBlockedUsers();
 
   // Transform stories array into grouped story users
-  const transformStoriesToUsers = useCallback((storiesData: Story[]): StoryUser[] => {
+  const transformStoriesToUsers = useCallback((storiesData: Story[]) => {
     if (!user) return [];
 
     const userMap = new Map<string, StoryUser>();
@@ -37,7 +37,7 @@ export const useStories = () => {
       if (story.userId._id === user._id) return; // Skip current user, already added
       
       // Skip blocked users
-      if (isUserBlocked(story.userId._id)) return;
+      if (blockedUserIds.has(story.userId._id)) return;
 
       const userId = story.userId._id;
       if (!userMap.has(userId)) {
@@ -70,7 +70,7 @@ export const useStories = () => {
       const bLatest = new Date(b.stories[0]?.createdAt || 0).getTime();
       return bLatest - aLatest;
     });
-  }, [user, isUserBlocked]);
+  }, [user?._id, user?.username, user?.fullName, user?.profileImageUrl, blockedUserIds]);
 
   // Fetch stories feed
   const fetchStories = useCallback(async () => {
@@ -99,7 +99,7 @@ export const useStories = () => {
     } finally {
       setLoading(false);
     }
-  }, [user, transformStoriesToUsers]);
+  }, [user?._id, transformStoriesToUsers]);
 
   // Upload a new story
   const uploadStory = useCallback(async (media: File, caption?: string) => {

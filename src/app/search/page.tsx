@@ -1,7 +1,9 @@
 "use client";
 
 import SearchBar from "@/components/ui/SearchBar";
-import { useEffect, useState } from "react";
+import LocationInput from "@/components/ui/LocationInput";
+import { useEffect, useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Search,
   Users,
@@ -16,8 +18,6 @@ import {
   Film,
   Clapperboard,
   X,
-  MapPin,
-  Crosshair,
 } from "lucide-react";
 //import FloatingHeader from "@/components/FloatingHeader";
 import { searchAllContent, searchUsers } from "@/api/search";
@@ -32,11 +32,12 @@ import "react-datepicker/dist/react-datepicker.css";
 import ImageModal from "@/components/ImageModal";
 import { getCommentsByPost, Comment } from "@/api/comment";
 
-export default function SearchPage() {
+// Search component that uses useSearchParams
+function SearchContent() {
+  const searchParams = useSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedLocation, setSelectedLocation] = useState("All Locations");
+  const [selectedLocation, setSelectedLocation] = useState("");
   const [activeTab, setActiveTab] = useState("All");
-  const [locationDropdownOpen, setLocationDropdownOpen] = useState(false);
   const [contentTypeDropdownOpen, setContentTypeDropdownOpen] = useState(false);
   const [postTypeDropdownOpen, setPostTypeDropdownOpen] = useState(false);
   const [results, setResults] = useState<FeedPost[]>([]);
@@ -74,57 +75,34 @@ export default function SearchPage() {
     { id: "reel", label: "Reel", icon: Clapperboard },
   ];
 
-  // const locations = [
-  //   "All Locations",
-  //   "Mumbai",
-  //   "Delhi", 
-  //   "Bangalore",
-  //   "Bengaluru",
-  //   "Chennai",
-  //   "Kolkata",
-  //   "Hyderabad",
-  //   "Pune",
-  //   "Mumbai, India",
-  //   "Delhi, India",
-  //   "Bangalore, India",
-  //   "Chennai, India",
-  //   "Kolkata, India",
-  //   "Hyderabad, India",
-  //   "Pune, India",
-  // ];
+  // Remove the static locations array - now using LocationInput component with API
 
-
-  const getCurrentLocation = () => {
-    if (navigator.geolocation) {
-      setLoading(true);
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          setCurrentCoordinates(`${longitude}|${latitude}`);
-          setUseCurrentLocation(true);
-          setSelectedLocation("Current Location");
-          setLoading(false);
-        },
-        (error) => {
-          console.error("Error getting location:", error);
-          setError("Unable to get your current location. Please allow location access.");
-          setLoading(false);
-        }
-      );
-    } else {
-      setError("Geolocation is not supported by this browser.");
-    }
-  };
+  // const getCurrentLocation = () => {
+  //   if (navigator.geolocation) {
+  //     setLoading(true);
+  //     navigator.geolocation.getCurrentPosition(
+  //       (position) => {
+  //         const { latitude, longitude } = position.coords;
+  //         setCurrentCoordinates(`${longitude}|${latitude}`);
+  //         setUseCurrentLocation(true);
+  //         setSelectedLocation("Current Location");
+  //         setLoading(false);
+  //       },
+  //       (error) => {
+  //         console.error("Error getting location:", error);
+  //         setError("Unable to get your current location. Please allow location access.");
+  //         setLoading(false);
+  //       }
+  //     );
+  //   } else {
+  //     setError("Geolocation is not supported by this browser.");
+  //   }
+  // };
 
   const handleLocationSelect = (location: string) => {
-    if (location === "Current Location") {
-      getCurrentLocation();
-    } else {
-      setSelectedLocation(location);
-      setUseCurrentLocation(false);
-      setCurrentCoordinates(null);
-    }
-    setLocationDropdownOpen(false);
+    setSelectedLocation(location === "All Locations" ? "" : location);
+    setUseCurrentLocation(false);
+    setCurrentCoordinates(null);
   };
 
 
@@ -143,7 +121,7 @@ export default function SearchPage() {
   };
 
   const clearAllFilters = () => {
-    setSelectedLocation("All Locations");
+    setSelectedLocation("");
     setSelectedContentType(null);
     setSelectedPostType(null);
     setStartDate(null);
@@ -156,7 +134,7 @@ export default function SearchPage() {
 
   const hasActiveFilters = () => {
     return (
-      selectedLocation !== "All Locations" ||
+      selectedLocation !== "" || // Updated to match new empty string pattern
       selectedContentType !== null ||
       selectedPostType !== null ||
       startDate !== null ||
@@ -178,7 +156,7 @@ export default function SearchPage() {
       setLoading(true);
       setError(null);
 
-      const locationParam = !useCurrentLocation && selectedLocation !== "All Locations" 
+      const locationParam = !useCurrentLocation && selectedLocation !== "" 
         ? selectedLocation.split(',')[0].toLowerCase().trim() // Extract city name and lowercase it
         : undefined;
 
@@ -209,7 +187,7 @@ export default function SearchPage() {
       let filteredUsers = response.data.users || [];
 
       // Client-side location filtering for posts if not using current location
-      if (!useCurrentLocation && selectedLocation !== "All Locations") {
+      if (!useCurrentLocation && selectedLocation !== "") {
         console.log("Applying client-side location filtering for:", selectedLocation);
         
         filteredResults = filteredResults.filter((post) => {
@@ -269,6 +247,12 @@ export default function SearchPage() {
         ...post,
         username: post.userId?.username,
         profileImageUrl: post.userId?.profileImageUrl,
+        tags: post.customization?.normal?.tags || 
+              post.customization?.service?.tags || 
+              post.customization?.product?.tags || 
+              post.customization?.business?.tags || 
+              post.tags || 
+              [],
       }));
       
       // Fetch comments for all posts to get accurate comment counts
@@ -350,6 +334,14 @@ export default function SearchPage() {
       setLoading(false);
     }
   };
+
+  // Set search query from URL params on mount
+  useEffect(() => {
+    const queryFromUrl = searchParams.get('q');
+    if (queryFromUrl) {
+      setSearchQuery(decodeURIComponent(queryFromUrl));
+    }
+  }, [searchParams]);
 
   // Auto-trigger search when filters change
   useEffect(() => {
@@ -483,58 +475,17 @@ export default function SearchPage() {
 
             {/* Advanced Search Filters */}
             <div className="flex flex-wrap gap-4 xl:gap-3 mb-8">
-              {/* Location Dropdown */}
-              <div className="relative">
-                <button
-                  onClick={() => {
-                    setLocationDropdownOpen(!locationDropdownOpen);
-                    setContentTypeDropdownOpen(false);
-                    setPostTypeDropdownOpen(false);
-                  }}
-                  disabled={loading}
-                  className={`flex items-center justify-between w-56 xl:w-52 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors ${
-                    loading ? "opacity-50 cursor-not-allowed" : ""
-                  }`}
-                >
-                  <span className="truncate flex items-center gap-2">
-                    {useCurrentLocation ? (
-                      <>
-                        <Crosshair className="w-4 h-4" />
-                        Current Location
-                      </>
-                    ) : (
-                      <>
-                        <MapPin className="w-4 h-4" />
-                        {selectedLocation}
-                      </>
-                    )}
-                  </span>
-                  <ChevronDown
-                    className={`w-4 h-4 transition-transform ${
-                      locationDropdownOpen ? "rotate-180" : ""
-                    }`}
-                  />
-                </button>
-
-                                 {locationDropdownOpen && (
-                   <div className="absolute top-full left-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-lg z-50 max-h-60 overflow-y-auto">
-                     <button
-                       onClick={() => handleLocationSelect("Current Location")}
-                       className={`w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors flex items-center gap-2 ${
-                         useCurrentLocation
-                           ? "bg-yellow-50 text-yellow-800"
-                           : "text-gray-700"
-                       }`}
-                     >
-                       <Crosshair className="w-4 h-4" />
-                       Current Location
-                     </button>
-                   </div>
-                 )}
-              </div>
+              {/* Location Input with API */}
+              <LocationInput
+                selectedLocation={selectedLocation || "All Locations"}
+                onLocationSelect={handleLocationSelect}
+                placeholder="Search location..."
+                className="w-44 xl:w-40"
+                disabled={loading}
+              />
 
               {/* Radius Slider - Only show when using current location */}
-              {useCurrentLocation && (
+              {/* {useCurrentLocation && (
                 <div className="flex items-center gap-4 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 min-w-[200px]">
                   <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Radius:</span>
                   <div className="flex-1 flex items-center gap-3">
@@ -555,7 +506,7 @@ export default function SearchPage() {
                     <span className="text-sm font-medium text-gray-900 min-w-[40px] text-right">{searchRadius} km</span>
                   </div>
                 </div>
-              )}
+              */}
 
               {/* Content Type Dropdown */}
               {activeTab !== "Users" && (
@@ -563,7 +514,6 @@ export default function SearchPage() {
                   <button
                     onClick={() => {
                       setContentTypeDropdownOpen(!contentTypeDropdownOpen);
-                      setLocationDropdownOpen(false);
                       setPostTypeDropdownOpen(false);
                     }}
                     disabled={loading}
@@ -610,7 +560,6 @@ export default function SearchPage() {
                   <button
                     onClick={() => {
                       setPostTypeDropdownOpen(!postTypeDropdownOpen);
-                      setLocationDropdownOpen(false);
                       setContentTypeDropdownOpen(false);
                     }}
                     disabled={loading}
@@ -682,11 +631,10 @@ export default function SearchPage() {
             </div>
 
             {/* Click outside to close dropdowns */}
-            {(locationDropdownOpen || contentTypeDropdownOpen || postTypeDropdownOpen) && (
+            {(contentTypeDropdownOpen || postTypeDropdownOpen) && (
               <div
                 className="fixed inset-0 z-40"
                 onClick={() => {
-                  setLocationDropdownOpen(false);
                   setContentTypeDropdownOpen(false);
                   setPostTypeDropdownOpen(false);
                 }}
@@ -699,7 +647,7 @@ export default function SearchPage() {
                 {results.length > 0 || users.length > 0 ? (
                   <p>
                     Found {results.length} posts and {users.length} users
-                    {selectedLocation !== "All Locations" && !useCurrentLocation && (
+                    {selectedLocation !== "" && !useCurrentLocation && (
                       <span className="text-yellow-600"> in {selectedLocation}</span>
                     )}
                     {useCurrentLocation && (
@@ -708,7 +656,7 @@ export default function SearchPage() {
                   </p>
                 ) : (
                   <p>No results found for {searchQuery}
-                    {selectedLocation !== "All Locations" && !useCurrentLocation && (
+                    {selectedLocation !== "" && !useCurrentLocation && (
                       <span> in {selectedLocation}</span>
                     )}
                   </p>
@@ -810,5 +758,21 @@ export default function SearchPage() {
       />
     </>
 
+  );
+}
+
+// Main component with Suspense boundary
+export default function SearchPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen bg-gray-50 items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-yellow-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading search...</p>
+        </div>
+      </div>
+    }>
+      <SearchContent />
+    </Suspense>
   );
 }

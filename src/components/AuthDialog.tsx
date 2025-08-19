@@ -13,13 +13,17 @@ export const AuthDialog: React.FC<AuthDialogProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null
 
   const handleSignIn = () => {
-    router.push('/signin')
     onClose()
+    setTimeout(() => {
+      router.push('/signin')
+    }, 100)
   }
 
   const handleSignUp = () => {
-    router.push('/signup')
     onClose()
+    setTimeout(() => {
+      router.push('/signup')
+    }, 100)
   }
 
   const handleBackdropClick = (e: React.MouseEvent) => {

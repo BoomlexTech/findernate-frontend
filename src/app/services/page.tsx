@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Search, ChevronDown } from 'lucide-react';
+import LocationInput from "@/components/ui/LocationInput";
 import { createPortal } from 'react-dom';
 import PostCard from '@/components/PostCard';
 import { getExploreFeed } from '@/api/exploreFeed';
@@ -25,7 +26,6 @@ const ServicesPage = () => {
   const [isSearchMode, setIsSearchMode] = useState(false);
   const [createPostModal, setCreatePostModal] = useState(false);
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
-  const [locationDropdownOpen, setLocationDropdownOpen] = useState(false);
   const [priceDropdownOpen, setPriceDropdownOpen] = useState(false);
   const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
 
@@ -40,7 +40,7 @@ const ServicesPage = () => {
     "Entertainment"
   ];
 
-  const locations = ["Bangalore, Karnataka", "Chennai, Tamil Nadu", "Mumbai, Maharashtra", "Delhi, India"];
+  // Remove static locations array - using LocationInput component with API
 
   const priceOptions = [
     { value: '', label: 'All Prices' },
@@ -63,7 +63,6 @@ const ServicesPage = () => {
 
   const closeAllDropdowns = () => {
     setCategoryDropdownOpen(false);
-    setLocationDropdownOpen(false);
     setPriceDropdownOpen(false);
     setSortDropdownOpen(false);
   };
@@ -405,7 +404,6 @@ const ServicesPage = () => {
                 type="button"
                 onClick={() => {
                   setCategoryDropdownOpen(v => !v);
-                  setLocationDropdownOpen(false);
                   setPriceDropdownOpen(false);
                   setSortDropdownOpen(false);
                 }}
@@ -437,43 +435,13 @@ const ServicesPage = () => {
               )}
             </div>
 
-            {/* Location Dropdown */}
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => {
-                  setLocationDropdownOpen(v => !v);
-                  setCategoryDropdownOpen(false);
-                  setPriceDropdownOpen(false);
-                  setSortDropdownOpen(false);
-                }}
-                className="flex items-center justify-between w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
-              >
-                <span className="truncate">{selectedLocation || 'All Locations'}</span>
-                <ChevronDown className={`w-4 h-4 transition-transform ${locationDropdownOpen ? 'rotate-180' : ''}`} />
-              </button>
-              {locationDropdownOpen && (
-                <div className="absolute top-full left-0 mt-2 w-full bg-white border border-gray-200 rounded-xl shadow-lg z-50 max-h-60 overflow-y-auto">
-                  <button
-                    type="button"
-                    onClick={() => { setSelectedLocation(''); setLocationDropdownOpen(false); }}
-                    className={`w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors ${selectedLocation === '' ? 'bg-yellow-50 text-yellow-800' : 'text-gray-700'}`}
-                  >
-                    All Locations
-                  </button>
-                  {locations.map(location => (
-                    <button
-                      key={location}
-                      type="button"
-                      onClick={() => { setSelectedLocation(location); setLocationDropdownOpen(false); }}
-                      className={`w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors ${selectedLocation === location ? 'bg-yellow-50 text-yellow-800' : 'text-gray-700'}`}
-                    >
-                      {location}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+            {/* Location Input with API */}
+            <LocationInput
+              selectedLocation={selectedLocation || "All Locations"}
+              onLocationSelect={(location) => setSelectedLocation(location === "All Locations" ? "" : location)}
+              placeholder="Search location..."
+              className="w-full"
+            />
 
             {/* Price Dropdown */}
             <div className="relative">
@@ -482,7 +450,6 @@ const ServicesPage = () => {
                 onClick={() => {
                   setPriceDropdownOpen(v => !v);
                   setCategoryDropdownOpen(false);
-                  setLocationDropdownOpen(false);
                   setSortDropdownOpen(false);
                 }}
                 className="flex items-center justify-between w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
@@ -513,7 +480,6 @@ const ServicesPage = () => {
                 onClick={() => {
                   setSortDropdownOpen(v => !v);
                   setCategoryDropdownOpen(false);
-                  setLocationDropdownOpen(false);
                   setPriceDropdownOpen(false);
                 }}
                 className="flex items-center justify-between w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
@@ -546,7 +512,7 @@ const ServicesPage = () => {
             </button>
           </div>
 
-          {(categoryDropdownOpen || locationDropdownOpen || priceDropdownOpen || sortDropdownOpen) && (
+          {(categoryDropdownOpen || priceDropdownOpen || sortDropdownOpen) && (
             <div className="fixed inset-0 z-40" onClick={closeAllDropdowns} />
           )}
         </div>
