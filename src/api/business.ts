@@ -39,3 +39,34 @@ export const switchToBusiness = async () => {
         throw error;
     }
 }
+
+export const getBusinessRatingSummary = async (businessId: string) => {
+    try {
+        const response = await axios.get(`/business/${businessId}/rating-summary`);
+        return response.data;
+    } catch (error: any) {
+        console.error('Get business rating error:', {
+            status: error.response?.status,
+            message: error.response?.data?.message,
+            businessId,
+            error: error.message
+        });
+        throw error;
+    }
+}
+
+export const rateBusiness = async (businessId: string, rating: number) => {
+    try {
+        const response = await axios.post(`/business/${businessId}/rate`, { rating });
+        return response.data;
+    } catch (error: any) {
+        console.error('Rate business error:', {
+            status: error.response?.status,
+            message: error.response?.data?.message,
+            businessId,
+            rating,
+            error: error.message
+        });
+        throw error;
+    }
+}

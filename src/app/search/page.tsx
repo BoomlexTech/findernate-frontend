@@ -18,8 +18,6 @@ import {
   Film,
   Clapperboard,
   X,
-  MapPin,
-  Crosshair,
 } from "lucide-react";
 //import FloatingHeader from "@/components/FloatingHeader";
 import { searchAllContent, searchUsers } from "@/api/search";
