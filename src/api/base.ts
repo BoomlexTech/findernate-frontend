@@ -51,18 +51,34 @@ axiosInstance.interceptors.request.use(
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
-    console.error('API Error Interceptor:', {
-      url: error.config?.url,
-      method: error.config?.method,
-      status: error.response?.status,
-      statusText: error.response?.statusText,
-      data: error.response?.data,
-      baseURL: error.config?.baseURL,
-      message: error.message,
-      code: error.code,
-      headers: error.response?.headers,
-      fullError: error
-    });
+    const errorInfo = {
+      url: error?.config?.url || 'unknown',
+      method: error?.config?.method?.toUpperCase() || 'unknown',
+      status: error?.response?.status || 'no status',
+      statusText: error?.response?.statusText || 'no status text',
+      message: error?.message || 'no message',
+      code: error?.code || 'no code',
+      hasResponse: !!error?.response,
+      hasConfig: !!error?.config,
+      errorType: error?.name || 'unknown error type',
+      data: undefined as unknown
+    };
+
+    // Only include response data if it exists and is not too large
+    if (error?.response?.data) {
+      try {
+        const dataStr = JSON.stringify(error.response.data);
+        if (dataStr.length < 1000) {
+          errorInfo.data = error.response.data;
+        } else {
+          errorInfo.data = 'Response data too large to log';
+        }
+      } catch {
+        errorInfo.data = 'Unable to stringify response data';
+      }
+    }
+
+    console.error('API Error Interceptor:', errorInfo);
     
     // // Handle authentication errors
     // if (error.response?.status === 401) {
