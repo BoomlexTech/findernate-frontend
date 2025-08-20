@@ -328,6 +328,7 @@ export interface UserProfile {
   dateOfBirth: string;
   gender: string;
   isBusinessProfile: boolean;
+  businessId?: string;
   isEmailVerified: boolean;
   isPhoneVerified: boolean;
   createdAt: string;

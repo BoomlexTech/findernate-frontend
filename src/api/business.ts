@@ -11,6 +11,21 @@ export const GetBusinessDetails = async () => {
     return response.data
 }
 
+export const getBusinessProfileDetails = async (userId: string) => {
+    try {
+        const response = await axios.get(`/business/profile?userId=${userId}`);
+        return response.data;
+    } catch (error: any) {
+        console.error('Get business profile details error:', {
+            status: error.response?.status,
+            message: error.response?.data?.message,
+            userId,
+            error: error.message
+        });
+        throw error;
+    }
+}
+
 export const UpdateBusinessDetails = async (business: UpdateBusinessRequest) => {
     const response = await axios.patch("/business/update", business);
     return response.data;
