@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import Image from "next/image";
 import { BadgeCheck, Settings, Pencil, Shield, Check, X, UserPlus, UserMinus, MessageCircle, Flag, Ban, UserX } from "lucide-react";
 import ReportModal from './ReportModal';
@@ -71,6 +71,7 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
   const [ratingLoading, setRatingLoading] = useState(false);
   const [selectedRating, setSelectedRating] = useState(0);
   const [submittingRating, setSubmittingRating] = useState(false);
+  const [businessId, setBusinessId] = useState<string | null>(null);
 
   // Location suggestion states
   const [locationSuggestions, setLocationSuggestions] = useState<LocationSuggestion[]>([]);
@@ -78,6 +79,47 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
   const [locationSearchTimeout, setLocationSearchTimeout] = useState<NodeJS.Timeout | null>(null);
   const locationInputRef = useRef<HTMLInputElement>(null);
   const locationDropdownRef = useRef<HTMLDivElement>(null);
+
+  const fetchBusinessRating = useCallback(async (businessId: string) => {
+    try {
+      setRatingLoading(true);
+      
+      console.log('🔍 DEBUG: Fetching business rating for businessId:', businessId);
+      console.log('🔍 DEBUG: Current user (me):', currentUser?._id);
+      console.log('🔍 DEBUG: Profile being viewed:', userData._id, userData.username);
+      console.log('🔍 DEBUG: Are we on our own profile?', isCurrentUser);
+      console.log('🔍 DEBUG: userData.isBusinessProfile:', userData.isBusinessProfile);
+      
+      // Skip if this is our own profile
+      if (isCurrentUser) {
+        console.log('❌ Cannot rate own business - this is our own profile');
+        setBusinessRating(0);
+        setTotalRatings(0);
+        return;
+      }
+      
+      // Fetch business rating using the businessId directly
+      console.log('🔄 Fetching business rating for businessId:', businessId);
+      const ratingResponse = await getBusinessRatingSummary(businessId);
+      console.log('⭐ Business rating response:', ratingResponse);
+      
+      if (ratingResponse.data?.business) {
+        setBusinessRating(ratingResponse.data.business.averageRating || 0);
+        setTotalRatings(ratingResponse.data.business.totalRatings || 0);
+        console.log('✅ Successfully fetched business rating');
+      } else {
+        console.log('⚠️ No business data in rating response');
+        setBusinessRating(0);
+        setTotalRatings(0);
+      }
+    } catch (error) {
+      console.error('❌ Error fetching business rating:', error);
+      setBusinessRating(0);
+      setTotalRatings(0);
+    } finally {
+      setRatingLoading(false);
+    }
+  }, [isCurrentUser, userData._id, userData.username, userData.isBusinessProfile, currentUser?._id]);
 
   // Helper function to check if all stories have been viewed by current user
   const areAllStoriesViewed = () => {
@@ -111,7 +153,9 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
       username: userData.username,
       isFollowing: userData.isFollowing,
       isFollowingType: typeof userData.isFollowing,
-      followersCount: userData.followersCount
+      followersCount: userData.followersCount,
+      isBusinessProfile: userData.isBusinessProfile,
+      businessId: userData.businessId
     });
     
     setProfile(userData);
@@ -131,12 +175,18 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
       fetchUserStories(userData._id);
       checkBlockStatus(userData._id);
       
-      // Fetch business rating if this is a business profile
-      if (userData.isBusinessProfile) {
-        fetchBusinessRating(userData._id);
+      // Fetch business rating if this is a business profile and has businessId
+      if (userData.isBusinessProfile && userData.businessId) {
+        setBusinessId(userData.businessId);
+        fetchBusinessRating(userData.businessId);
+      } else {
+        // Reset business-related state if not a business profile
+        setBusinessId(null);
+        setBusinessRating(0);
+        setTotalRatings(0);
       }
     }
-  }, [userData, isCurrentUser]);
+  }, [userData, isCurrentUser, fetchBusinessRating]);
 
   // Click outside handler for location dropdown
   useEffect(() => {
@@ -176,35 +226,22 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
     }
   };
 
-  const fetchBusinessRating = async (businessId: string) => {
-    try {
-      setRatingLoading(true);
-      const response = await getBusinessRatingSummary(businessId);
-      console.log('Business rating response:', response);
-      
-      if (response.data?.business) {
-        setBusinessRating(response.data.business.averageRating || 0);
-        setTotalRatings(response.data.business.totalRatings || 0);
-      }
-    } catch (error) {
-      console.error('Error fetching business rating:', error);
-      setBusinessRating(0);
-      setTotalRatings(0);
-    } finally {
-      setRatingLoading(false);
-    }
-  };
-
   const handleRatingSubmit = async () => {
-    if (selectedRating === 0 || !userData._id) return;
+    if (selectedRating === 0 || !businessId) return;
+    
+    console.log('🚀 DEBUG: Submitting rating...');
+    console.log('🚀 DEBUG: Business ID to rate:', businessId);
+    console.log('🚀 DEBUG: Rating value:', selectedRating);
+    console.log('🚀 DEBUG: Current user (me):', currentUser?._id);
+    console.log('🚀 DEBUG: Profile being rated:', userData._id, userData.username);
     
     try {
       setSubmittingRating(true);
-      const response = await rateBusiness(userData._id, selectedRating);
-      console.log('Rating submitted:', response);
+      const response = await rateBusiness(businessId, selectedRating);
+      console.log('✅ Rating submitted successfully:', response);
       
-      // Refresh the business rating after successful submission
-      await fetchBusinessRating(userData._id);
+      // Refresh the business rating after successful submission using the businessId
+      await fetchBusinessRating(businessId);
       
       // Close modal and reset selected rating
       setShowRatingModal(false);
@@ -1051,8 +1088,8 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
                 </div>
               )}
 
-              {/* Business Rating - Only show for business profiles and other users */}
-              {profile?.isBusinessProfile && !isCurrentUser && (
+              {/* Business Rating - Only show for business profiles and other users with valid business ID */}
+              {profile?.isBusinessProfile && !isCurrentUser && businessId && (
                 <div className="flex items-center gap-2">
                   {ratingLoading ? (
                     <div className="flex items-center gap-2">
