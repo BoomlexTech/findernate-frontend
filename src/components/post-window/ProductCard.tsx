@@ -4,6 +4,7 @@ import { MapPin, ShoppingBag, Star } from 'lucide-react';
 import { useState } from 'react';
 import ProductServiceDetails from '../ProductServiceDetails';
 import { FeedPost } from '@/types';
+import { shouldShowLocation, getLocationDisplayName } from '@/utils/locationUtils';
 
 interface ProductCardProps {
   post?: FeedPost;
@@ -17,7 +18,6 @@ const ProductCard = ({ post }: ProductCardProps) => {
   const productName = productData?.name || 'Product';
   const productPrice = productData?.price || 0;
   const productCurrency = productData?.currency || 'INR';
-  const productLocation = post?.location || 'Location not specified';
   const inStock = productData?.inStock !== false; // Default to true if not specified
   
   return (
@@ -33,16 +33,18 @@ const ProductCard = ({ post }: ProductCardProps) => {
       {/* Bottom section: Details and Shop Now button */}
       <div className="mt-2 rounded-lg border border-orange-500 bg-gradient-to-br from-orange-100 to-amber-50 p-4">
         
-        {/* Location Info */}
-        <div>
-          <div className="flex items-center gap-2">
-            <MapPin size={16} className="text-orange-600" />
-            <span className="text-xs font-bold uppercase text-orange-600">Location</span>
+        {/* Location Info - only show if location is valid */}
+        {shouldShowLocation(post?.location) && (
+          <div>
+            <div className="flex items-center gap-2">
+              <MapPin size={16} className="text-orange-600" />
+              <span className="text-xs font-bold uppercase text-orange-600">Location</span>
+            </div>
+            <p className="mt-1 ml-1 text-sm text-gray-700">
+              {getLocationDisplayName(post?.location)}
+            </p>
           </div>
-          <p className="mt-1 ml-1 text-sm text-gray-700">
-            {typeof productLocation === 'string' ? productLocation : productLocation?.name || 'Not specified'}
-          </p>
-        </div>
+        )}
 
         {/* Price */}
         <div className="mt-2">
