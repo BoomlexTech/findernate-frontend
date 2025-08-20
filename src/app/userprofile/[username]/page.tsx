@@ -104,55 +104,68 @@ const UserProfilePage = () => {
           
           setProfileData(userProfileData);
           
-          // Fetch user posts by default (photos)
+          // Fetch user posts, reels, and videos on initial load
           if (profileResponse.userId._id) {
-            const postsResponse = await getUserPosts(profileResponse.userId._id);
-            console.log('User posts API response:', postsResponse);
-            console.log('First post engagement data:', postsResponse.data?.posts?.[0]?.engagement);
-            console.log('First post tags/hashtags:', {
-              tags: postsResponse.data?.posts?.[0]?.tags,
-              hashtags: postsResponse.data?.posts?.[0]?.hashtags
-            });
-            console.log('First post location data:', {
-              location: postsResponse.data?.posts?.[0]?.location,
-              customizationLocation: postsResponse.data?.posts?.[0]?.customization?.normal?.location,
-              userLocation: profileResponse.userId?.location
-            });
+            // Fetch posts, reels, and videos in parallel
+            const [postsResponse, reelsResponse, videosResponse] = await Promise.all([
+              getUserPosts(profileResponse.userId._id),
+              getUserReels(profileResponse.userId._id),
+              getUserVideos(profileResponse.userId._id)
+            ]);
             
-            const postsWithUserInfo = (postsResponse.data?.posts || []).map((post: any) => ({
-              ...post,
-              username: profileResponse.userId.username,
-              profileImageUrl: profileResponse.userId.profileImageUrl,
-              // Handle tags/hashtags - check customization and top-level fields
-              tags: post.customization?.normal?.tags || 
-                    post.customization?.business?.tags || 
-                    post.customization?.service?.tags || 
-                    post.customization?.product?.tags || 
-                    (Array.isArray(post.tags) ? post.tags : 
-                     Array.isArray(post.hashtags) ? post.hashtags :
-                     (post.tags ? [post.tags] : 
-                      post.hashtags ? [post.hashtags] : [])),
-              // Ensure location is properly structured - check multiple possible locations
-              location: post.location || 
-                       post.customization?.normal?.location ||
-                       (profileResponse.userId?.location ? profileResponse.userId.location : null),
-              // Ensure engagement object has all required fields
-              engagement: {
-                likes: post.engagement?.likes || 0,
-                comments: post.engagement?.comments || 0,
-                shares: post.engagement?.shares || 0,
-                ...post.engagement
-              }
-            }));
+            console.log('User posts API response:', postsResponse);
+            console.log('User reels API response:', reelsResponse);
+            console.log('User videos API response:', videosResponse);
+            
+            // Helper function to process any type of post data
+            const processPostData = (response: any, type: string) => {
+              return (response.data?.posts || []).map((post: any) => ({
+                ...post,
+                username: profileResponse.userId.username,
+                profileImageUrl: profileResponse.userId.profileImageUrl,
+                // Handle tags/hashtags - check customization and top-level fields
+                tags: post.customization?.normal?.tags || 
+                      post.customization?.business?.tags || 
+                      post.customization?.service?.tags || 
+                      post.customization?.product?.tags || 
+                      (Array.isArray(post.tags) ? post.tags : 
+                       Array.isArray(post.hashtags) ? post.hashtags :
+                       (post.tags ? [post.tags] : 
+                        post.hashtags ? [post.hashtags] : [])),
+                // Ensure location is properly structured - check multiple possible locations
+                location: post.location || 
+                         post.customization?.normal?.location ||
+                         (profileResponse.userId?.location ? profileResponse.userId.location : null),
+                // Ensure engagement object has all required fields
+                engagement: {
+                  likes: post.engagement?.likes || 0,
+                  comments: post.engagement?.comments || 0,
+                  shares: post.engagement?.shares || 0,
+                  ...post.engagement
+                }
+              }));
+            };
 
-            // Fetch actual comment counts for all posts
-            console.log('Fetching comment counts for posts...');
-            const postsWithCommentCounts = await fetchCommentCounts(postsWithUserInfo);
-            console.log('Posts with updated comment counts:', postsWithCommentCounts.map(p => ({ 
-              id: p._id, 
-              engagement: p.engagement 
-            })));
+            // Process all post types
+            const postsWithUserInfo = processPostData(postsResponse, 'posts');
+            const reelsWithUserInfo = processPostData(reelsResponse, 'reels');
+            const videosWithUserInfo = processPostData(videosResponse, 'videos');
+
+            // Fetch actual comment counts for all content types
+            console.log('Fetching comment counts for posts, reels, and videos...');
+            const [postsWithCommentCounts, reelsWithCommentCounts, videosWithCommentCounts] = await Promise.all([
+              fetchCommentCounts(postsWithUserInfo),
+              fetchCommentCounts(reelsWithUserInfo),
+              fetchCommentCounts(videosWithUserInfo)
+            ]);
+            
+            console.log('Posts with updated comment counts:', postsWithCommentCounts.length);
+            console.log('Reels with updated comment counts:', reelsWithCommentCounts.length);
+            console.log('Videos with updated comment counts:', videosWithCommentCounts.length);
+            
             setPosts(postsWithCommentCounts);
+            setReels(reelsWithCommentCounts);
+            setVideos(videosWithCommentCounts);
           }
         } else {
           throw new Error("Profile data not found in response");
@@ -174,108 +187,12 @@ const UserProfilePage = () => {
   const handleTabChange = async (tab: string) => {
     if (!profileData?._id) return;
     
-    setPostsLoading(true);
-    try {
-      switch (tab) {
-        case 'posts':
-          if (posts.length === 0) {
-            const postsResponse = await getUserPosts(profileData._id);
-            const postsWithUserInfo = (postsResponse.data?.posts || []).map((post: any) => ({
-              ...post,
-              username: profileData.username,
-              profileImageUrl: profileData.profileImageUrl,
-              // Handle tags/hashtags - check customization and top-level fields
-              tags: post.customization?.normal?.tags || 
-                    post.customization?.business?.tags || 
-                    post.customization?.service?.tags || 
-                    post.customization?.product?.tags || 
-                    (Array.isArray(post.tags) ? post.tags : 
-                     Array.isArray(post.hashtags) ? post.hashtags :
-                     (post.tags ? [post.tags] : 
-                      post.hashtags ? [post.hashtags] : [])),
-              // Ensure location is properly structured - check multiple possible locations
-              location: post.location || 
-                       post.customization?.normal?.location ||
-                       (profileData?.location ? profileData.location : null),
-              engagement: {
-                likes: post.engagement?.likes || 0,
-                comments: post.engagement?.comments || 0,
-                shares: post.engagement?.shares || 0,
-                ...post.engagement
-              }
-            }));
-            const postsWithCommentCounts = await fetchCommentCounts(postsWithUserInfo);
-            setPosts(postsWithCommentCounts);
-          }
-          break;
-        case 'reels':
-          if (reels.length === 0) {
-            const reelsResponse = await getUserReels(profileData._id);
-            const reelsWithUserInfo = (reelsResponse.data?.posts || []).map((post: any) => ({
-              ...post,
-              username: profileData.username,
-              profileImageUrl: profileData.profileImageUrl,
-              // Handle tags/hashtags - check customization and top-level fields
-              tags: post.customization?.normal?.tags || 
-                    post.customization?.business?.tags || 
-                    post.customization?.service?.tags || 
-                    post.customization?.product?.tags || 
-                    (Array.isArray(post.tags) ? post.tags : 
-                     Array.isArray(post.hashtags) ? post.hashtags :
-                     (post.tags ? [post.tags] : 
-                      post.hashtags ? [post.hashtags] : [])),
-              // Ensure location is properly structured - check multiple possible locations
-              location: post.location || 
-                       post.customization?.normal?.location ||
-                       (profileData?.location ? profileData.location : null),
-              engagement: {
-                likes: post.engagement?.likes || 0,
-                comments: post.engagement?.comments || 0,
-                shares: post.engagement?.shares || 0,
-                ...post.engagement
-              }
-            }));
-            const reelsWithCommentCounts = await fetchCommentCounts(reelsWithUserInfo);
-            setReels(reelsWithCommentCounts);
-          }
-          break;
-        case 'videos':
-          if (videos.length === 0) {
-            const videosResponse = await getUserVideos(profileData._id);
-            const videosWithUserInfo = (videosResponse.data?.posts || []).map((post: any) => ({
-              ...post,
-              username: profileData.username,
-              profileImageUrl: profileData.profileImageUrl,
-              // Handle tags/hashtags - check customization and top-level fields
-              tags: post.customization?.normal?.tags || 
-                    post.customization?.business?.tags || 
-                    post.customization?.service?.tags || 
-                    post.customization?.product?.tags || 
-                    (Array.isArray(post.tags) ? post.tags : 
-                     Array.isArray(post.hashtags) ? post.hashtags :
-                     (post.tags ? [post.tags] : 
-                      post.hashtags ? [post.hashtags] : [])),
-              // Ensure location is properly structured - check multiple possible locations
-              location: post.location || 
-                       post.customization?.normal?.location ||
-                       (profileData?.location ? profileData.location : null),
-              engagement: {
-                likes: post.engagement?.likes || 0,
-                comments: post.engagement?.comments || 0,
-                shares: post.engagement?.shares || 0,
-                ...post.engagement
-              }
-            }));
-            const videosWithCommentCounts = await fetchCommentCounts(videosWithUserInfo);
-            setVideos(videosWithCommentCounts);
-          }
-          break;
-      }
-    } catch (error) {
-      console.error(`Error fetching ${tab}:`, error);
-    } finally {
-      setPostsLoading(false);
-    }
+    // Since we now load all data on initial mount, we don't need to fetch anything here
+    // This function now just handles the tab switching without API calls
+    console.log(`Switching to ${tab} tab`);
+    
+    // Optional: Add refresh logic in the future if needed
+    // For now, all data is already loaded on mount
   };
 
   if (loading) {

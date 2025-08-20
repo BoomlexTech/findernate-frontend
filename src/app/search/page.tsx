@@ -480,7 +480,7 @@ function SearchContent() {
                 selectedLocation={selectedLocation || "All Locations"}
                 onLocationSelect={handleLocationSelect}
                 placeholder="Search location..."
-                className="w-44 xl:w-40"
+                className="w-56 xl:w-52"
                 disabled={loading}
               />
 
