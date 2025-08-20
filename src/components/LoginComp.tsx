@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { login } from '@/api/auth';
 import axios from 'axios';
 import { useUserStore } from '@/store/useUserStore';
@@ -151,6 +152,16 @@ const LoginComponent: React.FC = () => {
               </button>
             </div>
             {error && <p className="text-red-500">{error}</p>}
+          </div>
+
+          {/* Forgot Password Link */}
+          <div className="text-right">
+            <Link 
+              href="/forgot-password"
+              className="text-sm text-yellow-600 hover:text-yellow-700 font-medium hover:underline transition-colors"
+            >
+              Forgot Password?
+            </Link>
           </div>
 
           {/* Sign In Button */}
