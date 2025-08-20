@@ -223,7 +223,7 @@ export default function SuggestedUsers({ users: initialUsers = defaultSuggestedU
         <div className="py-8 text-center text-yellow-500">{error}</div>
       ) : (
         <div className="space-y-4">
-          {users.map((user) => {
+          {users.slice(0, 4).map((user) => {
             const userState = userStates[user._id];
             const truncatedFullName = user.fullName.length > 20 
               ? user.fullName.substring(0, 20) + '...' 

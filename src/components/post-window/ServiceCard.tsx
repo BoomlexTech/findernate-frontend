@@ -4,6 +4,7 @@ import { MapPin, Clock, User, Bell, IndianRupee } from 'lucide-react';
 import { useState } from 'react';
 import ProductServiceDetails from '../ProductServiceDetails';
 import { FeedPost } from '@/types';
+import { shouldShowLocation, getLocationDisplayName } from '@/utils/locationUtils';
 
 interface ServiceCardProps {
   post?: FeedPost;
@@ -19,7 +20,7 @@ const ServiceCard = ({ post }: ServiceCardProps) => {
   const serviceCurrency = serviceData?.currency || 'INR';
   const serviceDuration = serviceData?.duration || 60;
   const serviceCategory = serviceData?.category || 'General';
-  const serviceLocation = post?.location || 'Location not specified';
+
   
   return (
     // Main card container
@@ -33,16 +34,20 @@ const ServiceCard = ({ post }: ServiceCardProps) => {
 
       {/* Middle section: Location & Price */}
       <div className="mt-3 rounded-lg bg-gradient-to-r from-green-100/70 to-green-200/70 p-2 border-1 border-green-600">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-2">
-            <MapPin size={16} className="text-green-700" />
-            <span className="text-xs font-semibold text-green-800">LOCATION</span>
+        {/* Location - only show if location is valid */}
+        {shouldShowLocation(post?.location) && (
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-2">
+              <MapPin size={16} className="text-green-700" />
+              <span className="text-xs font-semibold text-green-800">LOCATION</span>
+            </div>
+            <span className="text-sm font-semibold text-gray-800">
+              {getLocationDisplayName(post?.location)}
+            </span>
           </div>
-          <span className="text-sm font-semibold text-gray-800">
-            {typeof serviceLocation === 'string' ? serviceLocation : serviceLocation?.name || 'Not specified'}
-          </span>
-        </div>
-        <div className="mt-3 flex items-start justify-between">
+        )}
+        {/* Price */}
+        <div className={`flex items-start justify-between ${shouldShowLocation(post?.location) ? 'mt-3' : ''}`}>
           <div className="flex items-center gap-2">
             <IndianRupee size={16} className="text-green-700" />
             <span className="text-xs font-semibold text-green-800">PRICE</span>
