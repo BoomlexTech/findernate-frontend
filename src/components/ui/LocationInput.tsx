@@ -23,33 +23,16 @@ const LocationInput: React.FC<LocationInputProps> = ({
   const [searchQuery, setSearchQuery] = useState("");
   const [suggestions, setSuggestions] = useState<LocationSuggestion[]>([]);
   const [loading, setLoading] = useState(false);
-  const [showRecommendations, setShowRecommendations] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Popular locations for recommendations
-  const popularLocations = [
-    "Mumbai, Maharashtra, India",
-    "Delhi, India", 
-    "Bangalore, Karnataka, India",
-    "Chennai, Tamil Nadu, India",
-    "Kolkata, West Bengal, India",
-    "Hyderabad, Telangana, India",
-    "Pune, Maharashtra, India",
-    "Ahmedabad, Gujarat, India",
-    "Jaipur, Rajasthan, India",
-    "Lucknow, Uttar Pradesh, India"
-  ];
 
   // Debounced search for location suggestions
   useEffect(() => {
     if (!searchQuery.trim() || searchQuery.length < 2) {
       setSuggestions([]);
-      setShowRecommendations(true);
       return;
     }
-
-    setShowRecommendations(false);
     const timeoutId = setTimeout(async () => {
       setLoading(true);
       try {
@@ -72,7 +55,6 @@ const LocationInput: React.FC<LocationInputProps> = ({
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
         setSearchQuery("");
-        setShowRecommendations(false);
       }
     };
 
@@ -82,9 +64,6 @@ const LocationInput: React.FC<LocationInputProps> = ({
 
   const handleInputFocus = () => {
     setIsOpen(true);
-    if (!searchQuery.trim()) {
-      setShowRecommendations(true);
-    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -96,7 +75,6 @@ const LocationInput: React.FC<LocationInputProps> = ({
     onLocationSelect(location);
     setIsOpen(false);
     setSearchQuery("");
-    setShowRecommendations(false);
   };
 
   const formatLocationName = (suggestion: LocationSuggestion) => {
@@ -156,26 +134,6 @@ const LocationInput: React.FC<LocationInputProps> = ({
             All Locations
           </button>
 
-          {/* Show recommendations when no search query */}
-          {showRecommendations && (
-            <>
-              <div className="px-4 py-2 text-xs font-medium text-gray-500 bg-gray-50 border-b">
-                Popular Locations
-              </div>
-              {popularLocations.map((location) => (
-                <button
-                  key={location}
-                  onClick={() => handleLocationClick(location)}
-                  className={`w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors flex items-center gap-2 ${
-                    selectedLocation === location ? "bg-yellow-50 text-yellow-800" : "text-gray-700"
-                  }`}
-                >
-                  <MapPin className="w-4 h-4" />
-                  {location}
-                </button>
-              ))}
-            </>
-          )}
 
           {/* Loading state */}
           {loading && (
@@ -186,7 +144,7 @@ const LocationInput: React.FC<LocationInputProps> = ({
           )}
 
           {/* Search suggestions */}
-          {!showRecommendations && suggestions.length > 0 && (
+          {suggestions.length > 0 && (
             <>
               <div className="px-4 py-2 text-xs font-medium text-gray-500 bg-gray-50 border-b">
                 Search Results
@@ -210,7 +168,7 @@ const LocationInput: React.FC<LocationInputProps> = ({
           )}
 
           {/* No results found */}
-          {!showRecommendations && !loading && searchQuery.length >= 2 && suggestions.length === 0 && (
+          {!loading && searchQuery.length >= 2 && suggestions.length === 0 && (
             <div className="px-4 py-3 text-sm text-gray-500">
               No locations found for "{searchQuery}"
             </div>
