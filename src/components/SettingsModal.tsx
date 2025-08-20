@@ -19,6 +19,7 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
   //const [hideAddress, setHideAddress] = useState(false);
   //const [hideNumber, setHideNumber] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [showLogoutConfirmation, setShowLogoutConfirmation] = useState(false);
   const [showBusinessPlans, setShowBusinessPlans] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showBusinessDetailsModal, setShowBusinessDetailsModal] = useState(false);
@@ -56,7 +57,11 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
     if (action) action();
   };
 
-  const handleLogout = async () => {
+  const handleLogoutClick = () => {
+    setShowLogoutConfirmation(true);
+  };
+
+  const handleLogoutConfirm = async () => {
     try {
       setIsLoggingOut(true);
       // Call the logout API
@@ -64,7 +69,9 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
       // Clear user store
       logoutUser();
       localStorage.removeItem('token');
-      // Close the modal
+      // Close the confirmation modal
+      setShowLogoutConfirmation(false);
+      // Close the settings modal
       onClose();
       // Redirect to login page
       router.push('/signin');
@@ -73,11 +80,16 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
       // Even if API fails, clear local state and redirect
       logoutUser();
       localStorage.removeItem('token');
+      setShowLogoutConfirmation(false);
       onClose();
       router.push('/signin');
     } finally {
       setIsLoggingOut(false);
     }
+  };
+
+  const handleLogoutCancel = () => {
+    setShowLogoutConfirmation(false);
   };
 
   const handleUpgradeClick = () => {
@@ -225,7 +237,7 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
 
         <div className="px-4 py-2">
           <button 
-            onClick={handleLogout}
+            onClick={handleLogoutClick}
             disabled={isLoggingOut}
             className="w-full flex items-center justify-between py-4 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
@@ -246,6 +258,45 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
         <SuccessToast show={successToast.show} message={successToast.message} />
       </div>
     </div>
+
+    {/* Logout Confirmation Modal */}
+    {showLogoutConfirmation && (
+      <div className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center">
+        <div className="bg-white w-full max-w-sm mx-4 rounded-xl shadow-lg p-6">
+          <div className="text-center">
+            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <LogOut className="w-6 h-6 text-red-600" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Logout</h3>
+            <p className="text-gray-600 mb-6">Are you sure you want to logout?</p>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={handleLogoutCancel}
+                className="flex-1 py-2 px-4 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleLogoutConfirm}
+                disabled={isLoggingOut}
+                className="flex-1 py-2 px-4 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {isLoggingOut ? (
+                  <div className="flex items-center justify-center">
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                    Logging out...
+                  </div>
+                ) : (
+                  'Logout'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+
     {/* Plan Selection Modal */}
     <PlanSelectionModal
       isOpen={showBusinessPlans}
@@ -316,29 +367,29 @@ const SettingItem = ({
 // }) => (
 //   <div className="flex items-center justify-between py-4">
 //     <div className="flex items-center gap-3">
-//       <span className="text-gray-600">{icon}</span>
-//       <span className="text-gray-900 font-medium">{title}</span>
-//     </div>
-//     <label className="inline-flex items-center cursor-pointer">
-//       <input
-//         type="checkbox"
-//         className="sr-only peer"
-//         checked={enabled}
-//         onChange={onToggle}
-//       />
-//       <div
-//         className={`relative w-12 h-6 rounded-full transition-colors duration-200 ${
-//           enabled ? "bg-gray-400" : "bg-gray-300"
-//         }`}
-//       >
-//         <div
-//           className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform duration-200 ${
-//             enabled ? "translate-x-6" : "translate-x-0.5"
-//           }`}
-//         ></div>
-//       </div>
-//     </label>
+//     <span className="text-gray-600">{icon}</span>
+//     <span className="text-gray-900 font-medium">{title}</span>
 //   </div>
+//   <label className="inline-flex items-center cursor-pointer">
+//     <input
+//       type="checkbox"
+//       className="sr-only peer"
+//       checked={enabled}
+//       onChange={onToggle}
+//     />
+//     <div
+//       className={`relative w-12 h-6 rounded-full transition-colors duration-200 ${
+//         enabled ? "bg-gray-400" : "bg-gray-300"
+//       }`}
+//     >
+//       <div
+//         className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform duration-200 ${
+//           enabled ? "translate-x-6" : "translate-x-0.5"
+//         }`}
+//       ></div>
+//     </div>
+//   </label>
+// </div>
 // );
 
 export default SettingsModal;

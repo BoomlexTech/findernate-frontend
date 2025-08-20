@@ -12,7 +12,7 @@ import PushNotificationProvider from "@/components/providers/PushNotificationPro
 const MainLayout = ({children}:{children:React.ReactNode}) => {
 
   const pathname = usePathname();
-  const noSidebarRoutes = ['/onboarding','/signup', '/signin'];
+  const noSidebarRoutes = ['/onboarding','/signup', '/signin', '/forgot-password', '/reset-password'];
   const isNoSidebar = noSidebarRoutes.some(path => pathname.startsWith(path));
   const [postToggle, setPostToggle] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);

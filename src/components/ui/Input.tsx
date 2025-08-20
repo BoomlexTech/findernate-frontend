@@ -10,7 +10,8 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   error?: string; // Optional error message
   className?: string; // Optional custom classes for the outermost div wrapper
   inputClassName?: string; // Optional custom classes for the input element itself
-  leftIcon?: React.ReactNode;   // New: Icon or node to render on the left
+  leftIcon?: React.ReactNode;   // Icon or node to render on the left
+  rightIcon?: React.ReactNode;  // Icon or node to render on the right
   // 'type', 'disabled', 'readOnly', 'required', 'min', 'max', 'name', etc.
   // are already included via InputHTMLAttributes<HTMLInputElement>
 }
@@ -27,6 +28,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
     className,
     inputClassName,
     leftIcon,
+    rightIcon,
     ...rest
   }: InputProps, ref) => {
     // Tailwind classes for consistent styling
@@ -48,29 +50,36 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
 
     return (
       <>
-      {label && (
+        {label && (
           <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">
             {label}
           </label>
         )}
-      <div className={`mb-3 relative ${className || ''}`}> {/* mb-4 for bottom margin, adjust as needed */}
-        {leftIcon && (
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-            {leftIcon}
+        <div className={`mb-3 ${className || ''}`}>
+          <div className="relative"> {/* Icons positioned relative to the input only */}
+            {leftIcon && (
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                {leftIcon}
+              </div>
+            )}
+            <input
+              id={id}
+              type={type}
+              value={value}
+              onChange={onChange}
+              placeholder={placeholder}
+              className={finalInputClasses}
+              ref={ref} // Forward the ref
+              {...rest} // Spread any other HTML input attributes like 'required', 'disabled', 'min', 'max' etc.
+            />
+            {rightIcon && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+                {rightIcon}
+              </div>
+            )}
           </div>
-        )}
-        <input
-          id={id}
-          type={type}
-          value={value}
-          onChange={onChange}
-          placeholder={placeholder}
-          className={finalInputClasses}
-          ref={ref} // Forward the ref
-          {...rest} // Spread any other HTML input attributes like 'required', 'disabled', 'min', 'max' etc.
-        />
-        {error && <p className={errorMessageClasses}>{error}</p>}
-      </div>
+          {error && <p className={errorMessageClasses}>{error}</p>}
+        </div>
       </>
     );
   }

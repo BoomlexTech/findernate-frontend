@@ -39,3 +39,21 @@ export const logout = async () => {
   const response = await axios.post('/users/logout');
   return response.data;
 };
+
+// Send Reset OTP - Send OTP to email for password reset
+export const sendResetOtp = async (data: {
+  email: string;
+}) => {
+  const response = await axios.post('/users/send-reset-otp', data);
+  return response.data;
+};
+
+// Verify Reset OTP and Reset Password
+export const resetPasswordWithOtp = async (data: {
+  otp: string;
+  newPassword: string;
+  confirmPassword: string;
+}) => {
+  const response = await axios.post('/users/reset-password', data);
+  return response.data;
+};
