@@ -63,7 +63,7 @@ const MainLayout = ({children}:{children:React.ReactNode}) => {
 
   return (
     <PushNotificationProvider>
-      {/* Hamburger Menu for mobile and medium screens (hidden on reels page) */}
+        {/* Hamburger Menu for mobile and medium screens (hidden on reels page) */}
       {!isNoSidebar && isMobile && !pathname.startsWith('/reels') && (
         <div className="fixed bottom-4 left-4 z-50 lg:hidden">
           <button
@@ -118,7 +118,7 @@ const MainLayout = ({children}:{children:React.ReactNode}) => {
 
       {/* Toast Container */}
       <ToastContainer />
-    </PushNotificationProvider>    
+  </PushNotificationProvider>
   )
 }
 

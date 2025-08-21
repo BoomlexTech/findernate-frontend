@@ -1,7 +1,7 @@
 import React from 'react';
 import Image from 'next/image';
 import { Chat } from '@/api/message';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, Phone, Video } from 'lucide-react';
 
 interface ChatHeaderProps {
   selected: Chat;
@@ -10,6 +10,8 @@ interface ChatHeaderProps {
   getChatDisplayName: (chat: Chat) => string;
   onProfileClick: (chat: Chat) => void;
   onBack?: () => void;
+  onVoiceCall?: (chat: Chat) => void;
+  onVideoCall?: (chat: Chat) => void;
 }
 
 export const ChatHeader: React.FC<ChatHeaderProps> = ({
@@ -18,7 +20,9 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   getChatAvatar,
   getChatDisplayName,
   onProfileClick,
-  onBack
+  onBack,
+  onVoiceCall,
+  onVideoCall
 }) => {
   return (
     <div className="p-6 border-b border-gray-200 bg-white">
@@ -66,8 +70,30 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           </div>
           </div>
         </div>
-        <div className="flex items-center space-x-4 text-gray-500">
-          {/* Future: Add call/video buttons here */}
+        <div className="flex items-center space-x-3 text-gray-500">
+          {/* Voice Call Button */}
+          {onVoiceCall && selected.chatType === 'direct' && (
+            <button
+              type="button"
+              onClick={() => onVoiceCall(selected)}
+              className="p-2 rounded-full hover:bg-gray-100 text-gray-600 hover:text-gray-800 transition-colors"
+              title="Start voice call"
+            >
+              <Phone className="w-5 h-5" />
+            </button>
+          )}
+          
+          {/* Video Call Button */}
+          {onVideoCall && selected.chatType === 'direct' && (
+            <button
+              type="button"
+              onClick={() => onVideoCall(selected)}
+              className="p-2 rounded-full hover:bg-gray-100 text-gray-600 hover:text-gray-800 transition-colors"
+              title="Start video call"
+            >
+              <Video className="w-5 h-5" />
+            </button>
+          )}
         </div>
       </div>
     </div>
