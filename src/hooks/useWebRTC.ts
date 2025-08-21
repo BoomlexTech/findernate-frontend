@@ -3,6 +3,7 @@ import { webRTCManager, CallConfig, CallStats } from '@/utils/webrtc';
 import { callAPI, Call } from '@/api/call';
 import { socketManager } from '@/utils/socket';
 import { useUserStore } from '@/store/useUserStore';
+import { ringtoneManager } from '@/utils/ringtone';
 
 export interface CallState {
   call: Call | null;
@@ -143,6 +144,9 @@ export const useWebRTC = () => {
     try {
       console.log('Ending call locally:', callStateRef.current.call._id, 'with reason:', endReason);
       
+      // Stop any playing ringtones
+      ringtoneManager.stopRingtone();
+      
       // End WebRTC call
       webRTCManager.endCall();
       console.log('WebRTC call ended locally');
@@ -173,6 +177,9 @@ export const useWebRTC = () => {
       console.log('Incoming call received:', data);
       setIncomingCall(data);
       
+      // Start incoming call ringtone
+      ringtoneManager.startRingtone('incoming');
+      
       // Set a preliminary call state so WebRTC events can reference it
       updateCallState({
         call: {
@@ -195,6 +202,10 @@ export const useWebRTC = () => {
     // Handle call accepted
     socketManager.on('call_accepted', (data) => {
       console.log('Call accepted:', data);
+      
+      // Stop ringtones when call is accepted
+      ringtoneManager.stopRingtone();
+      
       if (callStateRef.current.call && callStateRef.current.call._id === data.callId) {
         console.log('Call accepted for our call, updating status to connecting');
         updateCallState({
@@ -210,6 +221,10 @@ export const useWebRTC = () => {
     // Handle call declined
     socketManager.on('call_declined', (data) => {
       console.log('Call declined:', data);
+      
+      // Stop ringtones when call is declined
+      ringtoneManager.stopRingtone();
+      
       if (callStateRef.current.call && callStateRef.current.call._id === data.callId) {
         endCallLocally('declined');
       }
@@ -218,6 +233,9 @@ export const useWebRTC = () => {
     // Handle call ended
     socketManager.on('call_ended', (data) => {
       console.log('Call ended by remote user:', data);
+      
+      // Stop ringtones when call is ended
+      ringtoneManager.stopRingtone();
       console.log('Current call state:', callStateRef.current.call ? {
         id: callStateRef.current.call._id,
         status: callStateRef.current.call.status,
@@ -314,6 +332,9 @@ export const useWebRTC = () => {
       socketManager.initiateCall(receiverId, chatId, callType, call._id);
       console.log('Socket call initiation emitted');
 
+      // Start outgoing call ringtone
+      ringtoneManager.startRingtone('outgoing');
+
     } catch (error: any) {
       console.error('Error initiating call:', error);
       console.error('Error status:', error?.response?.status);
@@ -361,13 +382,25 @@ export const useWebRTC = () => {
   // Accept an incoming call
   const acceptCall = useCallback(async () => {
     if (!incomingCall) return;
+    
+    // Prevent multiple acceptance attempts
+    if (isLoading) {
+      console.log('⚠️ Call acceptance already in progress, ignoring duplicate request');
+      return;
+    }
 
     try {
       setIsLoading(true);
       updateCallState({ error: null });
 
+      // Stop incoming call ringtone
+      ringtoneManager.stopRingtone();
+
       // Accept call on backend
+      console.log('🔄 Attempting to accept call:', incomingCall.callId);
+      console.log('🔄 Call details:', incomingCall);
       const call = await callAPI.acceptCall(incomingCall.callId);
+      console.log('✅ Call accepted successfully on backend:', call);
 
       updateCallState({
         call,
@@ -394,9 +427,25 @@ export const useWebRTC = () => {
 
       setIncomingCall(null);
 
-    } catch (error) {
-      console.error('Error accepting call:', error);
-      handleError(error as Error);
+    } catch (error: any) {
+      console.error('❌ Error accepting call:', error);
+      console.error('❌ Error response:', error?.response?.data);
+      console.error('❌ Call ID that failed:', incomingCall.callId);
+      console.error('❌ Error status:', error?.response?.status);
+      
+      if (error?.response?.data?.message === 'Call cannot be accepted in current status') {
+        console.error('❌ Call status issue - the call may have expired or been cancelled');
+        console.error('❌ This usually happens when:');
+        console.error('   1. Call was already declined/ended by caller');
+        console.error('   2. Call timed out on backend');
+        console.error('   3. Network delay caused status race condition');
+        
+        // Clear the incoming call since it's no longer valid
+        setIncomingCall(null);
+        updateCallState({ error: 'Call is no longer available' });
+      } else {
+        handleError(error as Error);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -407,6 +456,9 @@ export const useWebRTC = () => {
     if (!incomingCall) return;
 
     try {
+      // Stop incoming call ringtone
+      ringtoneManager.stopRingtone();
+
       // Decline call on backend
       await callAPI.declineCall(incomingCall.callId);
 
@@ -430,6 +482,9 @@ export const useWebRTC = () => {
 
     try {
       console.log('Ending call:', callState.call._id, 'with reason:', endReason);
+      
+      // Stop any playing ringtones
+      ringtoneManager.stopRingtone();
       
       // End call on backend
       await callAPI.endCall(callState.call._id, { endReason: endReason as any });
@@ -476,6 +531,9 @@ export const useWebRTC = () => {
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      // Stop any playing ringtones on unmount
+      ringtoneManager.stopRingtone();
+      
       if (callState.isInCall) {
         endCall('cancelled');
       }
