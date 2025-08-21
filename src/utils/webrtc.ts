@@ -28,6 +28,8 @@ export class WebRTCManager {
   private pendingOffer: { offer: RTCSessionDescriptionInit; senderId: string } | null = null;
   private receiverId: string | null = null;
   private callerId: string | null = null;
+  private connectionRetryCount = 0;
+  private maxRetries = 2;
   
   // Event callbacks
   private onRemoteStreamCallback?: (stream: MediaStream) => void;
@@ -35,18 +37,14 @@ export class WebRTCManager {
   private onCallStatsCallback?: (stats: CallStats) => void;
   private onErrorCallback?: (error: Error) => void;
 
-  // ICE servers configuration - Production ready with TURN servers
+  // ICE servers configuration - Enhanced for production with multiple TURN providers
   private iceServers: RTCIceServer[] = [
-    // Primary STUN servers
-    { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:stun1.l.google.com:19302' },
-    { urls: 'stun:stun.stunprotocol.org:3478' },
-    
-    // Free TURN servers (limited but better than none)
+    // Multiple TURN servers for better reliability
     {
       urls: [
         'turn:openrelay.metered.ca:80',
-        'turn:openrelay.metered.ca:443'
+        'turn:openrelay.metered.ca:443',
+        'turns:openrelay.metered.ca:443'
       ],
       username: 'openrelayproject',
       credential: 'openrelayproject'
@@ -60,14 +58,30 @@ export class WebRTCManager {
       credential: 'openrelayproject'
     },
     
-    // Backup STUN servers
-    { urls: 'stun:stun.voiparound.com' },
-    { urls: 'stun:stun.voipbuster.com' },
+    // Additional free TURN servers
+    {
+      urls: [
+        'turn:relay.webrtc.ro:3478',
+        'turn:relay.webrtc.ro:80',
+        'turn:relay.webrtc.ro:443'
+      ],
+      username: 'test',
+      credential: 'test123'
+    },
     
-    // Additional reliable STUN servers
-    { urls: 'stun:stun.12connect.com:3478' },
-    { urls: 'stun:stun.12voip.com:3478' },
-    { urls: 'stun:stun.1und1.de:3478' }
+    // Fallback STUN servers (multiple providers)
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+    { urls: 'stun:stun2.l.google.com:19302' },
+    { urls: 'stun:stun.stunprotocol.org:3478' },
+    { urls: 'stun:stun.antisip.com:3478' },
+    { urls: 'stun:stun.bluesip.net:3478' },
+    { urls: 'stun:stun.dus.net:3478' },
+    { urls: 'stun:stun.epygi.com:3478' },
+    { urls: 'stun:stun.sonetel.com:3478' },
+    { urls: 'stun:stun.uls.co.za:3478' },
+    { urls: 'stun:stun.voipgate.com:3478' },
+    { urls: 'stun:stun.voys.nl:3478' }
   ];
 
   constructor() {
@@ -85,10 +99,14 @@ export class WebRTCManager {
     console.log('🔧 Creating peer connection with ICE servers:', this.iceServers);
     const pc = new RTCPeerConnection({
       iceServers: this.iceServers,
-      iceCandidatePoolSize: 10,
+      iceCandidatePoolSize: 15, // Increased for better connectivity
       iceTransportPolicy: 'all', // Use both STUN and TURN
       bundlePolicy: 'max-bundle',
-      rtcpMuxPolicy: 'require'
+      rtcpMuxPolicy: 'require',
+      // Additional configuration for better reliability
+      sdpSemantics: 'unified-plan',
+      // Enable aggressive ICE nomination for faster connection
+      iceGatheringTimeout: 10000 // 10 seconds timeout for ICE gathering
     });
 
     // Handle ICE candidates
@@ -144,11 +162,26 @@ export class WebRTCManager {
         console.error('2. Both users are behind symmetric NAT');
         console.error('3. TURN server is needed but not available');
         console.error('4. Network doesn\'t allow UDP traffic');
-        this.onErrorCallback?.(new Error('ICE connection failed - Network connectivity issue'));
+        
+        // Attempt retry if we haven't exceeded max retries
+        if (this.connectionRetryCount < this.maxRetries) {
+          this.connectionRetryCount++;
+          console.warn(`🔄 Attempting connection retry ${this.connectionRetryCount}/${this.maxRetries}`);
+          
+          // Wait a bit then retry with a fresh connection
+          setTimeout(() => {
+            this.retryConnection();
+          }, 2000);
+        } else {
+          console.error('❌ Max connection retries exceeded');
+          this.onErrorCallback?.(new Error('ICE connection failed - Network connectivity issue'));
+        }
       } else if (pc.iceConnectionState === 'disconnected') {
         console.warn('⚠️ ICE connection disconnected - attempting to reconnect...');
       } else if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
         console.log('✅ ICE connection established successfully!');
+        // Reset retry count on successful connection
+        this.connectionRetryCount = 0;
       }
     };
 
@@ -402,6 +435,10 @@ export class WebRTCManager {
     this.callerId = null;
     this.isInitiator = false;
     this.pendingCandidates = [];
+    this.pendingOffer = null;
+    
+    // Reset retry count
+    this.connectionRetryCount = 0;
   }
 
   // Toggle local audio
@@ -537,6 +574,45 @@ export class WebRTCManager {
 
   onError(callback: (error: Error) => void): void {
     this.onErrorCallback = callback;
+  }
+
+  // Retry connection with fresh peer connection
+  private async retryConnection(): Promise<void> {
+    console.log('🔄 Retrying WebRTC connection with fresh peer connection...');
+    
+    try {
+      // Close current peer connection
+      if (this.peerConnection) {
+        this.peerConnection.close();
+      }
+
+      // Create new peer connection
+      this.peerConnection = this.createPeerConnection();
+
+      // Add local stream if available
+      if (this.localStream) {
+        this.localStream.getTracks().forEach(track => {
+          this.peerConnection!.addTrack(track, this.localStream!);
+        });
+      }
+
+      // If we're the initiator, create a new offer
+      if (this.isInitiator && this.receiverId) {
+        const offer = await this.peerConnection.createOffer();
+        await this.peerConnection.setLocalDescription(offer);
+        
+        console.log('🔄 Sending retry WebRTC offer');
+        socketManager.sendWebRTCOffer(this.callId!, this.receiverId, offer);
+      } 
+      // If we have a pending offer (receiver), process it again
+      else if (this.pendingOffer) {
+        console.log('🔄 Reprocessing pending offer after retry');
+        await this.processOffer(this.callId!, this.pendingOffer.offer, this.pendingOffer.senderId);
+      }
+    } catch (error) {
+      console.error('❌ Error during connection retry:', error);
+      this.onErrorCallback?.(error as Error);
+    }
   }
 }
 
