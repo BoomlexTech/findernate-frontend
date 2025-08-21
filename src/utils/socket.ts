@@ -214,6 +214,45 @@ class SocketManager {
     this.socket.on('user_offline', (data: { userId: string; timestamp: string }) => {
       this.emit('user_offline', data);
     });
+
+    // ===== CALL EVENT LISTENERS =====
+    
+    // Call management events
+    this.socket.on('incoming_call', (data) => {
+      this.emit('incoming_call', data);
+    });
+
+    this.socket.on('call_accepted', (data) => {
+      this.emit('call_accepted', data);
+    });
+
+    this.socket.on('call_declined', (data) => {
+      this.emit('call_declined', data);
+    });
+
+    this.socket.on('call_ended', (data) => {
+      this.emit('call_ended', data);
+    });
+
+    this.socket.on('call_status_update', (data) => {
+      this.emit('call_status_update', data);
+    });
+
+    // WebRTC signaling events
+    this.socket.on('webrtc_offer', (data) => {
+      console.log('🔄 Socket: Received WebRTC offer event:', data.callId, 'from:', data.senderId);
+      this.emit('webrtc_offer', data);
+    });
+
+    this.socket.on('webrtc_answer', (data) => {
+      console.log('🔄 Socket: Received WebRTC answer event:', data.callId, 'from:', data.senderId);
+      this.emit('webrtc_answer', data);
+    });
+
+    this.socket.on('webrtc_ice_candidate', (data) => {
+      console.log('🔄 Socket: Received ICE candidate event:', data.callId, 'from:', data.senderId);
+      this.emit('webrtc_ice_candidate', data);
+    });
   }
 
   // Join a chat room
@@ -342,6 +381,62 @@ class SocketManager {
         event,
         data
       });
+    }
+  }
+
+  // ===== CALL SIGNALING METHODS =====
+  
+  // Call management
+  initiateCall(receiverId: string, chatId: string, callType: string, callId: string) {
+    if (this.socket?.connected) {
+      this.socket.emit('call_initiate', { receiverId, chatId, callType, callId });
+    }
+  }
+
+  acceptCall(callId: string, callerId: string) {
+    if (this.socket?.connected) {
+      this.socket.emit('call_accept', { callId, callerId });
+    }
+  }
+
+  declineCall(callId: string, callerId: string) {
+    if (this.socket?.connected) {
+      this.socket.emit('call_decline', { callId, callerId });
+    }
+  }
+
+  endCall(callId: string, participants: string[], endReason: string = 'normal') {
+    if (this.socket?.connected) {
+      this.socket.emit('call_end', { callId, participants, endReason });
+    }
+  }
+
+  // WebRTC signaling
+  sendWebRTCOffer(callId: string, receiverId: string, offer: RTCSessionDescriptionInit) {
+    if (this.socket?.connected) {
+      console.log('🔄 Socket: Sending WebRTC offer via socket to receiver:', receiverId);
+      this.socket.emit('webrtc_offer', { callId, receiverId, offer });
+      console.log('🔄 Socket: WebRTC offer emitted successfully');
+    } else {
+      console.error('❌ Socket: Cannot send WebRTC offer - socket not connected');
+    }
+  }
+
+  sendWebRTCAnswer(callId: string, callerId: string, answer: RTCSessionDescriptionInit) {
+    if (this.socket?.connected) {
+      this.socket.emit('webrtc_answer', { callId, callerId, answer });
+    }
+  }
+
+  sendICECandidate(callId: string, receiverId: string, candidate: any) {
+    if (this.socket?.connected) {
+      this.socket.emit('webrtc_ice_candidate', { callId, receiverId, candidate });
+    }
+  }
+
+  updateCallStatus(callId: string, participants: string[], status: string, metadata?: any) {
+    if (this.socket?.connected) {
+      this.socket.emit('call_status_update', { callId, participants, status, metadata });
     }
   }
 }

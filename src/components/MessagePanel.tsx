@@ -1,8 +1,9 @@
 "use client";
 import React, { useRef } from "react";
 import { useUserStore } from "@/store/useUserStore";
-import { messageAPI } from "@/api/message";
+import { messageAPI, Chat } from "@/api/message";
 import { EmojiClickData } from 'emoji-picker-react';
+import { useWebRTC } from '@/hooks/useWebRTC';
 
 // Custom hooks
 import { useChatManagement } from '@/hooks/useChatManagement';
@@ -19,6 +20,8 @@ import { ContextMenu } from './message/ContextMenu';
 import { NewChatModal } from './message/NewChatModal';
 import { GroupChatModal } from './message/GroupChatModal';
 import { GroupDetailsModal } from './message/GroupDetailsModal';
+import { CallModal } from './call/CallModal';
+import { IncomingCallModal } from './call/IncomingCallModal';
 
 export default function MessagePanel() {
   const user = useUserStore((state) => state.user);
@@ -97,6 +100,49 @@ export default function MessagePanel() {
     setChats,
     scrollToBottom
   });
+
+  // WebRTC call functionality
+  const { 
+    callState, 
+    incomingCall, 
+    initiateCall, 
+    acceptCall, 
+    declineCall, 
+    endCall,
+    toggleAudio,
+    toggleVideo
+  } = useWebRTC();
+
+  // Call handlers
+  const handleVoiceCall = async (chat: Chat) => {
+    if (chat.chatType !== 'direct') return;
+    
+    const receiverId = chat.participants.find(p => p._id !== user?._id)?._id;
+    if (!receiverId) return;
+
+    try {
+      console.log('Starting voice call with:', getChatDisplayName(chat));
+      await initiateCall(receiverId, chat._id, 'voice');
+    } catch (error) {
+      console.error('Failed to start voice call:', error);
+      alert('Failed to start voice call. Please try again.');
+    }
+  };
+
+  const handleVideoCall = async (chat: Chat) => {
+    if (chat.chatType !== 'direct') return;
+    
+    const receiverId = chat.participants.find(p => p._id !== user?._id)?._id;
+    if (!receiverId) return;
+
+    try {
+      console.log('Starting video call with:', getChatDisplayName(chat));
+      await initiateCall(receiverId, chat._id, 'video');
+    } catch (error) {
+      console.error('Failed to start video call:', error);
+      alert('Failed to start video call. Please try again.');
+    }
+  };
 
   // Modal state
   const {
@@ -214,6 +260,8 @@ export default function MessagePanel() {
             onProfileClick={(chat) => handleProfileClick(chat, setShowGroupDetails)}
             onBack={() => setSelectedChat(null)}
             onContextMenu={(messageId, x, y) => setShowContextMenu({ messageId, x, y })}
+            onVoiceCall={handleVoiceCall}
+            onVideoCall={handleVideoCall}
             newMessage={newMessage}
             setNewMessage={setNewMessage}
             onSendMessage={handleFormSubmit}
@@ -280,6 +328,25 @@ export default function MessagePanel() {
         getChatDisplayName={getChatDisplayName}
         user={user}
       />
+
+      {/* Call Modals */}
+      {callState.isInCall && (
+        <CallModal
+          callState={callState}
+          currentUser={user}
+          onEndCall={() => endCall()}
+          onToggleAudio={toggleAudio}
+          onToggleVideo={toggleVideo}
+        />
+      )}
+
+      {incomingCall && (
+        <IncomingCallModal
+          incomingCall={incomingCall}
+          onAccept={acceptCall}
+          onDecline={declineCall}
+        />
+      )}
     </div>
   );
 }
