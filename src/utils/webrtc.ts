@@ -35,17 +35,39 @@ export class WebRTCManager {
   private onCallStatsCallback?: (stats: CallStats) => void;
   private onErrorCallback?: (error: Error) => void;
 
-  // ICE servers configuration
+  // ICE servers configuration - Production ready with TURN servers
   private iceServers: RTCIceServer[] = [
+    // Primary STUN servers
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
-    { urls: 'stun:stun2.l.google.com:19302' },
-    { urls: 'stun:stun3.l.google.com:19302' },
-    { urls: 'stun:stun4.l.google.com:19302' },
-    // Add more reliable STUN servers
     { urls: 'stun:stun.stunprotocol.org:3478' },
+    
+    // Free TURN servers (limited but better than none)
+    {
+      urls: [
+        'turn:openrelay.metered.ca:80',
+        'turn:openrelay.metered.ca:443'
+      ],
+      username: 'openrelayproject',
+      credential: 'openrelayproject'
+    },
+    {
+      urls: [
+        'turn:openrelay.metered.ca:80?transport=tcp',
+        'turn:openrelay.metered.ca:443?transport=tcp'
+      ],
+      username: 'openrelayproject',
+      credential: 'openrelayproject'
+    },
+    
+    // Backup STUN servers
     { urls: 'stun:stun.voiparound.com' },
     { urls: 'stun:stun.voipbuster.com' },
+    
+    // Additional reliable STUN servers
+    { urls: 'stun:stun.12connect.com:3478' },
+    { urls: 'stun:stun.12voip.com:3478' },
+    { urls: 'stun:stun.1und1.de:3478' }
   ];
 
   constructor() {
@@ -60,9 +82,13 @@ export class WebRTCManager {
 
   // Initialize peer connection
   private createPeerConnection(): RTCPeerConnection {
+    console.log('🔧 Creating peer connection with ICE servers:', this.iceServers);
     const pc = new RTCPeerConnection({
       iceServers: this.iceServers,
       iceCandidatePoolSize: 10,
+      iceTransportPolicy: 'all', // Use both STUN and TURN
+      bundlePolicy: 'max-bundle',
+      rtcpMuxPolicy: 'require'
     });
 
     // Handle ICE candidates
@@ -110,9 +136,19 @@ export class WebRTCManager {
     // Handle ICE connection state changes
     pc.oniceconnectionstatechange = () => {
       console.log('ICE connection state:', pc.iceConnectionState);
+      console.log('ICE gathering state:', pc.iceGatheringState);
       
       if (pc.iceConnectionState === 'failed') {
-        this.onErrorCallback?.(new Error('ICE connection failed'));
+        console.error('❌ ICE connection failed - this usually means:');
+        console.error('1. Firewall is blocking WebRTC traffic');
+        console.error('2. Both users are behind symmetric NAT');
+        console.error('3. TURN server is needed but not available');
+        console.error('4. Network doesn\'t allow UDP traffic');
+        this.onErrorCallback?.(new Error('ICE connection failed - Network connectivity issue'));
+      } else if (pc.iceConnectionState === 'disconnected') {
+        console.warn('⚠️ ICE connection disconnected - attempting to reconnect...');
+      } else if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
+        console.log('✅ ICE connection established successfully!');
       }
     };
 
