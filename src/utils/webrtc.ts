@@ -102,11 +102,9 @@ export class WebRTCManager {
       iceCandidatePoolSize: 15, // Increased for better connectivity
       iceTransportPolicy: 'all', // Use both STUN and TURN
       bundlePolicy: 'max-bundle',
-      rtcpMuxPolicy: 'require',
-      // Additional configuration for better reliability
-      sdpSemantics: 'unified-plan',
-      // Enable aggressive ICE nomination for faster connection
-      iceGatheringTimeout: 10000 // 10 seconds timeout for ICE gathering
+  rtcpMuxPolicy: 'require',
+  // Additional configuration for better reliability
+  // Enable aggressive ICE nomination for faster connection
     });
 
     // Handle ICE candidates
