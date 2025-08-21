@@ -43,10 +43,24 @@ export const GetBusinessCategory = async () => {
 
 export const switchToBusiness = async () => {
     try {
-        const response = await axios.put("/business/switch-to-business");
+        const response = await axios.post("/business/switch-to-business");
         return response.data;
     } catch (error: any) {
         console.error('Switch to business error:', {
+            status: error.response?.status,
+            message: error.response?.data?.message,
+            error: error.message
+        });
+        throw error;
+    }
+}
+
+export const switchToPersonal = async () => {
+    try {
+        const response = await axios.post("/business/switch-to-personal");
+        return response.data;
+    } catch (error: any) {
+        console.error('Switch to personal error:', {
             status: error.response?.status,
             message: error.response?.data?.message,
             error: error.message
