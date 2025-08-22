@@ -44,31 +44,28 @@ export class WebRTCManager {
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
     
-    // Your custom TURN server (primary)
+    // Your custom TURN server's STUN endpoint
+    { urls: `stun:${process.env.NEXT_PUBLIC_TURN_SERVER_URL}` },
+    
+    // Your custom TURN server (primary) - Both TCP and UDP
     {
-      urls: `turn:${process.env.NEXT_PUBLIC_TURN_SERVER_URL}`,
+      urls: [
+        `turn:${process.env.NEXT_PUBLIC_TURN_SERVER_URL}?transport=udp`,
+        `turn:${process.env.NEXT_PUBLIC_TURN_SERVER_URL}?transport=tcp`
+      ],
       username: process.env.NEXT_PUBLIC_TURN_SERVER_USERNAME!,
       credential: process.env.NEXT_PUBLIC_TURN_SERVER_PASSWORD!
     },
     
-    // Backup TURN servers for reliability
+    // Backup TURN servers for reliability  
     {
       urls: [
-        'turn:openrelay.metered.ca:80',
-        'turn:openrelay.metered.ca:443'
+        'turn:openrelay.metered.ca:80?transport=tcp',
+        'turn:openrelay.metered.ca:80?transport=udp',
+        'turn:openrelay.metered.ca:443?transport=tcp'
       ],
       username: 'openrelayproject',
       credential: 'openrelayproject'
-    },
-    
-    // Additional TURN server backup
-    {
-      urls: [
-        'turn:numb.viagenie.ca:3478',
-        'turns:numb.viagenie.ca:5349'
-      ],
-      username: 'webrtc@live.com',
-      credential: 'muazkh'
     }
   ];
 
@@ -76,11 +73,26 @@ export class WebRTCManager {
     const instanceId = Math.random().toString(36).substr(2, 9);
     console.log('🎯 WebRTC Manager: Constructor called, setting up socket listeners - Instance:', instanceId);
     
-    // Log TURN server configuration
+    // Log and validate TURN server configuration
     console.log('🔧 TURN Server Configuration:');
     console.log('URL:', process.env.NEXT_PUBLIC_TURN_SERVER_URL);
     console.log('Username:', process.env.NEXT_PUBLIC_TURN_SERVER_USERNAME);
     console.log('Password:', process.env.NEXT_PUBLIC_TURN_SERVER_PASSWORD ? '[SET]' : '[NOT SET]');
+    
+    // Validate TURN server config
+    if (!process.env.NEXT_PUBLIC_TURN_SERVER_URL || 
+        !process.env.NEXT_PUBLIC_TURN_SERVER_USERNAME || 
+        !process.env.NEXT_PUBLIC_TURN_SERVER_PASSWORD) {
+      console.error('❌ TURN server environment variables are not properly set!');
+      console.error('Missing:', {
+        url: !process.env.NEXT_PUBLIC_TURN_SERVER_URL ? 'NEXT_PUBLIC_TURN_SERVER_URL' : null,
+        username: !process.env.NEXT_PUBLIC_TURN_SERVER_USERNAME ? 'NEXT_PUBLIC_TURN_SERVER_USERNAME' : null,
+        password: !process.env.NEXT_PUBLIC_TURN_SERVER_PASSWORD ? 'NEXT_PUBLIC_TURN_SERVER_PASSWORD' : null,
+      });
+    } else {
+      console.log('✅ TURN server configuration is valid');
+    }
+    
     console.log('📡 ICE Servers:', this.iceServers);
     
     // Always set up socket listeners immediately
@@ -90,40 +102,63 @@ export class WebRTCManager {
   }
 
   // Initialize peer connection with enhanced settings
-  private createPeerConnection(): RTCPeerConnection {
+  private createPeerConnection(forceRelay: boolean = false): RTCPeerConnection {
     console.log('🔧 Creating peer connection with ICE servers:', this.iceServers);
-    const pc = new RTCPeerConnection({
+    
+    const config: RTCConfiguration = {
       iceServers: this.iceServers,
       iceCandidatePoolSize: 10,
-      iceTransportPolicy: 'all', // Try both direct and relay
+      iceTransportPolicy: forceRelay ? 'relay' : 'all', // Force relay if specified
       bundlePolicy: 'max-bundle',
       rtcpMuxPolicy: 'require'
-    });
+    };
     
-    // Shorter timeout with forced TURN fallback
+    if (forceRelay) {
+      // When forcing relay, use only TURN servers
+      config.iceServers = this.iceServers.filter(server => 
+        server.urls.toString().includes('turn:') || server.urls.toString().includes('turns:')
+      );
+      console.log('🔄 Using TURN-only servers:', config.iceServers);
+    }
+    
+    const pc = new RTCPeerConnection(config);
+    
+    // Longer timeout for TURN servers (they need more time to establish)
     const connectionTimeout = setTimeout(() => {
       if ((pc.iceConnectionState as string) !== 'connected' && (pc.iceConnectionState as string) !== 'completed') {
-        console.warn('⚠️ Connection timeout after 15 seconds, attempting TURN relay fallback');
-        this.retryConnectionWithTurnOnly(pc);
+        console.warn('⚠️ Connection timeout after 25 seconds, attempting TURN relay fallback');
+        if (!forceRelay) {
+          this.retryConnectionWithTurnOnly(pc);
+        } else {
+          console.error('❌ TURN relay also failed, connection cannot be established');
+          this.onErrorCallback?.(new Error('Connection failed even with TURN relay'));
+        }
       }
-    }, 15000);
+    }, 25000); // Increased timeout to 25 seconds
 
-    // Handle ICE candidates
+    // Handle ICE candidates with detailed logging
     pc.onicecandidate = (event) => {
-      console.log('ICE candidate generated:', event.candidate?.candidate?.substring(0, 50) + '...');
-      if (event.candidate && this.callId) {
-        const targetUserId = this.isInitiator ? this.receiverId : this.callerId;
-        console.log('Sending ICE candidate to:', targetUserId);
-        if (targetUserId) {
-          socketManager.sendICECandidate(
-            this.callId,
-            targetUserId,
-            {
-              candidate: event.candidate.candidate,
-              sdpMLineIndex: event.candidate.sdpMLineIndex,
-              sdpMid: event.candidate.sdpMid,
-            }
-          );
+      if (event.candidate) {
+        const candidate = event.candidate.candidate;
+        const candidateType = candidate.includes('typ relay') ? '🔄 RELAY' : 
+                              candidate.includes('typ srflx') ? '🌐 SRFLX' : 
+                              candidate.includes('typ host') ? '🏠 HOST' : '❓ UNKNOWN';
+        console.log(`ICE candidate generated (${candidateType}):`, candidate.substring(0, 80) + '...');
+        
+        if (this.callId) {
+          const targetUserId = this.isInitiator ? this.receiverId : this.callerId;
+          console.log('Sending ICE candidate to:', targetUserId);
+          if (targetUserId) {
+            socketManager.sendICECandidate(
+              this.callId,
+              targetUserId,
+              {
+                candidate: event.candidate.candidate,
+                sdpMLineIndex: event.candidate.sdpMLineIndex,
+                sdpMid: event.candidate.sdpMid,
+              }
+            );
+          }
         }
       }
     };
@@ -707,27 +742,12 @@ export class WebRTCManager {
     console.log(`🔄 Retry attempt ${this.connectionRetryCount}/${this.maxRetries} with TURN-only configuration`);
 
     try {
-      // Create new peer connection with TURN servers only
-      const turnOnlyServers = this.iceServers.filter(server => 
-        server.urls.toString().includes('turn:') || server.urls.toString().includes('turns:')
-      );
-
-      console.log('🔄 Using TURN-only servers for retry:', turnOnlyServers);
-
-      const turnOnlyPc = new RTCPeerConnection({
-        iceServers: turnOnlyServers,
-        iceTransportPolicy: 'relay', // Force TURN relay only
-        iceCandidatePoolSize: 10,
-        bundlePolicy: 'max-bundle',
-        rtcpMuxPolicy: 'require'
-      });
-
       // Close the failed connection
       failedPc.close();
       
-      // Replace with new TURN-only connection
+      // Create new TURN-only peer connection
+      const turnOnlyPc = this.createPeerConnection(true); // Force relay mode
       this.peerConnection = turnOnlyPc;
-      this.setupPeerConnectionHandlers(turnOnlyPc);
 
       // Re-add local stream to new connection
       if (this.localStream) {
