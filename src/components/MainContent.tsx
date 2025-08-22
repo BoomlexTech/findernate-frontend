@@ -224,7 +224,7 @@ export default function MainContent() {
   }, [page, fetchPosts]);
 
   return (
-    <div className="max-w-3xl mx-auto py-4 px-2 sm:px-4">
+    <div className="max-w-3xl mx-auto py-4 px-0 sm:px-4">
       {initialLoad ? (
         <div className="flex flex-col items-center justify-center min-h-[60vh]">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-[#FCD45C] border-t-transparent mb-4"></div>
@@ -243,7 +243,7 @@ export default function MainContent() {
         </div>
       ) : (
         <>
-          <div className="space-y-4 sm:space-y-6 mt-6">
+          <div className="space-y-0 sm:space-y-6 mt-0 sm:mt-6">
             {feed
             .filter(post => !!post && !!post._id)
             .map((post) => (
