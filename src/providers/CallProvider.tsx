@@ -216,21 +216,31 @@ export const CallProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Call declined
     socketManager.on('call_declined', (data) => {
       console.log('❌ CallProvider: Call declined:', data);
-      if (state.currentCall && state.currentCall._id === data.callId) {
+      const isCurrentCall = state.currentCall && state.currentCall._id === data.callId;
+      const isIncomingCall = state.incomingCall && state.incomingCall.callId === data.callId;
+      
+      if (isCurrentCall || isIncomingCall) {
         dispatch({ type: 'SET_STATE', payload: CallState.ENDED });
         ringtoneManager.stopRingtone();
-        setTimeout(() => dispatch({ type: 'RESET_CALL' }), 2000);
+        
+        // Clear the modal immediately instead of waiting 2 seconds
+        setTimeout(() => dispatch({ type: 'RESET_CALL' }), 500);
       }
     });
 
     // Call ended
     socketManager.on('call_ended', (data) => {
       console.log('🔚 CallProvider: Call ended:', data);
-      if (state.currentCall && state.currentCall._id === data.callId) {
+      const isCurrentCall = state.currentCall && state.currentCall._id === data.callId;
+      const isIncomingCall = state.incomingCall && state.incomingCall.callId === data.callId;
+      
+      if (isCurrentCall || isIncomingCall) {
         dispatch({ type: 'SET_STATE', payload: CallState.ENDED });
         ringtoneManager.stopRingtone();
         webRTCManager.endCall();
-        setTimeout(() => dispatch({ type: 'RESET_CALL' }), 2000);
+        
+        // Clear the modal immediately instead of waiting 2 seconds
+        setTimeout(() => dispatch({ type: 'RESET_CALL' }), 500);
       }
     });
 
@@ -395,15 +405,18 @@ export const CallProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (!state.incomingCall) return;
 
     try {
+      console.log('🔴 CallProvider: Declining call:', state.incomingCall.callId);
       ringtoneManager.stopRingtone();
+      
+      // Immediately clear the modal by resetting state
+      dispatch({ type: 'RESET_CALL' });
+      console.log('🔴 CallProvider: Call state reset after decline');
       
       // Decline on backend
       await callAPI.declineCall(state.incomingCall.callId);
       
       // Emit decline
       socketManager.declineCall(state.incomingCall.callId, state.incomingCall.caller._id);
-      
-      dispatch({ type: 'RESET_CALL' });
     } catch (error) {
       console.error('❌ CallProvider: Error declining call:', error);
     }
@@ -427,7 +440,9 @@ export const CallProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       webRTCManager.endCall();
       
       dispatch({ type: 'SET_STATE', payload: CallState.ENDED });
-      setTimeout(() => dispatch({ type: 'RESET_CALL' }), 2000);
+      
+      // Clear modal faster for better UX
+      setTimeout(() => dispatch({ type: 'RESET_CALL' }), 500);
     } catch (error) {
       console.error('❌ CallProvider: Error ending call:', error);
     }
