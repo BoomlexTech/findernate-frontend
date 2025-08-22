@@ -34,8 +34,12 @@ export interface IncomingCall {
 export const useWebRTC = () => {
   const user = useUserStore((state) => state.user);
   
-  // Ensure WebRTC manager is initialized when hook is used
-  console.log('🎯 useWebRTC hook initialized, WebRTC manager ready:', !!webRTCManager);
+  // Ensure WebRTC manager is initialized when hook is used (only log once per session)
+  const isInitialized = useRef(false);
+  if (!isInitialized.current) {
+    console.log('🎯 useWebRTC hook initialized for the first time, WebRTC manager ready:', !!webRTCManager);
+    isInitialized.current = true;
+  }
   
   const [callState, setCallState] = useState<CallState>({
     call: null,
@@ -182,7 +186,9 @@ export const useWebRTC = () => {
       
       // CRITICAL FIX: Prepare WebRTC manager to receive offers for this incoming call
       console.log('🎯 Preparing WebRTC manager for incoming call:', data.callId, 'from caller:', data.caller._id);
+      console.log('🎯 WebRTC Manager instance before prepare:', webRTCManager);
       webRTCManager.prepareForIncomingCall(data.callId, data.caller._id);
+      console.log('🎯 WebRTC Manager prepared successfully for incoming call');
       
       // Set a preliminary call state so WebRTC events can reference it
       updateCallState({
