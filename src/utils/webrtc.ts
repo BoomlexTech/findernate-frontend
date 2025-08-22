@@ -209,7 +209,11 @@ export class WebRTCManager {
       console.log('🚨 WEBRTC_OFFER HANDLER EXECUTED!!! 🚨');
       console.log('🎯 WebRTC Manager: Received WebRTC offer for call:', callId, 'from sender:', senderId);
       console.log('🎯 WebRTC Manager: Current callId:', this.callId);
+      console.log('🎯 WebRTC Manager: Current callerId:', this.callerId);
+      console.log('🎯 WebRTC Manager: isInitiator:', this.isInitiator);
       console.log('🎯 WebRTC Manager: Offer SDP type:', offer?.type);
+      console.log('🎯 WebRTC Manager: PeerConnection exists:', !!this.peerConnection);
+      console.log('🎯 WebRTC Manager: LocalStream exists:', !!this.localStream);
       
       try {
         // Validate the call ID matches what we're expecting
@@ -218,9 +222,9 @@ export class WebRTCManager {
           return;
         }
         
-        // If we don't have a peer connection yet, store the offer for later
-        if (!this.peerConnection || !this.localStream) {
-          console.log('⏳ Peer connection not ready, storing offer for later processing...');
+        // If we don't have a local stream yet, store the offer for later
+        if (!this.localStream) {
+          console.log('⏳ Local stream not ready, storing offer for later processing...');
           console.log('⏳ PeerConnection exists:', !!this.peerConnection);
           console.log('⏳ LocalStream exists:', !!this.localStream);
           console.log('⏳ CallId already set:', !!this.callId);
@@ -239,6 +243,11 @@ export class WebRTCManager {
           
           console.log('⏳ Stored pending offer with senderId:', senderId, 'for callId:', this.callId);
           return;
+        }
+        
+        // If we have both peer connection and are ready, process immediately
+        if (this.peerConnection) {
+          console.log('🚀 Ready to process offer immediately - peer connection and local stream available');
         }
 
         await this.processOffer(callId, offer, senderId);
@@ -409,6 +418,11 @@ export class WebRTCManager {
     this.pendingOffer = null;
     this.pendingCandidates = [];
     
+    // Pre-create peer connection so it's ready for incoming offers
+    console.log('🔧 Pre-creating peer connection for incoming call');
+    this.peerConnection = this.createPeerConnection();
+    console.log('✅ Peer connection pre-created for incoming call');
+    
     console.log('✅ WebRTC Manager ready to receive offers for call:', callId);
   }
 
@@ -426,10 +440,13 @@ export class WebRTCManager {
       await this.initializeLocalStream(config);
       console.log('✅ Local stream initialized for receiver');
       
-      // Create peer connection if not already created
+      // Create peer connection if not already created (should already exist from prepareForIncomingCall)
       if (!this.peerConnection) {
+        console.log('⚠️ Peer connection not found, creating new one (this shouldn\'t happen if prepareForIncomingCall was called)');
         this.peerConnection = this.createPeerConnection();
         console.log('✅ Peer connection created for receiver');
+      } else {
+        console.log('✅ Using existing peer connection from prepareForIncomingCall');
       }
       
       // Add local stream tracks
