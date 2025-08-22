@@ -180,6 +180,10 @@ export const useWebRTC = () => {
       // Start incoming call ringtone
       ringtoneManager.startRingtone('incoming');
       
+      // CRITICAL FIX: Prepare WebRTC manager to receive offers for this incoming call
+      console.log('🎯 Preparing WebRTC manager for incoming call:', data.callId, 'from caller:', data.caller._id);
+      webRTCManager.prepareForIncomingCall(data.callId, data.caller._id);
+      
       // Set a preliminary call state so WebRTC events can reference it
       updateCallState({
         call: {

@@ -212,16 +212,32 @@ export class WebRTCManager {
       console.log('🎯 WebRTC Manager: Offer SDP type:', offer?.type);
       
       try {
+        // Validate the call ID matches what we're expecting
+        if (this.callId && this.callId !== callId) {
+          console.warn('⚠️ Received offer for wrong call. Expected:', this.callId, 'Received:', callId);
+          return;
+        }
+        
         // If we don't have a peer connection yet, store the offer for later
         if (!this.peerConnection || !this.localStream) {
           console.log('⏳ Peer connection not ready, storing offer for later processing...');
           console.log('⏳ PeerConnection exists:', !!this.peerConnection);
           console.log('⏳ LocalStream exists:', !!this.localStream);
+          console.log('⏳ CallId already set:', !!this.callId);
+          
           this.pendingOffer = { offer, senderId };
-          this.callId = callId;
-          this.callerId = senderId;
-          this.isInitiator = false;
-          console.log('⏳ Stored pending offer with senderId:', senderId);
+          
+          // Only set these if they weren't already set by prepareForIncomingCall
+          if (!this.callId) {
+            console.log('⏳ Setting callId and callerId from offer (fallback)');
+            this.callId = callId;
+            this.callerId = senderId;
+            this.isInitiator = false;
+          } else {
+            console.log('⏳ CallId already prepared, keeping existing values');
+          }
+          
+          console.log('⏳ Stored pending offer with senderId:', senderId, 'for callId:', this.callId);
           return;
         }
 
@@ -314,12 +330,20 @@ export class WebRTCManager {
       this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
       console.log('Local stream initialized:', this.localStream.getTracks().map(t => t.kind));
       
-      // For same machine testing, mute the local audio to prevent feedback
-      if (isSameMachineTest && config.audio) {
+      // For same machine testing, reduce volume but don't completely mute
+      if (isSameMachineTest && config.audio && !config.video) {
         this.localStream.getAudioTracks().forEach(track => {
-          track.enabled = false; // Mute local audio
+          // Only mute for voice-only calls on same machine to prevent feedback
+          // For video calls, keep audio enabled as user can see both streams
+          track.enabled = false;
         });
-        console.log('Local audio muted for same-machine testing');
+        console.log('Local audio muted for same-machine voice call testing to prevent feedback');
+      } else if (config.audio) {
+        // Ensure audio tracks are enabled for normal calls
+        this.localStream.getAudioTracks().forEach(track => {
+          track.enabled = true;
+        });
+        console.log('Local audio enabled for call');
       }
       
       return this.localStream;
@@ -367,11 +391,35 @@ export class WebRTCManager {
     }
   }
 
+  // Prepare for incoming call (receiver side) - sets up WebRTC manager to receive offers
+  prepareForIncomingCall(callId: string, callerId: string): void {
+    console.log('🎯 WebRTC Manager: Preparing for incoming call - CallId:', callId, 'CallerId:', callerId);
+    this.callId = callId;
+    this.callerId = callerId;
+    this.isInitiator = false;
+    
+    // Reset any existing connection state
+    if (this.peerConnection) {
+      console.log('🧹 Cleaning up existing peer connection before incoming call');
+      this.peerConnection.close();
+      this.peerConnection = null;
+    }
+    
+    // Clear any pending state
+    this.pendingOffer = null;
+    this.pendingCandidates = [];
+    
+    console.log('✅ WebRTC Manager ready to receive offers for call:', callId);
+  }
+
   // Accept a call (receiver side)
   async acceptCall(callId: string, config: CallConfig): Promise<void> {
     try {
-      this.callId = callId;
-      this.isInitiator = false;
+      // Verify the call ID matches what we prepared for
+      if (this.callId !== callId) {
+        console.warn('⚠️ Call ID mismatch during acceptance. Expected:', this.callId, 'Received:', callId);
+        this.callId = callId; // Update to match
+      }
       console.log('🎯 WebRTC Manager: Accepting call with callId:', callId);
       
       // Initialize local stream
