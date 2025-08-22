@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useWebRTC } from '@/hooks/useWebRTC';
+import { useCall, CallState } from '@/providers/CallProvider';
 import { CallModal } from './CallModal';
 import { IncomingCallModal } from './IncomingCallModal';
 import { Chat } from '@/api/message';
@@ -12,18 +12,29 @@ interface CallManagerProps {
 
 export const CallManager: React.FC<CallManagerProps> = ({ currentUserId }) => {
   const {
-    callState,
+    currentState,
+    currentCall,
     incomingCall,
+    localStream,
+    remoteStream,
+    connectionState,
+    isAudioEnabled,
+    isVideoEnabled,
+    callDuration,
     isLoading,
-    initiateCall,
+    error,
+    startVoiceCall,
+    startVideoCall,
     acceptCall,
     declineCall,
     endCall,
     toggleAudio,
     toggleVideo
-  } = useWebRTC();
+  } = useCall();
 
   const [isMinimized, setIsMinimized] = useState(false);
+
+  console.log('🎯 CallManager: Current state:', currentState, 'Call:', currentCall?._id);
 
   // Helper function to get the other participant ID
   const getOtherParticipantId = (chat: Chat): string => {
@@ -32,25 +43,46 @@ export const CallManager: React.FC<CallManagerProps> = ({ currentUserId }) => {
     return chat.participants.find(p => p._id !== currentUserId)?._id || '';
   };
 
+  // Helper function to get other participant info
+  const getOtherParticipant = (chat: Chat) => {
+    if (!currentUserId) return null;
+    
+    return chat.participants.find(p => p._id !== currentUserId) || null;
+  };
+
   // Handle call initiation
   const handleVoiceCall = async (chat: Chat) => {
     const receiverId = getOtherParticipantId(chat);
-    if (receiverId) {
-      await initiateCall(receiverId, chat._id, 'voice');
+    const otherParticipant = getOtherParticipant(chat);
+    
+    if (receiverId && otherParticipant) {
+      await startVoiceCall(
+        receiverId, 
+        chat._id, 
+        otherParticipant.fullName || otherParticipant.username,
+        otherParticipant.profileImageUrl
+      );
     }
   };
 
   const handleVideoCall = async (chat: Chat) => {
     const receiverId = getOtherParticipantId(chat);
-    if (receiverId) {
-      await initiateCall(receiverId, chat._id, 'video');
+    const otherParticipant = getOtherParticipant(chat);
+    
+    if (receiverId && otherParticipant) {
+      await startVideoCall(
+        receiverId, 
+        chat._id, 
+        otherParticipant.fullName || otherParticipant.username,
+        otherParticipant.profileImageUrl
+      );
     }
   };
 
   return (
     <>
       {/* Incoming Call Modal */}
-      {incomingCall && !callState.isInCall && (
+      {currentState === CallState.INCOMING && incomingCall && (
         <IncomingCallModal
           incomingCall={incomingCall}
           onAccept={acceptCall}
@@ -60,12 +92,23 @@ export const CallManager: React.FC<CallManagerProps> = ({ currentUserId }) => {
       )}
 
       {/* Active Call Modal */}
-      {callState.isInCall && (
+      {[CallState.CALLING, CallState.CONNECTING, CallState.CONNECTED, CallState.FAILED].includes(currentState) && currentCall && (
         <CallModal
-          callState={callState}
-          incomingCall={incomingCall}
-          isLoading={isLoading}
-          onEndCall={() => endCall()}
+          callState={{
+            call: currentCall,
+            localStream,
+            remoteStream,
+            isInCall: ![CallState.FAILED, CallState.ENDED].includes(currentState),
+            isInitiator: true, // We can determine this from the call data
+            connectionState,
+            callStats: null, // We can add this later
+            isAudioEnabled,
+            isVideoEnabled,
+            error
+          }}
+          isLoading={isLoading || currentState === CallState.CALLING || currentState === CallState.CONNECTING}
+          currentUser={{ _id: currentUserId }}
+          onEndCall={endCall}
           onToggleAudio={toggleAudio}
           onToggleVideo={toggleVideo}
           onMinimize={() => setIsMinimized(!isMinimized)}
@@ -78,7 +121,7 @@ export const CallManager: React.FC<CallManagerProps> = ({ currentUserId }) => {
 
 // Export helper functions for integration with other components
 export const useCallManager = (currentUserId?: string) => {
-  const callManager = useWebRTC();
+  const callManager = useCall();
 
   const getCallHandlers = (chat: Chat) => {
     const getOtherParticipantId = (): string => {
@@ -86,17 +129,36 @@ export const useCallManager = (currentUserId?: string) => {
       return chat.participants.find(p => p._id !== currentUserId)?._id || '';
     };
 
+    const getOtherParticipant = () => {
+      if (!currentUserId) return null;
+      return chat.participants.find(p => p._id !== currentUserId) || null;
+    };
+
     return {
       onVoiceCall: async () => {
         const receiverId = getOtherParticipantId();
-        if (receiverId) {
-          await callManager.initiateCall(receiverId, chat._id, 'voice');
+        const otherParticipant = getOtherParticipant();
+        
+        if (receiverId && otherParticipant) {
+          await callManager.startVoiceCall(
+            receiverId, 
+            chat._id, 
+            otherParticipant.fullName || otherParticipant.username,
+            otherParticipant.profileImageUrl
+          );
         }
       },
       onVideoCall: async () => {
         const receiverId = getOtherParticipantId();
-        if (receiverId) {
-          await callManager.initiateCall(receiverId, chat._id, 'video');
+        const otherParticipant = getOtherParticipant();
+        
+        if (receiverId && otherParticipant) {
+          await callManager.startVideoCall(
+            receiverId, 
+            chat._id, 
+            otherParticipant.fullName || otherParticipant.username,
+            otherParticipant.profileImageUrl
+          );
         }
       }
     };
