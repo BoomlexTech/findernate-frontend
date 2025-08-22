@@ -1,4 +1,5 @@
 import { socketManager } from './socket';
+import { ringtoneManager } from './ringtone';
 
 export interface CallConfig {
   audio: boolean;
@@ -144,6 +145,12 @@ export class WebRTCManager {
       // Calculate and emit call stats
       this.calculateCallStats(pc);
       
+      // Stop ringtone when connection is established
+      if (pc.connectionState === 'connected') {
+        console.log('🎉 Peer connection established successfully!');
+        ringtoneManager.stopRingtone();
+      }
+      
       if (pc.connectionState === 'failed') {
         this.onErrorCallback?.(new Error('Peer connection failed'));
       }
@@ -158,6 +165,9 @@ export class WebRTCManager {
         console.log('🎉 ICE connection established successfully!');
         clearTimeout(connectionTimeout);
         this.connectionRetryCount = 0; // Reset retry count on success
+        
+        // Ensure ringtone is stopped when connection is established
+        ringtoneManager.stopRingtone();
       } else if ((pc.iceConnectionState as string) === 'failed') {
         console.error('❌ ICE connection failed - this usually means:');
         console.error('1. Firewall is blocking WebRTC traffic');
@@ -434,6 +444,9 @@ export class WebRTCManager {
   // Accept a call (receiver side)
   async acceptCall(callId: string, config: CallConfig): Promise<void> {
     try {
+      // Stop ringtone immediately when accepting call
+      ringtoneManager.stopRingtone();
+      
       // Verify the call ID matches what we prepared for
       if (this.callId !== callId) {
         console.warn('⚠️ Call ID mismatch during acceptance. Expected:', this.callId, 'Received:', callId);
@@ -770,6 +783,9 @@ export class WebRTCManager {
       if ((pc.iceConnectionState as string) === 'connected' || (pc.iceConnectionState as string) === 'completed') {
         console.log('🎉 ICE connection established successfully!');
         this.connectionRetryCount = 0; // Reset retry count on success
+        
+        // Ensure ringtone is stopped when connection is established
+        ringtoneManager.stopRingtone();
       } else if ((pc.iceConnectionState as string) === 'disconnected') {
         console.warn('⚠️ ICE connection disconnected - attempting to reconnect...');
       }

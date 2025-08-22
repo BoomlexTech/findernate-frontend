@@ -37,18 +37,24 @@ class RingtoneManager {
   }
 
   stopRingtone() {
-    if (!this.isPlaying) return;
+    if (!this.isPlaying) {
+      console.log('🔕 Ringtone already stopped');
+      return;
+    }
 
     console.log('🔕 Stopping ringtone');
     this.isPlaying = false;
 
+    // Stop HTML audio
     if (this.audio) {
       this.audio.pause();
       this.audio.currentTime = 0;
+      console.log('🔕 HTML audio stopped');
     }
 
     // Clear any browser beep intervals
     this.stopBrowserBeep();
+    console.log('🔕 Browser beep stopped');
   }
 
   // Fallback browser beep using AudioContext
@@ -95,10 +101,16 @@ class RingtoneManager {
     if (this.beepInterval) {
       clearInterval(this.beepInterval);
       this.beepInterval = null;
+      console.log('🔕 Browser beep interval cleared');
     }
 
     if (this.audioContext) {
-      this.audioContext.close();
+      try {
+        this.audioContext.close();
+        console.log('🔕 AudioContext closed');
+      } catch (error) {
+        console.warn('Error closing AudioContext:', error);
+      }
       this.audioContext = null;
     }
   }
