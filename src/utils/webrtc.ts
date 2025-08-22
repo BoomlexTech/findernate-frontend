@@ -37,32 +37,30 @@ export class WebRTCManager {
   private onCallStatsCallback?: (stats: CallStats) => void;
   private onErrorCallback?: (error: Error) => void;
 
-  // ICE servers configuration - Optimized for better WebRTC connectivity
+  // ICE servers configuration - Using custom TURN server + reliable backups
   private iceServers: RTCIceServer[] = [
     // Primary STUN servers (most reliable for NAT discovery)
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
-    { urls: 'stun:stun2.l.google.com:19302' },
     
-    // High-performance TURN servers (ordered by reliability)
+    // Your custom TURN server (primary)
+    {
+      urls: `turn:${process.env.NEXT_PUBLIC_TURN_SERVER_URL}`,
+      username: process.env.NEXT_PUBLIC_TURN_SERVER_USERNAME!,
+      credential: process.env.NEXT_PUBLIC_TURN_SERVER_PASSWORD!
+    },
+    
+    // Backup TURN servers for reliability
     {
       urls: [
         'turn:openrelay.metered.ca:80',
-        'turn:openrelay.metered.ca:443',
-        'turns:openrelay.metered.ca:443'
+        'turn:openrelay.metered.ca:443'
       ],
       username: 'openrelayproject',
       credential: 'openrelayproject'
     },
     
-    // Backup TURN servers with TCP transport
-    {
-      urls: 'turn:openrelay.metered.ca:80?transport=tcp',
-      username: 'openrelayproject',
-      credential: 'openrelayproject'
-    },
-    
-    // Alternative TURN provider
+    // Additional TURN server backup
     {
       urls: [
         'turn:numb.viagenie.ca:3478',
@@ -70,21 +68,19 @@ export class WebRTCManager {
       ],
       username: 'webrtc@live.com',
       credential: 'muazkh'
-    },
-    
-    // Express TURN servers as backup
-    {
-      urls: [
-        'turn:relay1.expressturn.com:3478'
-      ],
-      username: 'ef3IUQAU7WGMCXP1',
-      credential: 'jdSKennwOomyoLhD'
     }
   ];
 
   constructor() {
     const instanceId = Math.random().toString(36).substr(2, 9);
     console.log('🎯 WebRTC Manager: Constructor called, setting up socket listeners - Instance:', instanceId);
+    
+    // Log TURN server configuration
+    console.log('🔧 TURN Server Configuration:');
+    console.log('URL:', process.env.NEXT_PUBLIC_TURN_SERVER_URL);
+    console.log('Username:', process.env.NEXT_PUBLIC_TURN_SERVER_USERNAME);
+    console.log('Password:', process.env.NEXT_PUBLIC_TURN_SERVER_PASSWORD ? '[SET]' : '[NOT SET]');
+    console.log('📡 ICE Servers:', this.iceServers);
     
     // Always set up socket listeners immediately
     // Socket events will be queued until socket connects, which is fine
