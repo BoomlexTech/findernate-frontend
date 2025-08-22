@@ -99,7 +99,7 @@ export class WebRTCManager {
     
     // Add 30-second timeout for connection establishment
     const connectionTimeout = setTimeout(() => {
-      if (pc.iceConnectionState !== 'connected' && pc.iceConnectionState !== 'completed') {
+      if ((pc.iceConnectionState as string) !== 'connected' && (pc.iceConnectionState as string) !== 'completed') {
         console.warn('⚠️ Connection timeout after 30 seconds, forcing TURN relay mode');
         // Don't close the connection, let the retry mechanism handle it
       }
@@ -152,11 +152,11 @@ export class WebRTCManager {
       console.log('ICE connection state:', pc.iceConnectionState);
       console.log('ICE gathering state:', pc.iceGatheringState);
       
-      if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
+      if ((pc.iceConnectionState as string) === 'connected' || (pc.iceConnectionState as string) === 'completed') {
         console.log('🎉 ICE connection established successfully!');
         clearTimeout(connectionTimeout);
         this.connectionRetryCount = 0; // Reset retry count on success
-      } else if (pc.iceConnectionState === 'failed') {
+      } else if ((pc.iceConnectionState as string) === 'failed') {
         console.error('❌ ICE connection failed - this usually means:');
         console.error('1. Firewall is blocking WebRTC traffic');
         console.error('2. Both users are behind symmetric NAT');
@@ -176,12 +176,8 @@ export class WebRTCManager {
           console.error('❌ Max connection retries exceeded');
           this.onErrorCallback?.(new Error('ICE connection failed - Network connectivity issue'));
         }
-      } else if (pc.iceConnectionState === 'disconnected') {
+      } else if ((pc.iceConnectionState as string) === 'disconnected') {
         console.warn('⚠️ ICE connection disconnected - attempting to reconnect...');
-      } else if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
-        console.log('✅ ICE connection established successfully!');
-        // Reset retry count on successful connection
-        this.connectionRetryCount = 0;
       }
     };
 
