@@ -33,8 +33,33 @@ export const CallManager: React.FC<CallManagerProps> = ({ currentUserId }) => {
   } = useCall();
 
   const [isMinimized, setIsMinimized] = useState(false);
+  const [hideIncomingModal, setHideIncomingModal] = useState(false);
 
-  console.log('🎯 CallManager: Current state:', currentState, 'Call:', currentCall?._id, 'IncomingCall:', incomingCall?.callId);
+  console.log('🎯 CallManager: Current state:', currentState, 'Call:', currentCall?._id, 'IncomingCall:', incomingCall?.callId, 'HideModal:', hideIncomingModal);
+  
+  // Log when modal should be visible
+  const shouldShowIncomingModal = currentState === CallState.INCOMING && incomingCall && !hideIncomingModal;
+  console.log('👀 CallManager: Should show incoming modal:', shouldShowIncomingModal);
+
+  // Reset hide state when new incoming call arrives
+  React.useEffect(() => {
+    if (currentState === CallState.INCOMING && incomingCall) {
+      setHideIncomingModal(false);
+    }
+  }, [currentState, incomingCall]);
+
+  // Wrapper functions to immediately hide modal
+  const handleAccept = async () => {
+    console.log('✅ CallManager: Accept clicked - hiding modal immediately');
+    setHideIncomingModal(true); // Hide modal immediately
+    await acceptCall(); // Then handle the actual accept logic
+  };
+
+  const handleDecline = async () => {
+    console.log('❌ CallManager: Decline clicked - hiding modal immediately');
+    setHideIncomingModal(true); // Hide modal immediately  
+    await declineCall(); // Then handle the actual decline logic
+  };
 
   // Helper function to get the other participant ID
   const getOtherParticipantId = (chat: Chat): string => {
@@ -81,12 +106,12 @@ export const CallManager: React.FC<CallManagerProps> = ({ currentUserId }) => {
 
   return (
     <>
-      {/* Incoming Call Modal - Only show when state is INCOMING and we have an incoming call */}
-      {currentState === CallState.INCOMING && incomingCall && (
+      {/* Incoming Call Modal - Hide immediately when user clicks Accept/Decline */}
+      {shouldShowIncomingModal && (
         <IncomingCallModal
           incomingCall={incomingCall}
-          onAccept={acceptCall}
-          onDecline={declineCall}
+          onAccept={handleAccept}
+          onDecline={handleDecline}
           isLoading={isLoading}
         />
       )}
