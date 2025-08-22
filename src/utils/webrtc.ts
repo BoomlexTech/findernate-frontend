@@ -383,15 +383,15 @@ export class WebRTCManager {
         });
       }
       
-      // Create offer
+      // Create offer but don't send it yet - will be sent after call is accepted
       const offer = await this.peerConnection.createOffer();
       console.log('Created WebRTC offer:', offer.type);
       await this.peerConnection.setLocalDescription(offer);
       console.log('Set local description (offer)');
       
-      // Send offer via socket
-      console.log('Sending WebRTC offer to receiver:', receiverId);
-      socketManager.sendWebRTCOffer(callId, receiverId, offer);
+      // Store the offer to send after call acceptance
+      this.pendingOffer = { offer, senderId: this.receiverId || '' };
+      console.log('⏳ Stored offer to send after call acceptance');
       
     } catch (error) {
       console.error('Error starting call:', error);
@@ -424,6 +424,21 @@ export class WebRTCManager {
     console.log('✅ Peer connection pre-created for incoming call');
     
     console.log('✅ WebRTC Manager ready to receive offers for call:', callId);
+  }
+
+  // Send pending offer (caller side) - called after call acceptance
+  sendPendingOffer(): void {
+    if (this.pendingOffer && this.receiverId && this.callId) {
+      console.log('📤 Sending stored WebRTC offer to receiver:', this.receiverId);
+      socketManager.sendWebRTCOffer(this.callId, this.receiverId, this.pendingOffer.offer);
+      this.pendingOffer = null; // Clear after sending
+      console.log('✅ Pending offer sent successfully');
+    } else {
+      console.warn('⚠️ No pending offer to send or missing receiver info');
+      console.warn('⚠️ PendingOffer exists:', !!this.pendingOffer);
+      console.warn('⚠️ ReceiverId:', this.receiverId);
+      console.warn('⚠️ CallId:', this.callId);
+    }
   }
 
   // Accept a call (receiver side)
