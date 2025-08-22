@@ -39,49 +39,41 @@ export class WebRTCManager {
 
   // ICE servers configuration - Enhanced for production with multiple TURN providers
   private iceServers: RTCIceServer[] = [
-    // Multiple TURN servers for better reliability
-    {
-      urls: [
-        'turn:openrelay.metered.ca:80',
-        'turn:openrelay.metered.ca:443',
-        'turns:openrelay.metered.ca:443'
-      ],
-      username: 'openrelayproject',
-      credential: 'openrelayproject'
-    },
-    {
-      urls: [
-        'turn:openrelay.metered.ca:80?transport=tcp',
-        'turn:openrelay.metered.ca:443?transport=tcp'
-      ],
-      username: 'openrelayproject',
-      credential: 'openrelayproject'
-    },
-    
-    // Additional free TURN servers
-    {
-      urls: [
-        'turn:relay.webrtc.ro:3478',
-        'turn:relay.webrtc.ro:80',
-        'turn:relay.webrtc.ro:443'
-      ],
-      username: 'test',
-      credential: 'test123'
-    },
-    
-    // Fallback STUN servers (multiple providers)
+    // Primary STUN servers (most reliable for NAT discovery)
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
     { urls: 'stun:stun2.l.google.com:19302' },
+    { urls: 'stun:stun3.l.google.com:19302' },
+    { urls: 'stun:stun4.l.google.com:19302' },
+    
+    // Reliable free TURN servers for when direct connection fails
+    {
+      urls: [
+        'turn:numb.viagenie.ca',
+        'turns:numb.viagenie.ca'
+      ],
+      username: 'webrtc@live.com',
+      credential: 'muazkh'
+    },
+    {
+      urls: [
+        'turn:openrelay.metered.ca:80',
+        'turn:openrelay.metered.ca:443'
+      ],
+      username: 'openrelayproject',
+      credential: 'openrelayproject'
+    },
+    {
+      urls: 'turn:openrelay.metered.ca:80?transport=tcp',
+      username: 'openrelayproject',
+      credential: 'openrelayproject'
+    },
+    
+    // Additional STUN servers for better coverage
+    { urls: 'stun:stunserver.org' },
     { urls: 'stun:stun.stunprotocol.org:3478' },
-    { urls: 'stun:stun.antisip.com:3478' },
-    { urls: 'stun:stun.bluesip.net:3478' },
-    { urls: 'stun:stun.dus.net:3478' },
-    { urls: 'stun:stun.epygi.com:3478' },
-    { urls: 'stun:stun.sonetel.com:3478' },
-    { urls: 'stun:stun.uls.co.za:3478' },
-    { urls: 'stun:stun.voipgate.com:3478' },
-    { urls: 'stun:stun.voys.nl:3478' }
+    { urls: 'stun:stun.voiparound.com' },
+    { urls: 'stun:stun.voipbuster.com' }
   ];
 
   constructor() {
@@ -99,13 +91,19 @@ export class WebRTCManager {
     console.log('🔧 Creating peer connection with ICE servers:', this.iceServers);
     const pc = new RTCPeerConnection({
       iceServers: this.iceServers,
-      iceCandidatePoolSize: 15, // Increased for better connectivity
-      iceTransportPolicy: 'all', // Use both STUN and TURN
+      iceCandidatePoolSize: 10,
+      iceTransportPolicy: 'all', // Try both direct and relay
       bundlePolicy: 'max-bundle',
-  rtcpMuxPolicy: 'require',
-  // Additional configuration for better reliability
-  // Enable aggressive ICE nomination for faster connection
+      rtcpMuxPolicy: 'require'
     });
+    
+    // Add 30-second timeout for connection establishment
+    const connectionTimeout = setTimeout(() => {
+      if (pc.iceConnectionState !== 'connected' && pc.iceConnectionState !== 'completed') {
+        console.warn('⚠️ Connection timeout after 30 seconds, forcing TURN relay mode');
+        // Don't close the connection, let the retry mechanism handle it
+      }
+    }, 30000);
 
     // Handle ICE candidates
     pc.onicecandidate = (event) => {
@@ -154,7 +152,11 @@ export class WebRTCManager {
       console.log('ICE connection state:', pc.iceConnectionState);
       console.log('ICE gathering state:', pc.iceGatheringState);
       
-      if (pc.iceConnectionState === 'failed') {
+      if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
+        console.log('🎉 ICE connection established successfully!');
+        clearTimeout(connectionTimeout);
+        this.connectionRetryCount = 0; // Reset retry count on success
+      } else if (pc.iceConnectionState === 'failed') {
         console.error('❌ ICE connection failed - this usually means:');
         console.error('1. Firewall is blocking WebRTC traffic');
         console.error('2. Both users are behind symmetric NAT');
