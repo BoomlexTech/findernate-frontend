@@ -222,9 +222,9 @@ export const useWebRTC = () => {
           call: { ...callStateRef.current.call, status: 'connecting' }
         });
         
-        // The WebRTC offer should already have been sent in initiateCall
-        // but let's log to make sure
-        console.log('WebRTC offer should have been sent during initiateCall');
+        // NOW send the WebRTC offer that was prepared during initiateCall
+        console.log('🚀 Call accepted - now sending WebRTC offer to receiver');
+        webRTCManager.sendPendingOffer();
       }
     });
 
