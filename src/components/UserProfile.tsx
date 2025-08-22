@@ -1116,7 +1116,7 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-2 w-full sm:w-auto justify-end">
+          <div className="flex gap-2 w-full sm:w-auto justify-start">
             {isCurrentUser ? (
               <>
                 {isEditing ? (
@@ -1178,11 +1178,15 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
                         <div className="w-4 h-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
                       ) : isFollowing ? (
                         <>
-                          <UserMinus className="w-4 h-4" /> <span className="hidden sm:inline">Unfollow</span>
+                          <span className="sm:hidden">Unfollow</span>
+                          <UserMinus className="w-4 h-4 hidden sm:block" />
+                          <span className="hidden sm:inline">Unfollow</span>
                         </>
                       ) : (
                         <>
-                          <UserPlus className="w-4 h-4" /> <span className="hidden sm:inline">Follow</span>
+                          <span className="sm:hidden">Follow</span>
+                          <UserPlus className="w-4 h-4 hidden sm:block" />
+                          <span className="hidden sm:inline">Follow</span>
                         </>
                       )}
                     </Button>

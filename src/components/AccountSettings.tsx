@@ -195,8 +195,8 @@ export default function AccountSettings() {
   };
 
   return (
-    <div className="w-full mx-auto p-6 bg-white">
-      <h1 className="text-3xl font-bold text-black mb-8">Account Settings</h1>
+    <div className="w-full mx-auto p-4 sm:p-6 bg-white">
+      <h1 className="text-2xl sm:text-3xl font-bold text-black mb-6 sm:mb-8">Account Settings</h1>
       
       {/* Success Message */}
       {updateMessage && (
@@ -206,11 +206,11 @@ export default function AccountSettings() {
       )}
 
       {/* Business Account Section */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between">
+      <div className="mb-6 sm:mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h2 className="text-xl font-semibold text-gray-900 mb-1">Business Account</h2>
-            <p className="text-gray-600">
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-1">Business Account</h2>
+            <p className="text-sm sm:text-base text-gray-600">
               {isBusiness 
                 ? (showBusinessOptions ? 'Manage your business settings' : 'Switch to personal account')
                 : 'Switch to business account'
@@ -218,7 +218,7 @@ export default function AccountSettings() {
             </p>
           </div>
           <button
-            className={`px-6 py-2 mr-4 cursor-pointer rounded-lg transition-colors bg-yellow-600 text-white hover:bg-yellow-700 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed`}
+            className={`px-4 sm:px-6 py-2 cursor-pointer rounded-lg transition-colors bg-yellow-600 text-white hover:bg-yellow-700 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base`}
             onClick={() => {
               if (!isBusiness) {
                 handleSwitchToBusiness();
@@ -233,11 +233,16 @@ export default function AccountSettings() {
             {isSwitching ? (
               <>
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                {isBusiness ? 'Switching...' : 'Switching...'}
+                <span className="hidden sm:inline">{isBusiness ? 'Switching...' : 'Switching...'}</span>
               </>
             ) : (
               <>
-                {isBusiness && showBusinessOptions ? 'Switch to Personal' : isBusiness ? 'Manage Business' : 'Switch to Business'}
+                <span className="hidden sm:inline">
+                  {isBusiness && showBusinessOptions ? 'Switch to Personal' : isBusiness ? 'Manage Business' : 'Switch to Business'}
+                </span>
+                <span className="sm:hidden">
+                  {isBusiness && showBusinessOptions ? 'Switch' : isBusiness ? 'Manage' : 'Switch'}
+                </span>
                 {isBusiness && !showBusinessOptions && (
                   <ChevronDown className={`w-4 h-4 transition-transform ${showBusinessOptions ? 'rotate-180' : ''}`} />
                 )}
@@ -248,81 +253,83 @@ export default function AccountSettings() {
       </div>
 
              {/* Business Category Section */}
-       {isBusiness && showBusinessOptions && (
-         <div className="mb-8 p-6 bg-blue-50 rounded-lg border border-blue-100">
-           <div className="flex items-center justify-between">
-             <div>
-               <h3 className="text-lg font-semibold text-gray-900 mb-2">Business Category</h3>
-               {isLoadingCategory ? (
-                 <p className="text-gray-500">Loading category...</p>
-               ) : (
-                 <p className="text-blue-600">
-                   Current category: {currentCategory || 'No category set'}
-                 </p>
-               )}
-               {updateMessage && (
-                 <p className={`text-sm mt-1 ${updateMessage.includes('successfully') ? 'text-green-600' : 'text-red-600'}`}>
-                   {updateMessage}
-                 </p>
-               )}
-             </div>
-             <div className="relative">
-               <button 
-                 onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
-                 disabled={isUpdatingCategory}
-                 className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-               >
-                 {isUpdatingCategory ? 'Updating...' : 'Update Category'}
-                 {isUpdatingCategory ? (
-                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                 ) : (
-                   <ChevronDown className={`w-4 h-4 transition-transform ${showCategoryDropdown ? 'rotate-180' : ''}`} />
-                 )}
-               </button>
-               
-                               {showCategoryDropdown && (
-                  <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-300 rounded-lg shadow-xl z-10 max-h-60 overflow-y-auto">
-                    {businessCategories.map((category) => (
-                      <button
-                        key={category}
-                        onClick={() => {
-                          handleCategoryUpdate(category);
-                          setShowCategoryDropdown(false);
-                        }}
-                        className="w-full text-left px-4 py-3 hover:bg-blue-50 hover:text-blue-700 border-b border-gray-200 last:border-b-0 text-gray-800 font-medium transition-colors duration-150"
-                      >
-                        {category}
-                      </button>
-                    ))}
-                  </div>
-                )}
-             </div>
-           </div>
-         </div>
-       )}
+        {isBusiness && showBusinessOptions && (
+          <div className="mb-6 sm:mb-8 p-4 sm:p-6 bg-blue-50 rounded-lg border border-blue-100">
+            <div>
+                             <div className="flex items-center justify-between mb-2">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900">Business Category</h3>
+                <div className="relative">
+                  <button 
+                    onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
+                    disabled={isUpdatingCategory}
+                    className="px-4 sm:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
+                  >
+                    <span className="hidden sm:inline">{isUpdatingCategory ? 'Updating...' : 'Update Category'}</span>
+                    <span className="sm:hidden">{isUpdatingCategory ? 'Updating...' : 'Update'}</span>
+                    {isUpdatingCategory ? (
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                      <ChevronDown className={`w-4 h-4 transition-transform ${showCategoryDropdown ? 'rotate-180' : ''}`} />
+                    )}
+                  </button>
+                  
+                  {showCategoryDropdown && (
+                    <div className="absolute right-0 mt-2 w-48 sm:w-64 bg-white border border-gray-300 rounded-lg shadow-xl z-10 max-h-60 overflow-y-auto">
+                      {businessCategories.map((category) => (
+                        <button
+                          key={category}
+                          onClick={() => {
+                            handleCategoryUpdate(category);
+                            setShowCategoryDropdown(false);
+                          }}
+                          className="w-full text-left px-3 sm:px-4 py-2 sm:py-3 hover:bg-blue-50 hover:text-blue-700 border-b border-gray-200 last:border-b-0 text-gray-800 font-medium transition-colors duration-150 text-sm sm:text-base"
+                        >
+                          {category}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+              {isLoadingCategory ? (
+                <p className="text-sm sm:text-base text-gray-500">Loading category...</p>
+              ) : (
+                <p className="text-sm sm:text-base text-blue-600">
+                  Current category: {currentCategory || 'No category set'}
+                </p>
+              )}
+              {updateMessage && (
+                <p className={`text-xs sm:text-sm mt-1 ${updateMessage.includes('successfully') ? 'text-green-600' : 'text-red-600'}`}>
+                  {updateMessage}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
 
        {/* Subscription Plan Section */}
        {isBusiness && showBusinessOptions && (
-         <div className="mb-8 p-6 bg-yellow-50 rounded-lg border border-yellow-100">
-           <div className="flex items-center justify-between">
-             <div>
-               <h3 className="text-lg font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                 Subscription Plan
-                 <svg className="w-4 h-4 text-orange-500" fill="currentColor" viewBox="0 0 20 20">
-                   <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                 </svg>
-               </h3>
-               <p className="text-gray-700">
-                 Current plan: {selectedPlan || "Free"}
-               </p>
-             </div>
-             <button
-               onClick={() => setShowPlanModal(true)}
-               className="px-6 py-2 bg-button-gradient text-white rounded-lg hover:bg-orange-600 transition-colors flex items-center gap-2"
-             >
-               Manage Plan
-             </button>
-           </div>
+         <div className="mb-6 sm:mb-8 p-4 sm:p-6 bg-yellow-50 rounded-lg border border-yellow-100">
+                       <div>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 flex items-center gap-2">
+                  Subscription Plan
+                  <svg className="w-4 h-4 text-orange-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                  </svg>
+                </h3>
+                <button
+                  onClick={() => setShowPlanModal(true)}
+                  className="px-4 sm:px-6 py-2 bg-button-gradient text-white rounded-lg hover:bg-orange-600 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
+                >
+                  <span className="hidden sm:inline">Manage Plan</span>
+                  <span className="sm:hidden">Manage</span>
+                </button>
+              </div>
+              <p className="text-sm sm:text-base text-gray-700">
+                Current plan: {selectedPlan || "Free"}
+              </p>
+            </div>
          </div>
        )}
 

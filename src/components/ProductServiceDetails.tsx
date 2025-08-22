@@ -59,9 +59,10 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
       post.customization?.product?.location?.name ||
       post.customization?.service?.location?.name ||
       post.customization?.business?.location?.name;
-    if (fromCustomization) return fromCustomization;
-    if (typeof post.location === 'string') return post.location || '-';
-    return post.location?.name || '-';
+    if (fromCustomization && fromCustomization.toLowerCase() !== 'unknown location') return fromCustomization;
+    if (typeof post.location === 'string' && post.location.toLowerCase() !== 'unknown location') return post.location;
+    if (post.location && typeof post.location === 'object' && post.location.name && post.location.name.toLowerCase() !== 'unknown location') return post.location.name;
+    return null; // Return null instead of '-' to hide the section
   })();
 
   const productData = {
@@ -71,8 +72,8 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
     category: '-',
     type: 'Product',
     location: resolvedLocation,
-    timing: '-',
-    availability: post.customization?.product?.inStock === true ? 'In Stock' : post.customization?.product?.inStock === false ? 'Out of Stock' : '-',
+    timing: null, // Hide timing for products
+    availability: post.customization?.product?.inStock === true ? 'In Stock' : post.customization?.product?.inStock === false ? 'Out of Stock' : null, // Hide if not set
     requirements: [] as string[],
     whatYouGet: [] as string[],
     inStock: !!post.customization?.product?.inStock,
@@ -102,8 +103,8 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
     category: post.customization?.business?.category || '-',
     type: post.customization?.business?.businessType || 'Business',
     location: resolvedLocation,
-    timing: '-',
-    availability: '-',
+    timing: null, // Hide timing for businesses
+    availability: null, // Hide availability for businesses
     requirements: [] as string[],
     whatYouGet: [] as string[],
     link: '#'
@@ -343,33 +344,41 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
             </div>
           </div>
 
-          {/* Location */}
-          <div className="bg-orange-50 border border-orange-200 rounded-xl p-3">
-            <div className="flex items-center gap-2 mb-2">
-              <MapPin className="w-4 h-4 text-orange-600" />
-              <span className="text-xs font-semibold text-orange-800 uppercase">Location</span>
+          {/* Location - Only show if location exists */}
+          {data.location && (
+            <div className="bg-orange-50 border border-orange-200 rounded-xl p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <MapPin className="w-4 h-4 text-orange-600" />
+                <span className="text-xs font-semibold text-orange-800 uppercase">Location</span>
+              </div>
+              <p className="text-sm font-medium text-gray-900">{data.location}</p>
             </div>
-            <p className="text-sm font-medium text-gray-900">{data.location}</p>
-          </div>
+          )}
 
-          {/* Timing and Availability */}
-          <div className="grid grid-cols-1 gap-3">
-            <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-3">
-              <div className="flex items-center gap-2 mb-2">
-                <Calendar className="w-4 h-4 text-indigo-600" />
-                <span className="text-xs font-semibold text-indigo-800 uppercase">Timing</span>
-              </div>
-              <p className="text-sm font-medium text-gray-900">{data.timing}</p>
+          {/* Timing and Availability - Only show for services or if data exists */}
+          {(post.contentType === 'service' || data.timing || data.availability) && (
+            <div className="grid grid-cols-1 gap-3">
+              {data.timing && (
+                <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Calendar className="w-4 h-4 text-indigo-600" />
+                    <span className="text-xs font-semibold text-indigo-800 uppercase">Timing</span>
+                  </div>
+                  <p className="text-sm font-medium text-gray-900">{data.timing}</p>
+                </div>
+              )}
+              
+              {data.availability && (
+                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <CheckCircle className="w-4 h-4 text-emerald-600" />
+                    <span className="text-xs font-semibold text-emerald-800 uppercase">Availability</span>
+                  </div>
+                  <p className="text-sm font-medium text-gray-900">{data.availability}</p>
+                </div>
+              )}
             </div>
-            
-            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3">
-              <div className="flex items-center gap-2 mb-2">
-                <CheckCircle className="w-4 h-4 text-emerald-600" />
-                <span className="text-xs font-semibold text-emerald-800 uppercase">Availability</span>
-              </div>
-              <p className="text-sm font-medium text-gray-900">{data.availability}</p>
-            </div>
-          </div>
+          )}
 
           {/**
            * Requirements (temporarily hidden)
@@ -538,33 +547,41 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
             </div>
           </div>
 
-          {/* Location */}
-          <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <MapPin className="w-5 h-5 text-orange-600" />
-              <span className="text-sm font-semibold text-orange-800 uppercase">Location</span>
+          {/* Location - Only show if location exists */}
+          {data.location && (
+            <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <MapPin className="w-5 h-5 text-orange-600" />
+                <span className="text-sm font-semibold text-orange-800 uppercase">Location</span>
+              </div>
+              <p className="text-lg font-medium text-gray-900">{data.location}</p>
             </div>
-            <p className="text-lg font-medium text-gray-900">{data.location}</p>
-          </div>
+          )}
 
-          {/* Timing and Availability */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Calendar className="w-5 h-5 text-indigo-600" />
-                <span className="text-sm font-semibold text-indigo-800 uppercase">Timing</span>
-              </div>
-              <p className="text-lg font-medium text-gray-900">{data.timing}</p>
+          {/* Timing and Availability - Only show for services or if data exists */}
+          {(post.contentType === 'service' || data.timing || data.availability) && (
+            <div className="grid grid-cols-2 gap-4">
+              {data.timing && (
+                <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Calendar className="w-5 h-5 text-indigo-600" />
+                    <span className="text-sm font-semibold text-indigo-800 uppercase">Timing</span>
+                  </div>
+                  <p className="text-lg font-medium text-gray-900">{data.timing}</p>
+                </div>
+              )}
+              
+              {data.availability && (
+                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <CheckCircle className="w-5 h-5 text-emerald-600" />
+                    <span className="text-sm font-semibold text-emerald-800 uppercase">Availability</span>
+                  </div>
+                  <p className="text-lg font-medium text-gray-900">{data.availability}</p>
+                </div>
+              )}
             </div>
-            
-            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <CheckCircle className="w-5 h-5 text-emerald-600" />
-                <span className="text-sm font-semibold text-emerald-800 uppercase">Availability</span>
-              </div>
-              <p className="text-lg font-medium text-gray-900">{data.availability}</p>
-            </div>
-          </div>
+          )}
 
           {/**
            * Requirements (temporarily hidden)

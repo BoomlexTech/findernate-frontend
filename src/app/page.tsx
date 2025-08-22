@@ -12,7 +12,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto flex">
+      <div className="w-full max-w-7xl mx-auto flex">
         {/* Main Content Area */}
         <div className="flex-1 lg:pr-[23rem] pr-0">
           {/* Mobile Logo - Only visible on small screens */}
@@ -29,7 +29,7 @@ export default function Home() {
           </div>
 
           {/* Stories Bar - Sticky on desktop, scrollable on mobile/medium */}
-          <div className="lg:sticky lg:top-0 lg:z-20 bg-gray-50 pt-4 px-4">
+          <div className="lg:sticky lg:top-0 lg:z-20 bg-gray-50 pt-4 px-0">
             <StoriesBar />
           </div>
 
