@@ -37,43 +37,49 @@ export class WebRTCManager {
   private onCallStatsCallback?: (stats: CallStats) => void;
   private onErrorCallback?: (error: Error) => void;
 
-  // ICE servers configuration - Enhanced for production with multiple TURN providers
+  // ICE servers configuration - Optimized for better WebRTC connectivity
   private iceServers: RTCIceServer[] = [
     // Primary STUN servers (most reliable for NAT discovery)
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
     { urls: 'stun:stun2.l.google.com:19302' },
-    { urls: 'stun:stun3.l.google.com:19302' },
-    { urls: 'stun:stun4.l.google.com:19302' },
     
-    // Reliable free TURN servers for when direct connection fails
-    {
-      urls: [
-        'turn:numb.viagenie.ca',
-        'turns:numb.viagenie.ca'
-      ],
-      username: 'webrtc@live.com',
-      credential: 'muazkh'
-    },
+    // High-performance TURN servers (ordered by reliability)
     {
       urls: [
         'turn:openrelay.metered.ca:80',
-        'turn:openrelay.metered.ca:443'
+        'turn:openrelay.metered.ca:443',
+        'turns:openrelay.metered.ca:443'
       ],
       username: 'openrelayproject',
       credential: 'openrelayproject'
     },
+    
+    // Backup TURN servers with TCP transport
     {
       urls: 'turn:openrelay.metered.ca:80?transport=tcp',
       username: 'openrelayproject',
       credential: 'openrelayproject'
     },
     
-    // Additional STUN servers for better coverage
-    { urls: 'stun:stunserver.org' },
-    { urls: 'stun:stun.stunprotocol.org:3478' },
-    { urls: 'stun:stun.voiparound.com' },
-    { urls: 'stun:stun.voipbuster.com' }
+    // Alternative TURN provider
+    {
+      urls: [
+        'turn:numb.viagenie.ca:3478',
+        'turns:numb.viagenie.ca:5349'
+      ],
+      username: 'webrtc@live.com',
+      credential: 'muazkh'
+    },
+    
+    // Express TURN servers as backup
+    {
+      urls: [
+        'turn:relay1.expressturn.com:3478'
+      ],
+      username: 'ef3IUQAU7WGMCXP1',
+      credential: 'jdSKennwOomyoLhD'
+    }
   ];
 
   constructor() {
@@ -86,7 +92,7 @@ export class WebRTCManager {
     this.setupSocketListeners();
   }
 
-  // Initialize peer connection
+  // Initialize peer connection with enhanced settings
   private createPeerConnection(): RTCPeerConnection {
     console.log('🔧 Creating peer connection with ICE servers:', this.iceServers);
     const pc = new RTCPeerConnection({
@@ -97,13 +103,13 @@ export class WebRTCManager {
       rtcpMuxPolicy: 'require'
     });
     
-    // Add 30-second timeout for connection establishment
+    // Shorter timeout with forced TURN fallback
     const connectionTimeout = setTimeout(() => {
       if ((pc.iceConnectionState as string) !== 'connected' && (pc.iceConnectionState as string) !== 'completed') {
-        console.warn('⚠️ Connection timeout after 30 seconds, forcing TURN relay mode');
-        // Don't close the connection, let the retry mechanism handle it
+        console.warn('⚠️ Connection timeout after 15 seconds, attempting TURN relay fallback');
+        this.retryConnectionWithTurnOnly(pc);
       }
-    }, 30000);
+    }, 15000);
 
     // Handle ICE candidates
     pc.onicecandidate = (event) => {
@@ -163,19 +169,9 @@ export class WebRTCManager {
         console.error('3. TURN server is needed but not available');
         console.error('4. Network doesn\'t allow UDP traffic');
         
-        // Attempt retry if we haven't exceeded max retries
-        if (this.connectionRetryCount < this.maxRetries) {
-          this.connectionRetryCount++;
-          console.warn(`🔄 Attempting connection retry ${this.connectionRetryCount}/${this.maxRetries}`);
-          
-          // Wait a bit then retry with a fresh connection
-          setTimeout(() => {
-            this.retryConnection();
-          }, 2000);
-        } else {
-          console.error('❌ Max connection retries exceeded');
-          this.onErrorCallback?.(new Error('ICE connection failed - Network connectivity issue'));
-        }
+        // Try TURN-only fallback immediately
+        console.log('🔄 ICE failed - attempting TURN-only fallback');
+        this.retryConnectionWithTurnOnly(pc);
       } else if ((pc.iceConnectionState as string) === 'disconnected') {
         console.warn('⚠️ ICE connection disconnected - attempting to reconnect...');
       }
@@ -689,6 +685,134 @@ export class WebRTCManager {
       console.error('❌ Error during connection retry:', error);
       this.onErrorCallback?.(error as Error);
     }
+  }
+
+  // TURN-only retry method for better connectivity
+  private async retryConnectionWithTurnOnly(failedPc: RTCPeerConnection): Promise<void> {
+    if (this.connectionRetryCount >= this.maxRetries) {
+      console.error('❌ Maximum connection retries reached, giving up');
+      return;
+    }
+
+    this.connectionRetryCount++;
+    console.log(`🔄 Retry attempt ${this.connectionRetryCount}/${this.maxRetries} with TURN-only configuration`);
+
+    try {
+      // Create new peer connection with TURN servers only
+      const turnOnlyServers = this.iceServers.filter(server => 
+        server.urls.toString().includes('turn:') || server.urls.toString().includes('turns:')
+      );
+
+      console.log('🔄 Using TURN-only servers for retry:', turnOnlyServers);
+
+      const turnOnlyPc = new RTCPeerConnection({
+        iceServers: turnOnlyServers,
+        iceTransportPolicy: 'relay', // Force TURN relay only
+        iceCandidatePoolSize: 10,
+        bundlePolicy: 'max-bundle',
+        rtcpMuxPolicy: 'require'
+      });
+
+      // Close the failed connection
+      failedPc.close();
+      
+      // Replace with new TURN-only connection
+      this.peerConnection = turnOnlyPc;
+      this.setupPeerConnectionHandlers(turnOnlyPc);
+
+      // Re-add local stream to new connection
+      if (this.localStream) {
+        this.localStream.getTracks().forEach((track) => {
+          if (this.peerConnection) {
+            this.peerConnection.addTrack(track, this.localStream!);
+          }
+        });
+        console.log('✅ Local stream re-added to TURN-only connection');
+      }
+
+      // If we're the initiator, create a new offer
+      if (this.isInitiator && this.receiverId) {
+        const offer = await turnOnlyPc.createOffer();
+        await turnOnlyPc.setLocalDescription(offer);
+        
+        console.log('🔄 Sending retry offer with TURN-only configuration');
+        socketManager.sendWebRTCOffer(this.callId!, this.receiverId, offer);
+      }
+      
+    } catch (error) {
+      console.error('❌ TURN-only retry failed:', error);
+      this.onErrorCallback?.(error as Error);
+    }
+  }
+
+  // Helper method to set up peer connection event handlers
+  private setupPeerConnectionHandlers(pc: RTCPeerConnection): void {
+    // Handle ICE candidates
+    pc.onicecandidate = (event) => {
+      console.log('ICE candidate generated:', event.candidate?.candidate?.substring(0, 50) + '...');
+      if (event.candidate && this.callId) {
+        const targetUserId = this.isInitiator ? this.receiverId : this.callerId;
+        console.log('Sending ICE candidate to:', targetUserId);
+        if (targetUserId) {
+          socketManager.sendICECandidate(
+            this.callId,
+            targetUserId,
+            {
+              candidate: event.candidate.candidate,
+              sdpMLineIndex: event.candidate.sdpMLineIndex,
+              sdpMid: event.candidate.sdpMid,
+            }
+          );
+        }
+      }
+    };
+
+    // Handle ICE connection state changes
+    pc.oniceconnectionstatechange = () => {
+      console.log('ICE connection state:', pc.iceConnectionState);
+      
+      if ((pc.iceConnectionState as string) === 'connected' || (pc.iceConnectionState as string) === 'completed') {
+        console.log('🎉 ICE connection established successfully!');
+        this.connectionRetryCount = 0; // Reset retry count on success
+      } else if ((pc.iceConnectionState as string) === 'disconnected') {
+        console.warn('⚠️ ICE connection disconnected - attempting to reconnect...');
+      }
+    };
+
+    // Handle ICE gathering state changes
+    pc.onicegatheringstatechange = () => {
+      console.log('ICE gathering state:', pc.iceGatheringState);
+    };
+
+    // Handle remote stream
+    pc.ontrack = (event) => {
+      console.log('Received remote track:', event.track.kind);
+      if (event.streams && event.streams[0]) {
+        this.remoteStream = event.streams[0];
+        this.onRemoteStreamCallback?.(this.remoteStream);
+      }
+    };
+
+    // Handle peer connection state changes with retry logic
+    pc.onconnectionstatechange = () => {
+      console.log('Peer connection state:', pc.connectionState);
+      this.onConnectionStateChangeCallback?.(pc.connectionState);
+      
+      // Calculate and emit call stats
+      this.calculateCallStats(pc);
+      
+      if (pc.connectionState === 'failed') {
+        console.error('🔥 Peer connection failed - attempting recovery...');
+        
+        // Try TURN-only fallback before giving up
+        if (this.connectionRetryCount < this.maxRetries) {
+          setTimeout(() => this.retryConnectionWithTurnOnly(pc), 1000);
+        } else {
+          const error = new Error('Peer connection failed after all retry attempts');
+          this.onErrorCallback?.(error);
+        }
+      }
+    };
   }
 }
 
