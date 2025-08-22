@@ -32,17 +32,48 @@ export const CallModal: React.FC<CallModalProps> = ({
 }) => {
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
+  const remoteAudioRef = useRef<HTMLAudioElement>(null);
 
   // Setup video streams
   useEffect(() => {
     if (localVideoRef.current && callState.localStream) {
+      console.log('🎥 Setting local video stream:', callState.localStream);
       localVideoRef.current.srcObject = callState.localStream;
+      
+      // Ensure video plays
+      localVideoRef.current.play().catch(error => {
+        console.error('❌ Error playing local video:', error);
+      });
     }
   }, [callState.localStream]);
 
   useEffect(() => {
     if (remoteVideoRef.current && callState.remoteStream) {
+      console.log('🎥 Setting remote video stream:', callState.remoteStream);
+      console.log('🎥 Remote stream tracks:', callState.remoteStream.getTracks().map(t => `${t.kind}: ${t.enabled}`));
+      
       remoteVideoRef.current.srcObject = callState.remoteStream;
+      
+      // Ensure video plays and audio is enabled
+      remoteVideoRef.current.muted = false; // Make sure audio is not muted
+      remoteVideoRef.current.volume = 1.0; // Set volume to maximum
+      
+      remoteVideoRef.current.play().catch(error => {
+        console.error('❌ Error playing remote video:', error);
+      });
+    }
+  }, [callState.remoteStream]);
+
+  // Setup audio element for audio-only calls or as backup
+  useEffect(() => {
+    if (remoteAudioRef.current && callState.remoteStream) {
+      console.log('🔊 Setting remote audio stream:', callState.remoteStream);
+      remoteAudioRef.current.srcObject = callState.remoteStream;
+      remoteAudioRef.current.volume = 1.0;
+      
+      remoteAudioRef.current.play().catch(error => {
+        console.error('❌ Error playing remote audio:', error);
+      });
     }
   }, [callState.remoteStream]);
 
@@ -106,6 +137,9 @@ export const CallModal: React.FC<CallModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-95 z-50 flex items-center justify-center">
+      {/* Hidden audio element for remote audio playback */}
+      <audio ref={remoteAudioRef} autoPlay />
+      
       <div className="relative w-full h-full flex flex-col">
         {/* Header */}
         <div className="absolute top-0 left-0 right-0 z-10 flex justify-between items-center p-6 bg-gradient-to-b from-black/50 to-transparent">
@@ -145,14 +179,15 @@ export const CallModal: React.FC<CallModalProps> = ({
 
         {/* Video Container */}
         <div className="flex-1 relative">
-          {isVideoCall && isConnected ? (
+          {isVideoCall ? (
             <>
               {/* Remote Video (Main) */}
               <video
                 ref={remoteVideoRef}
                 autoPlay
                 playsInline
-                className="w-full h-full object-cover"
+                muted={false}
+                className="w-full h-full object-cover bg-gray-900"
               />
               
               {/* Local Video (Picture-in-Picture) */}
@@ -172,6 +207,22 @@ export const CallModal: React.FC<CallModalProps> = ({
                   </div>
                 )}
               </div>
+              
+              {/* Debug info for video streams */}
+              {process.env.NODE_ENV === 'development' && (
+                <div className="absolute top-20 left-6 bg-black/70 text-white p-2 rounded text-xs">
+                  <div>Local Stream: {callState.localStream ? '✅' : '❌'}</div>
+                  <div>Remote Stream: {callState.remoteStream ? '✅' : '❌'}</div>
+                  <div>Connection: {callState.connectionState || 'none'}</div>
+                  <div>Video Enabled: {callState.isVideoEnabled ? '✅' : '❌'}</div>
+                  {callState.localStream && (
+                    <div>Local Tracks: {callState.localStream.getTracks().map(t => t.kind).join(', ')}</div>
+                  )}
+                  {callState.remoteStream && (
+                    <div>Remote Tracks: {callState.remoteStream.getTracks().map(t => t.kind).join(', ')}</div>
+                  )}
+                </div>
+              )}
             </>
           ) : (
             /* Audio Call or Connecting State */
