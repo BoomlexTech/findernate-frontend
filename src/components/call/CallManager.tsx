@@ -1,9 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useCall, CallState } from '@/providers/CallProvider';
+import { useGlobalCall } from '@/components/providers/GlobalCallProvider';
 import { CallModal } from './CallModal';
-import { IncomingCallModal } from './IncomingCallModal';
 import { Chat } from '@/api/message';
 
 interface CallManagerProps {
@@ -12,54 +11,22 @@ interface CallManagerProps {
 
 export const CallManager: React.FC<CallManagerProps> = ({ currentUserId }) => {
   const {
-    currentState,
-    currentCall,
+    callState,
     incomingCall,
-    localStream,
-    remoteStream,
-    connectionState,
-    isAudioEnabled,
-    isVideoEnabled,
-    callDuration,
     isLoading,
-    error,
-    startVoiceCall,
-    startVideoCall,
+    initiateCall,
     acceptCall,
     declineCall,
     endCall,
     toggleAudio,
-    toggleVideo
-  } = useCall();
+    toggleVideo,
+    localStream,
+    remoteStream
+  } = useGlobalCall();
 
   const [isMinimized, setIsMinimized] = useState(false);
-  const [hideIncomingModal, setHideIncomingModal] = useState(false);
 
-  console.log('🎯 CallManager: Current state:', currentState, 'Call:', currentCall?._id, 'IncomingCall:', incomingCall?.callId, 'HideModal:', hideIncomingModal);
-  
-  // Log when modal should be visible
-  const shouldShowIncomingModal = currentState === CallState.INCOMING && incomingCall && !hideIncomingModal;
-  console.log('👀 CallManager: Should show incoming modal:', shouldShowIncomingModal);
-
-  // Reset hide state when new incoming call arrives
-  React.useEffect(() => {
-    if (currentState === CallState.INCOMING && incomingCall) {
-      setHideIncomingModal(false);
-    }
-  }, [currentState, incomingCall]);
-
-  // Wrapper functions to immediately hide modal
-  const handleAccept = async () => {
-    console.log('✅ CallManager: Accept clicked - hiding modal immediately');
-    setHideIncomingModal(true); // Hide modal immediately
-    await acceptCall(); // Then handle the actual accept logic
-  };
-
-  const handleDecline = async () => {
-    console.log('❌ CallManager: Decline clicked - hiding modal immediately');
-    setHideIncomingModal(true); // Hide modal immediately  
-    await declineCall(); // Then handle the actual decline logic
-  };
+  console.log('🎯 CallManager: Call state:', callState.isInCall, 'Call:', callState.call?._id, 'IncomingCall:', incomingCall?.callId);
 
   // Helper function to get the other participant ID
   const getOtherParticipantId = (chat: Chat): string => {
@@ -78,60 +45,27 @@ export const CallManager: React.FC<CallManagerProps> = ({ currentUserId }) => {
   // Handle call initiation
   const handleVoiceCall = async (chat: Chat) => {
     const receiverId = getOtherParticipantId(chat);
-    const otherParticipant = getOtherParticipant(chat);
     
-    if (receiverId && otherParticipant) {
-      await startVoiceCall(
-        receiverId, 
-        chat._id, 
-        otherParticipant.fullName || otherParticipant.username,
-        otherParticipant.profileImageUrl
-      );
+    if (receiverId) {
+      await initiateCall(receiverId, chat._id, 'voice');
     }
   };
 
   const handleVideoCall = async (chat: Chat) => {
     const receiverId = getOtherParticipantId(chat);
-    const otherParticipant = getOtherParticipant(chat);
     
-    if (receiverId && otherParticipant) {
-      await startVideoCall(
-        receiverId, 
-        chat._id, 
-        otherParticipant.fullName || otherParticipant.username,
-        otherParticipant.profileImageUrl
-      );
+    if (receiverId) {
+      await initiateCall(receiverId, chat._id, 'video');
     }
   };
 
   return (
     <>
-      {/* Incoming Call Modal - Hide immediately when user clicks Accept/Decline */}
-      {shouldShowIncomingModal && (
-        <IncomingCallModal
-          incomingCall={incomingCall}
-          onAccept={handleAccept}
-          onDecline={handleDecline}
-          isLoading={isLoading}
-        />
-      )}
-
-      {/* Active Call Modal */}
-      {[CallState.CALLING, CallState.CONNECTING, CallState.CONNECTED, CallState.FAILED].includes(currentState) && currentCall && (
+      {/* Active Call Modal - Only show when there's an active call */}
+      {callState.isInCall && callState.call && (
         <CallModal
-          callState={{
-            call: currentCall,
-            localStream,
-            remoteStream,
-            isInCall: ![CallState.FAILED, CallState.ENDED].includes(currentState),
-            isInitiator: true, // We can determine this from the call data
-            connectionState,
-            callStats: null, // We can add this later
-            isAudioEnabled,
-            isVideoEnabled,
-            error
-          }}
-          isLoading={isLoading || currentState === CallState.CALLING || currentState === CallState.CONNECTING}
+          callState={callState}
+          isLoading={isLoading}
           currentUser={{ _id: currentUserId }}
           onEndCall={endCall}
           onToggleAudio={toggleAudio}
@@ -146,7 +80,7 @@ export const CallManager: React.FC<CallManagerProps> = ({ currentUserId }) => {
 
 // Export helper functions for integration with other components
 export const useCallManager = (currentUserId?: string) => {
-  const callManager = useCall();
+  const callManager = useGlobalCall();
 
   const getCallHandlers = (chat: Chat) => {
     const getOtherParticipantId = (): string => {
@@ -154,36 +88,19 @@ export const useCallManager = (currentUserId?: string) => {
       return chat.participants.find(p => p._id !== currentUserId)?._id || '';
     };
 
-    const getOtherParticipant = () => {
-      if (!currentUserId) return null;
-      return chat.participants.find(p => p._id !== currentUserId) || null;
-    };
-
     return {
       onVoiceCall: async () => {
         const receiverId = getOtherParticipantId();
-        const otherParticipant = getOtherParticipant();
         
-        if (receiverId && otherParticipant) {
-          await callManager.startVoiceCall(
-            receiverId, 
-            chat._id, 
-            otherParticipant.fullName || otherParticipant.username,
-            otherParticipant.profileImageUrl
-          );
+        if (receiverId) {
+          await callManager.initiateCall(receiverId, chat._id, 'voice');
         }
       },
       onVideoCall: async () => {
         const receiverId = getOtherParticipantId();
-        const otherParticipant = getOtherParticipant();
         
-        if (receiverId && otherParticipant) {
-          await callManager.startVideoCall(
-            receiverId, 
-            chat._id, 
-            otherParticipant.fullName || otherParticipant.username,
-            otherParticipant.profileImageUrl
-          );
+        if (receiverId) {
+          await callManager.initiateCall(receiverId, chat._id, 'video');
         }
       }
     };
