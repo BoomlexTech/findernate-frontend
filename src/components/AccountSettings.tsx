@@ -205,11 +205,11 @@ export default function AccountSettings() {
         </div>
       )}
 
-      {/* Business Account Section */}
+      
       <div className="mb-6 sm:mb-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-1">Business Account</h2>
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-1">{isBusiness ? 'Business Account' : 'Personal Account'}</h2>
             <p className="text-sm sm:text-base text-gray-600">
               {isBusiness 
                 ? (showBusinessOptions ? 'Manage your business settings' : 'Switch to personal account')
@@ -218,7 +218,7 @@ export default function AccountSettings() {
             </p>
           </div>
           <button
-            className={`px-4 sm:px-6 py-2 cursor-pointer rounded-lg transition-colors bg-yellow-600 text-white hover:bg-yellow-700 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base`}
+            className={`px-4 sm:px-6 py-2 md:mr-4 lg:mr-6 cursor-pointer rounded-lg transition-colors bg-yellow-600 text-white hover:bg-yellow-700 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base md:w-56 lg:w-56`}
             onClick={() => {
               if (!isBusiness) {
                 handleSwitchToBusiness();
@@ -241,7 +241,7 @@ export default function AccountSettings() {
                   {isBusiness && showBusinessOptions ? 'Switch to Personal' : isBusiness ? 'Manage Business' : 'Switch to Business'}
                 </span>
                 <span className="sm:hidden">
-                  {isBusiness && showBusinessOptions ? 'Switch' : isBusiness ? 'Manage' : 'Switch'}
+                  {isBusiness && showBusinessOptions ? 'Switch to Personal' : isBusiness ? 'Manage Business' : 'Switch to Business'}
                 </span>
                 {isBusiness && !showBusinessOptions && (
                   <ChevronDown className={`w-4 h-4 transition-transform ${showBusinessOptions ? 'rotate-180' : ''}`} />
@@ -262,7 +262,7 @@ export default function AccountSettings() {
                   <button 
                     onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
                     disabled={isUpdatingCategory}
-                    className="px-4 sm:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
+                    className="px-4 sm:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base md:w-56 lg:w-56"
                   >
                     <span className="hidden sm:inline">{isUpdatingCategory ? 'Updating...' : 'Update Category'}</span>
                     <span className="sm:hidden">{isUpdatingCategory ? 'Updating...' : 'Update'}</span>
@@ -320,7 +320,7 @@ export default function AccountSettings() {
                 </h3>
                 <button
                   onClick={() => setShowPlanModal(true)}
-                  className="px-4 sm:px-6 py-2 bg-button-gradient text-white rounded-lg hover:bg-orange-600 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
+                  className="px-4 sm:px-6 py-2 bg-button-gradient text-white rounded-lg hover:bg-orange-600 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base md:w-56 lg:w-56"
                 >
                   <span className="hidden sm:inline">Manage Plan</span>
                   <span className="sm:hidden">Manage</span>
