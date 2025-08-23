@@ -142,7 +142,7 @@ export default function StoriesBar({ onCreateStory }: StoriesBarProps) {
   if (!user || !token) {
     return (
       <>
-        <div className="flex overflow-x-auto space-x-6 pb-0 sm:pb-2 px-2 scrollbar-hide bg-white shadow-md rounded-lg">
+        <div className="flex overflow-x-auto space-x-6 pb-0 sm:pb-2 px-2 md:mx-3 lg:mx-4 scrollbar-hide bg-white shadow-md rounded-lg">
           <div className="flex flex-col items-center mt-5 flex-shrink-0">
             <div 
               className="w-16 h-16 rounded-full bg-gradient-to-r from-yellow-400 to-orange-500 border-2 border-white shadow-lg flex items-center justify-center cursor-pointer hover:from-yellow-500 hover:to-orange-600 transition-all transform hover:scale-105"
@@ -255,7 +255,7 @@ export default function StoriesBar({ onCreateStory }: StoriesBarProps) {
 
   return (
     <>
-      <div className="flex overflow-x-auto space-x-3 sm:space-x-6 pb-0 sm:pb-2 px-2 bg-white shadow-md rounded-lg subtle-scrollbar">
+      <div className="flex overflow-x-auto space-x-3 sm:space-x-6 pb-0 sm:pb-2 px-2 md:mx-3 lg:mx-4 bg-white shadow-md rounded-lg subtle-scrollbar">
         {displayUsers.map((storyUser) => {
           const isMe = storyUser.isCurrentUser;
           const avatarUrl = isMe ? (meAvatarUrl || user?.profileImageUrl || storyUser.profileImageUrl) : storyUser.profileImageUrl;
