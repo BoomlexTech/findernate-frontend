@@ -8,7 +8,7 @@ import { Menu, X } from 'lucide-react';
 import LeftSidebar from "@/components/LeftSidebar";
 import CreatePostModal from "@/components/CreatePostModal";
 import PushNotificationProvider from "@/components/providers/PushNotificationProvider";
-import { CallProvider } from "@/providers/CallProvider";
+import { GlobalCallProvider } from "@/components/providers/GlobalCallProvider";
 import { CallManager } from "@/components/call/CallManager";
 
 const MainLayout = ({children}:{children:React.ReactNode}) => {
@@ -65,7 +65,7 @@ const MainLayout = ({children}:{children:React.ReactNode}) => {
 
   return (
     <PushNotificationProvider>
-      <CallProvider>
+      <GlobalCallProvider>
         {/* Global Call Manager - handles call states automatically */}
         <CallManager />
         
@@ -124,7 +124,7 @@ const MainLayout = ({children}:{children:React.ReactNode}) => {
 
         {/* Toast Container */}
         <ToastContainer />
-      </CallProvider>
+      </GlobalCallProvider>
     </PushNotificationProvider>
   )
 }
