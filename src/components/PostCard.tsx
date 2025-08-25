@@ -21,6 +21,7 @@ import CommentDrawer from './CommentDrawer';
 import ReportModal from './ReportModal';
 import ImageModal from './ImageModal';
 import { toast } from 'react-toastify';
+import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
 
 // Singleton cache for saved posts to prevent multiple API calls
 let savedPostsPromise: Promise<string[]> | null = null;
@@ -111,6 +112,13 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
     tags: Array.isArray(post.tags) ? post.tags.map(t => (typeof t === 'string' ? t : String(t))) : []
   });
   const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [isVideoMuted, setIsVideoMuted] = useState(true);
+
+  // Intersection observer for lazy loading videos
+  const { elementRef, hasIntersected } = useIntersectionObserver({
+    threshold: 0.1,
+    rootMargin: '500px', // Start loading 500px before the video enters viewport
+  });
 
   // Allow editing on own profile ("/profile") and on own userprofile page
   const canEdit = (
@@ -993,6 +1001,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
 
           {/* Media Section */}
           <div 
+            ref={elementRef}
             className="post-media relative w-full h-[300px] sm:h-[350px] md:w-[21rem] md:h-[24rem] md:flex-shrink-0 overflow-hidden rounded-2xl group"
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
@@ -1007,39 +1016,63 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
               const safeThumb = rawThumb.length > 0 ? rawThumb : undefined;
               const isVideo = currentMedia?.type === 'video' && !!safeUrl;
 
-              if (isVideo) {
-                return (
-                  <video
-                    className="w-full h-full object-cover rounded-xl cursor-zoom-in"
-                    poster={safeThumb}
-                    muted
-                    loop
-                    style={{ objectFit: 'cover' }}
-                    onMouseEnter={(e) => {
-                      const video = e.currentTarget;
-                      video.play().catch(() => {
-                        // Ignore play errors - video might already be playing or paused
-                      });
-                    }}
-                    onMouseLeave={(e) => {
-                      const video = e.currentTarget;
-                      try {
-                        video.pause();
-                      } catch {
-                        // Ignore pause errors
-                      }
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowImageModal(true);
-                    }}
-                  >
-                    {/* Only render source if we have a valid URL */}
-                    {safeUrl && <source src={safeUrl} type="video/mp4" />}
-                    Your browser does not support the video tag.
-                  </video>
-                );
-              }
+               if (isVideo) {
+                 return (
+                   <div className="relative w-full h-full">
+                     <video
+                       className="w-full h-full object-cover rounded-xl cursor-zoom-in"
+                       poster={safeThumb}
+                       muted={isVideoMuted}
+                       loop
+                       preload="none"
+                       playsInline
+                       style={{ objectFit: 'cover' }}
+                       onMouseEnter={(e) => {
+                         const video = e.currentTarget;
+                         video.play().catch(() => {
+                           // Ignore play errors - video might already be playing or paused
+                         });
+                       }}
+                       onMouseLeave={(e) => {
+                         const video = e.currentTarget;
+                         try {
+                           video.pause();
+                         } catch {
+                           // Ignore pause errors
+                         }
+                       }}
+                       onClick={(e) => {
+                         e.stopPropagation();
+                         setShowImageModal(true);
+                       }}
+                     >
+                       {/* Only render source if we have a valid URL and video is in viewport */}
+                       {safeUrl && hasIntersected && <source src={safeUrl} type="video/mp4" />}
+                       Your browser does not support the video tag.
+                     </video>
+                     
+                     {/* Sound Control Button */}
+                     <button
+                       onClick={(e) => {
+                         e.stopPropagation();
+                         setIsVideoMuted(!isVideoMuted);
+                       }}
+                       className="absolute top-3 right-3 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 transition-all duration-200 z-20"
+                       title={isVideoMuted ? "Unmute" : "Mute"}
+                     >
+                       {isVideoMuted ? (
+                         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                           <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
+                         </svg>
+                       ) : (
+                         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                           <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+                         </svg>
+                       )}
+                     </button>
+                   </div>
+                 );
+               }
 
               // Image fallback (also covers case where media.type === 'video' but url missing/empty)
               const firstNonEmptyUrl = post.media.find(m => (m.url || '').trim().length > 0)?.url?.trim();
