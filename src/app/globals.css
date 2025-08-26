@@ -14,7 +14,7 @@
 
 @layer utilities {
   .bg-button-gradient {
-    @apply bg-gradient-to-r from-yellow-400 to-yellow-600;
+    background: linear-gradient(to right, #facc15, #ca8a04);
   }
 }
 
