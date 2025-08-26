@@ -27,10 +27,19 @@ export const VerifyOtp = async (data: {
 };
 
 export const login = async (data: {
-  email: string;
+  identifier: string; // Can be either email or username
   password: string;
 }) => {
-  const response = await axios.post('/users/login', data);
+  // Determine if the identifier is an email or username
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+  const isEmail = emailRegex.test(data.identifier);
+  
+  // Prepare the request data based on the identifier type
+  const requestData = isEmail 
+    ? { email: data.identifier, password: data.password }
+    : { username: data.identifier, password: data.password };
+  
+  const response = await axios.post('/users/login', requestData);
   return response.data;
 };
 
