@@ -3,7 +3,7 @@ import React, { useRef } from "react";
 import { useUserStore } from "@/store/useUserStore";
 import { messageAPI, Chat } from "@/api/message";
 import { EmojiClickData } from 'emoji-picker-react';
-import { useWebRTC } from '@/hooks/useWebRTC';
+import { useGlobalCall } from '@/components/providers/GlobalCallProvider';
 
 // Custom hooks
 import { useChatManagement } from '@/hooks/useChatManagement';
@@ -21,7 +21,6 @@ import { NewChatModal } from './message/NewChatModal';
 import { GroupChatModal } from './message/GroupChatModal';
 import { GroupDetailsModal } from './message/GroupDetailsModal';
 import { CallModal } from './call/CallModal';
-import { IncomingCallModal } from './call/IncomingCallModal';
 
 export default function MessagePanel() {
   const user = useUserStore((state) => state.user);
@@ -101,7 +100,7 @@ export default function MessagePanel() {
     scrollToBottom
   });
 
-  // WebRTC call functionality
+  // Global call functionality
   const { 
     callState, 
     incomingCall, 
@@ -111,7 +110,7 @@ export default function MessagePanel() {
     endCall,
     toggleAudio,
     toggleVideo
-  } = useWebRTC();
+  } = useGlobalCall();
 
   // Call handlers
   const handleVoiceCall = async (chat: Chat) => {
@@ -340,13 +339,6 @@ export default function MessagePanel() {
         />
       )}
 
-      {incomingCall && (
-        <IncomingCallModal
-          incomingCall={incomingCall}
-          onAccept={acceptCall}
-          onDecline={declineCall}
-        />
-      )}
     </div>
   );
 }

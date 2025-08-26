@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(/C:\\Users\\KIIT\\Desktop\\FinderNate-Admin\\src\\lib/**)",
+      "Read(/C:\\Users\\KIIT\\Desktop\\FinderNate-Admin\\src\\lib/**)",
+      "Read(/C:\\Users\\KIIT\\Desktop\\FinderNate-Admin\\src\\types/**)",
+      "Read(/C:\\Users\\KIIT\\Desktop\\FinderNate-Admin\\src\\app/**)",
+      "Bash(npm run dev:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
