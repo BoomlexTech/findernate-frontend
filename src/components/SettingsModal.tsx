@@ -8,6 +8,7 @@ import { useUserStore } from "@/store/useUserStore";
 import { PaymentMethodsModal } from "./business/PaymentMethodModal";
 import PlanSelectionModal from "./business/PlanSelectionModal";
 import BusinessDetailsModal from "./business/BusinessDetailsModal";
+import BusinessVerificationModal from "./business/BusinessVerificationModal";
 import SuccessToast from "@/components/SuccessToast"; // Update path as needed
 import { CreateBusinessRequest, UpdateBusinessRequest } from "@/types";
 import { useEffect } from "react";
@@ -25,6 +26,7 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
   const [showBusinessDetailsModal, setShowBusinessDetailsModal] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [showEditBusinessDetails, setShowEditBusinessDetails] = useState(false);
+  const [showVerificationModal, setShowVerificationModal] = useState(false);
   const [successToast, setSuccessToast] = useState({ show: false, message: "" });
   const router = useRouter();
   const { logout: logoutUser, user, updateUser } = useUserStore();
@@ -110,11 +112,7 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
     setSelectedPlan(null);
   };
 
-  // Show business details modal after payment option is clicked
-  const handlePaymentOptionClick = () => {
-    setShowPaymentModal(false);
-    setShowBusinessDetailsModal(true);
-  };
+
 
   const handleBusinessDetailsSubmit = (data: CreateBusinessRequest) => {
     // API call will be handled inside the modal component
@@ -142,6 +140,7 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
 
   return (
     <>
+      {!showVerificationModal && (
       <div 
         className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center"
         onClick={onClose}
@@ -205,7 +204,7 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
             <SettingItem 
               icon={<Shield />} 
               title="Complete your KYC" 
-              onClick={requireBusiness()}
+              onClick={requireBusiness(() => setShowVerificationModal(true))}
             />
             <SettingItem 
               icon={<Shield />} 
@@ -258,6 +257,7 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
         <SuccessToast show={successToast.show} message={successToast.message} />
       </div>
     </div>
+      )}
 
     {/* Logout Confirmation Modal */}
     {showLogoutConfirmation && (
@@ -309,7 +309,6 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
     <PaymentMethodsModal
       isOpen={showPaymentModal}
       onClose={handlePaymentModalClose}
-      onPaymentOptionClick={handlePaymentOptionClick}
     />
     
     {/* Business Details Modal - CREATE MODE (after payment) */}
@@ -326,6 +325,13 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
       onClose={() => setShowEditBusinessDetails(false)}
       onSubmit={handleEditBusinessDetailsSubmit}
       isEdit={true} // This will fetch data on mount and use PATCH API
+    />
+
+    {/* Business Verification Modal */}
+    <BusinessVerificationModal
+      isOpen={showVerificationModal}
+      onClose={() => { setShowVerificationModal(false); onClose(); }}
+      onSubmit={() => { setShowVerificationModal(false); onClose(); }}
     />
   </>
   );

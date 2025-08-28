@@ -16,6 +16,7 @@ export default function DashboardPage() {
       type: 'info',
       title: 'Welcome to Findernate Admin',
       message: 'You have successfully logged into the admin portal.',
+      isRead: false,
     });
   }, [addNotification]);
 
