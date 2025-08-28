@@ -10,35 +10,42 @@ import Input from './ui/Input';
 import Image from 'next/image';
 
 interface LoginFormData {
-  email: string;
+  identifier: string; // Can be either email or username
   password: string;
 }
 
 
 const LoginComponent: React.FC = () => {
   const [formData, setFormData] = useState<LoginFormData>({
-    email: '',
+    identifier: '',
     password: ''
   });
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState('');
-  const [emailError, setEmailError] = useState('');
+  const [identifierError, setIdentifierError] = useState('');
   const { setUser, setToken } = useUserStore();
   const router = useRouter();
 
-  const validateEmail = (value: string) => {
+  const validateIdentifier = (value: string) => {
     if (!value) {
-      setEmailError('');
+      setIdentifierError('');
       return true;
     }
+    // Check if it's an email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-    if (!emailRegex.test(value)) {
-      setEmailError('Enter a valid email address');
-      return false;
+    if (emailRegex.test(value)) {
+      setIdentifierError('');
+      return true;
     }
-    setEmailError('');
-    return true;
+    // Check if it's a valid username format (alphanumeric, underscores, hyphens, 3-30 chars)
+    const usernameRegex = /^[a-zA-Z0-9_-]{3,30}$/;
+    if (usernameRegex.test(value)) {
+      setIdentifierError('');
+      return true;
+    }
+    setIdentifierError('Enter a valid email address or username');
+    return false;
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -47,7 +54,7 @@ const LoginComponent: React.FC = () => {
       ...prev,
       [name]: value
     }));
-    if (name === 'email') validateEmail(value);
+    if (name === 'identifier') validateIdentifier(value);
   };
 
   const onCreateAccount = () => {
@@ -63,7 +70,7 @@ const LoginComponent: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateEmail(formData.email)) return; // Block submit if invalid email
+    if (!validateIdentifier(formData.identifier)) return; // Block submit if invalid identifier
     setIsLoading(true);
     setError('')
     try {
@@ -78,9 +85,9 @@ const LoginComponent: React.FC = () => {
       router.push('/');
     } catch (err) {
         if (axios.isAxiosError(err)) {
-            setError(err.response?.data?.message || 'Signup failed');
+            setError(err.response?.data?.message || 'Login failed');
         } else {
-            setError('Signup failed');
+            setError('Login failed');
         }
     }finally {
       setIsLoading(false);
@@ -112,18 +119,18 @@ const LoginComponent: React.FC = () => {
           <div>
             <div className="relative">
               <Input
-                type="email"
-                name="email"
-                placeholder="Email address"
-                value={formData.email}
+                type="text"
+                name="identifier"
+                placeholder="Email address or username"
+                value={formData.identifier}
                 onChange={handleInputChange}
-                onBlur={(e) => validateEmail(e.target.value)}
+                onBlur={(e) => validateIdentifier(e.target.value)}
                 leftIcon={ <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
                 </svg>}
-                error={emailError}
-                autoComplete="email"
-                inputMode="email"
+                error={identifierError}
+                autoComplete="username"
+                inputMode="text"
                 required
               />
             </div>
