@@ -44,7 +44,7 @@ const menuItems = [
     children: [
       { title: 'All Businesses', href: '/admin/businesses', icon: Building2 },
       { title: 'Pending Verifications', href: '/admin/businesses/pending', icon: FileSearch },
-      { title: 'Verification History', href: '/admin/businesses/history', icon: Activity },
+      // { title: 'Verification History', href: '/admin/businesses/history', icon: Activity },
     ],
   },
   {

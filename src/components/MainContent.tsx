@@ -5,6 +5,7 @@ import PostCard from "@/components/PostCard";
 import { getHomeFeed } from "@/api/homeFeed";
 import { FeedPost, MediaItem } from "@/types";
 import { useBlockedUsers } from "@/hooks/useBlockedUsers";
+import { usePostRefresh } from "@/hooks/usePostRefresh";
 
 type RawFeedItem = {
   _id: string;
@@ -222,6 +223,16 @@ export default function MainContent() {
   useEffect(() => {
     fetchPosts(page);
   }, [page, fetchPosts]);
+
+  // Listen for new post creation events and refresh the feed
+  const refreshFeed = useCallback(() => {
+    // Refresh the feed by fetching the first page again
+    // This will show the new post at the top
+    setPage(1);
+    setHasMore(true);
+  }, []);
+
+  usePostRefresh(refreshFeed);
 
   return (
     <div className="max-w-3xl mx-auto py-4 px-0 sm:px-4">

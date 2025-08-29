@@ -8,8 +8,9 @@ import ProfilePostsSection from '@/components/ProfilePostsSection';
 import UserProfile from '@/components/UserProfile'
 import { useUserStore } from '@/store/useUserStore';
 import { useAuthGuard } from '@/hooks/useAuthGuard';
+import { usePostRefresh } from '@/hooks/usePostRefresh';
 import { FeedPost, UserProfile as UserProfileType } from '@/types';
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { LogIn, User } from 'lucide-react';
 
 const Page = () => {
@@ -69,6 +70,27 @@ const Page = () => {
 
     fetchData();
   }, [user?._id, isAuthenticated]);
+
+  // Refresh profile posts when new posts are created
+  const refreshProfilePosts = useCallback(async () => {
+    if (!isAuthenticated || !user?._id) return;
+    
+    try {
+      const [postsResponse, reelsResponse, videosResponse] = await Promise.all([
+        getPostsByUserid(user._id),
+        getUserReels(user._id),
+        getUserVideos(user._id)
+      ]);
+      
+      setPosts(postsResponse.data?.posts || []);
+      setReels(reelsResponse.data?.posts || []);
+      setVideos(videosResponse.data?.posts || []);
+    } catch (error) {
+      console.error('Error refreshing profile posts:', error);
+    }
+  }, [user?._id, isAuthenticated]);
+
+  usePostRefresh(refreshProfilePosts);
 
   const handleProfileUpdate = async (updatedData: Partial<UserProfileType>) => {
     try {

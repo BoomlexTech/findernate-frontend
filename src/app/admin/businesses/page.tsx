@@ -1,63 +1,91 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import AdminLayout from '@/components/admin/layout/AdminLayout';
-import { Search, Filter, Building2, CheckCircle, XCircle, Eye, Star, Calendar } from 'lucide-react';
-import { useState } from 'react';
+import { Search, Building2, CheckCircle, XCircle, Eye, Star, Calendar, Globe, MapPin, Mail, Phone } from 'lucide-react';
+import { businessesAPI, Business, BusinessesData } from '@/api/businesses';
 
 export default function AllBusinessesPage() {
+  const [businessesData, setBusinessesData] = useState<BusinessesData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
   const [isVerifiedFilter, setIsVerifiedFilter] = useState('all');
   const [subscriptionStatusFilter, setSubscriptionStatusFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Mock data - will be replaced with actual API data
-  const businesses = [
-    {
-      id: '1',
-      businessName: 'Tech Solutions India',
-      businessType: 'Technology',
-      category: 'Software Development',
-      ownerName: 'Rajesh Kumar',
-      email: 'rajesh@techsolutions.com',
-      location: 'Bangalore, Karnataka',
-      isVerified: true,
-      subscriptionStatus: 'active',
-      plan: 'Premium',
-      createdAt: '2024-01-10T08:30:00Z',
-      rating: 4.8,
-      reviewsCount: 124
-    },
-    {
-      id: '2',
-      businessName: 'Artisan Crafts Studio',
-      businessType: 'Handicrafts',
-      category: 'Arts & Crafts',
-      ownerName: 'Priya Sharma',
-      email: 'priya@artisancrafts.com',
-      location: 'Jaipur, Rajasthan',
-      isVerified: false,
-      subscriptionStatus: 'pending',
-      plan: 'Basic',
-      createdAt: '2024-01-08T14:20:00Z',
-      rating: 4.5,
-      reviewsCount: 67
-    },
-    {
-      id: '3',
-      businessName: 'Green Energy Solutions',
-      businessType: 'Renewable Energy',
-      category: 'Energy & Environment',
-      ownerName: 'Alex Thompson',
-      email: 'alex@greenenergy.com',
-      location: 'Mumbai, Maharashtra',
-      isVerified: true,
-      subscriptionStatus: 'active',
-      plan: 'Enterprise',
-      createdAt: '2023-12-15T10:45:00Z',
-      rating: 4.9,
-      reviewsCount: 201
+  const fetchBusinesses = async (
+    page: number = 1, 
+    search?: string, 
+    isVerified?: string, 
+    subscriptionStatus?: string
+  ) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      const params: any = { page, limit: 20 };
+      
+      if (search && search.length >= 3) {
+        params.search = search;
+      }
+      
+      if (isVerified !== 'all') {
+        params.isVerified = isVerified === 'true';
+      }
+      
+      if (subscriptionStatus !== 'all') {
+        params.subscriptionStatus = subscriptionStatus;
+      }
+
+      const response = await businessesAPI.getBusinesses(params);
+      
+      if (response.success) {
+        setBusinessesData(response.data);
+      } else {
+        throw new Error(response.message || 'Failed to fetch businesses');
+      }
+    } catch (err: any) {
+      console.error('Error fetching businesses:', err);
+      setError(err.message || 'Failed to load businesses');
+    } finally {
+      setIsLoading(false);
     }
-  ];
+  };
+
+  useEffect(() => {
+    fetchBusinesses(currentPage, searchQuery, isVerifiedFilter, subscriptionStatusFilter);
+  }, [currentPage, searchQuery, isVerifiedFilter, subscriptionStatusFilter]);
+
+  // Debounced search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchTerm !== searchQuery) {
+        setSearchQuery(searchTerm);
+        setCurrentPage(1);
+      }
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  const handleSearch = (value: string) => {
+    setSearchTerm(value);
+  };
+
+  const handleVerificationFilter = (value: string) => {
+    setIsVerifiedFilter(value);
+    setCurrentPage(1);
+  };
+
+  const handleSubscriptionFilter = (value: string) => {
+    setSubscriptionStatusFilter(value);
+    setCurrentPage(1);
+  };
+
+  const businesses = businessesData?.businesses || [];
+  const pagination = businessesData?.pagination;
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -97,14 +125,30 @@ export default function AllBusinessesPage() {
 
   const getPlanBadge = (plan: string) => {
     const planColors = {
-      Basic: 'bg-blue-100 text-blue-800',
-      Premium: 'bg-purple-100 text-purple-800',
-      Enterprise: 'bg-indigo-100 text-indigo-800'
+      plan1: 'bg-blue-100 text-blue-800',
+      plan2: 'bg-purple-100 text-purple-800',
+      plan3: 'bg-indigo-100 text-indigo-800',
+      basic: 'bg-blue-100 text-blue-800',
+      premium: 'bg-purple-100 text-purple-800',
+      enterprise: 'bg-indigo-100 text-indigo-800'
     };
     
+    const planNames = {
+      plan1: 'Basic',
+      plan2: 'Premium', 
+      plan3: 'Enterprise',
+      basic: 'Basic',
+      premium: 'Premium',
+      enterprise: 'Enterprise'
+    };
+    
+    const normalizedPlan = plan.toLowerCase();
+    const colorClass = planColors[normalizedPlan as keyof typeof planColors] || 'bg-gray-100 text-gray-800';
+    const displayName = planNames[normalizedPlan as keyof typeof planNames] || plan;
+    
     return (
-      <span className={`px-2 py-1 text-xs font-medium rounded ${planColors[plan as keyof typeof planColors]}`}>
-        {plan}
+      <span className={`px-2 py-1 text-xs font-medium rounded ${colorClass}`}>
+        {displayName}
       </span>
     );
   };
@@ -127,33 +171,29 @@ export default function AllBusinessesPage() {
               type="text"
               placeholder="Search by business name or category..."
               className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-yellow-400 focus:border-transparent text-black placeholder-black"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              value={searchTerm}
+              onChange={(e) => handleSearch(e.target.value)}
             />
           </div>
           <select
-            className="px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
+            className="px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-yellow-400 focus:border-transparent text-black"
             value={isVerifiedFilter}
-            onChange={(e) => setIsVerifiedFilter(e.target.value)}
+            onChange={(e) => handleVerificationFilter(e.target.value)}
           >
             <option value="all">All Verification</option>
             <option value="true">Verified Only</option>
             <option value="false">Unverified Only</option>
           </select>
           <select
-            className="px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
+            className="px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-yellow-400 focus:border-transparent text-black"
             value={subscriptionStatusFilter}
-            onChange={(e) => setSubscriptionStatusFilter(e.target.value)}
+            onChange={(e) => handleSubscriptionFilter(e.target.value)}
           >
             <option value="all">All Subscriptions</option>
             <option value="active">Active</option>
-            <option value="pending">Pending</option>
             <option value="inactive">Inactive</option>
+            <option value="suspended">Suspended</option>
           </select>
-          <button className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
-            <Filter className="h-4 w-4" />
-            More Filters
-          </button>
         </div>
 
         {/* Statistics Cards */}
@@ -162,7 +202,7 @@ export default function AllBusinessesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Businesses</p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">342</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">{pagination?.totalBusinesses || 0}</p>
               </div>
               <div className="p-3 rounded-xl bg-blue-100">
                 <Building2 className="h-6 w-6 text-blue-600" />
@@ -173,8 +213,15 @@ export default function AllBusinessesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Verified</p>
-                <p className="text-2xl font-bold text-green-600 mt-1">287</p>
-                <p className="text-sm text-gray-500">83.9% verified</p>
+                <p className="text-2xl font-bold text-green-600 mt-1">
+                  {businesses.filter(b => b.isVerified).length}
+                </p>
+                <p className="text-sm text-gray-500">
+                  {businesses.length > 0 
+                    ? `${((businesses.filter(b => b.isVerified).length / businesses.length) * 100).toFixed(1)}% verified`
+                    : '0% verified'
+                  }
+                </p>
               </div>
               <div className="p-3 rounded-xl bg-green-100">
                 <CheckCircle className="h-6 w-6 text-green-600" />
@@ -185,8 +232,15 @@ export default function AllBusinessesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Active Subscriptions</p>
-                <p className="text-2xl font-bold text-purple-600 mt-1">298</p>
-                <p className="text-sm text-gray-500">87.1% active</p>
+                <p className="text-2xl font-bold text-purple-600 mt-1">
+                  {businesses.filter(b => b.subscriptionStatus === 'active').length}
+                </p>
+                <p className="text-sm text-gray-500">
+                  {businesses.length > 0 
+                    ? `${((businesses.filter(b => b.subscriptionStatus === 'active').length / businesses.length) * 100).toFixed(1)}% active`
+                    : '0% active'
+                  }
+                </p>
               </div>
               <div className="p-3 rounded-xl bg-purple-100">
                 <Star className="h-6 w-6 text-purple-600" />
@@ -196,9 +250,9 @@ export default function AllBusinessesPage() {
           <div className="bg-white p-6 rounded-xl border border-gray-200">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">New This Month</p>
-                <p className="text-2xl font-bold text-orange-600 mt-1">28</p>
-                <p className="text-sm text-gray-500">+12% growth</p>
+                <p className="text-sm font-medium text-gray-600">Current Page</p>
+                <p className="text-2xl font-bold text-orange-600 mt-1">{businesses.length}</p>
+                <p className="text-sm text-gray-500">businesses shown</p>
               </div>
               <div className="p-3 rounded-xl bg-orange-100">
                 <Calendar className="h-6 w-6 text-orange-600" />
@@ -211,95 +265,175 @@ export default function AllBusinessesPage() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200">
           <div className="px-6 py-4 border-b border-gray-200">
             <h2 className="text-xl font-semibold text-gray-900">
-              All Businesses ({businesses.length})
+              All Businesses ({pagination?.totalBusinesses || 0})
             </h2>
           </div>
           
-          <div className="divide-y divide-gray-200">
-            {businesses.map((business) => (
-              <div key={business.id} className="p-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-4 mb-4">
-                      <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-xl flex items-center justify-center">
-                        <Building2 className="h-6 w-6 text-white" />
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-semibold text-gray-900">
-                          {business.businessName}
-                        </h3>
-                        <p className="text-gray-600">Owner: {business.ownerName}</p>
-                        <p className="text-sm text-gray-500">{business.category}</p>
-                      </div>
-                      <div className="flex gap-2">
-                        {getVerificationBadge(business.isVerified)}
-                        {getSubscriptionBadge(business.subscriptionStatus)}
-                        {getPlanBadge(business.plan)}
-                      </div>
+          {isLoading ? (
+            <div className="divide-y divide-gray-200">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="p-6 animate-pulse">
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 bg-gray-200 rounded-xl"></div>
+                    <div className="flex-1">
+                      <div className="h-5 bg-gray-200 rounded mb-2"></div>
+                      <div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
+                      <div className="h-3 bg-gray-200 rounded w-1/3"></div>
                     </div>
-                    
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
-                      <div>
-                        <p className="text-sm text-gray-500">Business Type</p>
-                        <p className="font-medium">{business.businessType}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Location</p>
-                        <p className="font-medium">{business.location}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Rating</p>
-                        <div className="flex items-center gap-1">
-                          <Star className="h-4 w-4 text-yellow-400 fill-current" />
-                          <p className="font-medium">{business.rating}</p>
-                          <p className="text-sm text-gray-500">({business.reviewsCount})</p>
-                        </div>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Email</p>
-                        <p className="font-medium text-sm">{business.email}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Joined</p>
-                        <p className="font-medium">{formatDate(business.createdAt)}</p>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex gap-2 ml-4">
-                    <button className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="View Details">
-                      <Eye className="h-4 w-4" />
-                    </button>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : error ? (
+            <div className="p-6 text-center">
+              <p className="text-red-600 mb-4">{error}</p>
+              <button 
+                onClick={() => fetchBusinesses(currentPage, searchQuery, isVerifiedFilter, subscriptionStatusFilter)}
+                className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600"
+              >
+                Retry
+              </button>
+            </div>
+          ) : !businesses.length ? (
+            <div className="p-6 text-center">
+              <p className="text-gray-600">No businesses found.</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-200">
+              {businesses.map((business: Business) => (
+                <div key={business._id} className="p-6">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-4 mb-4">
+                        <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-xl flex items-center justify-center">
+                          <Building2 className="h-6 w-6 text-white" />
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-semibold text-gray-900">
+                            {business.businessName}
+                          </h3>
+                          <p className="text-gray-600">Owner: {business.userId.fullName}</p>
+                          <p className="text-sm text-gray-500">{business.category}</p>
+                        </div>
+                        <div className="flex gap-2">
+                          {getVerificationBadge(business.isVerified)}
+                          {getSubscriptionBadge(business.subscriptionStatus)}
+                          {getPlanBadge(business.plan)}
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4 text-gray-500">
+                        <div>
+                          <p className="text-sm text-gray-500">Business Type</p>
+                          <p className="font-medium">{business.businessType}</p>
+                        </div>
+                        {(business.location.city || business.location.state) && (
+                          <div>
+                            <p className="text-sm text-gray-500">Location</p>
+                            <p className="font-medium">
+                              {[business.location.city, business.location.state].filter(Boolean).join(', ')}
+                            </p>
+                          </div>
+                        )}
+                        <div>
+                          <p className="text-sm text-gray-500">Views</p>
+                          <div className="flex items-center gap-1">
+                            <Eye className="h-4 w-4 text-blue-400" />
+                            <p className="font-medium">{business.insights.views}</p>
+                          </div>
+                        </div>
+                        {business.contact.email && (
+                          <div>
+                            <p className="text-sm text-gray-500">Email</p>
+                            <p className="font-medium text-sm">{business.contact.email}</p>
+                          </div>
+                        )}
+                        <div>
+                          <p className="text-sm text-gray-500">Joined</p>
+                          <p className="font-medium">{formatDate(business.createdAt)}</p>
+                        </div>
+                      </div>
+                      
+                      {/* Additional Details */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 pt-4 border-t border-gray-100">
+                        <div className="flex items-center gap-2">
+                          <Phone className="h-4 w-4 text-gray-400" />
+                          <span className="text-sm text-gray-600">{business.contact.phone}</span>
+                        </div>
+                        {business.contact.website && (
+                          <div className="flex items-center gap-2">
+                            <Globe className="h-4 w-4 text-gray-400" />
+                            <span className="text-sm text-gray-600 truncate">{business.contact.website}</span>
+                          </div>
+                        )}
+                        {business.location.address && (
+                          <div className="flex items-center gap-2">
+                            <MapPin className="h-4 w-4 text-gray-400" />
+                            <span className="text-sm text-gray-600">{business.location.address}</span>
+                          </div>
+                        )}
+                        {business.userId.email && (
+                          <div className="flex items-center gap-2">
+                            <Mail className="h-4 w-4 text-gray-400" />
+                            <span className="text-sm text-gray-600">{business.userId.email}</span>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Tags */}
+                      {business.tags.length > 0 && (
+                        <div className="mt-4">
+                          <p className="text-sm text-gray-500 mb-2">Tags:</p>
+                          <div className="flex flex-wrap gap-2">
+                            {business.tags.map((tag, index) => (
+                              <span key={index} className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded">
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="flex gap-2 ml-4">
+                      <button className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="View Details">
+                        <Eye className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Pagination */}
-        <div className="flex items-center justify-between">
-          <div className="text-sm text-gray-700">
-            Showing 1 to {businesses.length} of {businesses.length} results
+        {pagination && (
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-gray-700">
+              Showing {((pagination.currentPage - 1) * 20) + 1} to {Math.min(pagination.currentPage * 20, pagination.totalBusinesses)} of {pagination.totalBusinesses} results
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={!pagination.hasPrev}
+                className="px-3 py-1 text-sm border border-gray-300 rounded disabled:opacity-50 hover:bg-gray-50 text-black"
+              >
+                Previous
+              </button>
+              <span className="px-3 py-1 text-sm bg-yellow-500 text-white rounded">
+                {pagination.currentPage}
+              </span>
+              <button
+                onClick={() => setCurrentPage(prev => prev + 1)}
+                disabled={!pagination.hasNext}
+                className="px-3 py-1 text-sm border border-gray-300 rounded disabled:opacity-50 hover:bg-gray-50 text-black"
+              >
+                Next
+              </button>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <button
-              disabled={currentPage === 1}
-              className="px-3 py-1 text-sm border border-gray-300 rounded disabled:opacity-50"
-            >
-              Previous
-            </button>
-            <button className="px-3 py-1 text-sm bg-yellow-500 text-white rounded">
-              1
-            </button>
-            <button
-              disabled
-              className="px-3 py-1 text-sm border border-gray-300 rounded disabled:opacity-50"
-            >
-              Next
-            </button>
-          </div>
-        </div>
+        )}
       </div>
     </AdminLayout>
   );
