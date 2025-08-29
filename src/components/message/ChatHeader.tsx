@@ -70,16 +70,20 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           </div>
           </div>
         </div>
-        <div className="flex items-center space-x-3 text-gray-500">
+        <div className="flex items-center space-x-5 pr-8">
           {/* Voice Call Button */}
           {onVoiceCall && selected.chatType === 'direct' && (
             <button
               type="button"
               onClick={() => onVoiceCall(selected)}
-              className="p-2 rounded-full hover:bg-gray-100 text-gray-600 hover:text-gray-800 transition-colors"
+              className="group relative p-3 rounded-full bg-gradient-to-r from-yellow-50 to-yellow-50 hover:from-yellow-100 hover:to-yellow-100 text-yellow-600 hover:text-yellow-700 transition-all duration-300 ease-in-out transform hover:scale-110 hover:shadow-lg active:scale-95 border border-yellow-200 hover:border-yellow-300"
               title="Start voice call"
             >
-              <Phone className="w-5 h-5" />
+              <Phone className="w-5 h-5 transition-transform duration-300 group-hover:rotate-12" />
+              {/* Ripple effect */}
+              <div className="absolute inset-0 rounded-full bg-yellow-400 opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
+              {/* Pulse animation on hover */}
+              <div className="absolute inset-0 rounded-full bg-yellow-400 opacity-0 group-hover:opacity-20 animate-ping"></div>
             </button>
           )}
           
@@ -88,10 +92,14 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
             <button
               type="button"
               onClick={() => onVideoCall(selected)}
-              className="p-2 rounded-full hover:bg-gray-100 text-gray-600 hover:text-gray-800 transition-colors"
+              className="group relative p-3 rounded-full bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 text-blue-600 hover:text-blue-700 transition-all duration-300 ease-in-out transform hover:scale-110 hover:shadow-lg active:scale-95 border border-blue-200 hover:border-blue-300"
               title="Start video call"
             >
-              <Video className="w-5 h-5" />
+              <Video className="w-5 h-5 transition-transform duration-300 group-hover:rotate-12" />
+              {/* Ripple effect */}
+              <div className="absolute inset-0 rounded-full bg-blue-400 opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
+              {/* Pulse animation on hover */}
+              <div className="absolute inset-0 rounded-full bg-blue-400 opacity-0 group-hover:opacity-20 animate-ping"></div>
             </button>
           )}
         </div>

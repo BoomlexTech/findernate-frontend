@@ -143,7 +143,7 @@ class AadhaarVerificationAPI {
     page?: number;
     limit?: number;
     search?: string;
-    status?: 'approved' | 'rejected';
+    status?: 'approved' | 'rejected' | 'all';
   }): Promise<AadhaarHistoryResponse> {
     try {
       const response = await axios.get(
