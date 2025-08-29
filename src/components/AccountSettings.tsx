@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import PlanSelectionModal from './business/PlanSelectionModal';
 import BusinessDetailsModal from './business/BusinessDetailsModal';
+import BusinessVerificationModal from './business/BusinessVerificationModal';
 import { PaymentMethodsModal } from './business/PaymentMethodModal';
 import { ChevronDown } from 'lucide-react';
 import { UpdateBusinessCategory, GetBusinessCategory, switchToBusiness, switchToPersonal } from '@/api/business';
@@ -34,6 +35,7 @@ export default function AccountSettings() {
   const [showPlanModal, setShowPlanModal] = useState(false);
   const [showBusinessDetailsModal, setShowBusinessDetailsModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showVerificationModal, setShowVerificationModal] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [isBusiness, setIsBusiness] = useState(false);
   const [currentCategory, setCurrentCategory] = useState('');
@@ -122,10 +124,7 @@ export default function AccountSettings() {
     setSelectedPlan(null);
   };
 
-  const handlePaymentOptionClick = () => {
-    setShowPaymentModal(false);
-    setShowBusinessDetailsModal(true);
-  };
+
 
   const handleBusinessDetailsSubmit = () => {
     setShowBusinessDetailsModal(false);
@@ -272,7 +271,7 @@ export default function AccountSettings() {
                       <ChevronDown className={`w-4 h-4 transition-transform ${showCategoryDropdown ? 'rotate-180' : ''}`} />
                     )}
                   </button>
-                  
+
                   {showCategoryDropdown && (
                     <div className="absolute right-0 mt-2 w-48 sm:w-64 bg-white border border-gray-300 rounded-lg shadow-xl z-10 max-h-60 overflow-y-auto">
                       {businessCategories.map((category) => (
@@ -306,6 +305,32 @@ export default function AccountSettings() {
             </div>
           </div>
         )}
+
+       {/* Business Verification Section */}
+       {isBusiness && showBusinessOptions && (
+         <div className="mb-6 sm:mb-8 p-4 sm:p-6 bg-green-50 rounded-lg border border-green-100">
+           <div>
+             <div className="flex items-center justify-between mb-2">
+               <h3 className="text-base sm:text-lg font-semibold text-gray-900 flex items-center gap-2">
+                 Business Verification
+                 <svg className="w-4 h-4 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.707a1 1 0 00-1.414-1.414L9 10.172 7.707 8.879a1 1 0 10-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                 </svg>
+               </h3>
+               <button
+                 onClick={() => setShowVerificationModal(true)}
+                 className="px-4 sm:px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base md:w-56 lg:w-56"
+               >
+                 <span className="hidden sm:inline">Verify Business</span>
+                 <span className="sm:hidden">Verify</span>
+               </button>
+             </div>
+             <p className="text-sm sm:text-base text-gray-700">
+               Submit business details and documents to request verification.
+             </p>
+           </div>
+         </div>
+       )}
 
        {/* Subscription Plan Section */}
        {isBusiness && showBusinessOptions && (
@@ -345,7 +370,6 @@ export default function AccountSettings() {
       <PaymentMethodsModal
         isOpen={showPaymentModal}
         onClose={handlePaymentModalClose}
-        onPaymentOptionClick={handlePaymentOptionClick}
       />
       
       {/* Business Details Modal */}
@@ -353,6 +377,13 @@ export default function AccountSettings() {
         isOpen={showBusinessDetailsModal}
         onClose={() => setShowBusinessDetailsModal(false)}
         onSubmit={handleBusinessDetailsSubmit}
+      />
+
+      {/* Business Verification Modal */}
+      <BusinessVerificationModal
+        isOpen={showVerificationModal}
+        onClose={() => setShowVerificationModal(false)}
+        onSubmit={() => setShowVerificationModal(false)}
       />
     </div>
   );
