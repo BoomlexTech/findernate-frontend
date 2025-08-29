@@ -34,7 +34,7 @@ export const ChatList: React.FC<ChatListProps> = ({
   onDeclineRequest,
   loading
 }) => {
-  const renderChatPreview = (chat: Chat) => {
+      const renderChatPreview = (chat: Chat) => {
     const msg = chat.lastMessage?.message;
     if (!msg) return 'No messages yet';
     
@@ -43,10 +43,11 @@ export const ChatList: React.FC<ChatListProps> = ({
     if (urls && urls.length > 0) {
       const url = urls[0];
       const isCloudinary = url.includes('res.cloudinary.com');
+      const isFindernateMedia = url.includes('findernate-media.b-cdn.net');
       const imageExt = /(\.jpg|\.jpeg|\.png|\.gif|\.webp|\.bmp|\.svg)$/i;
       const videoExt = /(\.mp4|\.mov|\.webm|\.avi|\.mkv|\.flv|\.wmv)$/i;
       
-      if (isCloudinary) {
+      if (isCloudinary || isFindernateMedia) {
         if (imageExt.test(url)) return 'Image';
         if (videoExt.test(url)) return 'Video';
       } else {

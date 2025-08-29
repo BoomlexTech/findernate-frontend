@@ -1,8 +1,8 @@
-import React from 'react';
-import Image from 'next/image';
+import React, { useState } from 'react';
 import { Check, CheckCheck, MoreVertical } from 'lucide-react';
 import { Message, Chat } from '@/api/message';
 import { MediaRenderer } from './MediaRenderer';
+import MessageMediaModal from './MessageMediaModal';
 
 interface MessageItemProps {
   msg: Message;
@@ -19,6 +19,11 @@ export const MessageItem: React.FC<MessageItemProps> = ({
   user,
   onContextMenu
 }) => {
+  const [showMediaModal, setShowMediaModal] = useState(false);
+
+  const handleMediaClick = () => {
+    setShowMediaModal(true);
+  };
   const renderMessageContent = () => {
     if (!msg.message) return null;
 
@@ -76,7 +81,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
           </p>
         )}
         
-        <MediaRenderer msg={msg} />
+        <MediaRenderer msg={msg} onMediaClick={handleMediaClick} />
         
         {renderMessageContent()}
         
@@ -118,6 +123,13 @@ export const MessageItem: React.FC<MessageItemProps> = ({
       {!isCurrentUser && !msg.readBy.includes(user?._id || '') && (
         <div className="w-2 h-2 bg-blue-500 rounded-full ml-2 mt-2" title="Unread message" />
       )}
+      
+      {/* Media Modal */}
+      <MessageMediaModal
+        isOpen={showMediaModal}
+        onClose={() => setShowMediaModal(false)}
+        message={msg}
+      />
     </div>
   );
 };
