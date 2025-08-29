@@ -120,15 +120,11 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
     rootMargin: '500px', // Start loading 500px before the video enters viewport
   });
 
-  // Allow editing on own profile ("/profile") and on own userprofile page
-  const canEdit = (
-    pathname.includes('/profile') ||
-    (
-      pathname.includes('/userprofile') &&
-      !!user?.username &&
-      ((post.username || post.userId?.username) === user.username)
-    )
-  );
+  // Allow editing on own posts anywhere (feed, profile, userprofile)
+  const canEdit = !!user?.username && ((post.username || post.userId?.username) === user.username);
+
+  // Check if this is the user's own post (for hiding save/report options)
+  const isOwnPost = !!user?.username && ((post.username || post.userId?.username) === user.username);
 
   // Derive a human-readable location name to avoid rendering [object Object]
   const locationName: string | undefined = (
@@ -816,48 +812,51 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
               {/* Dropdown Menu */}
               {showDropdown && (
                 <div className="absolute right-0 top-8 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-50 min-w-[120px]">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleToggleSavePost();
-                    }}
-                    disabled={isSaving || checkingSaved}
-                    className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 disabled:opacity-50"
-                  >
-                    {checkingSaved ? (
-                      <>
-                        <Bookmark className="w-4 h-4" />
-                        Checking...
-                      </>
-                    ) : isPostSaved ? (
-                      <>
-                        <BookmarkCheck className="w-4 h-4 text-yellow-600" />
-                        {isSaving ? 'Removing...' : 'Unsave'}
-                      </>
-                    ) : (
-                      <>
-                        <Bookmark className="w-4 h-4" />
-                        {isSaving ? 'Saving...' : 'Save'}
-                      </>
-                    )}
-                  </button>
-                  
-                  {/* Delete button - only on self profile page */}
-                  {pathname.includes('/profile') && (
+                  {/* Save button - only show if not own post */}
+                  {!isOwnPost && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleDeletePost();
+                        handleToggleSavePost();
                       }}
-                      disabled={isDeleting}
-                      className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 disabled:opacity-50"
+                      disabled={isSaving || checkingSaved}
+                      className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 disabled:opacity-50"
                     >
-                      <Trash2 className="w-4 h-4" />
-                      {isDeleting ? 'Deleting...' : 'Delete'}
+                      {checkingSaved ? (
+                        <>
+                          <Bookmark className="w-4 h-4" />
+                          Checking...
+                        </>
+                      ) : isPostSaved ? (
+                        <>
+                          <BookmarkCheck className="w-4 h-4 text-yellow-600" />
+                          {isSaving ? 'Removing...' : 'Unsave'}
+                        </>
+                      ) : (
+                        <>
+                          <Bookmark className="w-4 h-4" />
+                          {isSaving ? 'Saving...' : 'Save'}
+                        </>
+                      )}
                     </button>
-                  )}
+                                     )}
+                   
+                   {/* Delete button - only for own posts */}
+                   {canEdit && (
+                     <button
+                       onClick={(e) => {
+                         e.stopPropagation();
+                         handleDeletePost();
+                       }}
+                       disabled={isDeleting}
+                       className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 disabled:opacity-50"
+                     >
+                       <Trash2 className="w-4 h-4" />
+                       {isDeleting ? 'Deleting...' : 'Delete'}
+                     </button>
+                   )}
 
-                  {/* Edit button - only show when allowed */}
+                   {/* Edit button - only show when allowed */}
                   {canEdit && (
                     <button
                       onClick={(e) => {
@@ -878,16 +877,19 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
                     </button>
                   )}
                   
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleReportPost();
-                    }}
-                    className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-                  >
-                    <Flag className="w-4 h-4" />
-                    Report
-                  </button>
+                  {/* Report button - only show if not own post */}
+                  {!isOwnPost && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleReportPost();
+                      }}
+                      className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                    >
+                      <Flag className="w-4 h-4" />
+                      Report
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -1057,7 +1059,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
                          e.stopPropagation();
                          setIsVideoMuted(!isVideoMuted);
                        }}
-                       className="absolute top-3 right-3 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 transition-all duration-200 z-20"
+                       className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 text-white rounded-full p-1.5 transition-all duration-200 z-10"
                        title={isVideoMuted ? "Unmute" : "Mute"}
                      >
                        {isVideoMuted ? (
@@ -1119,7 +1121,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
                 </button>
 
                 {/* Media Count Indicator */}
-                <div className="absolute top-3 right-3 bg-black/50 text-white text-xs px-2 py-1 rounded-full">
+                <div className="absolute top-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded-full">
                   {currentMediaIndex + 1} / {post.media.length}
                 </div>
 
@@ -1209,48 +1211,51 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
                 {/* Dropdown Menu */}
                 {showDropdown && (
                   <div className="absolute right-0 top-8 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-50 min-w-[120px]">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleToggleSavePost();
-                      }}
-                      disabled={isSaving || checkingSaved}
-                      className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 disabled:opacity-50"
-                    >
-                      {checkingSaved ? (
-                        <>
-                          <Bookmark className="w-4 h-4" />
-                          Checking...
-                        </>
-                      ) : isPostSaved ? (
-                        <>
-                          <BookmarkCheck className="w-4 h-4 text-yellow-600" />
-                          {isSaving ? 'Removing...' : 'Unsave'}
-                        </>
-                      ) : (
-                        <>
-                          <Bookmark className="w-4 h-4" />
-                          {isSaving ? 'Saving...' : 'Save'}
-                        </>
-                      )}
-                    </button>
-                    
-                  {/* Delete button - only on self profile page */}
-                  {pathname.includes('/profile') && (
+                    {/* Save button - only show if not own post */}
+                    {!isOwnPost && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleDeletePost();
+                          handleToggleSavePost();
                         }}
-                        disabled={isDeleting}
-                        className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 disabled:opacity-50"
+                        disabled={isSaving || checkingSaved}
+                        className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 disabled:opacity-50"
                       >
-                        <Trash2 className="w-4 h-4" />
-                        {isDeleting ? 'Deleting...' : 'Delete'}
+                        {checkingSaved ? (
+                          <>
+                            <Bookmark className="w-4 h-4" />
+                            Checking...
+                          </>
+                        ) : isPostSaved ? (
+                          <>
+                            <BookmarkCheck className="w-4 h-4 text-yellow-600" />
+                            {isSaving ? 'Removing...' : 'Unsave'}
+                          </>
+                        ) : (
+                          <>
+                            <Bookmark className="w-4 h-4" />
+                            {isSaving ? 'Saving...' : 'Save'}
+                          </>
+                        )}
                       </button>
-                    )}
-                    
-                    {/* Edit button - only show on profile page */}
+                                         )}
+                     
+                   {/* Delete button - only for own posts */}
+                   {canEdit && (
+                       <button
+                         onClick={(e) => {
+                           e.stopPropagation();
+                           handleDeletePost();
+                         }}
+                         disabled={isDeleting}
+                         className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 disabled:opacity-50"
+                       >
+                         <Trash2 className="w-4 h-4" />
+                         {isDeleting ? 'Deleting...' : 'Delete'}
+                       </button>
+                     )}
+                     
+                     {/* Edit button - only show for own posts */}
                     {canEdit && (
                       <button
                         onClick={(e) => {
@@ -1272,16 +1277,19 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
                       </button>
                     )}
                     
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleReportPost();
-                      }}
-                      className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-                    >
-                      <Flag className="w-4 h-4" />
-                      Report
-                    </button>
+                    {/* Report button - only show if not own post */}
+                    {!isOwnPost && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleReportPost();
+                        }}
+                        className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                      >
+                        <Flag className="w-4 h-4" />
+                        Report
+                      </button>
+                    )}
                   </div>
                 )}
               </div>

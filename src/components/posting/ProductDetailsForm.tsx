@@ -11,7 +11,7 @@ const ProductDetailsForm: React.FC<ProductDetailsFormProps> = ({
   const currency=['INR', 'USD', 'EUR'];
 
   return (
-    <div className="bg-gray-100 p-6 rounded-xl shadow-md mb-6 border-2 border-yellow-500">
+    <div className="bg-white p-6 rounded-xl shadow-md mb-6 border-2 border-yellow-500">
       <h3 className="text-lg text-black font-semibold mb-4">Product Details</h3>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <div>

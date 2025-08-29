@@ -1,14 +1,12 @@
 'use client';
 import React, { useState } from 'react';
-import { Grid3X3, Bookmark, Tag, Play, Video } from 'lucide-react';
+import { Grid3X3, Play, Video } from 'lucide-react';
 import { FeedPost } from '@/types';
 
 interface ProfilePostsSectionProps {
   PostCard: React.ComponentType<{post: FeedPost}>
   posts?: FeedPost[];
   username?: string;
-  savedPosts?: FeedPost[];
-  taggedPosts?: FeedPost[];
   reels?: FeedPost[];
   videos?: FeedPost[];
   isOtherUser?: boolean;
@@ -19,8 +17,6 @@ interface ProfilePostsSectionProps {
 const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
   PostCard,
   posts = [],
-  savedPosts = [],
-  taggedPosts = [],
   reels = [],
   videos = [],
   isOtherUser = false,
@@ -29,23 +25,15 @@ const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState('posts');
 
-  // Different tabs based on whether it's other user or current user
-  const tabs = isOtherUser ? [
+  // Show same tabs for both current user and other user profiles
+  const tabs = [
     { id: 'posts', label: 'Posts', icon: Grid3X3, count: posts.length },
     { id: 'reels', label: 'Reels', icon: Play, count: reels.length },
     { id: 'videos', label: 'Videos', icon: Video, count: videos.length }
-  ] : [
-    { id: 'posts', label: 'Posts', icon: Grid3X3, count: posts.length },
-    { id: 'saved', label: 'Saved', icon: Bookmark, count: savedPosts.length },
-    { id: 'tagged', label: 'Tagged', icon: Tag, count: taggedPosts.length }
   ];
 
   const getCurrentPosts = () => {
     switch (activeTab) {
-      case 'saved':
-        return savedPosts;
-      case 'tagged':
-        return taggedPosts;
       case 'reels':
         return reels;
       case 'videos':
@@ -107,8 +95,6 @@ const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
           <div className="text-center py-12">
             <div className="text-gray-400 mb-4">
               {activeTab === 'posts' && <Grid3X3 className="w-12 h-12 mx-auto" />}
-              {activeTab === 'saved' && <Bookmark className="w-12 h-12 mx-auto" />}
-              {activeTab === 'tagged' && <Tag className="w-12 h-12 mx-auto" />}
               {activeTab === 'reels' && <Play className="w-12 h-12 mx-auto" />}
               {activeTab === 'videos' && <Video className="w-12 h-12 mx-auto" />}
             </div>
@@ -117,8 +103,6 @@ const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
             </h3>
             <p className="text-gray-500">
               {activeTab === 'posts' && (isOtherUser ? "No posts shared yet" : "Share your first post to get started")}
-              {activeTab === 'saved' && "Save posts you want to view later"}
-              {activeTab === 'tagged' && "Posts you're tagged in will appear here"}
               {activeTab === 'reels' && (isOtherUser ? "No reels shared yet" : "Create your first reel")}
               {activeTab === 'videos' && (isOtherUser ? "No videos shared yet" : "Upload your first video")}
             </p>
