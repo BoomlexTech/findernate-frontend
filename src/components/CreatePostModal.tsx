@@ -14,6 +14,7 @@ import { useUserStore } from '@/store/useUserStore';
 import TagInput from './TagInput';
 import { toast } from 'react-toastify';
 import { searchLocations, LocationSuggestion } from '@/api/location';
+import { postRefreshEvents } from '@/utils/postRefreshEvents';
 
 interface createPostModalProps {
     closeModal: () => void;
@@ -814,6 +815,10 @@ const handleProductChange = (
           pauseOnHover: true,
           draggable: true,
         });
+        
+        // Emit post refresh event to update current page without reload
+        postRefreshEvents.emitPostCreated(response.data || response);
+        
         setTimeout(() => {
           closeModal();
         }, 1000);
