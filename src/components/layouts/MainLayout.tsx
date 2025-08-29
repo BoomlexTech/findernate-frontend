@@ -14,7 +14,7 @@ import { CallManager } from "@/components/call/CallManager";
 const MainLayout = ({children}:{children:React.ReactNode}) => {
 
   const pathname = usePathname();
-  const noSidebarRoutes = ['/onboarding','/signup', '/signin', '/forgot-password', '/reset-password'];
+  const noSidebarRoutes = ['/onboarding','/signup', '/signin', '/forgot-password', '/reset-password', '/admin/login'];
   const isNoSidebar = noSidebarRoutes.some(path => pathname.startsWith(path));
   const [postToggle, setPostToggle] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
