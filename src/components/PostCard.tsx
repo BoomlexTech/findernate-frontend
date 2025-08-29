@@ -1015,7 +1015,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
               const rawUrl = typeof currentMedia?.url === 'string' ? currentMedia.url.trim() : '';
               const safeUrl = rawUrl.length > 0 ? rawUrl : undefined; // undefined so browser/next won't treat as empty string
               const rawThumb = typeof currentMedia?.thumbnailUrl === 'string' ? currentMedia.thumbnailUrl.trim() : '';
-              const safeThumb = rawThumb.length > 0 ? rawThumb : undefined;
+              const safeThumb = rawThumb.length > 0 ? rawThumb : '/placeholderimg.png';
               const isVideo = currentMedia?.type === 'video' && !!safeUrl;
 
                if (isVideo) {
@@ -1026,30 +1026,27 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
                        poster={safeThumb}
                        muted={isVideoMuted}
                        loop
-                       preload="none"
+                       autoPlay
+                       preload="auto"
                        playsInline
                        style={{ objectFit: 'cover' }}
-                       onMouseEnter={(e) => {
+                       onCanPlay={(e) => {
+                         // Ensure video is visible once it can play
                          const video = e.currentTarget;
-                         video.play().catch(() => {
-                           // Ignore play errors - video might already be playing or paused
-                         });
+                         video.style.opacity = '1';
                        }}
-                       onMouseLeave={(e) => {
+                       onLoadStart={(e) => {
+                         // Show poster/first frame immediately
                          const video = e.currentTarget;
-                         try {
-                           video.pause();
-                         } catch {
-                           // Ignore pause errors
-                         }
+                         video.style.opacity = '1';
                        }}
                        onClick={(e) => {
                          e.stopPropagation();
                          setShowImageModal(true);
                        }}
                      >
-                       {/* Only render source if we have a valid URL and video is in viewport */}
-                       {safeUrl && hasIntersected && <source src={safeUrl} type="video/mp4" />}
+                       {/* Always render source if we have a valid URL */}
+                       {safeUrl && <source src={safeUrl} type="video/mp4" />}
                        Your browser does not support the video tag.
                      </video>
                      
