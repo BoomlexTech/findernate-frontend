@@ -1,5 +1,5 @@
 'use client'
-import { getPostsByUserid } from '@/api/homeFeed';
+import { getPostsByUserid, getUserReels, getUserVideos } from '@/api/homeFeed';
 import { getUserProfile } from '@/api/user';
 import AccountSettings from '@/components/AccountSettings';
 //import FloatingHeader from '@/components/FloatingHeader';
@@ -14,6 +14,8 @@ import { LogIn, User } from 'lucide-react';
 
 const Page = () => {
   const [posts, setPosts] = useState<FeedPost[]>([]);
+  const [reels, setReels] = useState<FeedPost[]>([]);
+  const [videos, setVideos] = useState<FeedPost[]>([]);
   const [profileData, setProfileData] = useState<UserProfileType | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -43,10 +45,20 @@ const Page = () => {
           throw new Error("Profile data not found in response");
         }
         
-        // Fetch user posts
-        const postsResponse = await getPostsByUserid(user._id);
+        // Fetch user posts, reels, and videos
+        const [postsResponse, reelsResponse, videosResponse] = await Promise.all([
+          getPostsByUserid(user._id),
+          getUserReels(user._id),
+          getUserVideos(user._id)
+        ]);
+        
         setPosts(postsResponse.data?.posts || []);
+        setReels(reelsResponse.data?.posts || []);
+        setVideos(videosResponse.data?.posts || []);
+        
         console.log("Posts:", postsResponse.data?.posts);
+        console.log("Reels:", reelsResponse.data?.posts);
+        console.log("Videos:", videosResponse.data?.posts);
       } catch (error) {
         console.error('Error fetching data:', error);
         setError('Failed to load profile data');
@@ -212,7 +224,28 @@ const Page = () => {
                       post.customization?.service?.tags || 
                       post.customization?.product?.tags || 
                       post.tags || [],
-              }))}  
+              }))}
+              reels={reels.map((post) => ({
+                ...post,
+                username: post.userId?.username || '',
+                profileImageUrl: post.userId?.profileImageUrl || '',
+                tags: post.customization?.normal?.tags || 
+                      post.customization?.business?.tags || 
+                      post.customization?.service?.tags || 
+                      post.customization?.product?.tags || 
+                      post.tags || [],
+              }))}
+              videos={videos.map((post) => ({
+                ...post,
+                username: post.userId?.username || '',
+                profileImageUrl: post.userId?.profileImageUrl || '',
+                tags: post.customization?.normal?.tags || 
+                      post.customization?.business?.tags || 
+                      post.customization?.service?.tags || 
+                      post.customization?.product?.tags || 
+                      post.tags || [],
+              }))}
+              isOtherUser={false}
             />
           </div>
         </div>
