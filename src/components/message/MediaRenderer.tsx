@@ -3,9 +3,10 @@ import { Message } from '@/api/message';
 
 interface MediaRendererProps {
   msg: Message;
+  onMediaClick?: (message: Message) => void;
 }
 
-export const MediaRenderer: React.FC<MediaRendererProps> = ({ msg }) => {
+export const MediaRenderer: React.FC<MediaRendererProps> = ({ msg, onMediaClick }) => {
   if (!msg.message || msg.messageType === 'text') return null;
 
   let mediaUrl = msg.mediaUrl;
@@ -18,6 +19,8 @@ export const MediaRenderer: React.FC<MediaRendererProps> = ({ msg }) => {
     
     mediaUrl = urlMatch[0];
   }
+  
+
   
   const commonClasses = "max-w-full rounded-lg border border-gray-200";
 
@@ -69,28 +72,29 @@ export const MediaRenderer: React.FC<MediaRendererProps> = ({ msg }) => {
       
       return (
         <div className="mb-2">
-          <img
-            src={mediaUrl}
-            alt={msg.fileName || 'Shared image'}
-            className={`${commonClasses} object-cover cursor-pointer hover:opacity-90 transition-opacity max-w-[300px] max-h-[200px]`}
-            onClick={() => window.open(mediaUrl, '_blank')}
-            onError={(e) => {
-              console.error('Image failed to load:', mediaUrl);
-              e.currentTarget.style.display = 'none';
-            }}
-          />
+            <img
+             src={mediaUrl}
+             alt={msg.fileName || 'Shared image'}
+             className={`${commonClasses} object-cover cursor-pointer hover:opacity-90 transition-opacity w-[1000px] max-h-[400px]`}
+             onClick={() => onMediaClick?.(msg)}
+             onError={(e) => {
+               console.error('Image failed to load:', mediaUrl);
+               e.currentTarget.style.display = 'none';
+             }}
+           />
         </div>
       );
 
     case 'video':
       return (
         <div className="mb-2">
-          <video
-            src={mediaUrl}
-            controls
-            className={`${commonClasses} max-h-64`}
-            preload="metadata"
-          >
+                     <video
+             src={mediaUrl}
+             controls
+             className={`${commonClasses} w-[800px] max-h-[400px] cursor-pointer`}
+             preload="metadata"
+             onClick={() => onMediaClick?.(msg)}
+           >
             Your browser does not support the video tag.
           </video>
         </div>
