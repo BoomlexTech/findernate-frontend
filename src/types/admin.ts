@@ -111,14 +111,42 @@ export interface AnalyticsData {
   recentReports: Report[];
 }
 
-export interface AdminUser {
+export interface AdminPermissions {
+  verifyAadhaar: boolean;
+  manageReports: boolean;
+  manageUsers: boolean;
+  manageBusiness: boolean;
+  systemSettings: boolean;
+  viewAnalytics: boolean;
+  deleteContent: boolean;
+  banUsers: boolean;
+}
+
+export interface ActivityLogEntry {
+  action: string;
+  targetType: string;
+  targetId: string;
+  details: string;
   _id: string;
+  timestamp: string;
+}
+
+export interface AdminUser {
+  permissions: AdminPermissions;
+  _id: string;
+  uid: string;
   username: string;
-  fullName: string;
   email: string;
-  role: 'super_admin' | 'admin' | 'moderator';
-  profileImageUrl: string;
-  lastActive: string;
+  fullName: string;
+  role: string;
+  isActive: boolean;
+  createdBy: string | null;
+  activityLog: ActivityLogEntry[];
+  createdAt: string;
+  updatedAt: string;
+  __v: number;
+  lastLogin: string;
+  profileImageUrl?: string; // Optional for backward compatibility
 }
 
 export interface Notification {
