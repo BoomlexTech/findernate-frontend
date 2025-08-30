@@ -275,6 +275,7 @@ export interface FeedPost {
         name: string;
       };
       tags?: string[];
+      link?: string;
     };
     business?: {
       businessName: string;

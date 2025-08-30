@@ -49,7 +49,6 @@ const BusinessPostCard = ({ post }: BusinessPostCardProps) => {
       {/* Description Section */}
       <div className="mt-3 rounded-lg border border-red-300 bg-red-50/70 p-3">
         <div>
-          <p className="font-bold text-gray-800">{businessName}</p>
           <p className="mt-1 text-sm text-gray-600">{businessDescription}</p>
           
           {/* View Details Button */}

@@ -1,6 +1,6 @@
 // components/YogaSessionCard.jsx
 
-import { MapPin, Clock, User, Bell, IndianRupee } from 'lucide-react';
+import { MapPin, Bell, IndianRupee } from 'lucide-react';
 import { useState } from 'react';
 import ProductServiceDetails from '../ProductServiceDetails';
 import { FeedPost } from '@/types';
@@ -18,8 +18,8 @@ const ServiceCard = ({ post }: ServiceCardProps) => {
   const serviceName = serviceData?.name || 'Service';
   const servicePrice = serviceData?.price || 0;
   const serviceCurrency = serviceData?.currency || 'INR';
-  const serviceDuration = serviceData?.duration || 60;
-  const serviceCategory = serviceData?.category || 'General';
+  // const serviceDuration = serviceData?.duration || 60;
+  // const serviceCategory = serviceData?.category || 'General';
 
   
   return (
@@ -57,7 +57,7 @@ const ServiceCard = ({ post }: ServiceCardProps) => {
       </div>
 
       {/* Bottom section: Duration & Category */}
-      <div className="mt-4 flex items-center gap-6 px-2 text-sm text-gray-500">
+      {/* <div className="mt-4 flex items-center gap-6 px-2 text-sm text-gray-500">
         <div className="flex items-center gap-2">
           <Clock size={16} />
           <span className='text-xs'>{serviceDuration} min</span>
@@ -66,7 +66,7 @@ const ServiceCard = ({ post }: ServiceCardProps) => {
           <User size={16} />
           <span className='text-xs'>{serviceCategory}</span>
         </div>
-      </div>
+      </div> */}
       
       {/* Book Now Button */}
       <div className="mt-3 px-2">

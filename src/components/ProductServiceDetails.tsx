@@ -14,11 +14,12 @@ import {
   //Shield,
   // ArrowLeft,
   X,
-  Building2
+  Building2,
+  Link
 } from 'lucide-react';
 import { FeedPost } from '@/types';
 import { Badge } from './ui/badge';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useUserStore } from '@/store/useUserStore';
 import { messageAPI, Chat } from '@/api/message';
 import { useRouter } from 'next/navigation';
@@ -93,8 +94,9 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
     availability: '-',
     requirements: [] as string[],
     whatYouGet: [] as string[],
-    link: '#'
+    link: post.customization?.service?.link || 'None'
   };
+
 
   const businessData = {
     name: post.customization?.business?.businessName || post.caption || '-',
@@ -114,14 +116,7 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
   const isBusiness = post.contentType === 'business';
   const data = isProduct ? productData : isBusiness ? businessData : serviceData;
 
-  // Log when modal opens and what data is shown
-  useEffect(() => {
-    console.log('[ProductServiceDetails] showing data', {
-      postId: post._id,
-      contentType: post.contentType,
-      data,
-    });
-  }, [post._id, post.contentType, data]);
+
 
   const handleGetContact = async () => {
     if (isBooking) return;
@@ -355,6 +350,30 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
             </div>
           )}
 
+          {/* Service Link - Show for all services */}
+          {post.contentType === 'service' && (
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <Link className="w-4 h-4 text-blue-600" />
+                <span className="text-xs font-semibold text-blue-800 uppercase">Service Link</span>
+              </div>
+              {data.link && data.link !== 'None' ? (
+                <a 
+                  href={data.link} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-sm font-medium text-blue-600 hover:text-blue-800 underline break-all"
+                >
+                  {data.link}
+                </a>
+              ) : (
+                <p className="text-sm font-medium text-gray-500">None</p>
+              )}
+            </div>
+          )}
+          
+                     
+
           {/* Timing and Availability - Only show for services or if data exists */}
           {(post.contentType === 'service' || data.timing || data.availability) && (
             <div className="grid grid-cols-1 gap-3">
@@ -557,6 +576,30 @@ const ProductServiceDetails = ({ post, onClose, isSidebar = false }: ProductServ
               <p className="text-lg font-medium text-gray-900">{data.location}</p>
             </div>
           )}
+
+          {/* Service Link - Show for all services */}
+          {post.contentType === 'service' && (
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Link className="w-5 h-5 text-blue-600" />
+                <span className="text-sm font-semibold text-blue-800 uppercase">Service Link</span>
+              </div>
+              {data.link && data.link !== 'None' ? (
+                <a 
+                  href={data.link} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-lg font-medium text-blue-600 hover:text-blue-800 underline break-all"
+                >
+                  {data.link}
+                </a>
+              ) : (
+                <p className="text-lg font-medium text-gray-500">None</p>
+              )}
+            </div>
+          )}
+          
+          
 
           {/* Timing and Availability - Only show for services or if data exists */}
           {(post.contentType === 'service' || data.timing || data.availability) && (
