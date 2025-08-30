@@ -44,9 +44,9 @@ const ProductDetailsForm: React.FC<ProductDetailsFormProps> = ({
           value={formData.product.currency}
           onChange={onChange}
           className={`w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500
-            ${formData.product.currency === '' ? 'text-gray-400' : 'text-gray-900'}`}
+            ${formData.product.currency === '' ? 'text-black' : 'text-gray-900'}`}
         >
-          <option value="" disabled>Select currency</option>
+          <option value="" disabled className='text-black'>Select currency</option>
           {currency.map((curr: string) => (
             <option key={curr} value={curr}>{curr}</option>
           ))}
