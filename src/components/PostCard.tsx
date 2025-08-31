@@ -1022,14 +1022,16 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
                  return (
                    <div className="relative w-full h-full">
                      <video
-                       className="w-full h-full object-cover rounded-xl cursor-zoom-in"
+                       className="w-full h-full rounded-xl cursor-zoom-in"
                        poster={safeThumb}
                        muted={isVideoMuted}
                        loop
                        autoPlay
                        preload="auto"
                        playsInline
-                       style={{ objectFit: 'cover' }}
+                       style={{ 
+                         objectFit: 'contain'
+                       }}
                        onCanPlay={(e) => {
                          // Ensure video is visible once it can play
                          const video = e.currentTarget;
@@ -1039,6 +1041,19 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
                          // Show poster/first frame immediately
                          const video = e.currentTarget;
                          video.style.opacity = '1';
+                       }}
+                       onLoadedMetadata={(e) => {
+                         const video = e.currentTarget;
+                         const videoAspectRatio = video.videoWidth / video.videoHeight;
+                         
+                         // If video is portrait (taller than wide)
+                         if (videoAspectRatio < 1) {
+                           // Use cover for portrait videos to fill the container
+                           video.style.objectFit = 'cover';
+                         } else {
+                           // Use contain for landscape videos to show full video
+                           video.style.objectFit = 'contain';
+                         }
                        }}
                        onClick={(e) => {
                          e.stopPropagation();
@@ -1084,7 +1099,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
                   src={imageUrl}
                   alt="Post content"
                   fill
-                  className="rounded-xl object-cover cursor-zoom-in"
+                  className="rounded-xl object-contain cursor-zoom-in"
                   unoptimized
                   onError={() => {
                     // console.warn('Media image failed to load for post:', post._id, 'URL:', imageUrl);

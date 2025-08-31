@@ -1,7 +1,11 @@
 'use client';
 import React, { useState } from 'react';
-import { Grid3X3, Play, Video } from 'lucide-react';
+import { Grid3X3, Play, Video, Heart, MessageCircle } from 'lucide-react';
 import { FeedPost } from '@/types';
+import Image from 'next/image';
+import { likePost, unlikePost } from '@/api/post';
+import { useAuthGuard } from '@/hooks/useAuthGuard';
+import { AxiosError } from 'axios';
 
 interface ProfilePostsSectionProps {
   PostCard: React.ComponentType<{post: FeedPost}>
@@ -24,6 +28,9 @@ const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
   onTabChange
 }) => {
   const [activeTab, setActiveTab] = useState('posts');
+  const { requireAuth } = useAuthGuard();
+  const [postLikes, setPostLikes] = useState<{[key: string]: {isLiked: boolean, count: number}}>({});
+  const [hoveredVideo, setHoveredVideo] = useState<string | null>(null);
 
   // Show same tabs for both current user and other user profiles
   const tabs = [
@@ -48,6 +55,52 @@ const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
     if (onTabChange) {
       onTabChange(tabId);
     }
+  };
+
+  const getLikeState = (post: FeedPost) => {
+    return postLikes[post._id] || {
+      isLiked: post.isLikedBy,
+      count: post.engagement.likes
+    };
+  };
+
+  const handleLikeToggle = async (post: FeedPost, e: React.MouseEvent) => {
+    e.stopPropagation();
+    requireAuth(async () => {
+      const currentState = getLikeState(post);
+      const shouldLike = !currentState.isLiked;
+      const newCount = shouldLike ? currentState.count + 1 : currentState.count - 1;
+      
+      // Optimistic update
+      setPostLikes(prev => ({
+        ...prev,
+        [post._id]: {
+          isLiked: shouldLike,
+          count: newCount
+        }
+      }));
+
+      try {
+        if (shouldLike) {
+          await likePost(post._id);
+        } else {
+          await unlikePost(post._id);
+        }
+      } catch (error) {
+        // Revert on error
+        setPostLikes(prev => ({
+          ...prev,
+          [post._id]: currentState
+        }));
+      }
+    });
+  };
+
+  const handleCommentClick = (post: FeedPost, e: React.MouseEvent) => {
+    e.stopPropagation();
+    requireAuth(() => {
+      window.open(`/post/${post._id}?focus=comments`, '_blank');
+    });
   };
 
   return (
@@ -108,10 +161,149 @@ const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
             </p>
           </div>
         ) : (
-          <div className="flex flex-col gap-6">
-            {getCurrentPosts().map((post, index) => (
-              <PostCard key={post._id || index} post={post} />
-            ))}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {getCurrentPosts().map((post, index) => {
+              const likeState = getLikeState(post);
+              return (
+                <div
+                  key={post._id || index}
+                  className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+                >
+                  {/* Media Section */}
+                  <div 
+                    className={`${activeTab === 'reels' ? 'aspect-auto' : 'aspect-square'} bg-gray-100 overflow-hidden cursor-pointer hover:opacity-95 transition-opacity relative group`}
+                    onClick={() => {
+                      window.open(`/post/${post._id}`, '_blank');
+                    }}
+                    onMouseEnter={() => activeTab === 'reels' && setHoveredVideo(post._id)}
+                    onMouseLeave={() => activeTab === 'reels' && setHoveredVideo(null)}
+                  >
+                    {(() => {
+                      const currentMedia = post.media[0];
+                      const rawUrl = typeof currentMedia?.url === 'string' ? currentMedia.url.trim() : '';
+                      const safeUrl = rawUrl.length > 0 ? rawUrl : undefined;
+                      const rawThumb = typeof currentMedia?.thumbnailUrl === 'string' ? currentMedia.thumbnailUrl.trim() : '';
+                      const safeThumb = rawThumb.length > 0 ? rawThumb : '/placeholderimg.png';
+                      const isVideo = currentMedia?.type === 'video' && !!safeUrl;
+
+                      if (isVideo) {
+                        const isReelTab = activeTab === 'reels';
+                        const isHovered = hoveredVideo === post._id;
+                        const shouldShowVideo = isReelTab && isHovered;
+                        
+                        if (isReelTab) {
+                          return (
+                            <div className="relative w-full" style={{ paddingBottom: '177.78%' }}>
+                              {/* Video - always present, plays/pauses based on hover */}
+                              <video
+                                className="absolute inset-0 w-full h-full object-contain"
+                                muted
+                                loop
+                                playsInline
+                                preload="auto"
+                                ref={(video) => {
+                                  if (video) {
+                                    if (shouldShowVideo) {
+                                      video.play();
+                                    } else {
+                                      video.pause();
+                                    }
+                                  }
+                                }}
+                              >
+                                {safeUrl && <source src={safeUrl} type="video/mp4" />}
+                              </video>
+                              
+                              {/* Play icon overlay - only when paused */}
+                              <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-300 ${shouldShowVideo ? 'opacity-0' : 'opacity-100'}`}>
+                                <div className="bg-black/50 rounded-full p-3">
+                                  <Play className="w-6 h-6 text-white fill-white" />
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        } else {
+                          // Non-reel videos
+                          return (
+                            <>
+                              <video
+                                className="w-full h-full object-cover"
+                                poster={safeThumb}
+                                muted
+                                preload="none"
+                              >
+                                {safeUrl && <source src={safeUrl} type="video/mp4" />}
+                              </video>
+                              {/* Video indicator */}
+                              <div className="absolute top-2 right-2 bg-black/50 rounded-full p-1">
+                                <Play className="w-3 h-3 text-white fill-white" />
+                              </div>
+                            </>
+                          );
+                        }
+                      }
+
+                      // Image fallback
+                      const imageUrl = safeUrl || safeThumb || '/placeholderimg.png';
+                      return (
+                        <Image
+                          src={imageUrl}
+                          alt="Post content"
+                          fill
+                          className="object-cover"
+                          unoptimized
+                        />
+                      );
+                    })()}
+                    
+                    {/* Multiple media indicator */}
+                    {post.media.length > 1 && (
+                      <div className="absolute top-2 right-2 bg-black/50 rounded-full p-1">
+                        <Grid3X3 className="w-3 h-3 text-white" />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Engagement Section */}
+                  <div className="p-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-4">
+                        {/* Like Button */}
+                        <button 
+                          onClick={(e) => handleLikeToggle(post, e)}
+                          className={`flex items-center space-x-1 p-1 rounded-lg transition-colors ${
+                            likeState.isLiked 
+                              ? 'text-red-500' 
+                              : 'text-gray-600 hover:text-red-500'
+                          }`}
+                        >
+                          <Heart className={`w-5 h-5 ${likeState.isLiked ? 'fill-current' : ''}`} />
+                          <span className="text-sm font-medium">{likeState.count}</span>
+                        </button>
+
+                        {/* Comment Button */}
+                        <button 
+                          onClick={(e) => handleCommentClick(post, e)}
+                          className="flex items-center space-x-1 p-1 rounded-lg text-gray-600 hover:text-blue-500 transition-colors"
+                        >
+                          <MessageCircle className="w-5 h-5" />
+                          <span className="text-sm font-medium">{post.engagement.comments || 0}</span>
+                        </button>
+                      </div>
+
+                      {/* Caption Preview */}
+                      {post.caption && (
+                        <div className="flex-1 ml-4">
+                          <p className="text-sm text-gray-800 line-clamp-1">
+                            {post.caption}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
