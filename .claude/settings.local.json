@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(C:\\Users\\KIIT\\Desktop\\FinderNate/**)",
+      "Read(C:\\Users\\KIIT\\Desktop\\FinderNate/**)",
+      "Read(C:\\Users\\KIIT\\Desktop\\FinderNate\\src/**)",
+      "Read(C:\\Users\\KIIT\\Desktop\\FinderNate\\src/**)",
+      "Read(C:\\Users\\KIIT\\Desktop\\FinderNate\\src\\config/**)",
+      "Read(C:\\Users\\KIIT\\Desktop\\FinderNate/**)",
+      "Read(C:\\Users\\KIIT\\Desktop\\FinderNate/**)",
+      "Read(C:\\Users\\KIIT\\Desktop\\FinderNate/**)",
+      "Read(C:\\Users\\KIIT\\Desktop\\FinderNate\\src\\routes/**)",
+      "Read(C:\\Users\\KIIT\\Desktop\\FinderNate\\src\\routes/**)",
+      "Read(C:\\Users\\KIIT\\Desktop\\FinderNate\\src\\controllers/**)",
+      "Read(C:\\Users\\KIIT\\Desktop\\FinderNate\\src\\config/**)",
+      "Bash(npm install:*)",
+      "Bash(npm run build:*)",
+      "Read(C:\\Users\\KIIT\\Desktop\\FinderNate/**)",
+      "Read(C:\\Users\\KIIT\\Desktop\\FinderNate\\src\\config/**)",
+      "Read(C:\\Users\\KIIT\\Desktop\\FinderNate\\src\\routes/**)",
+      "Read(C:\\Users\\KIIT\\Desktop\\FinderNate/**)",
+      "Read(C:\\Users\\KIIT\\Desktop\\FinderNate\\src/**)",
+      "Read(C:\\Users\\KIIT\\Desktop\\FinderNate\\src\\controllers/**)",
+      "Read(C:\\Users\\KIIT\\Desktop\\FinderNate\\src\\config/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

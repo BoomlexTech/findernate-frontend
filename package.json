@@ -9,6 +9,8 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@100mslive/hms-video-react": "^0.7.4",
+    "@100mslive/hms-video-store": "^0.12.38",
     "axios": "^1.10.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

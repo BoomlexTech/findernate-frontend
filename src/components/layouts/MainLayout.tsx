@@ -8,8 +8,8 @@ import { Menu, X } from 'lucide-react';
 import LeftSidebar from "@/components/LeftSidebar";
 import CreatePostModal from "@/components/CreatePostModal";
 import PushNotificationProvider from "@/components/providers/PushNotificationProvider";
-import { GlobalCallProvider } from "@/components/providers/GlobalCallProvider";
-import { CallManager } from "@/components/call/CallManager";
+import { GlobalHMSCallProvider } from "@/components/providers/GlobalHMSCallProvider";
+import { HMSCallManager } from "@/components/call/HMSCallManager";
 
 const MainLayout = ({children}:{children:React.ReactNode}) => {
 
@@ -65,9 +65,9 @@ const MainLayout = ({children}:{children:React.ReactNode}) => {
 
   return (
     <PushNotificationProvider>
-      <GlobalCallProvider>
-        {/* Global Call Manager - handles call states automatically */}
-        <CallManager />
+      <GlobalHMSCallProvider>
+        {/* Global HMS Call Manager - handles call states automatically */}
+        <HMSCallManager />
         
         {/* Hamburger Menu for mobile and medium screens (hidden on reels page) */}
         {!isNoSidebar && isMobile && !pathname.startsWith('/reels') && (
@@ -124,7 +124,7 @@ const MainLayout = ({children}:{children:React.ReactNode}) => {
 
         {/* Toast Container */}
         <ToastContainer />
-      </GlobalCallProvider>
+      </GlobalHMSCallProvider>
     </PushNotificationProvider>
   )
 }
