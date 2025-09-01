@@ -113,6 +113,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
   });
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [isVideoMuted, setIsVideoMuted] = useState(true);
+  const [imageTransform, setImageTransform] = useState<string>('');
 
   // Intersection observer for lazy loading videos
   const { elementRef, hasIntersected } = useIntersectionObserver({
@@ -169,9 +170,10 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
     setMediaImageError(false);
   }, [post._id]);
 
-  // Reset media error when media index changes
+  // Reset media error and transform when media index changes
   useEffect(() => {
     setMediaImageError(false);
+    setImageTransform('');
   }, [currentMediaIndex]);
 
   // Set client-side flag to prevent hydration issues
@@ -1004,7 +1006,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
           {/* Media Section */}
           <div 
             ref={elementRef}
-            className="post-media relative w-full h-[300px] sm:h-[350px] md:w-[21rem] md:h-[24rem] md:flex-shrink-0 overflow-hidden rounded-2xl group"
+            className="post-media relative w-full md:w-[21rem] md:flex-shrink-0 overflow-hidden rounded-2xl group flex items-center justify-center"
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
@@ -1020,9 +1022,9 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
 
                if (isVideo) {
                  return (
-                   <div className="relative w-full h-full">
+                   <div className="relative w-full">
                      <video
-                       className="w-full h-full rounded-xl cursor-zoom-in"
+                       className="w-full h-auto rounded-xl cursor-zoom-in"
                        poster={safeThumb}
                        muted={isVideoMuted}
                        loop
@@ -1046,13 +1048,15 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
                          const video = e.currentTarget;
                          const videoAspectRatio = video.videoWidth / video.videoHeight;
                          
-                         // If video is portrait (taller than wide)
+                         // Always use contain but add transforms for better fit
+                         video.style.objectFit = 'contain';
+                         
                          if (videoAspectRatio < 1) {
-                           // Use cover for portrait videos to fill the container
-                           video.style.objectFit = 'cover';
+                           // Portrait video: stretch horizontally
+                           video.style.transform = 'scaleX(1.2)';
                          } else {
-                           // Use contain for landscape videos to show full video
-                           video.style.objectFit = 'contain';
+                           // Landscape video: stretch vertically
+                           video.style.transform = 'scaleY(1.2)';
                          }
                        }}
                        onClick={(e) => {
@@ -1098,9 +1102,25 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
                 <Image
                   src={imageUrl}
                   alt="Post content"
-                  fill
-                  className="rounded-xl object-contain cursor-zoom-in"
+                  width={0}
+                  height={0}
+                  sizes="100vw"
+                  className="rounded-xl w-full h-auto cursor-zoom-in"
+                  style={{ transform: imageTransform }}
                   unoptimized
+                  onLoad={(e) => {
+                    const img = e.currentTarget;
+                    const imageAspectRatio = img.naturalWidth / img.naturalHeight;
+                    
+                    // Apply transforms based on aspect ratio
+                    if (imageAspectRatio < 1) {
+                      // Portrait image: stretch horizontally
+                      setImageTransform('scaleX(1.2)');
+                    } else {
+                      // Landscape image: stretch vertically
+                      setImageTransform('scaleY(1.2)');
+                    }
+                  }}
                   onError={() => {
                     // console.warn('Media image failed to load for post:', post._id, 'URL:', imageUrl);
                     setMediaImageError(true);
