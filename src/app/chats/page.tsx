@@ -2,6 +2,7 @@
 'use client'
 import { Suspense } from "react";
 import MessagePanel from "@/components/MessagePanel";
+import { HMSDebug } from "@/components/debug/HMSDebug";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
 import { MessageCircle, Users, LogIn } from "lucide-react";
 import Link from "next/link";
@@ -83,18 +84,25 @@ export default function Page() {
   // Show authenticated chats page
   return (
     <>
-      <div className="flex">
-        {/* LeftSidebar is assumed already rendered in layout */}
-        <Suspense fallback={
-          <div className="flex-1 flex items-center justify-center min-h-screen">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
-              <p className="text-gray-600">Loading your chats...</p>
+      <div className="flex flex-col">
+        {/* HMS Debug Tool - Temporary for debugging */}
+        <div className="p-4 border-b">
+          <HMSDebug />
+        </div>
+        
+        <div className="flex">
+          {/* LeftSidebar is assumed already rendered in layout */}
+          <Suspense fallback={
+            <div className="flex-1 flex items-center justify-center min-h-screen">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                <p className="text-gray-600">Loading your chats...</p>
+              </div>
             </div>
-          </div>
-        }>
-          <MessagePanel />
-        </Suspense>
+          }>
+            <MessagePanel />
+          </Suspense>
+        </div>
       </div>
 
     </>

@@ -173,6 +173,80 @@ export const callAPI = {
       console.error('Error storing session data:', error.response?.data || error.message);
       throw error;
     }
+  },
+
+  // Get HMS auth token for joining 100ms room
+  getHMSAuthToken: async (callId: string, role: 'host' | 'guest' = 'guest'): Promise<{
+    authToken: string;
+    roomId: string;
+    roomCode: string;
+    role: string;
+  }> => {
+    try {
+      const response = await apiClient.post<{
+        success: boolean;
+        data: {
+          authToken: string;
+          roomId: string;
+          roomCode: string;
+          role: string;
+        };
+        message: string;
+      }>(`/calls/${callId}/hms-token`, { role });
+      return response.data.data;
+    } catch (error: any) {
+      console.error('Error getting HMS auth token:', error.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  // Get HMS room details
+  getHMSRoomDetails: async (callId: string): Promise<{
+    call: {
+      id: string;
+      status: string;
+      callType: string;
+      participants: CallParticipant[];
+    };
+    hmsRoom: {
+      id: string;
+      name: string;
+      enabled: boolean;
+      createdAt: string;
+      templateId: string;
+      activeSessions: number;
+      authToken: string | null;
+      userRole: string | null;
+    };
+  }> => {
+    try {
+      const response = await apiClient.get<{
+        success: boolean;
+        data: {
+          call: {
+            id: string;
+            status: string;
+            callType: string;
+            participants: CallParticipant[];
+          };
+          hmsRoom: {
+            id: string;
+            name: string;
+            enabled: boolean;
+            createdAt: string;
+            templateId: string;
+            activeSessions: number;
+            authToken: string | null;
+            userRole: string | null;
+          };
+        };
+        message: string;
+      }>(`/calls/${callId}/hms-room`);
+      return response.data.data;
+    } catch (error: any) {
+      console.error('Error getting HMS room details:', error.response?.data || error.message);
+      throw error;
+    }
   }
 };
 
