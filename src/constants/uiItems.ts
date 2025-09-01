@@ -15,7 +15,7 @@ export const discoverItems = [
   { icon: Building, label: 'Businesses', route: '/businesses' },
   { icon: Package, label: 'Products', route: '/products' },
   { icon: Wrench, label: 'Services', route: '/services' },
-  { icon: ShoppingBag, label: 'Marketplace', route: '/marketplace' },
+  // { icon: ShoppingBag, label: 'Marketplace', route: '/marketplace' },
   { icon: Bookmark, label: 'Saved', route: '/saved' },
 ];
 
