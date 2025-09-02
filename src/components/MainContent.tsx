@@ -254,7 +254,7 @@ export default function MainContent() {
         </div>
       ) : (
         <>
-          <div className="space-y-0 sm:space-y-6 mt-0 sm:mt-6">
+          <div className="space-y-4 sm:space-y-6 mt-0 sm:mt-6">
             {feed
             .filter(post => !!post && !!post._id)
             .map((post) => (
