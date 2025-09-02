@@ -3,7 +3,7 @@ import React, { useRef } from "react";
 import { useUserStore } from "@/store/useUserStore";
 import { messageAPI, Chat } from "@/api/message";
 import { EmojiClickData } from 'emoji-picker-react';
-import { useGlobalCall } from '@/components/providers/GlobalCallProvider';
+import { useGlobalHMSCall } from '@/components/providers/GlobalHMSCallProvider';
 
 // Custom hooks
 import { useChatManagement } from '@/hooks/useChatManagement';
@@ -20,7 +20,7 @@ import { ContextMenu } from './message/ContextMenu';
 import { NewChatModal } from './message/NewChatModal';
 import { GroupChatModal } from './message/GroupChatModal';
 import { GroupDetailsModal } from './message/GroupDetailsModal';
-import { CallModal } from './call/CallModal';
+import { HMSCallModal } from './call/HMSCallModal';
 
 export default function MessagePanel() {
   const user = useUserStore((state) => state.user);
@@ -110,7 +110,7 @@ export default function MessagePanel() {
     endCall,
     toggleAudio,
     toggleVideo
-  } = useGlobalCall();
+  } = useGlobalHMSCall();
 
   // Call handlers
   const handleVoiceCall = async (chat: Chat) => {
@@ -330,7 +330,7 @@ export default function MessagePanel() {
 
       {/* Call Modals */}
       {callState.isInCall && (
-        <CallModal
+        <HMSCallModal
           callState={callState}
           currentUser={user}
           onEndCall={() => endCall()}
