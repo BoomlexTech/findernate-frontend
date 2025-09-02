@@ -113,7 +113,8 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
   });
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [isVideoMuted, setIsVideoMuted] = useState(true);
-  const [imageTransform, setImageTransform] = useState<string>('');
+  const [smallestImageHeight, setSmallestImageHeight] = useState<number | null>(null);
+  const [loadedImageHeights, setLoadedImageHeights] = useState<{ [index: number]: number }>({});
 
   // Intersection observer for lazy loading videos
   const { elementRef, hasIntersected } = useIntersectionObserver({
@@ -170,11 +171,65 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
     setMediaImageError(false);
   }, [post._id]);
 
-  // Reset media error and transform when media index changes
+  // Reset media error when media index changes
   useEffect(() => {
     setMediaImageError(false);
-    setImageTransform('');
   }, [currentMediaIndex]);
+
+  // Reset heights when post changes
+  useEffect(() => {
+    setLoadedImageHeights({});
+    setSmallestImageHeight(null);
+  }, [post._id]);
+
+  // Preload all images and calculate their heights for multi-image posts
+  useEffect(() => {
+    if (post.media.length > 1) {
+      const imagePromises = post.media
+        .filter(media => media.type !== 'video' && media.url)
+        .map((media, index) => {
+          return new Promise<{ index: number, height: number }>((resolve) => {
+            const img = document.createElement('img');
+            img.onload = () => {
+              // Assume container width of ~336px (21rem) for calculations
+              const containerWidth = 336;
+              const aspectRatio = img.naturalWidth / img.naturalHeight;
+              const renderedHeight = containerWidth / aspectRatio;
+              resolve({ index, height: renderedHeight });
+            };
+            img.onerror = () => {
+              // Use a default height for failed images
+              resolve({ index, height: 400 });
+            };
+            img.src = media.url!;
+          });
+        });
+
+      Promise.all(imagePromises).then((results) => {
+        const heightsMap = results.reduce((acc, { index, height }) => {
+          acc[index] = height;
+          return acc;
+        }, {} as { [index: number]: number });
+        
+        console.log('📐 Image heights calculated:', heightsMap);
+        setLoadedImageHeights(heightsMap);
+      });
+    }
+  }, [post.media, post._id]);
+
+  // Calculate smallest height when image heights are loaded
+  useEffect(() => {
+    if (post.media.length > 1) {
+      const heights = Object.values(loadedImageHeights);
+      if (heights.length > 0) {
+        const minHeight = Math.min(...heights);
+        console.log('📏 Smallest height set to:', minHeight, 'from heights:', heights);
+        setSmallestImageHeight(minHeight);
+      }
+    } else {
+      setSmallestImageHeight(null);
+    }
+  }, [loadedImageHeights, post.media.length]);
 
   // Set client-side flag to prevent hydration issues
   useEffect(() => {
@@ -1007,6 +1062,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
           <div 
             ref={elementRef}
             className="post-media relative w-full md:w-[21rem] md:flex-shrink-0 overflow-hidden rounded-2xl group flex items-center justify-center"
+            style={post.media.length > 1 && smallestImageHeight ? { height: `${smallestImageHeight}px` } : {}}
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
@@ -1046,18 +1102,8 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
                        }}
                        onLoadedMetadata={(e) => {
                          const video = e.currentTarget;
-                         const videoAspectRatio = video.videoWidth / video.videoHeight;
-                         
-                         // Always use contain but add transforms for better fit
+                         // Just use object-fit contain without any distortion
                          video.style.objectFit = 'contain';
-                         
-                         if (videoAspectRatio < 1) {
-                           // Portrait video: stretch horizontally
-                           video.style.transform = 'scaleX(1.2)';
-                         } else {
-                           // Landscape video: stretch vertically
-                           video.style.transform = 'scaleY(1.2)';
-                         }
                        }}
                        onClick={(e) => {
                          e.stopPropagation();
@@ -1105,21 +1151,14 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
                   width={0}
                   height={0}
                   sizes="100vw"
-                  className="rounded-xl w-full h-auto cursor-zoom-in"
-                  style={{ transform: imageTransform }}
+                  className={`rounded-xl w-full cursor-zoom-in ${
+                    post.media.length > 1 
+                      ? 'h-full object-cover' 
+                      : 'h-auto'
+                  }`}
                   unoptimized
-                  onLoad={(e) => {
-                    const img = e.currentTarget;
-                    const imageAspectRatio = img.naturalWidth / img.naturalHeight;
-                    
-                    // Apply transforms based on aspect ratio
-                    if (imageAspectRatio < 1) {
-                      // Portrait image: stretch horizontally
-                      setImageTransform('scaleX(1.2)');
-                    } else {
-                      // Landscape image: stretch vertically
-                      setImageTransform('scaleY(1.2)');
-                    }
+                  onLoad={() => {
+                    // Image loaded - heights are calculated during preload
                   }}
                   onError={() => {
                     // console.warn('Media image failed to load for post:', post._id, 'URL:', imageUrl);
