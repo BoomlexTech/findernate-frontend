@@ -74,10 +74,11 @@ export const useChatManagement = ({ user }: UseChatManagementProps) => {
         try {
           console.log('Loading following list for user:', user.username);
           const following = await messageAPI.getUserFollowing(user._id);
-          const followingIds = following.filter(u => u && u._id).map(u => u._id);
+          const followingArray = (following || []);
+          const followingIds = followingArray.filter(u => u && u._id).map(u => u._id);
           console.log('Following list loaded:', {
             count: followingIds.length,
-            users: following.filter(u => u && u._id).map(u => ({ id: u._id, username: u.username }))
+            users: followingArray.filter(u => u && u._id).map(u => ({ id: u._id, username: u.username }))
           });
           setUserFollowingList(followingIds);
         } catch (error) {
@@ -646,10 +647,20 @@ export const useChatManagement = ({ user }: UseChatManagementProps) => {
 
   // Handle profile navigation for direct chats and group details for group chats
   const handleProfileClick = (chat: Chat, setShowGroupDetails?: (show: boolean) => void) => {
+    console.log('Profile clicked for chat:', chat._id, 'type:', chat.chatType);
+    
     if (chat.chatType === 'direct') {
+      console.log('Chat participants:', chat.participants);
+      console.log('Current user ID:', user?._id);
+      
       const otherParticipant = chat.participants.find(p => p && p._id && p._id !== user?._id);
+      console.log('Found other participant:', otherParticipant);
+      
       if (otherParticipant && otherParticipant.username) {
+        console.log('Navigating to profile:', otherParticipant.username);
         router.push(`/userprofile/${otherParticipant.username}`);
+      } else {
+        console.warn('Could not find other participant or username missing', otherParticipant);
       }
     } else if (chat.chatType === 'group' && setShowGroupDetails) {
       setShowGroupDetails(true);

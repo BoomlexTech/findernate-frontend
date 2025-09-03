@@ -16,7 +16,7 @@ export const discoverItems = [
   { icon: Package, label: 'Products', route: '/products' },
   { icon: Wrench, label: 'Services', route: '/services' },
   // { icon: ShoppingBag, label: 'Marketplace', route: '/marketplace' },
-  { icon: Bookmark, label: 'Saved', route: '/saved' },
+  // { icon: Bookmark, label: 'Saved', route: '/saved' },
 ];
 
 export const DEFAULT_ONBOARDING_ITEMS = 

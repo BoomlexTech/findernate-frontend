@@ -1,6 +1,8 @@
 'use client'
 import { getPostsByUserid, getUserReels, getUserVideos } from '@/api/homeFeed';
 import { getUserProfile } from '@/api/user';
+import { getSavedPost } from '@/api/post';
+import { getCommentsByPost, Comment } from '@/api/comment';
 import AccountSettings from '@/components/AccountSettings';
 //import FloatingHeader from '@/components/FloatingHeader';
 import PostCard from '@/components/PostCard';
@@ -9,7 +11,7 @@ import UserProfile from '@/components/UserProfile'
 import { useUserStore } from '@/store/useUserStore';
 import { useAuthGuard } from '@/hooks/useAuthGuard';
 import { usePostRefresh } from '@/hooks/usePostRefresh';
-import { FeedPost, UserProfile as UserProfileType } from '@/types';
+import { FeedPost, UserProfile as UserProfileType, SavedPostsResponse } from '@/types';
 import React, { useCallback, useEffect, useState } from 'react'
 import { LogIn, User } from 'lucide-react';
 
@@ -17,6 +19,7 @@ const Page = () => {
   const [posts, setPosts] = useState<FeedPost[]>([]);
   const [reels, setReels] = useState<FeedPost[]>([]);
   const [videos, setVideos] = useState<FeedPost[]>([]);
+  const [savedPosts, setSavedPosts] = useState<FeedPost[]>([]);
   const [profileData, setProfileData] = useState<UserProfileType | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -46,20 +49,89 @@ const Page = () => {
           throw new Error("Profile data not found in response");
         }
         
-        // Fetch user posts, reels, and videos
-        const [postsResponse, reelsResponse, videosResponse] = await Promise.all([
+        // Fetch user posts, reels, videos, and saved posts
+        const [postsResponse, reelsResponse, videosResponse, savedPostsResponse] = await Promise.all([
           getPostsByUserid(user._id),
           getUserReels(user._id),
-          getUserVideos(user._id)
+          getUserVideos(user._id),
+          getSavedPost()
         ]);
         
         setPosts(postsResponse.data?.posts || []);
         setReels(reelsResponse.data?.posts || []);
         setVideos(videosResponse.data?.posts || []);
         
+        // Process saved posts EXACTLY like MainContent does
+        const initialSavedPosts: FeedPost[] = savedPostsResponse.data?.savedPosts
+          ?.filter((savedPost: any) => savedPost.postId !== null)
+          ?.map((savedPost: any) => {
+            const item = savedPost.postId; // Raw post data from API (same as MainContent's 'item')
+            
+            // Calculate actual comment count from comments array (EXACT MainContent logic)
+            let actualCommentCount = 0;
+            if (item.comments && Array.isArray(item.comments)) {
+              // Count top-level comments + replies
+              actualCommentCount = item.comments.reduce((total: number, comment: any) => {
+                const repliesCount = Array.isArray(comment.replies) ? comment.replies.length : 0;
+                return total + 1 + repliesCount; // 1 for the comment itself + replies
+              }, 0);
+            }
+            
+            const safeUsername = item.userId?.username || 'Deleted User';
+            const safeProfileImageUrl = item.userId?.profileImageUrl || '/placeholderimg.png';
+
+            // Map to FeedPost structure EXACTLY like MainContent does
+            return {
+              _id: item._id,
+              userId: item.userId, // Add missing userId field
+              username: safeUsername,
+              profileImageUrl: safeProfileImageUrl,
+              description: item.description,
+              caption: item.caption,
+              contentType: item.contentType,
+              postType: item.postType,
+              createdAt: item.createdAt,
+              media: item.media as any[],
+              isLikedBy: item.isLikedBy,
+              likedBy: item.likedBy,
+              customization: item.customization,
+              engagement: {
+                ...(item.engagement || {}),
+                comments: actualCommentCount, // Use calculated count
+                impressions: item.engagement?.impressions || 0,
+                likes: item.engagement?.likes || 0,
+                reach: item.engagement?.reach || 0,
+                saves: item.engagement?.saves || 0,
+                shares: item.engagement?.shares || 0,
+                views: item.engagement?.views || 0,
+              },
+              location:
+                item.customization?.normal?.location ||
+                item.customization?.service?.location ||
+                item.customization?.product?.location ||
+                item.customization?.business?.location ||
+                null,
+              tags: item.customization?.normal?.tags || [],
+            };
+          }) || [];
+        
+        setSavedPosts(initialSavedPosts);
+        
         console.log("Posts:", postsResponse.data?.posts);
         console.log("Reels:", reelsResponse.data?.posts);
         console.log("Videos:", videosResponse.data?.posts);
+        console.log("Saved Posts (processed):", initialSavedPosts);
+        console.log("Raw Saved Posts API Response:", savedPostsResponse.data?.savedPosts?.slice(0, 2));
+        
+        // Debug first saved post structure
+        if (initialSavedPosts.length > 0) {
+          console.log("First saved post structure:", {
+            _id: initialSavedPosts[0]._id,
+            isLikedBy: initialSavedPosts[0].isLikedBy,
+            engagement: initialSavedPosts[0].engagement,
+            userId: initialSavedPosts[0].userId
+          });
+        }
       } catch (error) {
         console.error('Error fetching data:', error);
         setError('Failed to load profile data');
@@ -76,15 +148,72 @@ const Page = () => {
     if (!isAuthenticated || !user?._id) return;
     
     try {
-      const [postsResponse, reelsResponse, videosResponse] = await Promise.all([
+      const [postsResponse, reelsResponse, videosResponse, savedPostsResponse] = await Promise.all([
         getPostsByUserid(user._id),
         getUserReels(user._id),
-        getUserVideos(user._id)
+        getUserVideos(user._id),
+        getSavedPost()
       ]);
       
       setPosts(postsResponse.data?.posts || []);
       setReels(reelsResponse.data?.posts || []);
       setVideos(videosResponse.data?.posts || []);
+      
+      // Process saved posts EXACTLY like MainContent does
+      const initialSavedPosts: FeedPost[] = savedPostsResponse.data?.savedPosts
+        ?.filter((savedPost: any) => savedPost.postId !== null)
+        ?.map((savedPost: any) => {
+          const item = savedPost.postId; // Raw post data from API (same as MainContent's 'item')
+          
+          // Calculate actual comment count from comments array (EXACT MainContent logic)
+          let actualCommentCount = 0;
+          if (item.comments && Array.isArray(item.comments)) {
+            // Count top-level comments + replies
+            actualCommentCount = item.comments.reduce((total: number, comment: any) => {
+              const repliesCount = Array.isArray(comment.replies) ? comment.replies.length : 0;
+              return total + 1 + repliesCount; // 1 for the comment itself + replies
+            }, 0);
+          }
+          
+          const safeUsername = item.userId?.username || 'Deleted User';
+          const safeProfileImageUrl = item.userId?.profileImageUrl || '/placeholderimg.png';
+
+          // Map to FeedPost structure EXACTLY like MainContent does
+          return {
+            _id: item._id,
+            userId: item.userId, // Add missing userId field
+            username: safeUsername,
+            profileImageUrl: safeProfileImageUrl,
+            description: item.description,
+            caption: item.caption,
+            contentType: item.contentType,
+            postType: item.postType,
+            createdAt: item.createdAt,
+            media: item.media as any[],
+            isLikedBy: item.isLikedBy,
+            likedBy: item.likedBy,
+            customization: item.customization,
+            engagement: {
+              ...(item.engagement || {}),
+              comments: actualCommentCount, // Use calculated count
+              impressions: item.engagement?.impressions || 0,
+              likes: item.engagement?.likes || 0,
+              reach: item.engagement?.reach || 0,
+              saves: item.engagement?.saves || 0,
+              shares: item.engagement?.shares || 0,
+              views: item.engagement?.views || 0,
+            },
+            location:
+              item.customization?.normal?.location ||
+              item.customization?.service?.location ||
+              item.customization?.product?.location ||
+              item.customization?.business?.location ||
+              null,
+            tags: item.customization?.normal?.tags || [],
+          };
+        }) || [];
+      
+      setSavedPosts(initialSavedPosts);
     } catch (error) {
       console.error('Error refreshing profile posts:', error);
     }
@@ -125,7 +254,7 @@ const Page = () => {
     return (
       <div className="bg-gray-50 max-w-6xl mx-auto p-4 min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-yellow-500 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-yellow-500 mx-auto mb-4 text-black"></div>
           <p>Loading profile data...</p>
         </div>
       </div>
@@ -267,6 +396,7 @@ const Page = () => {
                       post.customization?.product?.tags || 
                       post.tags || [],
               }))}
+              savedPosts={savedPosts}
               isOtherUser={false}
             />
           </div>

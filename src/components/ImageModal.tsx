@@ -27,7 +27,9 @@ export default function ImageModal({ isOpen, onClose, post }: ImageModalProps) {
     if (post) {
       setCurrentImageIndex(0);
       setVideoLoaded(false);
-      setZoomLevel(1);
+      // Set higher initial zoom for videos to make them appear more expanded
+      const initialMedia = post.media?.[0];
+      setZoomLevel(initialMedia?.type === 'video' ? 1.2 : 1);
       setPosition({ x: 0, y: 0 });
     }
   }, [post?._id]);
@@ -61,21 +63,23 @@ export default function ImageModal({ isOpen, onClose, post }: ImageModalProps) {
 
   const handlePrevious = () => {
     if (!post?.media || post.media.length === 0) return;
-    setCurrentImageIndex((prev) =>
-      prev === 0 ? post.media.length - 1 : prev - 1
-    );
+    const newIndex = currentImageIndex === 0 ? post.media.length - 1 : currentImageIndex - 1;
+    setCurrentImageIndex(newIndex);
     setVideoLoaded(false);
-    setZoomLevel(1);
+    // Set higher zoom for videos
+    const newMedia = post.media[newIndex];
+    setZoomLevel(newMedia?.type === 'video' ? 1.2 : 1);
     setPosition({ x: 0, y: 0 });
   };
 
   const handleNext = () => {
     if (!post?.media || post.media.length === 0) return;
-    setCurrentImageIndex((prev) =>
-      prev === post.media.length - 1 ? 0 : prev + 1
-    );
+    const newIndex = currentImageIndex === post.media.length - 1 ? 0 : currentImageIndex + 1;
+    setCurrentImageIndex(newIndex);
     setVideoLoaded(false);
-    setZoomLevel(1);
+    // Set higher zoom for videos
+    const newMedia = post.media[newIndex];
+    setZoomLevel(newMedia?.type === 'video' ? 1.2 : 1);
     setPosition({ x: 0, y: 0 });
   };
 
@@ -255,6 +259,8 @@ export default function ImageModal({ isOpen, onClose, post }: ImageModalProps) {
                   ref={mediaRef}
                   className="w-full h-full flex items-center justify-center relative"
                   style={{ 
+                    width: '100%',
+                    height: '100%',
                     minHeight: 'calc(95vh - 120px)',
                     minWidth: 'calc(100vw - 80px)'
                   }}
@@ -278,9 +284,10 @@ export default function ImageModal({ isOpen, onClose, post }: ImageModalProps) {
                         videoLoaded ? 'opacity-100' : 'opacity-0'
                       }`}
                       style={{ 
+                        width: '100%',
+                        height: '100%',
                         maxHeight: 'calc(95vh - 120px)',
-                        width: 'auto',
-                        height: 'auto',
+                        maxWidth: 'calc(100vw - 80px)',
                         minWidth: '400px',
                         minHeight: '300px'
                       }}
@@ -363,7 +370,8 @@ export default function ImageModal({ isOpen, onClose, post }: ImageModalProps) {
                 key={index}
                 onClick={() => {
                   setCurrentImageIndex(index);
-                  setZoomLevel(1);
+                  // Set higher zoom for videos
+                  setZoomLevel(media.type === 'video' ? 1.2 : 1);
                   setPosition({ x: 0, y: 0 });
                 }}
                 className={`w-12 h-12 rounded-md overflow-hidden border-2 transition-all ${

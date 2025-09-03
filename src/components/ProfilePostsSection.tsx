@@ -1,6 +1,6 @@
 'use client';
-import React, { useState } from 'react';
-import { Grid3X3, Play, Video, Heart, MessageCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Grid3X3, Play, Video, Heart, MessageCircle, Bookmark, ChevronLeft, ChevronRight } from 'lucide-react';
 import { FeedPost } from '@/types';
 import Image from 'next/image';
 import { likePost, unlikePost } from '@/api/post';
@@ -13,6 +13,7 @@ interface ProfilePostsSectionProps {
   username?: string;
   reels?: FeedPost[];
   videos?: FeedPost[];
+  savedPosts?: FeedPost[];
   isOtherUser?: boolean;
   loading?: boolean;
   onTabChange?: (tab: string) => void;
@@ -23,6 +24,7 @@ const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
   posts = [],
   reels = [],
   videos = [],
+  savedPosts = [],
   isOtherUser = false,
   loading = false,
   onTabChange
@@ -31,13 +33,43 @@ const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
   const { requireAuth } = useAuthGuard();
   const [postLikes, setPostLikes] = useState<{[key: string]: {isLiked: boolean, count: number}}>({});
   const [hoveredVideo, setHoveredVideo] = useState<string | null>(null);
+  const [currentImageIndex, setCurrentImageIndex] = useState<{[key: string]: number}>({});
 
-  // Show same tabs for both current user and other user profiles
-  const tabs = [
-    { id: 'posts', label: 'Posts', icon: Grid3X3, count: posts.length },
-    { id: 'reels', label: 'Reels', icon: Play, count: reels.length },
-    { id: 'videos', label: 'Videos', icon: Video, count: videos.length }
-  ];
+  // Handle video playback based on hover state
+  useEffect(() => {
+    if (activeTab === 'saved') {
+      const currentPosts = getCurrentPosts();
+      currentPosts?.forEach(post => {
+        const currentMediaIndex = getCurrentImageIndex(post._id);
+        const currentMedia = post.media[currentMediaIndex];
+        
+        if (currentMedia?.type === 'video') {
+          const videos = document.querySelectorAll(`video[data-post-id="${post._id}"][data-media-index="${currentMediaIndex}"]`);
+          videos.forEach((video: any) => {
+            if (hoveredVideo === post._id) {
+              video.play().catch(() => {});
+            } else {
+              video.pause();
+            }
+          });
+        }
+      });
+    }
+  }, [hoveredVideo, activeTab, currentImageIndex]);
+
+  // Show tabs based on user type - only show saved tab for current user
+  const tabs = isOtherUser 
+    ? [
+        { id: 'posts', label: 'Posts', icon: Grid3X3, count: posts.length },
+        { id: 'reels', label: 'Reels', icon: Play, count: reels.length },
+        { id: 'videos', label: 'Videos', icon: Video, count: videos.length }
+      ]
+    : [
+        { id: 'posts', label: 'Posts', icon: Grid3X3, count: posts.length },
+        { id: 'reels', label: 'Reels', icon: Play, count: reels.length },
+        { id: 'videos', label: 'Videos', icon: Video, count: videos.length },
+        { id: 'saved', label: 'Saved', icon: Bookmark, count: savedPosts.length }
+      ];
 
   const getCurrentPosts = () => {
     switch (activeTab) {
@@ -45,6 +77,8 @@ const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
         return reels;
       case 'videos':
         return videos;
+      case 'saved':
+        return savedPosts;
       default:
         return posts;
     }
@@ -103,6 +137,30 @@ const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
     });
   };
 
+  const getCurrentImageIndex = (postId: string) => {
+    return currentImageIndex[postId] || 0;
+  };
+
+  const handlePreviousImage = (post: FeedPost, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const currentIndex = getCurrentImageIndex(post._id);
+    const newIndex = currentIndex > 0 ? currentIndex - 1 : post.media.length - 1;
+    setCurrentImageIndex(prev => ({
+      ...prev,
+      [post._id]: newIndex
+    }));
+  };
+
+  const handleNextImage = (post: FeedPost, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const currentIndex = getCurrentImageIndex(post._id);
+    const newIndex = currentIndex < post.media.length - 1 ? currentIndex + 1 : 0;
+    setCurrentImageIndex(prev => ({
+      ...prev,
+      [post._id]: newIndex
+    }));
+  };
+
   return (
     <div className="w-full bg-white rounded-xl shadow-sm px-4 py-6">
       {/* Tabs Header */}
@@ -150,6 +208,7 @@ const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
               {activeTab === 'posts' && <Grid3X3 className="w-12 h-12 mx-auto" />}
               {activeTab === 'reels' && <Play className="w-12 h-12 mx-auto" />}
               {activeTab === 'videos' && <Video className="w-12 h-12 mx-auto" />}
+              {activeTab === 'saved' && <Bookmark className="w-12 h-12 mx-auto" />}
             </div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">
               No {activeTab} yet
@@ -158,12 +217,23 @@ const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
               {activeTab === 'posts' && (isOtherUser ? "No posts shared yet" : "Share your first post to get started")}
               {activeTab === 'reels' && (isOtherUser ? "No reels shared yet" : "Create your first reel")}
               {activeTab === 'videos' && (isOtherUser ? "No videos shared yet" : "Upload your first video")}
+              {activeTab === 'saved' && "No saved posts yet"}
             </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {getCurrentPosts().map((post, index) => {
               const likeState = getLikeState(post);
+              
+              // Debug like state for saved posts
+              if (activeTab === 'saved') {
+                console.log(`Saved post ${post._id} like state:`, {
+                  isLikedBy: post.isLikedBy,
+                  likeState: likeState,
+                  engagementLikes: post.engagement.likes
+                });
+              }
+              
               return (
                 <div
                   key={post._id || index}
@@ -171,93 +241,265 @@ const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
                 >
                   {/* Media Section */}
                   <div 
-                    className={`${activeTab === 'reels' ? 'aspect-auto' : 'aspect-square'} bg-gray-100 overflow-hidden cursor-pointer hover:opacity-95 transition-opacity relative group`}
+                    className={`${
+                      activeTab === 'reels' ? 'aspect-auto' : 
+                      'aspect-square'
+                    } bg-gray-100 overflow-hidden cursor-pointer hover:opacity-95 transition-opacity relative group`}
                     onClick={() => {
                       window.open(`/post/${post._id}`, '_blank');
                     }}
-                    onMouseEnter={() => activeTab === 'reels' && setHoveredVideo(post._id)}
-                    onMouseLeave={() => activeTab === 'reels' && setHoveredVideo(null)}
+                    onMouseEnter={() => (activeTab === 'reels' || (activeTab === 'saved' && post.media[0]?.type === 'video')) && setHoveredVideo(post._id)}
+                    onMouseLeave={() => (activeTab === 'reels' || (activeTab === 'saved' && post.media[0]?.type === 'video')) && setHoveredVideo(null)}
                   >
-                    {(() => {
-                      const currentMedia = post.media[0];
-                      const rawUrl = typeof currentMedia?.url === 'string' ? currentMedia.url.trim() : '';
-                      const safeUrl = rawUrl.length > 0 ? rawUrl : undefined;
-                      const rawThumb = typeof currentMedia?.thumbnailUrl === 'string' ? currentMedia.thumbnailUrl.trim() : '';
-                      const safeThumb = rawThumb.length > 0 ? rawThumb : '/placeholderimg.png';
-                      const isVideo = currentMedia?.type === 'video' && !!safeUrl;
-
-                      if (isVideo) {
-                        const isReelTab = activeTab === 'reels';
+                    {activeTab === 'saved' && post.media.length > 1 ? (
+                      // Multiple media carousel for saved posts
+                      post.media.map((media, mediaIndex) => {
+                        const rawUrl = typeof media?.url === 'string' ? media.url.trim() : '';
+                        const safeUrl = rawUrl.length > 0 ? rawUrl : undefined;
+                        const rawThumb = typeof media?.thumbnailUrl === 'string' ? media.thumbnailUrl.trim() : '';
+                        const safeThumb = rawThumb.length > 0 ? rawThumb : '/placeholderimg.png';
+                        const isVideo = media?.type === 'video' && !!safeUrl;
+                        const isCurrentMedia = mediaIndex === getCurrentImageIndex(post._id);
                         const isHovered = hoveredVideo === post._id;
-                        const shouldShowVideo = isReelTab && isHovered;
-                        
-                        if (isReelTab) {
-                          return (
-                            <div className="relative w-full" style={{ paddingBottom: '177.78%' }}>
-                              {/* Video - always present, plays/pauses based on hover */}
-                              <video
-                                className="absolute inset-0 w-full h-full object-contain"
-                                muted
-                                loop
-                                playsInline
-                                preload="auto"
-                                ref={(video) => {
-                                  if (video) {
-                                    if (shouldShowVideo) {
-                                      video.play();
-                                    } else {
-                                      video.pause();
+                        const shouldShowVideo = isVideo && isCurrentMedia && isHovered;
+
+                        return (
+                          <div
+                            key={mediaIndex}
+                            className={`absolute inset-0 transition-opacity duration-300 ${
+                              isCurrentMedia ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                            }`}
+                          >
+                            {isVideo ? (
+                              <>
+                                <video
+                                  className="w-full h-full object-cover"
+                                  muted
+                                  loop
+                                  playsInline
+                                  preload="metadata"
+                                  data-post-id={post._id}
+                                  data-media-index={mediaIndex}
+                                  ref={(video) => {
+                                    if (video && isCurrentMedia) {
+                                      video.load();
+                                      
+                                      video.addEventListener('loadedmetadata', () => {
+                                        video.currentTime = 0.1;
+                                      });
+                                      
+                                      video.addEventListener('canplay', () => {
+                                        const currentlyHovered = hoveredVideo === post._id;
+                                        if (!currentlyHovered) {
+                                          video.pause();
+                                        } else {
+                                          video.play().catch(() => {});
+                                        }
+                                      });
+                                      
+                                      // Initial state based on current hover
+                                      const currentlyHovered = hoveredVideo === post._id;
+                                      if (currentlyHovered) {
+                                        video.play().catch(() => {});
+                                      } else {
+                                        video.pause();
+                                      }
                                     }
-                                  }
-                                }}
-                              >
-                                {safeUrl && <source src={safeUrl} type="video/mp4" />}
-                              </video>
-                              
-                              {/* Play icon overlay - only when paused */}
-                              <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-300 ${shouldShowVideo ? 'opacity-0' : 'opacity-100'}`}>
-                                <div className="bg-black/50 rounded-full p-3">
-                                  <Play className="w-6 h-6 text-white fill-white" />
+                                  }}
+                                >
+                                  {safeUrl && <source src={safeUrl} type="video/mp4" />}
+                                </video>
+                                
+                                {/* Play icon overlay - only when paused */}
+                                <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-300 ${shouldShowVideo ? 'opacity-0' : 'opacity-100'}`}>
+                                  <div className="bg-black/50 rounded-full p-3">
+                                    <Play className="w-6 h-6 text-white fill-white" />
+                                  </div>
+                                </div>
+                              </>
+                            ) : (
+                              <Image
+                                src={safeUrl || safeThumb || '/placeholderimg.png'}
+                                alt="Post content"
+                                fill
+                                className="object-cover"
+                                unoptimized
+                              />
+                            )}
+                          </div>
+                        );
+                      })
+                    ) : (
+                      // Single media or non-saved tabs (original logic)
+                      (() => {
+                        const mediaIndex = activeTab === 'saved' ? getCurrentImageIndex(post._id) : 0;
+                        const currentMedia = post.media[mediaIndex] || post.media[0];
+                        const rawUrl = typeof currentMedia?.url === 'string' ? currentMedia.url.trim() : '';
+                        const safeUrl = rawUrl.length > 0 ? rawUrl : undefined;
+                        const rawThumb = typeof currentMedia?.thumbnailUrl === 'string' ? currentMedia.thumbnailUrl.trim() : '';
+                        const safeThumb = rawThumb.length > 0 ? rawThumb : '/placeholderimg.png';
+                        const isVideo = currentMedia?.type === 'video' && !!safeUrl;
+                        
+                        if (isVideo) {
+                          const isReelTab = activeTab === 'reels';
+                          const isSavedTab = activeTab === 'saved';
+                          const isHovered = hoveredVideo === post._id;
+                          const shouldShowVideo = (isReelTab || isSavedTab) && isHovered;
+                          
+                          if (isReelTab) {
+                            // Original reels logic - no thumbnail poster
+                            return (
+                              <div className="relative w-full" style={{ paddingBottom: '177.78%' }}>
+                                <video
+                                  className="absolute inset-0 w-full h-full object-contain"
+                                  muted
+                                  loop
+                                  playsInline
+                                  preload="auto"
+                                  ref={(video) => {
+                                    if (video) {
+                                      video.load();
+                                      if (shouldShowVideo) {
+                                        video.play().catch(() => {});
+                                      } else {
+                                        video.pause();
+                                        video.currentTime = 0;
+                                      }
+                                    }
+                                  }}
+                                >
+                                  {safeUrl && <source src={safeUrl} type="video/mp4" />}
+                                </video>
+                                
+                                <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-300 ${shouldShowVideo ? 'opacity-0' : 'opacity-100'}`}>
+                                  <div className="bg-black/50 rounded-full p-3">
+                                    <Play className="w-6 h-6 text-white fill-white" />
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          );
-                        } else {
-                          // Non-reel videos
-                          return (
-                            <>
-                              <video
-                                className="w-full h-full object-cover"
-                                poster={safeThumb}
-                                muted
-                                preload="none"
-                              >
-                                {safeUrl && <source src={safeUrl} type="video/mp4" />}
-                              </video>
-                              {/* Video indicator */}
-                              <div className="absolute top-2 right-2 bg-black/50 rounded-full p-1">
-                                <Play className="w-3 h-3 text-white fill-white" />
-                              </div>
-                            </>
-                          );
+                            );
+                          } else if (isSavedTab) {
+                            // Saved videos logic - square aspect ratio with cover cropping
+                            return (
+                              <>
+                                <video
+                                  className="w-full h-full object-cover"
+                                  muted
+                                  loop
+                                  playsInline
+                                  preload="metadata"
+                                  data-post-id={post._id}
+                                  data-media-index={mediaIndex}
+                                  ref={(video) => {
+                                    if (video) {
+                                      video.load();
+                                      
+                                      video.addEventListener('loadedmetadata', () => {
+                                        video.currentTime = 0.1;
+                                      });
+                                      
+                                      video.addEventListener('canplay', () => {
+                                        const currentlyHovered = hoveredVideo === post._id;
+                                        if (!currentlyHovered) {
+                                          video.pause();
+                                        } else {
+                                          video.play().catch(() => {});
+                                        }
+                                      });
+                                      
+                                      // Initial state based on current hover
+                                      const currentlyHovered = hoveredVideo === post._id;
+                                      if (currentlyHovered) {
+                                        video.play().catch(() => {});
+                                      } else {
+                                        video.pause();
+                                      }
+                                    }
+                                  }}
+                                >
+                                  {safeUrl && <source src={safeUrl} type="video/mp4" />}
+                                </video>
+                                
+                                {/* Play icon overlay - only when paused */}
+                                <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-300 ${shouldShowVideo ? 'opacity-0' : 'opacity-100'}`}>
+                                  <div className="bg-black/50 rounded-full p-3">
+                                    <Play className="w-6 h-6 text-white fill-white" />
+                                  </div>
+                                </div>
+                              </>
+                            );
+                          } else {
+                            // Non-reel videos
+                            return (
+                              <>
+                                <video
+                                  className="w-full h-full object-cover"
+                                  poster={safeThumb}
+                                  muted
+                                  preload="none"
+                                >
+                                  {safeUrl && <source src={safeUrl} type="video/mp4" />}
+                                </video>
+                                {/* Video indicator */}
+                                <div className="absolute top-2 right-2 bg-black/50 rounded-full p-1">
+                                  <Play className="w-3 h-3 text-white fill-white" />
+                                </div>
+                              </>
+                            );
+                          }
                         }
-                      }
 
-                      // Image fallback
-                      const imageUrl = safeUrl || safeThumb || '/placeholderimg.png';
-                      return (
-                        <Image
-                          src={imageUrl}
-                          alt="Post content"
-                          fill
-                          className="object-cover"
-                          unoptimized
-                        />
-                      );
-                    })()}
+                        // Image fallback
+                        const imageUrl = safeUrl || safeThumb || '/placeholderimg.png';
+                        return (
+                          <Image
+                            src={imageUrl}
+                            alt="Post content"
+                            fill
+                            className="object-cover"
+                            unoptimized
+                          />
+                        );
+                      })()
+                    )}
                     
-                    {/* Multiple media indicator */}
-                    {post.media.length > 1 && (
+                    {/* Multiple media navigation - only show for saved tab and multiple images */}
+                    {activeTab === 'saved' && post.media.length > 1 && (
+                      <>
+                        {/* Previous button */}
+                        <button
+                          onClick={(e) => handlePreviousImage(post, e)}
+                          className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 rounded-full p-1 transition-all duration-200 opacity-0 group-hover:opacity-100"
+                        >
+                          <ChevronLeft className="w-4 h-4 text-white" />
+                        </button>
+
+                        {/* Next button */}
+                        <button
+                          onClick={(e) => handleNextImage(post, e)}
+                          className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 rounded-full p-1 transition-all duration-200 opacity-0 group-hover:opacity-100"
+                        >
+                          <ChevronRight className="w-4 h-4 text-white" />
+                        </button>
+
+                        {/* Dots indicator */}
+                        <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex space-x-1">
+                          {post.media.map((_, index) => (
+                            <div
+                              key={index}
+                              className={`w-2 h-2 rounded-full transition-all duration-200 ${
+                                index === getCurrentImageIndex(post._id)
+                                  ? 'bg-white'
+                                  : 'bg-white/50'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                      </>
+                    )}
+
+                    {/* Multiple media indicator for other tabs */}
+                    {activeTab !== 'saved' && post.media.length > 1 && (
                       <div className="absolute top-2 right-2 bg-black/50 rounded-full p-1">
                         <Grid3X3 className="w-3 h-3 text-white" />
                       </div>

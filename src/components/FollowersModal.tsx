@@ -54,8 +54,12 @@ const FollowersModal: React.FC<FollowersModalProps> = ({
 
   const fetchFollowers = async () => {
     try {
+      console.log("=== DEBUG: Fetching followers for userId:", userId);
       setLoading(true);
       const followersData = await getFollowers(userId);
+      console.log("=== DEBUG: Followers data received:", followersData);
+      console.log("=== DEBUG: Followers data type:", typeof followersData);
+      console.log("=== DEBUG: Is followers data array?", Array.isArray(followersData));
       setFollowers(followersData || []);
     } catch (error) {
       console.error('Error fetching followers:', error);
@@ -67,8 +71,12 @@ const FollowersModal: React.FC<FollowersModalProps> = ({
 
   const fetchFollowing = async () => {
     try {
+      console.log("=== DEBUG: Fetching following for userId:", userId);
       setLoading(true);
       const followingData = await getFollowing(userId);
+      console.log("=== DEBUG: Following data received:", followingData);
+      console.log("=== DEBUG: Following data type:", typeof followingData);
+      console.log("=== DEBUG: Is following data array?", Array.isArray(followingData));
       setFollowing(followingData || []);
     } catch (error) {
       console.error('Error fetching following:', error);
@@ -100,7 +108,18 @@ const FollowersModal: React.FC<FollowersModalProps> = ({
 
   if (!isOpen) return null;
 
-  const currentList = activeTab === 'followers' ? followers : following;
+  const currentList = Array.isArray(activeTab === 'followers' ? followers : following) 
+    ? (activeTab === 'followers' ? followers : following) 
+    : [];
+
+  console.log("=== DEBUG: FollowersModal render:", {
+    isOpen,
+    activeTab,
+    followersLength: followers.length,
+    followingLength: following.length,
+    currentListLength: currentList.length,
+    loading
+  });
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 bg-opacity-50">

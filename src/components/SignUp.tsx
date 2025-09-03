@@ -105,7 +105,7 @@ export default function SignupComponent() {
       console.log(response);
       setUser(response.data.user);
       setToken(response.data.accessToken);
-      localStorage.setItem('token', response.data.accessToken);
+      // localStorage is handled automatically by setToken in the store
       router.push('/');
     } catch (err) {
         if (axios.isAxiosError(err)) {

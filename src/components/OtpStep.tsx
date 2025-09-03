@@ -54,7 +54,7 @@ const OTPStep = () => {
       const  response = await VerifyOtp({ otp: otp.join('') })
       setUser(response.data.user);
       setToken(response.data.accessToken);
-      localStorage.setItem('token', response.data.accessToken);
+      // localStorage is handled automatically by setToken in the store
       router.push('/');
     } catch(err){
         if (axios.isAxiosError(err)) {
