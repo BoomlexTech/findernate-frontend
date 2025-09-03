@@ -80,9 +80,12 @@ const UserProfilePage = () => {
         setLoading(true);
         setError(null);
         
+        console.log("=== DEBUG: Fetching profile for username:", username);
+        
         // Fetch other user's profile
         const profileResponse = await getOtherUserProfile(username);
-        console.log("Other user profile API response:", profileResponse);
+        console.log("=== DEBUG: Other user profile API response:", profileResponse);
+        console.log("=== DEBUG: Profile response userId:", profileResponse.userId);
         
         if (profileResponse.userId) {
           // Transform the backend response to include isFollowing
@@ -101,6 +104,10 @@ const UserProfilePage = () => {
             ...profileResponse.userId,
             isFollowing: isFollowing
           };
+          
+          console.log("=== DEBUG: Processed userProfileData:", userProfileData);
+          console.log("=== DEBUG: userProfileData username:", userProfileData.username);
+          console.log("=== DEBUG: userProfileData _id:", userProfileData._id);
           
           setProfileData(userProfileData);
           
@@ -229,6 +236,13 @@ const UserProfilePage = () => {
       </div>
     );
   }
+
+  console.log("=== DEBUG: About to render UserProfile with data:", {
+    username: profileData.username,
+    fullName: profileData.fullName,
+    _id: profileData._id,
+    isCurrentUser: false
+  });
 
   return (
     <div className='bg-gray-50 w-full mx-auto pt-2 px-4'>

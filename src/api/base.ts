@@ -19,7 +19,7 @@ axiosInstance.interceptors.request.use(
         
         if (validToken) {
           config.headers.Authorization = `Bearer ${validToken}`;
-          console.log('API Request:', config.method?.toUpperCase(), config.url, 'with valid auth token');
+          console.log('=== DEBUG: API Request:', config.method?.toUpperCase(), config.url, 'with Authorization header:', config.headers.Authorization);
         } else {
           console.warn('API Request:', config.method?.toUpperCase(), config.url, 'NO VALID TOKEN - may trigger logout');
         }
@@ -28,7 +28,7 @@ axiosInstance.interceptors.request.use(
         const token = localStorage.getItem('token');
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
-          console.log('API Request:', config.method?.toUpperCase(), config.url, 'with fallback token');
+          console.log('=== DEBUG: API Request (fallback):', config.method?.toUpperCase(), config.url, 'with Authorization header:', config.headers.Authorization);
         }
       }
     }

@@ -323,10 +323,10 @@ export const messageAPI = {
   }>> => {
     try {
       const response = await axiosInstance.get(`/users/following/${userId}`);
-      return response.data.data;
+      return Array.isArray(response.data.data) ? response.data.data : [];
     } catch (error: any) {
       console.error('Error fetching user following:', error.response?.data || error.message);
-      throw error;
+      return []; // Return empty array instead of throwing error
     }
   },
 

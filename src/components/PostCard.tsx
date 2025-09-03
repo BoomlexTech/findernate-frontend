@@ -1062,7 +1062,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
           <div 
             ref={elementRef}
             className="post-media relative w-full md:w-[21rem] md:flex-shrink-0 overflow-hidden rounded-2xl group flex items-center justify-center"
-            style={post.media.length > 1 && smallestImageHeight ? { height: `${smallestImageHeight}px` } : {}}
+            style={{ height: '400px' }}
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
@@ -1078,18 +1078,15 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
 
                if (isVideo) {
                  return (
-                   <div className="relative w-full">
+                   <div className="relative w-full h-full">
                      <video
-                       className="w-full h-auto rounded-xl cursor-zoom-in"
+                       className="w-full h-full object-cover rounded-xl cursor-zoom-in"
                        poster={safeThumb}
                        muted={isVideoMuted}
                        loop
                        autoPlay
                        preload="auto"
                        playsInline
-                       style={{ 
-                         objectFit: 'contain'
-                       }}
                        onCanPlay={(e) => {
                          // Ensure video is visible once it can play
                          const video = e.currentTarget;
@@ -1102,8 +1099,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
                        }}
                        onLoadedMetadata={(e) => {
                          const video = e.currentTarget;
-                         // Just use object-fit contain without any distortion
-                         video.style.objectFit = 'contain';
+                         // Let CSS object-cover handle the fit
                        }}
                        onClick={(e) => {
                          e.stopPropagation();
@@ -1151,11 +1147,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
                   width={0}
                   height={0}
                   sizes="100vw"
-                  className={`rounded-xl w-full cursor-zoom-in ${
-                    post.media.length > 1 
-                      ? 'h-full object-cover' 
-                      : 'h-auto'
-                  }`}
+                  className="rounded-xl w-full h-full object-cover cursor-zoom-in"
                   unoptimized
                   onLoad={() => {
                     // Image loaded - heights are calculated during preload

@@ -819,9 +819,8 @@ const handleProductChange = (
         // Emit post refresh event to update current page without reload
         postRefreshEvents.emitPostCreated(response.data || response);
         
-        setTimeout(() => {
-          closeModal();
-        }, 1000);
+        // Close modal immediately after successful post creation
+        closeModal();
       } else {
         // Handle case where API doesn't return expected success response
         throw new Error('Post creation failed - unexpected response');

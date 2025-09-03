@@ -9,11 +9,15 @@ export const getUserProfile = async () => {
 
 export const getOtherUserProfile = async (username: string) => {
     try {
+        console.log("=== DEBUG: getOtherUserProfile called with username:", username);
         const response = await axios.get(`/users/profile/other`, {
             params: {
                 identifier: username
             },
         });
+        
+        console.log("=== DEBUG: API response for getOtherUserProfile:", response.data);
+        console.log("=== DEBUG: API response data.data:", response.data.data);
         
         return response.data.data;
     } catch (error: any) {
@@ -99,13 +103,24 @@ export const unfollowUser = async (userId: string) => {
 }
 
 export const getFollowers = async (userId: string) => {
+    console.log("=== DEBUG: getFollowers API called with userId:", userId);
+    console.log("=== DEBUG: Current token in localStorage:", localStorage.getItem('token') ? 'Present' : 'Missing');
     const response = await axios.get(`/users/followers/${userId}`);
-    return response.data.data;
+    console.log("=== DEBUG: getFollowers raw response:", response.data);
+    console.log("=== DEBUG: getFollowers response.data.data:", response.data.data);
+    const result = Array.isArray(response.data.data) ? response.data.data : [];
+    console.log("=== DEBUG: getFollowers final result:", result);
+    return result;
 }
 
 export const getFollowing = async (userId: string) => {
+    console.log("=== DEBUG: getFollowing API called with userId:", userId);
     const response = await axios.get(`/users/following/${userId}`);
-    return response.data.data;
+    console.log("=== DEBUG: getFollowing raw response:", response.data);
+    console.log("=== DEBUG: getFollowing response.data.data:", response.data.data);
+    const result = Array.isArray(response.data.data) ? response.data.data : [];
+    console.log("=== DEBUG: getFollowing final result:", result);
+    return result;
 }
 
 export const getUserById = async (userId: string) => {
