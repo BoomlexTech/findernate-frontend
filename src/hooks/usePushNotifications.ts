@@ -3,7 +3,8 @@ import {
   pushNotificationManager, 
   initializePushNotifications,
   NotificationPermissionState,
-  MessageNotificationData
+  MessageNotificationData,
+  GeneralNotificationData
 } from '../utils/pushNotifications';
 
 export interface UsePushNotificationsReturn {
@@ -19,6 +20,7 @@ export interface UsePushNotificationsReturn {
   subscribe: () => Promise<boolean>;
   unsubscribe: () => Promise<boolean>;
   showLocalNotification: (data: MessageNotificationData) => void;
+  showGeneralNotification: (data: GeneralNotificationData) => void;
   clearError: () => void;
 }
 
@@ -149,6 +151,16 @@ export function usePushNotifications(): UsePushNotificationsReturn {
     }
   }, []);
 
+  // Show general notification
+  const showGeneralNotification = useCallback((data: GeneralNotificationData) => {
+    try {
+      pushNotificationManager.showGeneralNotification(data);
+    } catch (err) {
+      console.error('Error showing general notification:', err);
+      setError(err instanceof Error ? err.message : 'Failed to show notification');
+    }
+  }, []);
+
 
   // Clear error
   const clearError = useCallback(() => {
@@ -165,6 +177,7 @@ export function usePushNotifications(): UsePushNotificationsReturn {
     subscribe,
     unsubscribe,
     showLocalNotification,
+    showGeneralNotification,
     clearError
   };
 }

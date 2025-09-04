@@ -10,6 +10,7 @@ import CreatePostModal from "@/components/CreatePostModal";
 import PushNotificationProvider from "@/components/providers/PushNotificationProvider";
 import { GlobalCallProvider } from "@/components/providers/GlobalCallProvider";
 import { CallManager } from "@/components/call/CallManager";
+import { useCommentNotifications } from "@/hooks/useCommentNotifications";
 
 const MainLayout = ({children}:{children:React.ReactNode}) => {
 
@@ -19,6 +20,9 @@ const MainLayout = ({children}:{children:React.ReactNode}) => {
   const [postToggle, setPostToggle] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+
+  // Initialize comment notifications
+  useCommentNotifications();
 
   // Check screen size
   useEffect(() => {

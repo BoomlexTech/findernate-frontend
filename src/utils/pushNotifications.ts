@@ -21,6 +21,17 @@ export interface MessageNotificationData {
   icon?: string;
 }
 
+export interface GeneralNotificationData {
+  title: string;
+  body: string;
+  notificationId?: string;
+  senderId?: string;
+  senderName?: string;
+  url?: string;
+  icon?: string;
+  type?: 'comment' | 'like' | 'follow' | 'reply';
+}
+
 class PushNotificationManager {
   private registration: ServiceWorkerRegistration | null = null;
 
@@ -325,6 +336,61 @@ class PushNotificationManager {
 
     } catch (error) {
       console.error('Error creating notification:', error);
+    }
+  }
+
+  // Show general notification (for likes, comments, follows, etc.)
+  showGeneralNotification(data: GeneralNotificationData): void {
+    if (!this.isSupported()) {
+      console.warn('Cannot show general notification - not supported in this browser');
+      return;
+    }
+
+    if (Notification.permission !== 'granted') {
+      console.warn('Cannot show general notification - permission not granted. Current permission:', Notification.permission);
+      return;
+    }
+
+    console.log('Showing general notification:', data.title);
+
+    try {
+      const notification = new Notification(data.title, {
+        body: data.body,
+        icon: data.icon || '/Findernate.ico',
+        badge: '/Findernate.ico',
+        tag: data.notificationId ? `notification-${data.notificationId}` : `${data.type}-${Date.now()}`,
+        requireInteraction: true,
+        data: {
+          notificationId: data.notificationId,
+          senderId: data.senderId,
+          type: data.type,
+          url: data.url || '/notifications'
+        }
+      });
+
+      notification.onclick = () => {
+        console.log('General notification clicked, navigating to:', data.url || '/notifications');
+        window.focus();
+        const url = data.url || '/notifications';
+        window.location.href = url;
+        notification.close();
+      };
+
+      notification.onerror = (error) => {
+        console.error('General notification error:', error);
+      };
+
+      notification.onshow = () => {
+        console.log('General notification shown successfully');
+      };
+
+      // Auto close after 8 seconds (slightly shorter than message notifications)
+      setTimeout(() => {
+        notification.close();
+      }, 8000);
+
+    } catch (error) {
+      console.error('Error creating general notification:', error);
     }
   }
 

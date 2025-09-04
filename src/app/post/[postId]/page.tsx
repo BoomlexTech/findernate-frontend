@@ -247,6 +247,7 @@ const PostPage = () => {
         <div className="bg-white rounded-xl shadow-sm">
           <CommentsSection 
             postId={postId} 
+            postOwnerId={typeof post.userId === 'object' ? post.userId?._id : post.userId}
             onCommentCountChange={handleCommentCountChange}
             initialCommentCount={post.engagement?.comments || 0}
             shouldFocusComment={shouldFocusComment}

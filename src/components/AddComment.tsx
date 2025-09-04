@@ -6,10 +6,13 @@ import { Send } from 'lucide-react';
 import { Button } from './ui/button';
 import { Comment, createComment } from '@/api/comment';
 import { useUserStore } from '@/store/useUserStore';
+import { emitCommentNotification, emitCommentReplyNotification } from '@/hooks/useCommentNotifications';
 
 interface AddCommentProps {
   postId: string;
+  postOwnerId?: string;
   parentCommentId?: string;
+  originalCommenterUserId?: string; // For reply notifications
   onCommentAdded: (comment: Comment) => void;
   placeholder?: string;
   shouldFocus?: boolean;
@@ -17,7 +20,9 @@ interface AddCommentProps {
 
 const AddComment = ({ 
   postId, 
-  parentCommentId, 
+  postOwnerId,
+  parentCommentId,
+  originalCommenterUserId,
   onCommentAdded, 
   placeholder = "Add a comment...",
   shouldFocus = false
@@ -78,6 +83,29 @@ const AddComment = ({
 
       onCommentAdded(commentWithUser);
       setContent('');
+      
+      // Emit appropriate notification based on comment type
+      if (user?.username) {
+        if (parentCommentId && originalCommenterUserId) {
+          // This is a reply - emit reply notification
+          emitCommentReplyNotification({
+            parentCommentId,
+            replyId: newComment._id,
+            replierUsername: user.username,
+            originalCommenterUserId,
+            replyContent: content.trim()
+          });
+        } else if (postOwnerId) {
+          // This is a regular comment - emit comment notification
+          emitCommentNotification({
+            postId,
+            commentId: newComment._id,
+            commenterUsername: user.username,
+            postOwnerId,
+            commentContent: content.trim()
+          });
+        }
+      }
     } catch (error) {
       console.error('Error creating comment:', error);
     } finally {

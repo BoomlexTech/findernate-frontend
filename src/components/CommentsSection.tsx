@@ -10,6 +10,7 @@ import { postEvents } from '@/utils/postEvents';
 
 interface CommentsSectionProps {
   postId: string;
+  postOwnerId?: string;
   onCommentCountChange?: (count: number) => void;
   initialCommentCount?: number;
   shouldFocusComment?: boolean;
@@ -17,7 +18,7 @@ interface CommentsSectionProps {
 
 type SortOption = 'latest' | 'likes';
 
-const CommentsSection = ({ postId, onCommentCountChange, initialCommentCount = 0, shouldFocusComment = false }: CommentsSectionProps) => {
+const CommentsSection = ({ postId, postOwnerId, onCommentCountChange, initialCommentCount = 0, shouldFocusComment = false }: CommentsSectionProps) => {
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState<SortOption>('latest');
@@ -317,6 +318,7 @@ const CommentsSection = ({ postId, onCommentCountChange, initialCommentCount = 0
       <div className="mb-6">
         <AddComment 
           postId={postId} 
+          postOwnerId={postOwnerId}
           onCommentAdded={handleNewComment}
           shouldFocus={shouldFocusComment}
         />

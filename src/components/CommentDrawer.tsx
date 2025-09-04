@@ -65,6 +65,7 @@ export default function CommentDrawer({ isOpen, onClose, post }: CommentDrawerPr
       <div className="max-h-96 overflow-y-auto">
         <CommentsSection 
           postId={post._id}
+          postOwnerId={typeof post.userId === 'object' ? post.userId?._id : post.userId}
           initialCommentCount={post.engagement.comments}
           shouldFocusComment={true}
         />
