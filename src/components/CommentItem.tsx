@@ -10,6 +10,7 @@ import { useUserStore } from '@/store/useUserStore';
 import formatPostDate from '@/utils/formatDate';
 import ReportModal from './ReportModal';
 import AddComment from './AddComment';
+import { emitCommentLikeNotification } from '@/hooks/useCommentNotifications';
 
 interface CommentItemProps {
   comment: Comment;
@@ -72,6 +73,15 @@ const CommentItem = ({ comment, onUpdate, onDelete, onReplyAdded, isReply = fals
       if (shouldLike) {
         try {
           await likeComment(comment._id);
+          
+          // Emit notification for comment like
+          if (user?.username && comment.user?._id) {
+            emitCommentLikeNotification({
+              commentId: comment._id,
+              likerUsername: user.username,
+              commentOwnerId: comment.user._id
+            });
+          }
         } catch (likeError: any) {
           // Handle "already liked" error or self-like restriction
           if (likeError?.response?.status === 409) {
@@ -320,6 +330,7 @@ const CommentItem = ({ comment, onUpdate, onDelete, onReplyAdded, isReply = fals
             <AddComment
               postId={comment.postId}
               parentCommentId={comment._id}
+              originalCommenterUserId={comment.user?._id}
               onCommentAdded={handleReplyAdded}
               placeholder={`Reply to ${comment.user?.fullName || comment.user?.username || 'this comment'}...`}
               shouldFocus={true}

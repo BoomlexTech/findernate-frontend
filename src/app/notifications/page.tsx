@@ -2,8 +2,9 @@
 import Image from 'next/image';
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getNotifications } from '@/api/notification';
-import { Bell, User, Heart, MessageCircle, FileText, Loader2, AlertCircle, RefreshCw, LogIn } from 'lucide-react';
+import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead } from '@/api/notification';
+import { refreshUnreadCounts } from '@/hooks/useUnreadCounts';
+import { Bell, User, Heart, MessageCircle, FileText, Loader2, AlertCircle, RefreshCw, LogIn, CheckCheck } from 'lucide-react';
 import { useAuthGuard } from '@/hooks/useAuthGuard';
 import { useUserStore } from '@/store/useUserStore';
 import NotificationSettings from '@/components/notifications/NotificationSettings';
@@ -81,6 +82,23 @@ const Notifications = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [markingAllAsRead, setMarkingAllAsRead] = useState(false);
+
+  // Function to refresh notifications list
+  const refreshNotifications = async () => {
+    try {
+      const response = await getNotifications();
+      const rawNotifications = response.data?.notifications || response.data || [];
+      const validNotifications = rawNotifications.filter((notification: Notification) => 
+        notification && notification.senderId && notification.senderId._id
+      );
+      const seen = loadSeenNotifications();
+      const merged = validNotifications.map(n => ({ ...n, isRead: n.isRead || seen.has(n._id) }));
+      setNotifications(merged);
+    } catch (err) {
+      console.error('Failed to refresh notifications:', err);
+    }
+  };
   const router = useRouter();
   const { isAuthenticated, isLoading } = useAuthGuard();
   const { user } = useUserStore();
@@ -135,28 +153,90 @@ const Notifications = () => {
     } catch {}
   }, [getStorageKey]);
 
-  const handleNotificationClick = (notification: Notification) => {
-    // Optimistically mark as read and persist locally
-    setNotifications(prev => prev.map(n => n._id === notification._id ? { ...n, isRead: true } : n));
-    const seen = loadSeenNotifications();
-    seen.add(notification._id);
-    persistSeenNotifications(seen);
+  const handleNotificationClick = async (notification: Notification) => {
+    try {
+      // Optimistically mark as read and persist locally
+      setNotifications(prev => prev.map(n => n._id === notification._id ? { ...n, isRead: true } : n));
+      const seen = loadSeenNotifications();
+      seen.add(notification._id);
+      persistSeenNotifications(seen);
 
-    if (notification.type === 'follow' && notification.senderId) {
-      // Navigate to the user's profile
-      router.push(`/userprofile/${notification.senderId.username}`);
-    } else if ((notification.type === 'like' || notification.type === 'comment') && notification.postId) {
-      // Navigate to the specific post for likes and comments
-      router.push(`/post/${notification.postId}`);
-    } else if (notification.type === 'post' && notification.postId) {
-      // Navigate to the post for general post notifications
-      router.push(`/post/${notification.postId}`);
-    } else if (notification.postId) {
-      // Fallback: if there's a postId but type doesn't match above, still navigate to post
-      router.push(`/post/${notification.postId}`);
-    } else if (notification.senderId) {
-      // Fallback: if no postId but there's a sender, navigate to their profile
-      router.push(`/userprofile/${notification.senderId.username}`);
+      // Mark notification as read via API (don't wait for response)
+      markNotificationAsRead(notification._id).catch(error => {
+        console.error('Failed to mark notification as read:', error);
+        // Revert optimistic update if API call fails
+        setNotifications(prev => prev.map(n => n._id === notification._id ? { ...n, isRead: false } : n));
+        const seenReverted = loadSeenNotifications();
+        seenReverted.delete(notification._id);
+        persistSeenNotifications(seenReverted);
+      });
+
+      // Refresh unread counts and notifications list immediately
+      refreshUnreadCounts();
+      
+      // Refresh the notifications list after a short delay to ensure backend is updated
+      setTimeout(() => {
+        refreshNotifications();
+      }, 500);
+
+      // Navigate based on notification type
+      if (notification.type === 'follow' && notification.senderId) {
+        // Navigate to the user's profile
+        router.push(`/userprofile/${notification.senderId.username}`);
+      } else if ((notification.type === 'like' || notification.type === 'comment') && notification.postId) {
+        // Navigate to the specific post for likes and comments
+        router.push(`/post/${notification.postId}`);
+      } else if (notification.type === 'post' && notification.postId) {
+        // Navigate to the post for general post notifications
+        router.push(`/post/${notification.postId}`);
+      } else if (notification.postId) {
+        // Fallback: if there's a postId but type doesn't match above, still navigate to post
+        router.push(`/post/${notification.postId}`);
+      } else if (notification.senderId) {
+        // Fallback: if no postId but there's a sender, navigate to their profile
+        router.push(`/userprofile/${notification.senderId.username}`);
+      }
+    } catch (error) {
+      console.error('Error handling notification click:', error);
+      // Still navigate even if marking as read fails
+      if (notification.postId) {
+        router.push(`/post/${notification.postId}`);
+      } else if (notification.senderId) {
+        router.push(`/userprofile/${notification.senderId.username}`);
+      }
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    if (markingAllAsRead) return; // Prevent multiple clicks
+    
+    try {
+      setMarkingAllAsRead(true);
+      
+      // Optimistically mark all notifications as read
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+      
+      // Mark all notifications locally
+      const allIds = notifications.map(n => n._id);
+      const seen = loadSeenNotifications();
+      allIds.forEach(id => seen.add(id));
+      persistSeenNotifications(seen);
+
+      // Call API to mark all as read
+      await markAllNotificationsAsRead();
+
+      // Refresh unread counts and notifications list
+      refreshUnreadCounts();
+      setTimeout(() => {
+        refreshNotifications();
+      }, 500);
+
+    } catch (error) {
+      console.error('Failed to mark all notifications as read:', error);
+      // Revert optimistic update if API call fails
+      refreshNotifications();
+    } finally {
+      setMarkingAllAsRead(false);
     }
   };
 
@@ -251,6 +331,59 @@ const Notifications = () => {
     fetchNotifications();
   }, [isAuthenticated, user?._id, loadSeenNotifications]);
 
+  // Listen for notifications updates from unread counts hook
+  useEffect(() => {
+    const handleNotificationsUpdated = (event: CustomEvent) => {
+      try {
+        const response = event.detail;
+        const rawNotifications = response.data?.notifications || response.data || [];
+        const validNotifications = rawNotifications.filter((notification: Notification) => 
+          notification && notification.senderId && notification.senderId._id
+        );
+        const seen = loadSeenNotifications();
+        const merged = validNotifications.map(n => ({ ...n, isRead: n.isRead || seen.has(n._id) }));
+        setNotifications(merged);
+        console.log('Notifications updated from unread counts API');
+      } catch (error) {
+        console.error('Error handling notifications update event:', error);
+      }
+    };
+
+    window.addEventListener('notifications-updated', handleNotificationsUpdated as EventListener);
+
+    return () => {
+      window.removeEventListener('notifications-updated', handleNotificationsUpdated as EventListener);
+    };
+  }, [loadSeenNotifications]);
+
+  // Auto-refresh notifications every 1.5 seconds when on notifications page
+  useEffect(() => {
+    if (!isAuthenticated || !user?._id) return;
+
+    const autoRefreshNotifications = async () => {
+      try {
+        const response = await getNotifications();
+        const rawNotifications = response.data?.notifications || response.data || [];
+        const validNotifications = rawNotifications.filter((notification: Notification) => 
+          notification && notification.senderId && notification.senderId._id
+        );
+        const seen = loadSeenNotifications();
+        const merged = validNotifications.map(n => ({ ...n, isRead: n.isRead || seen.has(n._id) }));
+        setNotifications(merged);
+      } catch (error) {
+        console.error('Error in auto-refresh notifications:', error);
+        // Don't update error state for background refresh failures
+      }
+    };
+
+    // Set up interval to refresh every 1.5 seconds
+    const interval = setInterval(autoRefreshNotifications, 1500);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [isAuthenticated, user?._id, loadSeenNotifications]);
+
   // Show loading state while checking authentication
   if (isLoading) {
     return (
@@ -336,11 +469,27 @@ const Notifications = () => {
                 <p className="text-white/80 text-sm">Stay updated with your activity</p>
               </div>
             </div>
-            {!loading && newSinceLastVisitCount > 0 && (
-              <div className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full">
-                <span className="text-white text-sm font-medium">{newSinceLastVisitCount}</span>
-              </div>
-            )}
+            <div className="flex items-center gap-3">
+              {!loading && newSinceLastVisitCount > 0 && (
+                <div className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full">
+                  <span className="text-white text-sm font-medium">{newSinceLastVisitCount}</span>
+                </div>
+              )}
+              {!loading && notifications.some(n => !n.isRead) && (
+                <button
+                  onClick={handleMarkAllAsRead}
+                  disabled={markingAllAsRead}
+                  className="bg-white/20 backdrop-blur-sm px-3 py-2 rounded-lg text-white text-sm font-medium hover:bg-white/30 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {markingAllAsRead ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <CheckCheck className="w-4 h-4" />
+                  )}
+                  {markingAllAsRead ? 'Marking...' : 'Mark All Read'}
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -377,14 +526,14 @@ const Notifications = () => {
             </div>
           )}
 
-          {/* Empty State for no new since last visit */}
-          {!loading && !error && newSinceLastVisitCount === 0 && (
+          {/* Empty State for no notifications at all */}
+          {!loading && !error && notifications.length === 0 && (
             <div className="flex flex-col items-center justify-center py-16 px-3 sm:px-6">
               <div className="bg-gray-100 p-6 rounded-full mb-6">
                 <Bell className="w-12 h-12 text-gray-400" />
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-2">All caught up!</h3>
-              <p className="text-gray-500 text-center">You have no new notifications right now. Check back later for updates.</p>
+              <p className="text-gray-500 text-center">You have no notifications right now. Check back later for updates.</p>
             </div>
           )}
 

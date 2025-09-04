@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
-import { X, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCcw, Maximize, Minimize } from 'lucide-react';
 import { FeedPost } from '@/types';
 
 interface ImageModalProps {
@@ -20,19 +20,37 @@ export default function ImageModal({ isOpen, onClose, post }: ImageModalProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isFullscreen, setIsFullscreen] = useState(true); // Default to fullscreen
   const mediaRef = useRef<HTMLDivElement>(null);
 
-  // Reset image index when post changes
+  // Fullscreen handler function
+  const handleEnterFullscreen = () => {
+    if (mediaRef.current) {
+      if (mediaRef.current.requestFullscreen) {
+        mediaRef.current.requestFullscreen();
+      } else if ((mediaRef.current as any).webkitRequestFullscreen) {
+        (mediaRef.current as any).webkitRequestFullscreen();
+      } else if ((mediaRef.current as any).msRequestFullscreen) {
+        (mediaRef.current as any).msRequestFullscreen();
+      }
+    }
+  };
+
+  // Reset image index when post changes and auto-enter fullscreen
   useEffect(() => {
-    if (post) {
+    if (post && isOpen) {
       setCurrentImageIndex(0);
       setVideoLoaded(false);
-      // Set higher initial zoom for videos to make them appear more expanded
-      const initialMedia = post.media?.[0];
-      setZoomLevel(initialMedia?.type === 'video' ? 1.2 : 1);
+      // Keep zoom at 100% for all media types
+      setZoomLevel(1);
       setPosition({ x: 0, y: 0 });
+      
+      // Auto-enter fullscreen when modal opens
+      setTimeout(() => {
+        handleEnterFullscreen();
+      }, 100); // Small delay to ensure modal is fully rendered
     }
-  }, [post?._id]);
+  }, [post?._id, isOpen]);
 
   // Handle keyboard navigation
   useEffect(() => {
@@ -66,9 +84,8 @@ export default function ImageModal({ isOpen, onClose, post }: ImageModalProps) {
     const newIndex = currentImageIndex === 0 ? post.media.length - 1 : currentImageIndex - 1;
     setCurrentImageIndex(newIndex);
     setVideoLoaded(false);
-    // Set higher zoom for videos
-    const newMedia = post.media[newIndex];
-    setZoomLevel(newMedia?.type === 'video' ? 1.2 : 1);
+    // Keep zoom at 100% for all media types
+    setZoomLevel(1);
     setPosition({ x: 0, y: 0 });
   };
 
@@ -77,9 +94,8 @@ export default function ImageModal({ isOpen, onClose, post }: ImageModalProps) {
     const newIndex = currentImageIndex === post.media.length - 1 ? 0 : currentImageIndex + 1;
     setCurrentImageIndex(newIndex);
     setVideoLoaded(false);
-    // Set higher zoom for videos
-    const newMedia = post.media[newIndex];
-    setZoomLevel(newMedia?.type === 'video' ? 1.2 : 1);
+    // Keep zoom at 100% for all media types
+    setZoomLevel(1);
     setPosition({ x: 0, y: 0 });
   };
 
@@ -94,6 +110,10 @@ export default function ImageModal({ isOpen, onClose, post }: ImageModalProps) {
   const handleResetZoom = () => {
     setZoomLevel(1);
     setPosition({ x: 0, y: 0 });
+  };
+
+  const handleToggleFullscreen = () => {
+    setIsFullscreen(!isFullscreen);
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -222,6 +242,13 @@ export default function ImageModal({ isOpen, onClose, post }: ImageModalProps) {
               className="rounded-full bg-black/30 text-white hover:bg-black/50 transition-colors p-2 disabled:opacity-50"
             >
               <ZoomIn className="w-4 h-4" />
+            </button>
+            <button
+              onClick={handleEnterFullscreen}
+              className="rounded-full bg-black/30 text-white hover:bg-black/50 transition-colors p-2"
+              title="Enter Fullscreen"
+            >
+              <Maximize className="w-4 h-4" />
             </button>
             <button
               onClick={onClose}
@@ -370,8 +397,8 @@ export default function ImageModal({ isOpen, onClose, post }: ImageModalProps) {
                 key={index}
                 onClick={() => {
                   setCurrentImageIndex(index);
-                  // Set higher zoom for videos
-                  setZoomLevel(media.type === 'video' ? 1.2 : 1);
+                  // Keep zoom at 100% for all media types
+                  setZoomLevel(1);
                   setPosition({ x: 0, y: 0 });
                 }}
                 className={`w-12 h-12 rounded-md overflow-hidden border-2 transition-all ${
