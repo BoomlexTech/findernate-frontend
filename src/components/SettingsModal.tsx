@@ -1,6 +1,6 @@
 "use client";
 
-import { User, HelpCircle, LogOut, Shield, ChevronRight, Layers, X } from "lucide-react";
+import { HelpCircle, LogOut, Shield, ChevronRight, X } from "lucide-react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { logout } from "@/api/auth";
@@ -186,8 +186,8 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
             onToggle={() => setMuteNotifications(!muteNotifications)}
           />
           <SettingItem icon={<Bell />} title="Custom Notification" /> */}
-          <SettingItem icon={<User />} title="Account" />
-          <SettingItem icon={<Layers />} title="About App" />
+          {/* <SettingItem icon={<User />} title="Account" />
+          <SettingItem icon={<Layers />} title="About App" /> */}
           <SettingItem icon={<HelpCircle />} title="Help Center" />
         </div>
 
