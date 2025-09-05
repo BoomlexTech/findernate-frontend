@@ -2,6 +2,7 @@
 
 import { getOtherUserProfile } from '@/api/user';
 import { getUserPosts, getUserReels, getUserVideos } from '@/api/homeFeed';
+import { getUserPublicSavedPosts } from '@/api/post';
 
 import { getCommentsByPost } from '@/api/comment';
 import FloatingHeader from '@/components/FloatingHeader';
@@ -16,6 +17,7 @@ const UserProfilePage = () => {
   const [posts, setPosts] = useState<FeedPost[]>([]);
   const [reels, setReels] = useState<FeedPost[]>([]);
   const [videos, setVideos] = useState<FeedPost[]>([]);
+  const [savedPosts, setSavedPosts] = useState<FeedPost[]>([]);
   const [profileData, setProfileData] = useState<UserProfileType | null>(null);
   const [loading, setLoading] = useState(true);
   const [postsLoading, setPostsLoading] = useState(false);
@@ -113,16 +115,18 @@ const UserProfilePage = () => {
           
           // Fetch user posts, reels, and videos on initial load
           if (profileResponse.userId._id) {
-            // Fetch posts, reels, and videos in parallel
-            const [postsResponse, reelsResponse, videosResponse] = await Promise.all([
+            // Fetch posts, reels, videos, and public saved posts in parallel
+            const [postsResponse, reelsResponse, videosResponse, savedPostsResponse] = await Promise.all([
               getUserPosts(profileResponse.userId._id),
               getUserReels(profileResponse.userId._id),
-              getUserVideos(profileResponse.userId._id)
+              getUserVideos(profileResponse.userId._id),
+              getUserPublicSavedPosts(profileResponse.userId._id, 1, 100)
             ]);
             
             console.log('User posts API response:', postsResponse);
             console.log('User reels API response:', reelsResponse);
             console.log('User videos API response:', videosResponse);
+            console.log('User public saved posts API response:', savedPostsResponse);
             
             // Helper function to process any type of post data
             const processPostData = (response: any, type: string) => {
@@ -153,26 +157,66 @@ const UserProfilePage = () => {
               }));
             };
 
+            // Helper function to process saved posts data (different structure)
+            const processSavedPostsData = (response: any) => {
+              return (response.data?.savedPosts || [])
+                .filter((savedPost: any) => savedPost.postId !== null)
+                .map((savedPost: any) => {
+                  const post = savedPost.postId; // The actual post data is in postId
+                  return {
+                    ...post,
+                    username: post.userId?.username || profileResponse.userId.username,
+                    profileImageUrl: post.userId?.profileImageUrl || profileResponse.userId.profileImageUrl,
+                    // Handle tags/hashtags - check customization and top-level fields
+                    tags: post.customization?.normal?.tags || 
+                          post.customization?.business?.tags || 
+                          post.customization?.service?.tags || 
+                          post.customization?.product?.tags || 
+                          (Array.isArray(post.tags) ? post.tags : 
+                           Array.isArray(post.hashtags) ? post.hashtags :
+                           (post.tags ? [post.tags] : 
+                            post.hashtags ? [post.hashtags] : [])),
+                    // Ensure location is properly structured
+                    location: post.location || 
+                             post.customization?.normal?.location ||
+                             null,
+                    // Ensure engagement object has all required fields
+                    engagement: {
+                      likes: post.engagement?.likes || 0,
+                      comments: post.engagement?.comments || 0,
+                      shares: post.engagement?.shares || 0,
+                      ...post.engagement
+                    },
+                    // Add privacy field for saved posts
+                    savedPostPrivacy: 'public' // These are all public since we're fetching public saved posts
+                  };
+                });
+            };
+
             // Process all post types
             const postsWithUserInfo = processPostData(postsResponse, 'posts');
             const reelsWithUserInfo = processPostData(reelsResponse, 'reels');
             const videosWithUserInfo = processPostData(videosResponse, 'videos');
+            const savedPostsWithUserInfo = processSavedPostsData(savedPostsResponse);
 
             // Fetch actual comment counts for all content types
-            console.log('Fetching comment counts for posts, reels, and videos...');
-            const [postsWithCommentCounts, reelsWithCommentCounts, videosWithCommentCounts] = await Promise.all([
+            console.log('Fetching comment counts for posts, reels, videos, and saved posts...');
+            const [postsWithCommentCounts, reelsWithCommentCounts, videosWithCommentCounts, savedPostsWithCommentCounts] = await Promise.all([
               fetchCommentCounts(postsWithUserInfo),
               fetchCommentCounts(reelsWithUserInfo),
-              fetchCommentCounts(videosWithUserInfo)
+              fetchCommentCounts(videosWithUserInfo),
+              fetchCommentCounts(savedPostsWithUserInfo)
             ]);
             
             console.log('Posts with updated comment counts:', postsWithCommentCounts.length);
             console.log('Reels with updated comment counts:', reelsWithCommentCounts.length);
             console.log('Videos with updated comment counts:', videosWithCommentCounts.length);
+            console.log('Saved posts with updated comment counts:', savedPostsWithCommentCounts.length);
             
             setPosts(postsWithCommentCounts);
             setReels(reelsWithCommentCounts);
             setVideos(videosWithCommentCounts);
+            setSavedPosts(savedPostsWithCommentCounts);
           }
         } else {
           throw new Error("Profile data not found in response");
@@ -258,6 +302,7 @@ const UserProfilePage = () => {
             posts={posts}  
             reels={reels}
             videos={videos}
+            savedPosts={savedPosts}
             isOtherUser={true}
             loading={postsLoading}
             onTabChange={handleTabChange}

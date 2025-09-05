@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import PostCard from '@/components/PostCard'
 import { FeedPost, SavedPostsResponse } from '@/types'
-import { getSavedPost } from '@/api/post'
+import { getSavedPost, getPrivateSavedPosts, getPublicSavedPosts } from '@/api/post'
 import { getCommentsByPost, Comment } from '@/api/comment'
 import { useAuthGuard } from '@/hooks/useAuthGuard'
 import { AuthDialog } from '@/components/AuthDialog'
@@ -21,10 +21,15 @@ const SavedPage = () => {
       setLoading(true)
       setError(null)
       
-      const response: SavedPostsResponse = await getSavedPost()
+      // Fetch both private and public saved posts
+      const [privatePostsResponse, publicPostsResponse] = await Promise.all([
+        getPrivateSavedPosts(1, 100),
+        getPublicSavedPosts(1, 100)
+      ])
       
-      // Extract and map the posts similar to MainContent.tsx
-      const initialPosts: FeedPost[] = response.data.savedPosts
+      // Helper function to process saved posts
+      const processSavedPosts = (savedPostsData: any[], privacy: 'private' | 'public') => {
+        return savedPostsData
         .filter(savedPost => savedPost.postId !== null)
         .map(savedPost => {
           const post = savedPost.postId as any // Raw post data from API
@@ -65,15 +70,30 @@ const SavedPage = () => {
             tags: post.customization?.normal?.tags || post.tags || [],
             customization: post.customization,
             // Add comments array for PostCard to use
-            comments: post.comments || []
-          } as FeedPost
+            comments: post.comments || [],
+            // Add privacy field to track visibility
+            savedPostPrivacy: privacy
+          } as FeedPost & { savedPostPrivacy: 'private' | 'public' }
         })
+      }
 
-      console.log('Initial saved posts:', initialPosts.slice(0, 2));
+      const privatePosts = processSavedPosts(privatePostsResponse.data?.savedPosts || [], 'private')
+      const publicPosts = processSavedPosts(publicPostsResponse.data?.savedPosts || [], 'public')
+      
+      // Combine both private and public posts and sort by creation date
+      const allSavedPosts = [...privatePosts, ...publicPosts].sort((a, b) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      )
+
+      console.log('Private saved posts:', privatePosts.length)
+      console.log('Public saved posts:', publicPosts.length)
+      console.log('Total saved posts:', allSavedPosts.length)
+
+      console.log('Initial saved posts:', allSavedPosts.slice(0, 2));
       
       // Fetch comments for all saved posts
       const postsWithComments = await Promise.all(
-        initialPosts.map(async (post) => {
+        allSavedPosts.map(async (post) => {
           try {
             console.log(`Fetching comments for saved post: ${post._id}`);
             const commentsResponse = await getCommentsByPost(post._id, 1, 5); // Fetch first 5 comments
