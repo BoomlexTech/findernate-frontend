@@ -269,6 +269,17 @@ export const messageAPI = {
     });
   },
 
+  // Mark all messages in a chat as read
+  markAllMessagesRead: async (chatId: string): Promise<void> => {
+    await axiosInstance.patch(`/chats/${chatId}/read-all`);
+  },
+
+  // Get unread count for a specific chat
+  getChatUnreadCount: async (chatId: string): Promise<{ unreadCount: number }> => {
+    const response = await axiosInstance.get(`/chats/${chatId}/unread-count`);
+    return response.data.data;
+  },
+
   // Delete a message
   deleteMessage: async (chatId: string, messageId: string): Promise<void> => {
     await axiosInstance.delete(`/chats/${chatId}/messages/${messageId}`);

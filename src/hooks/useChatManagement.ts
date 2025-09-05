@@ -57,6 +57,39 @@ export const useChatManagement = ({ user }: UseChatManagementProps) => {
 
   const selected = [...chats, ...messageRequests].find((chat) => chat._id === selectedChat);
 
+  // Function to refresh chats with accurate unread counts
+  const refreshChatsWithAccurateUnreadCounts = async () => {
+    try {
+      console.log('Refreshing chats with accurate unread counts...');
+      const [activeChatsResponse, requestsResponse] = await Promise.all([
+        messageAPI.getActiveChats(),
+        messageAPI.getMessageRequests()
+      ]);
+      
+      // Update chats with fresh data from server
+      const sortedActiveChats = activeChatsResponse.chats.sort((a, b) => 
+        new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
+      );
+      
+      const filteredRequests = requestsResponse.chats.filter(chat => {
+        if (!user?._id) return false;
+        return isIncomingRequest(chat, user._id);
+      });
+      
+      const sortedRequests = filteredRequests.sort((a, b) => 
+        new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
+      );
+      
+      setChats(sortedActiveChats);
+      setMessageRequests(sortedRequests);
+      setAllChatsCache([...sortedActiveChats, ...sortedRequests]);
+      
+      console.log('Chats refreshed with accurate unread counts');
+    } catch (error) {
+      console.error('Failed to refresh chats with accurate unread counts:', error);
+    }
+  };
+
   // Load cached decisions and user following list on mount
   useEffect(() => {
     const savedDecisions = localStorage.getItem(REQUEST_DECISIONS_KEY);
@@ -696,6 +729,7 @@ export const useChatManagement = ({ user }: UseChatManagementProps) => {
     handleAcceptRequest,
     handleDeclineRequest,
     handleProfileClick,
+    refreshChatsWithAccurateUnreadCounts,
     
     // Utility functions (re-exported for convenience)
     getChatDisplayName: (chat: Chat) => getChatDisplayName(chat, user),

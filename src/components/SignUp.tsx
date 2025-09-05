@@ -1,9 +1,10 @@
 'use client'
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { Eye, EyeOff, Check, RefreshCw, ChevronDown, User, Calendar, Users } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { countryCodes } from '@/constants/uiItems';
 import { signUp } from '@/api/auth';
+import { getUsernameSuggestions } from '@/api/user';
 import axios from 'axios';
 import { Button } from './ui/button';
 import Input from './ui/Input';
@@ -25,6 +26,10 @@ export default function SignupComponent() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [usernameAvailable, setUsernameAvailable] = useState<boolean>(false);
+  const [usernameSuggestions, setUsernameSuggestions] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [loadingUsername, setLoadingUsername] = useState(false);
+  const [usernameMessage, setUsernameMessage] = useState('');
   const [showCountryDropdown, setShowCountryDropdown] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -33,6 +38,36 @@ export default function SignupComponent() {
   const router = useRouter();
 
   const {setUser, setToken} = useUserStore()
+  const usernameTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Debounced username checking function
+  const checkUsernameWithSuggestions = useCallback(async (username: string) => {
+    if (username.length < 3) {
+      setUsernameSuggestions([]);
+      setShowSuggestions(false);
+      setUsernameAvailable(false);
+      setUsernameMessage('');
+      return;
+    }
+
+    try {
+      setLoadingUsername(true);
+      const response = await getUsernameSuggestions(username);
+      
+      setUsernameAvailable(response.isAvailable);
+      setUsernameMessage(response.message);
+      setUsernameSuggestions(response.suggestions);
+      setShowSuggestions(true);
+    } catch (error) {
+      console.error('Error checking username:', error);
+      setUsernameAvailable(false);
+      setUsernameMessage('Error checking username availability');
+      setUsernameSuggestions([]);
+      setShowSuggestions(false);
+    } finally {
+      setLoadingUsername(false);
+    }
+  }, []);
 
   const handleCountryCodeSelect = (code:string) => {
     setFormData(prev => ({
@@ -69,13 +104,24 @@ export default function SignupComponent() {
       }));
       return;
     }
-    // Special handling for username: remove spaces
+    // Special handling for username: remove spaces and check availability
     if (name === 'username') {
       const noSpaces = value.replace(/\s/g, '');
       setFormData(prev => ({
         ...prev,
         [name]: noSpaces
       }));
+      
+      // Clear existing timeout
+      if (usernameTimeoutRef.current) {
+        clearTimeout(usernameTimeoutRef.current);
+      }
+      
+      // Set new timeout for debounced API call
+      usernameTimeoutRef.current = setTimeout(() => {
+        checkUsernameWithSuggestions(noSpaces);
+      }, 500); // 500ms delay
+      
       return;
     }
     setFormData(prev => ({
@@ -119,9 +165,27 @@ export default function SignupComponent() {
   };
 
   const checkUsernameAvailability = () => {
-    // Simulate username check
-    setUsernameAvailable(true);
+    checkUsernameWithSuggestions(formData.username);
   };
+
+  const handleSuggestionClick = (suggestion: string) => {
+    setFormData(prev => ({
+      ...prev,
+      username: suggestion
+    }));
+    setShowSuggestions(false);
+    setUsernameAvailable(true);
+    setUsernameMessage('Available!');
+  };
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (usernameTimeoutRef.current) {
+        clearTimeout(usernameTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleSigninClick = () => {
     router.push('/signin')
@@ -217,6 +281,7 @@ export default function SignupComponent() {
     <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-orange-50 flex items-center justify-center p-4" onClick={() => {
       setShowCountryDropdown(false);
       setShowDatePicker(false);
+      setShowSuggestions(false);
     }}>
       <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
         {/* Logo and Header */}
@@ -267,19 +332,55 @@ export default function SignupComponent() {
                 required
               />
               <div className="absolute right-1 top-1 flex items-center space-x-2">
-                {usernameAvailable && (
+                {loadingUsername && (
+                  <RefreshCw className="w-4 h-4 text-gray-400 animate-spin" />
+                )}
+                {!loadingUsername && usernameAvailable && (
                   <Check className="w-5 h-5 text-green-500" />
+                )}
+                {!loadingUsername && formData.username.length >= 3 && !usernameAvailable && (
+                  <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
                 )}
                 <Button
                   variant='custom'
                   onClick={checkUsernameAvailability}
-                  className="cursor-pointer text-gray-400"
+                  className="cursor-pointer text-gray-400 disabled:opacity-50"
+                  disabled={loadingUsername}
                 >
-                  <RefreshCw className="w-4 h-4" />
+                  <RefreshCw className={`w-4 h-4 ${loadingUsername ? 'animate-spin' : ''}`} />
                 </Button>
               </div>
             </div>
-            <p className="text-sm text-gray-500 mt-1">
+            
+            {/* Username Status Message */}
+            {usernameMessage && (
+              <p className={`text-sm mt-1 ${usernameAvailable ? 'text-green-600' : 'text-red-600'}`}>
+                {usernameMessage}
+              </p>
+            )}
+            
+            {/* Username Suggestions */}
+            {showSuggestions && usernameSuggestions.length > 0 && (
+              <div className="mt-3">
+                <p className="text-sm text-gray-600 mb-2">Suggestions:</p>
+                <div className="flex flex-wrap gap-2">
+                  {usernameSuggestions.map((suggestion, index) => (
+                    <button
+                      key={index}
+                      type="button"
+                      onClick={() => handleSuggestionClick(suggestion)}
+                      className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800 hover:bg-yellow-200 transition-colors cursor-pointer border border-yellow-300"
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            <p className="text-sm text-gray-500 mt-2">
               Your profile will be available at: findernate.com/{formData.username || 'username'}
             </p>
           </div>

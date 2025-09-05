@@ -57,7 +57,8 @@ export default function MessagePanel() {
     isIncomingRequest,
     viewedRequests,
     markRequestAsViewed,
-    clearViewedRequest
+    clearViewedRequest,
+    refreshChatsWithAccurateUnreadCounts
   } = useChatManagement({ user });
 
   // Message management
@@ -79,7 +80,7 @@ export default function MessagePanel() {
     handleDeleteMessage,
     handleInputChange,
     scrollToBottom
-  } = useMessageManagement({ selectedChat, user, setChats, messageRequests, viewedRequests, markRequestAsViewed });
+  } = useMessageManagement({ selectedChat, user, setChats, messageRequests, viewedRequests, markRequestAsViewed, refreshChatsWithAccurateUnreadCounts });
 
   // File upload
   const {
