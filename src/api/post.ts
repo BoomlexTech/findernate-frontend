@@ -185,19 +185,144 @@ export const unlikePost = async (postId: string) => {
   }
 };
 
-export const savePost = async (postId: string) => {
-  const response = await axios.post('/posts/save', { postId })
-  return response.data
+export const savePost = async (postId: string, privacy: 'private' | 'public' = 'private') => {
+  try {
+    console.log('=== SAVE POST DEBUG START ===');
+    console.log('🔸 Function called with parameters:');
+    console.log('  - postId:', postId);
+    console.log('  - postId type:', typeof postId);
+    console.log('  - privacy:', privacy);
+    console.log('  - privacy type:', typeof privacy);
+    
+    console.log('🔸 Base URL configuration:');
+    console.log('  - axios.defaults.baseURL:', axios.defaults.baseURL);
+    console.log('  - Full URL will be:', `${axios.defaults.baseURL}/posts/save`);
+    
+    // Ensure we're sending exactly the format specified by the backend
+    const requestData = { 
+      postId: postId,
+      privacy: privacy 
+    };
+    
+    console.log('🔸 Request payload being sent:');
+    console.log('  - Raw object:', requestData);
+    console.log('  - JSON stringified:', JSON.stringify(requestData));
+    console.log('  - Object keys:', Object.keys(requestData));
+    console.log('  - Object values:', Object.values(requestData));
+    
+    console.log('🔸 Request headers:');
+    const headers = {
+      'Content-Type': 'application/json'
+    };
+    console.log('  - Headers object:', headers);
+    
+    console.log('🔸 Making POST request to /posts/save...');
+    const response = await axios.post('/posts/save', requestData, { headers });
+    
+    console.log('🔸 Response received:');
+    console.log('  - Status:', response.status);
+    console.log('  - Status text:', response.statusText);
+    console.log('  - Response data:', response.data);
+    console.log('=== SAVE POST DEBUG END ===');
+    
+    return response.data;
+  } catch (error) {
+    console.error('=== SAVE POST ERROR DEBUG START ===');
+    console.error('❌ Error saving post:', error);
+    const axiosError = error as any;
+    
+    console.error('🔸 Error details:');
+    console.error('  - Error message:', axiosError?.message);
+    console.error('  - Error name:', axiosError?.name);
+    console.error('  - Error code:', axiosError?.code);
+    
+    if (axiosError?.response) {
+      console.error('🔸 Response error details:');
+      console.error('  - Status:', axiosError.response.status);
+      console.error('  - Status text:', axiosError.response.statusText);
+      console.error('  - Response data:', axiosError.response.data);
+      console.error('  - Response headers:', axiosError.response.headers);
+    }
+    
+    if (axiosError?.request) {
+      console.error('🔸 Request details:');
+      console.error('  - Request URL:', axiosError.request.responseURL);
+      console.error('  - Request method:', axiosError.config?.method);
+      console.error('  - Request data:', axiosError.config?.data);
+      console.error('  - Request headers:', axiosError.config?.headers);
+    }
+    
+    console.error('=== SAVE POST ERROR DEBUG END ===');
+    throw error;
+  }
 }
 
+export const getPrivateSavedPosts = async (page: number = 1, limit: number = 10) => {
+  try {
+    console.log('=== DEBUG: Fetching private saved posts, page:', page, 'limit:', limit);
+    const response = await axios.get(`/posts/saved/private?page=${page}&limit=${limit}`)
+    console.log('=== DEBUG: Private saved posts response:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('=== DEBUG: Error fetching private saved posts:', error);
+    throw error;
+  }
+}
+
+export const getPublicSavedPosts = async (page: number = 1, limit: number = 10) => {
+  try {
+    console.log('=== DEBUG: Fetching public saved posts, page:', page, 'limit:', limit);
+    const response = await axios.get(`/posts/saved/public?page=${page}&limit=${limit}`)
+    console.log('=== DEBUG: Public saved posts response:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('=== DEBUG: Error fetching public saved posts:', error);
+    throw error;
+  }
+}
+
+// Legacy function - keeping for backward compatibility, fetches private posts by default
 export const getSavedPost = async () => {
-  const response = await axios.get('posts/saved')
+  const response = await axios.get('/posts/saved/private?page=1&limit=100')
   return response.data
 }
 
 export const unsavePost = async (postId: string) => {
   const response = await axios.delete(`/posts/save/${postId}`)
   return response.data
+}
+
+// Get another user's public saved posts
+export const getUserPublicSavedPosts = async (userId: string, page: number = 1, limit: number = 10) => {
+  try {
+    console.log('=== DEBUG: Fetching user public saved posts, userId:', userId, 'page:', page, 'limit:', limit);
+    const response = await axios.get(`/posts/saved/user/${userId}?page=${page}&limit=${limit}`)
+    console.log('=== DEBUG: User public saved posts response:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('=== DEBUG: Error fetching user public saved posts:', error);
+    throw error;
+  }
+}
+
+// Toggle saved post privacy between private and public
+// Note: Backend doesn't have a direct toggle endpoint, so we unsave and re-save with new privacy
+export const toggleSavedPostPrivacy = async (postId: string, privacy: 'private' | 'public') => {
+  try {
+    console.log('=== DEBUG: Toggling saved post privacy:', { postId, privacy });
+    
+    // First unsave the post
+    await unsavePost(postId);
+    
+    // Then re-save with new privacy
+    const response = await savePost(postId, privacy);
+    
+    console.log('=== DEBUG: Toggle privacy response:', response);
+    return response;
+  } catch (error) {
+    console.error('=== DEBUG: Error toggling saved post privacy:', error);
+    throw error;
+  }
 }
 
 // Note: Use getSavedPost() to get all saved posts and check if postId exists in the list

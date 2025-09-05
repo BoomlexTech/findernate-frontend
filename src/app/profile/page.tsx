@@ -1,7 +1,7 @@
 'use client'
 import { getPostsByUserid, getUserReels, getUserVideos } from '@/api/homeFeed';
 import { getUserProfile } from '@/api/user';
-import { getSavedPost } from '@/api/post';
+import { getSavedPost, getPrivateSavedPosts, getPublicSavedPosts, toggleSavedPostPrivacy } from '@/api/post';
 //import { getCommentsByPost, Comment } from '@/api/comment';
 import AccountSettings from '@/components/AccountSettings';
 //import FloatingHeader from '@/components/FloatingHeader';
@@ -64,10 +64,139 @@ const Page = () => {
         
         // Fetch saved posts separately to prevent blocking other data
         try {
-          const savedPostsResponse = await getSavedPost();
+          // Fetch both private and public saved posts
+          const [privatePostsResponse, publicPostsResponse] = await Promise.all([
+            getPrivateSavedPosts(1, 100),
+            getPublicSavedPosts(1, 100)
+          ]);
           
-          // Process saved posts EXACTLY like MainContent does
-          const initialSavedPosts: FeedPost[] = savedPostsResponse.data?.savedPosts
+          // Helper function to process saved posts
+          const processSavedPosts = (savedPostsData: any[], privacy: 'private' | 'public') => {
+            return savedPostsData
+              ?.filter((savedPost: any) => savedPost.postId !== null)
+              ?.map((savedPost: any) => {
+                const item = savedPost.postId; // Raw post data from API (same as MainContent's 'item')
+                
+                // Calculate actual comment count from comments array (EXACT MainContent logic)
+                let actualCommentCount = 0;
+                if (item.comments && Array.isArray(item.comments)) {
+                  // Count top-level comments + replies
+                  actualCommentCount = item.comments.reduce((total: number, comment: any) => {
+                    const repliesCount = Array.isArray(comment.replies) ? comment.replies.length : 0;
+                    return total + 1 + repliesCount; // 1 for the comment itself + replies
+                  }, 0);
+                }
+                
+                const safeUsername = item.userId?.username || 'Deleted User';
+                const safeProfileImageUrl = item.userId?.profileImageUrl || '/placeholderimg.png';
+
+                // Map to FeedPost structure EXACTLY like MainContent does
+                return {
+                  _id: item._id,
+                  userId: item.userId, // Add missing userId field
+                  username: safeUsername,
+                  profileImageUrl: safeProfileImageUrl,
+                  description: item.description,
+                  caption: item.caption,
+                  contentType: item.contentType,
+                  postType: item.postType,
+                  createdAt: item.createdAt,
+                  media: item.media as any[],
+                  isLikedBy: item.isLikedBy,
+                  likedBy: item.likedBy,
+                  customization: item.customization,
+                  engagement: {
+                    ...(item.engagement || {}),
+                    comments: actualCommentCount, // Use calculated count
+                    impressions: item.engagement?.impressions || 0,
+                    likes: item.engagement?.likes || 0,
+                    reach: item.engagement?.reach || 0,
+                    saves: item.engagement?.saves || 0,
+                    shares: item.engagement?.shares || 0,
+                    views: item.engagement?.views || 0,
+                  },
+                  location:
+                    item.customization?.normal?.location ||
+                    item.customization?.service?.location ||
+                    item.customization?.product?.location ||
+                    item.customization?.business?.location ||
+                    null,
+                  tags: item.customization?.normal?.tags || [],
+                  // Add privacy field to track visibility
+                  savedPostPrivacy: privacy
+                } as FeedPost & { savedPostPrivacy: 'private' | 'public' };
+              }) || [];
+          };
+          
+          const privatePosts = processSavedPosts(privatePostsResponse.data?.savedPosts || [], 'private');
+          const publicPosts = processSavedPosts(publicPostsResponse.data?.savedPosts || [], 'public');
+          
+          // Combine both private and public posts and sort by creation date
+          const allSavedPosts = [...privatePosts, ...publicPosts].sort((a, b) => 
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
+          
+          setSavedPosts(allSavedPosts);
+          console.log("Private Posts Response:", privatePostsResponse.data?.savedPosts?.length);
+          console.log("Public Posts Response:", publicPostsResponse.data?.savedPosts?.length);
+          
+          // Debug first saved post structure
+          if (allSavedPosts.length > 0) {
+            console.log("First saved post structure:", {
+              _id: allSavedPosts[0]._id,
+              isLikedBy: allSavedPosts[0].isLikedBy,
+              engagement: allSavedPosts[0].engagement,
+              userId: allSavedPosts[0].userId,
+              savedPostPrivacy: (allSavedPosts[0] as any).savedPostPrivacy
+            });
+          }
+        } catch (savedPostsError) {
+          console.error('Error fetching saved posts:', savedPostsError);
+          // Set empty array for saved posts if API fails
+          setSavedPosts([]);
+        }
+        
+        console.log("Posts:", postsResponse.data?.posts);
+        console.log("Reels:", reelsResponse.data?.posts);
+        console.log("Videos:", videosResponse.data?.posts);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        setError('Failed to load profile data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [user?._id, isAuthenticated]);
+
+  // Refresh profile posts when new posts are created
+  const refreshProfilePosts = useCallback(async () => {
+    if (!isAuthenticated || !user?._id) return;
+    
+    try {
+      // Fetch user posts, reels, and videos (without saved posts to prevent blocking)
+      const [postsResponse, reelsResponse, videosResponse] = await Promise.all([
+        getPostsByUserid(user._id),
+        getUserReels(user._id),
+        getUserVideos(user._id)
+      ]);
+      
+      setPosts(postsResponse.data?.posts || []);
+      setReels(reelsResponse.data?.posts || []);
+      setVideos(videosResponse.data?.posts || []);
+      
+      // Fetch saved posts separately to prevent blocking other data
+      try {
+        // Fetch both private and public saved posts
+        const [privatePostsResponse, publicPostsResponse] = await Promise.all([
+          getPrivateSavedPosts(1, 100),
+          getPublicSavedPosts(1, 100)
+        ]);
+        
+        // Helper function to process saved posts
+        const processSavedPosts = (savedPostsData: any[], privacy: 'private' | 'public') => {
+          return savedPostsData
             ?.filter((savedPost: any) => savedPost.postId !== null)
             ?.map((savedPost: any) => {
               const item = savedPost.postId; // Raw post data from API (same as MainContent's 'item')
@@ -117,116 +246,21 @@ const Page = () => {
                   item.customization?.business?.location ||
                   null,
                 tags: item.customization?.normal?.tags || [],
-              };
+                // Add privacy field to track visibility
+                savedPostPrivacy: privacy
+              } as FeedPost & { savedPostPrivacy: 'private' | 'public' };
             }) || [];
-          
-          setSavedPosts(initialSavedPosts);
-          console.log("Raw Saved Posts API Response:", savedPostsResponse.data?.savedPosts?.slice(0, 2));
-          
-          // Debug first saved post structure
-          if (initialSavedPosts.length > 0) {
-            console.log("First saved post structure:", {
-              _id: initialSavedPosts[0]._id,
-              isLikedBy: initialSavedPosts[0].isLikedBy,
-              engagement: initialSavedPosts[0].engagement,
-              userId: initialSavedPosts[0].userId
-            });
-          }
-        } catch (savedPostsError) {
-          console.error('Error fetching saved posts:', savedPostsError);
-          // Set empty array for saved posts if API fails
-          setSavedPosts([]);
-        }
+        };
         
-        console.log("Posts:", postsResponse.data?.posts);
-        console.log("Reels:", reelsResponse.data?.posts);
-        console.log("Videos:", videosResponse.data?.posts);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        setError('Failed to load profile data');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [user?._id, isAuthenticated]);
-
-  // Refresh profile posts when new posts are created
-  const refreshProfilePosts = useCallback(async () => {
-    if (!isAuthenticated || !user?._id) return;
-    
-    try {
-      // Fetch user posts, reels, and videos (without saved posts to prevent blocking)
-      const [postsResponse, reelsResponse, videosResponse] = await Promise.all([
-        getPostsByUserid(user._id),
-        getUserReels(user._id),
-        getUserVideos(user._id)
-      ]);
-      
-      setPosts(postsResponse.data?.posts || []);
-      setReels(reelsResponse.data?.posts || []);
-      setVideos(videosResponse.data?.posts || []);
-      
-      // Fetch saved posts separately to prevent blocking other data
-      try {
-        const savedPostsResponse = await getSavedPost();
+        const privatePosts = processSavedPosts(privatePostsResponse.data?.savedPosts || [], 'private');
+        const publicPosts = processSavedPosts(publicPostsResponse.data?.savedPosts || [], 'public');
         
-        // Process saved posts EXACTLY like MainContent does
-        const initialSavedPosts: FeedPost[] = savedPostsResponse.data?.savedPosts
-          ?.filter((savedPost: any) => savedPost.postId !== null)
-          ?.map((savedPost: any) => {
-            const item = savedPost.postId; // Raw post data from API (same as MainContent's 'item')
-            
-            // Calculate actual comment count from comments array (EXACT MainContent logic)
-            let actualCommentCount = 0;
-            if (item.comments && Array.isArray(item.comments)) {
-              // Count top-level comments + replies
-              actualCommentCount = item.comments.reduce((total: number, comment: any) => {
-                const repliesCount = Array.isArray(comment.replies) ? comment.replies.length : 0;
-                return total + 1 + repliesCount; // 1 for the comment itself + replies
-              }, 0);
-            }
-            
-            const safeUsername = item.userId?.username || 'Deleted User';
-            const safeProfileImageUrl = item.userId?.profileImageUrl || '/placeholderimg.png';
-
-            // Map to FeedPost structure EXACTLY like MainContent does
-            return {
-              _id: item._id,
-              userId: item.userId, // Add missing userId field
-              username: safeUsername,
-              profileImageUrl: safeProfileImageUrl,
-              description: item.description,
-              caption: item.caption,
-              contentType: item.contentType,
-              postType: item.postType,
-              createdAt: item.createdAt,
-              media: item.media as any[],
-              isLikedBy: item.isLikedBy,
-              likedBy: item.likedBy,
-              customization: item.customization,
-              engagement: {
-                ...(item.engagement || {}),
-                comments: actualCommentCount, // Use calculated count
-                impressions: item.engagement?.impressions || 0,
-                likes: item.engagement?.likes || 0,
-                reach: item.engagement?.reach || 0,
-                saves: item.engagement?.saves || 0,
-                shares: item.engagement?.shares || 0,
-                views: item.engagement?.views || 0,
-              },
-              location:
-                item.customization?.normal?.location ||
-                item.customization?.service?.location ||
-                item.customization?.product?.location ||
-                item.customization?.business?.location ||
-                null,
-              tags: item.customization?.normal?.tags || [],
-            };
-          }) || [];
+        // Combine both private and public posts and sort by creation date
+        const allSavedPosts = [...privatePosts, ...publicPosts].sort((a, b) => 
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
         
-        setSavedPosts(initialSavedPosts);
+        setSavedPosts(allSavedPosts);
       } catch (savedPostsError) {
         console.error('Error refreshing saved posts:', savedPostsError);
         // Keep existing saved posts if refresh fails

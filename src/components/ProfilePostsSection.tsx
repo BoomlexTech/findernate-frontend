@@ -1,9 +1,9 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { Grid3X3, Play, Video, Heart, MessageCircle, Bookmark, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Grid3X3, Play, Video, Heart, MessageCircle, Bookmark, ChevronLeft, ChevronRight, Eye, EyeOff } from 'lucide-react';
 import { FeedPost } from '@/types';
 import Image from 'next/image';
-import { likePost, unlikePost } from '@/api/post';
+import { likePost, unlikePost, toggleSavedPostPrivacy } from '@/api/post';
 import { useAuthGuard } from '@/hooks/useAuthGuard';
 import { AxiosError } from 'axios';
 
@@ -34,6 +34,7 @@ const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
   const [postLikes, setPostLikes] = useState<{[key: string]: {isLiked: boolean, count: number}}>({});
   const [hoveredVideo, setHoveredVideo] = useState<string | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState<{[key: string]: number}>({});
+  const [privacyToggles, setPrivacyToggles] = useState<{[key: string]: 'private' | 'public'}>({});
 
   // Handle video playback based on hover state
   useEffect(() => {
@@ -57,19 +58,13 @@ const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
     }
   }, [hoveredVideo, activeTab, currentImageIndex]);
 
-  // Show tabs based on user type - only show saved tab for current user
-  const tabs = isOtherUser 
-    ? [
-        { id: 'posts', label: 'Posts', icon: Grid3X3, count: posts.length },
-        { id: 'reels', label: 'Reels', icon: Play, count: reels.length },
-        { id: 'videos', label: 'Videos', icon: Video, count: videos.length }
-      ]
-    : [
-        { id: 'posts', label: 'Posts', icon: Grid3X3, count: posts.length },
-        { id: 'reels', label: 'Reels', icon: Play, count: reels.length },
-        { id: 'videos', label: 'Videos', icon: Video, count: videos.length },
-        { id: 'saved', label: 'Saved', icon: Bookmark, count: savedPosts.length }
-      ];
+  // Show tabs for all users - saved tab shows public saved posts for other users
+  const tabs = [
+    { id: 'posts', label: 'Posts', icon: Grid3X3, count: posts.length },
+    { id: 'reels', label: 'Reels', icon: Play, count: reels.length },
+    { id: 'videos', label: 'Videos', icon: Video, count: videos.length },
+    { id: 'saved', label: 'Saved', icon: Bookmark, count: savedPosts.length }
+  ];
 
   const getCurrentPosts = () => {
     switch (activeTab) {
@@ -161,6 +156,37 @@ const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
     }));
   };
 
+  const handlePrivacyToggle = async (post: FeedPost, e: React.MouseEvent) => {
+    e.stopPropagation();
+    requireAuth(async () => {
+      const currentPrivacy = (post as any).savedPostPrivacy || 'private';
+      const newPrivacy = currentPrivacy === 'private' ? 'public' : 'private';
+      
+      // Optimistic update
+      setPrivacyToggles(prev => ({
+        ...prev,
+        [post._id]: newPrivacy
+      }));
+
+      try {
+        await toggleSavedPostPrivacy(post._id, newPrivacy);
+        // Update the post's privacy in the saved posts array
+        (post as any).savedPostPrivacy = newPrivacy;
+      } catch (error) {
+        console.error('Error toggling saved post privacy:', error);
+        // Revert on error
+        setPrivacyToggles(prev => ({
+          ...prev,
+          [post._id]: currentPrivacy
+        }));
+      }
+    });
+  };
+
+  const getPostPrivacy = (post: FeedPost): 'private' | 'public' => {
+    return privacyToggles[post._id] || (post as any).savedPostPrivacy || 'private';
+  };
+
   return (
     <div className="w-full bg-white rounded-xl shadow-sm px-4 py-6">
       {/* Tabs Header */}
@@ -217,7 +243,7 @@ const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
               {activeTab === 'posts' && (isOtherUser ? "No posts shared yet" : "Share your first post to get started")}
               {activeTab === 'reels' && (isOtherUser ? "No reels shared yet" : "Create your first reel")}
               {activeTab === 'videos' && (isOtherUser ? "No videos shared yet" : "Upload your first video")}
-              {activeTab === 'saved' && "No saved posts yet"}
+              {activeTab === 'saved' && (isOtherUser ? "No public saved posts yet" : "No saved posts yet")}
             </p>
           </div>
         ) : (
@@ -531,6 +557,26 @@ const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
                           <MessageCircle className="w-5 h-5" />
                           <span className="text-sm font-medium">{post.engagement.comments || 0}</span>
                         </button>
+
+                        {/* Privacy Toggle Button - only for saved posts in own profile */}
+                        {activeTab === 'saved' && !isOtherUser && (
+                          <button 
+                            onClick={(e) => handlePrivacyToggle(post, e)}
+                            className={`flex items-center space-x-1 p-1 rounded-lg transition-colors ${
+                              getPostPrivacy(post) === 'public'
+                                ? 'text-green-600 hover:text-green-700'
+                                : 'text-gray-600 hover:text-gray-700'
+                            }`}
+                            title={`Currently ${getPostPrivacy(post)} - click to toggle`}
+                          >
+                            {getPostPrivacy(post) === 'public' ? (
+                              <Eye className="w-5 h-5" />
+                            ) : (
+                              <EyeOff className="w-5 h-5" />
+                            )}
+                            <span className="text-xs font-medium capitalize">{getPostPrivacy(post)}</span>
+                          </button>
+                        )}
                       </div>
 
                       {/* Caption Preview */}
