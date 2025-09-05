@@ -12,9 +12,10 @@ interface UseMessageManagementProps {
   messageRequests?: Chat[];
   viewedRequests?: Set<string>;
   markRequestAsViewed?: (chatId: string) => void;
+  refreshChatsWithAccurateUnreadCounts?: () => Promise<void>;
 }
 
-export const useMessageManagement = ({ selectedChat, user, setChats, messageRequests, viewedRequests, markRequestAsViewed }: UseMessageManagementProps) => {
+export const useMessageManagement = ({ selectedChat, user, setChats, messageRequests, viewedRequests, markRequestAsViewed, refreshChatsWithAccurateUnreadCounts }: UseMessageManagementProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   
   // Debug messages state changes
@@ -183,12 +184,21 @@ export const useMessageManagement = ({ selectedChat, user, setChats, messageRequ
         socketManager.joinChat(selectedChat);
         
         // Mark messages as read (skip for request chats as they'll handle this after acceptance)
-        if (!isRequestChatFromState && messages.length > 0) {
-          await messageAPI.markMessagesRead(selectedChat);
-          // Refresh unread counts after marking messages as read
-          refreshUnreadCounts();
+        if (!isRequestChatFromState) {
+          try {
+            await messageAPI.markAllMessagesRead(selectedChat);
+            // Refresh unread counts after marking messages as read
+            refreshUnreadCounts();
+            // Refresh chats with accurate unread counts from server
+            if (refreshChatsWithAccurateUnreadCounts) {
+              setTimeout(() => refreshChatsWithAccurateUnreadCounts(), 1000);
+            }
+          } catch (error) {
+            console.error('Failed to mark messages as read:', error);
+          }
         }
         
+        // Always update local chat unread count to 0 when opening a chat
         setChats(prev => prev.map(chat => 
           chat._id === selectedChat 
             ? { ...chat, unreadCount: 0 }

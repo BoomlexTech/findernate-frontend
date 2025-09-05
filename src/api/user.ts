@@ -1,6 +1,13 @@
 import axios from "./base";
 import { followEvents } from "@/utils/followEvents";
 
+interface UsernameSuggestionsResponse {
+    suggestions: string[];
+    isAvailable: boolean;
+    originalUsername: string;
+    message: string;
+}
+
 export const getUserProfile = async () => {
     const response = await axios.get('/users/profile')
 
@@ -132,6 +139,13 @@ export const getSuggestedUsers = async () => {
     const response = await axios.get('/suggestions/suggested-for-you');
     // Return the suggestions array, not the whole data object
     return response.data.data?.suggestions || [];
+}
+
+export const getUsernameSuggestions = async (username: string): Promise<UsernameSuggestionsResponse> => {
+    const response = await axios.get(`/users/username-suggestions`, {
+        params: { username }
+    });
+    return response.data.data;
 }
 
 export const getTrendingBusinessOwners = async () => {

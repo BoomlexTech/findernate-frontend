@@ -4,6 +4,7 @@ import { useUserStore } from '@/store/useUserStore';
 import { messageAPI, Chat, Message } from '@/api/message';
 import socketManager from '@/utils/socket';
 import { requestChatCache } from '@/utils/requestChatCache';
+import { refreshUnreadCounts } from '@/hooks/useUnreadCounts';
 
 interface UseSocketProps {
   selectedChat: string | null;
@@ -135,6 +136,14 @@ export const useSocket = ({
         setChats(prev => {
           const updatedChats = prev.map(chat => {
             if (chat._id === data.chatId) {
+              const newUnreadCount = data.chatId !== selectedChatRef.current ? (chat.unreadCount || 0) + 1 : 0;
+              console.log(`Socket: Updating unread count for chat ${data.chatId}:`, {
+                wasSelected: data.chatId === selectedChatRef.current,
+                selectedChat: selectedChatRef.current,
+                oldCount: chat.unreadCount,
+                newCount: newUnreadCount
+              });
+              
               return {
                 ...chat,
                 lastMessage: {
@@ -143,7 +152,7 @@ export const useSocket = ({
                   timestamp: data.message.timestamp
                 },
                 lastMessageAt: data.message.timestamp,
-                unreadCount: data.chatId !== selectedChatRef.current ? (chat.unreadCount || 0) + 1 : 0
+                unreadCount: newUnreadCount
               };
             }
             return chat;
@@ -151,6 +160,9 @@ export const useSocket = ({
 
           return updatedChats.sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime());
         });
+        
+        // Refresh global unread counts after updating chat unread count
+        refreshUnreadCounts();
       } else if (chatInRequests) {
         // Cache the message for request chats so recipients can see the full conversation
         console.log('Caching message for request chat:', data.chatId, data.message.message);
