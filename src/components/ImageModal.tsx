@@ -307,6 +307,25 @@ export default function ImageModal({ isOpen, onClose, post }: ImageModalProps) {
                       loop
                       muted
                       onLoadedMetadata={handleVideoLoad}
+                      onLoadedData={(e) => {
+                        const video = e.currentTarget;
+                        // Auto-enter video element's native fullscreen when video is loaded
+                        setTimeout(() => {
+                          try {
+                            if (video.requestFullscreen) {
+                              video.requestFullscreen();
+                            } else if ((video as any).webkitEnterFullscreen) {
+                              (video as any).webkitEnterFullscreen();
+                            } else if ((video as any).mozRequestFullScreen) {
+                              (video as any).mozRequestFullScreen();
+                            } else if ((video as any).msRequestFullscreen) {
+                              (video as any).msRequestFullscreen();
+                            }
+                          } catch (error) {
+                            console.log('Auto fullscreen failed:', error);
+                          }
+                        }, 1500);
+                      }}
                       className={`max-w-full max-h-full object-contain transition-opacity duration-300 ${
                         videoLoaded ? 'opacity-100' : 'opacity-0'
                       }`}

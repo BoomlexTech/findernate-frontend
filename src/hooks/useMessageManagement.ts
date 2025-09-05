@@ -3,6 +3,7 @@ import { useSearchParams } from 'next/navigation';
 import { messageAPI, Message, Chat } from '@/api/message';
 import socketManager from '@/utils/socket';
 import { requestChatCache } from '@/utils/requestChatCache';
+import { refreshUnreadCounts } from '@/hooks/useUnreadCounts';
 
 interface UseMessageManagementProps {
   selectedChat: string | null;
@@ -184,6 +185,8 @@ export const useMessageManagement = ({ selectedChat, user, setChats, messageRequ
         // Mark messages as read (skip for request chats as they'll handle this after acceptance)
         if (!isRequestChatFromState && messages.length > 0) {
           await messageAPI.markMessagesRead(selectedChat);
+          // Refresh unread counts after marking messages as read
+          refreshUnreadCounts();
         }
         
         setChats(prev => prev.map(chat => 
@@ -309,6 +312,8 @@ export const useMessageManagement = ({ selectedChat, user, setChats, messageRequ
             ? { ...msg, readBy: [...msg.readBy, user._id] }
             : msg
         ));
+        // Refresh unread counts after marking messages as read
+        refreshUnreadCounts();
       } catch (error) {
         console.error('Failed to mark messages as read:', error);
       }
@@ -331,6 +336,8 @@ export const useMessageManagement = ({ selectedChat, user, setChats, messageRequ
           ? { ...msg, readBy: [...msg.readBy, user._id] }
           : msg
       ));
+      // Refresh unread counts after marking message as read
+      refreshUnreadCounts();
     } catch (error) {
       console.error('Failed to mark message as read:', error);
     }
