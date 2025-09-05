@@ -1,6 +1,6 @@
 'use client'
 import React, { useEffect, useState } from 'react';
-import { Eye, EyeOff, Check, RefreshCw, ChevronDown, User } from 'lucide-react';
+import { Eye, EyeOff, Check, RefreshCw, ChevronDown, User, Calendar, Users } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { countryCodes } from '@/constants/uiItems';
 import { signUp } from '@/api/auth';
@@ -18,12 +18,16 @@ export default function SignupComponent() {
     phoneNumber: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    dateOfBirth: '',
+    gender: ''
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [usernameAvailable, setUsernameAvailable] = useState<boolean>(false);
   const [showCountryDropdown, setShowCountryDropdown] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [currentDate, setCurrentDate] = useState(new Date());
   const [error, setError] = useState('');
   const [emailError, setEmailError] = useState('');
   const router = useRouter();
@@ -54,9 +58,9 @@ export default function SignupComponent() {
     return true;
   };
 
-  const handleInputChange = (e:React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e:React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    // Special handling for phone number: allow only digits
+    // Special handling for phone number: allow only digits and preserve country code
     if (name === 'phoneNumber') {
       const digitsOnly = value.replace(/[^0-9]/g, '');
       setFormData(prev => ({
@@ -81,6 +85,39 @@ export default function SignupComponent() {
     if (name === 'email') validateEmail(value);
   };
 
+  // Handle phone number input with suggestions (preserve country code)
+  const handlePhoneNumberInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { value } = e.target;
+    // Remove any non-digit characters
+    const digitsOnly = value.replace(/[^0-9]/g, '');
+    
+    // If the input starts with a country code (e.g., +91), extract it
+    if (value.startsWith('+')) {
+      const countryCodeMatch = value.match(/^\+(\d+)/);
+      if (countryCodeMatch) {
+        const countryCode = '+' + countryCodeMatch[1];
+        const phoneNumber = digitsOnly.substring(countryCodeMatch[1].length);
+        
+        // Find and set the matching country code
+        const matchingCountry = countryCodes.find(c => c.code === countryCode);
+        if (matchingCountry) {
+          setFormData(prev => ({
+            ...prev,
+            countryCode: countryCode,
+            phoneNumber: phoneNumber
+          }));
+          return;
+        }
+      }
+    }
+    
+    // Regular phone number input (just digits)
+    setFormData(prev => ({
+      ...prev,
+      phoneNumber: digitsOnly
+    }));
+  };
+
   const checkUsernameAvailability = () => {
     // Simulate username check
     setUsernameAvailable(true);
@@ -89,7 +126,55 @@ export default function SignupComponent() {
   const handleSigninClick = () => {
     router.push('/signin')
   }
-    useEffect(() => {
+
+  const handleDateSelect = (date: Date) => {
+    // Fix timezone issue by creating date in local timezone
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const day = date.getDate();
+    
+    // Create date string in YYYY-MM-DD format using local timezone
+    const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    
+    setFormData(prev => ({ ...prev, dateOfBirth: dateString }));
+    setShowDatePicker(false);
+  };
+
+  const getCalendarDays = () => {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const startDate = new Date(firstDay);
+    startDate.setDate(startDate.getDate() - firstDay.getDay());
+    
+    const days: Date[] = [];
+    for (let i = 0; i < 42; i++) {
+      const date = new Date(startDate);
+      date.setDate(startDate.getDate() + i);
+      days.push(date);
+    }
+    return days;
+  };
+
+  const isSelectedDate = (date: Date) => {
+    if (!formData.dateOfBirth) return false;
+    
+    // Create date string from the current date in local timezone
+    const currentDateString = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    
+    return currentDateString === formData.dateOfBirth;
+  };
+
+  const isToday = (date: Date) => {
+    const today = new Date();
+    return date.toDateString() === today.toDateString();
+  };
+
+  const isCurrentMonth = (date: Date) => {
+    return date.getMonth() === currentDate.getMonth() && date.getFullYear() === currentDate.getFullYear();
+  };
+
+  useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
       window.location.href = '/';
@@ -101,7 +186,17 @@ export default function SignupComponent() {
     if (!validateEmail(formData.email)) return;
         setError('');
     try {
-      const response = await signUp(formData);
+      const signupData = {
+        fullName: formData.fullName,
+        username: formData.username,
+        email: formData.email,
+        password: formData.password,
+        confirmPassword: formData.confirmPassword,
+        phoneNumber: formData.countryCode + formData.phoneNumber,
+        dateOfBirth: formData.dateOfBirth,
+        gender: formData.gender
+      };
+      const response = await signUp(signupData);
       console.log(response);
       setUser(response.data.user);
       setToken(response.data.accessToken);
@@ -119,7 +214,10 @@ export default function SignupComponent() {
   return (
     <>
     
-    <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-orange-50 flex items-center justify-center p-4" onClick={() => setShowCountryDropdown(false)}>
+    <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-orange-50 flex items-center justify-center p-4" onClick={() => {
+      setShowCountryDropdown(false);
+      setShowDatePicker(false);
+    }}>
       <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
         {/* Logo and Header */}
         <div className="text-center mb-8">
@@ -203,18 +301,18 @@ export default function SignupComponent() {
                   <ChevronDown className="w-3 h-3" />
                 </button>
               </div>
-              <Input
-                type="tel"
-                name="phoneNumber"
-                placeholder="9876543210"
-                value={formData.phoneNumber}
-                onChange={handleInputChange}
-                inputClassName='pl-25'
-                pattern="[0-9]*"
-                inputMode="numeric"
-                maxLength={15}
-                required
-              />
+                             <Input
+                 type="tel"
+                 name="phoneNumber"
+                 placeholder="9876543210"
+                 value={formData.phoneNumber}
+                 onChange={handlePhoneNumberInput}
+                 inputClassName='pl-25'
+                 pattern="[0-9]*"
+                 inputMode="numeric"
+                 maxLength={15}
+                 required
+               />
               
               {/* Country Code Dropdown */}
               {showCountryDropdown && (
@@ -255,6 +353,205 @@ export default function SignupComponent() {
                 required
               />
             </div>
+
+                                           {/* Date of Birth */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Date of Birth
+                        </label>
+                        <div className="relative">
+                          {/* Custom text input that triggers the date picker */}
+                          <Input
+                            type="text"
+                            name="dateOfBirthDisplay"
+                            placeholder="DOB"
+                            value={formData.dateOfBirth ? new Date(formData.dateOfBirth).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric'
+                            }) : ''}
+                            onChange={() => {}} // Read-only
+                            leftIcon={<Calendar className="w-5 h-5" />}
+                            onClick={() => setShowDatePicker(!showDatePicker)}
+                            readOnly
+                            required
+                          />
+                          
+                                                     {/* Custom Date Picker Dropdown */}
+                           {showDatePicker && (
+                             <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-2xl z-20 p-6 min-w-[320px]">
+                               <div className="flex items-center justify-between mb-4">
+                                 <h3 className="text-base font-semibold text-gray-800">Select Date of Birth</h3>
+                                 <button
+                                   type="button"
+                                   onClick={() => setShowDatePicker(false)}
+                                   className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+                                 >
+                                   <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                   </svg>
+                                 </button>
+                               </div>
+                               
+                               {/* Month/Year Navigation */}
+                               <div className="flex items-center justify-between mb-4">
+                                 <button
+                                   type="button"
+                                   onClick={() => {
+                                     const newDate = new Date(currentDate);
+                                     newDate.setMonth(newDate.getMonth() - 1);
+                                     setCurrentDate(newDate);
+                                   }}
+                                   className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                                 >
+                                   <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                                   </svg>
+                                 </button>
+                                 
+                                 <div className="flex items-center space-x-2">
+                                   {/* Month Selection */}
+                                   <select
+                                     value={currentDate.getMonth()}
+                                     onChange={(e) => {
+                                       const newDate = new Date(currentDate);
+                                       newDate.setMonth(parseInt(e.target.value));
+                                       setCurrentDate(newDate);
+                                     }}
+                                     className="text-lg font-semibold text-gray-800 bg-transparent border-none focus:ring-0 cursor-pointer"
+                                   >
+                                     {[
+                                       'January', 'February', 'March', 'April', 'May', 'June',
+                                       'July', 'August', 'September', 'October', 'November', 'December'
+                                     ].map((month, index) => (
+                                       <option key={month} value={index} className="text-gray-800">
+                                         {month}
+                                       </option>
+                                     ))}
+                                   </select>
+                                   
+                                   {/* Year Selection */}
+                                   <select
+                                     value={currentDate.getFullYear()}
+                                     onChange={(e) => {
+                                       const newDate = new Date(currentDate);
+                                       newDate.setFullYear(parseInt(e.target.value));
+                                       setCurrentDate(newDate);
+                                     }}
+                                     className="text-lg font-semibold text-gray-800 bg-transparent border-none focus:ring-0 cursor-pointer"
+                                   >
+                                     {Array.from({ length: 101 }, (_, i) => {
+                                       const year = new Date().getFullYear() - 100 + i;
+                                       return (
+                                         <option key={year} value={year} className="text-gray-800">
+                                           {year}
+                                         </option>
+                                       );
+                                     })}
+                                   </select>
+                                 </div>
+                                 
+                                 <button
+                                   type="button"
+                                   onClick={() => {
+                                     const newDate = new Date(currentDate);
+                                     newDate.setMonth(newDate.getMonth() + 1);
+                                     setCurrentDate(newDate);
+                                   }}
+                                   className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                                 >
+                                   <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                   </svg>
+                                 </button>
+                               </div>
+                              
+                                                             {/* Calendar Grid */}
+                               <div className="grid grid-cols-7 gap-1 mb-3">
+                                 {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
+                                   <div key={day} className="text-xs text-center text-gray-500 py-1 font-medium">
+                                     {day}
+                                   </div>
+                                 ))}
+                                 {getCalendarDays().map((day, index) => (
+                                   <button
+                                     key={index}
+                                     type="button"
+                                     onClick={() => handleDateSelect(day)}
+                                     disabled={day < new Date('1900-01-01') || day > new Date()}
+                                     className={`
+                                       p-2 text-xs rounded transition-all duration-200 font-medium
+                                       ${isSelectedDate(day) 
+                                         ? 'bg-yellow-500 text-white shadow-md' 
+                                         : isToday(day) 
+                                         ? 'bg-yellow-100 text-yellow-800 border-2 border-yellow-400' 
+                                         : isCurrentMonth(day) 
+                                         ? 'text-gray-900 hover:bg-gray-100' 
+                                         : 'text-gray-400 hover:bg-gray-50'
+                                       }
+                                       ${day < new Date('1900-01-01') || day > new Date() 
+                                         ? 'opacity-30 cursor-not-allowed' 
+                                         : 'cursor-pointer'
+                                       }
+                                     `}
+                                   >
+                                     {day.getDate()}
+                                   </button>
+                                 ))}
+                               </div>
+                              
+                                                             {/* Action Buttons */}
+                               <div className="flex justify-between pt-3 border-t border-gray-100">
+                                 <button
+                                   type="button"
+                                   onClick={() => {
+                                     setFormData(prev => ({ ...prev, dateOfBirth: '' }));
+                                     setShowDatePicker(false);
+                                   }}
+                                   className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded-lg transition-colors"
+                                 >
+                                   Clear
+                                 </button>
+                                 <button
+                                   type="button"
+                                   onClick={() => {
+                                     const today = new Date();
+                                     handleDateSelect(today);
+                                   }}
+                                   className="px-4 py-2 text-sm bg-yellow-500 text-white hover:bg-yellow-600 rounded-lg transition-colors font-medium"
+                                 >
+                                   Today
+                                 </button>
+                               </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Gender */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Gender
+                        </label>
+                        <div className="relative">
+                          <select
+                            name="gender"
+                            value={formData.gender}
+                            onChange={handleInputChange}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent pl-12 bg-white text-black"
+                            required
+                          >
+                            <option value="" className="text-black">Select gender</option>
+                            <option value="male" className="text-black">Male</option>
+                            <option value="female" className="text-black">Female</option>
+                            <option value="other" className="text-black">Other</option>
+                            <option value="prefer-not-to-say" className="text-black">Prefer not to say</option>
+                          </select>
+                          <div className="absolute left-3 top-3 text-gray-400">
+                            <Users className="w-5 h-5" />
+                          </div>
+                        </div>
+                      </div>
 
           {/* Password */}
           <div>
