@@ -61,7 +61,7 @@ export const LeftPanel: React.FC<LeftPanelProps> = ({
         <div className="flex gap-2">
           <button 
             onClick={onNewChat}
-            className="flex-1 bg-button-gradient text-white py-2.5 rounded-lg font-medium shadow hover:bg-yellow-500 transition cursor-pointer"
+            className="flex-1 bg-button-gradient text-white text-shadow py-2.5 rounded-lg font-medium shadow hover:bg-yellow-500 transition cursor-pointer"
           >
             + New Chat
           </button>

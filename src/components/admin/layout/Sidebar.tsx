@@ -18,7 +18,8 @@ import {
   UserCheck,
   FileSearch,
   UsersIcon,
-  LogOut
+  LogOut,
+  MessageSquare
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -64,6 +65,11 @@ const menuItems = [
     title: 'Activity Log',
     href: '/admin/activity',
     icon: Activity,
+  },
+  {
+    title: 'User Feedback',
+    href: '/admin/feedback',
+    icon: MessageSquare,
   },
   // {
   //   title: 'Admin Management',
@@ -137,11 +143,15 @@ export default function Sidebar() {
       <div className="h-full flex flex-col">
         {/* Logo */}
         <div className="flex items-center justify-center h-16 border-b border-gray-200 flex-shrink-0">
-          <img 
-            src="/Findernate_Logo.png" 
-            alt="Findernate Logo" 
-            className="h-8 w-auto"
-          />
+          <div className="flex items-center">
+            <img 
+              src="/Findernate.ico" 
+              alt="Findernate Logo" 
+              className="h-10 w-10"
+              style={{ color: 'inherit' }}
+            />
+            <p className='text-[#ffd65c] text-xl font-bold ml-2'>FiNDERNATE</p>
+          </div>
         </div>
 
         {/* User Profile - Sticky */}

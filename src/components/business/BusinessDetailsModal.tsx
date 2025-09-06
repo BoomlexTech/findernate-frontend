@@ -652,7 +652,7 @@ const BusinessDetailsModal: React.FC<Props> = ({
                       type="button"
                       onClick={addTag}
                       disabled={!tagInput.trim()}
-                      className="px-4 py-2 text-sm font-medium text-white bg-button-gradient rounded-lg hover:bg-yellow-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all duration-200"
+                      className="px-4 py-2 text-sm font-medium text-white text-shadow bg-button-gradient rounded-lg hover:bg-yellow-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all duration-200"
                     >
                       Add
                     </button>
@@ -851,7 +851,7 @@ const BusinessDetailsModal: React.FC<Props> = ({
                 size="lg" 
                 onClick={handleSubmit} 
                 disabled={loading || fetchingData || !form.businessName?.trim()}
-                className="w-full bg-button-gradient text-white py-4 rounded-lg font-semibold text-lg transition-all duration-200 transform hover:scale-[1.02] focus:ring-4 focus:ring-blue-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                className="w-full bg-button-gradient text-white text-shadow py-4 rounded-lg font-semibold text-lg transition-all duration-200 transform hover:scale-[1.02] focus:ring-4 focus:ring-blue-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
               >
                 {getSubmitButtonText()}
               </Button>

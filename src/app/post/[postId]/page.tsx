@@ -196,7 +196,7 @@ const PostPage = () => {
     return (
       <div className="bg-gray-50 min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-yellow-500 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#ffd65c] mx-auto mb-4"></div>
           <p>Loading post...</p>
         </div>
       </div>
@@ -206,11 +206,11 @@ const PostPage = () => {
   if (error || !post) {
     return (
       <div className="bg-gray-50 min-h-screen flex items-center justify-center">
-        <div className="text-center text-yellow-500">
+        <div className="text-center text-[#ffd65c]">
           <p className="text-lg font-medium">{error || 'Post not found'}</p>
           <button 
             onClick={() => window.history.back()}
-            className="mt-4 px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
+            className="mt-4 px-4 py-2 bg-[#ffd65c] text-white rounded-md hover:bg-[#cc9b2e]"
           >
             Go Back
           </button>

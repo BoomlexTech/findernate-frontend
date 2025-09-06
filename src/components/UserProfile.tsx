@@ -854,7 +854,7 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
                   </>
                 ) : (
                   <>
-                    <div className={`w-full h-full rounded-full bg-button-gradient flex items-center justify-center text-white font-bold text-lg sm:text-2xl ${
+                    <div className={`w-full h-full rounded-full bg-button-gradient flex items-center justify-center text-white text-shadow font-bold text-lg sm:text-2xl ${
                       !isCurrentUser && userStories.length > 0 
                         ? 'border-0' 
                         : 'border-2 sm:border-4 border-white'

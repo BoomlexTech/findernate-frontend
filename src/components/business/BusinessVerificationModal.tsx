@@ -100,7 +100,7 @@ const BusinessVerificationModal: React.FC<BusinessVerificationModalProps> = ({ i
 
         <button
           onClick={handleUpload}
-          className="mt-5 w-full py-2.5 rounded-lg bg-button-gradient text-white font-medium"
+          className="mt-5 w-full py-2.5 rounded-lg bg-button-gradient text-white text-shadow font-medium"
         >
           Upload
         </button>

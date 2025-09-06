@@ -285,7 +285,7 @@ export default function StoriesBar({ onCreateStory }: StoriesBarProps) {
                     />
                   ) : (
                     <div className="w-full h-full bg-button-gradient rounded-full flex items-center justify-center">
-                      <span className="text-white text-sm font-bold">
+                      <span className="text-white text-shadow text-sm font-bold">
                         {initials}
                       </span>
                     </div>

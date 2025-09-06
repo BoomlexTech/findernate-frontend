@@ -829,7 +829,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
               <div>
                 <div className='flex gap-2 items-center'>
                   <h3 
-                    className="font-semibold text-gray-900 cursor-pointer hover:text-yellow-600 transition-colors"
+                    className="font-semibold text-gray-900 cursor-pointer hover:text-[#cc9b2e] transition-colors"
                     onClick={(e) => {
                       e.stopPropagation();
                       requireAuth(() => {
@@ -843,7 +843,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
                 </div>
                 {shouldShowLocation && (
                   <div className="flex items-center gap-1 text-gray-700">
-                    <MapPin className="w-3 h-3 text-yellow-500" />
+                    <MapPin className="w-3 h-3 text-[#ffd65c]" />
                     <p className="text-xs">{normalizedLocationName}</p>
                   </div>
                 )}
@@ -886,7 +886,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
                         </>
                       ) : isPostSaved ? (
                         <>
-                          <BookmarkCheck className="w-4 h-4 text-yellow-600" />
+                          <BookmarkCheck className="w-4 h-4 text-[#cc9b2e]" />
                           {isSaving ? 'Removing...' : 'Unsave'}
                         </>
                       ) : (
@@ -957,11 +957,11 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
             <form
               onSubmit={handleEditSubmit}
               onClick={(e) => e.stopPropagation()}
-              className="md:hidden mt-2 bg-yellow-50 border border-yellow-200 rounded-xl p-4 text-black edit-panel shadow-sm"
+              className="md:hidden mt-2 bg-[#fefdf5] border border-[#ffe08a] rounded-xl p-4 text-black edit-panel shadow-sm"
             >
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <Pencil className="w-4 h-4 text-yellow-700" />
+                  <Pencil className="w-4 h-4 text-[#b8871f]" />
                   <span className="font-semibold">Edit Post</span>
                 </div>
                 <button
@@ -982,7 +982,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
                     value={editForm.caption || ''}
                     onChange={(e) => setEditForm(prev => ({ ...prev, caption: e.target.value }))}
                     placeholder="Write a catchy caption"
-                    className="w-full border border-yellow-300 rounded-md p-2 text-sm text-black placeholder-gray-600 bg-yellow-50 focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none"
+                    className="w-full border border-yellow-300 rounded-md p-2 text-sm text-black placeholder-gray-600 bg-[#fefdf5] focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none"
                   />
                 </div>
 
@@ -992,7 +992,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
                     value={editForm.description || ''}
                     onChange={(e) => setEditForm(prev => ({ ...prev, description: e.target.value }))}
                     placeholder="Add more details about your post"
-                    className="w-full border border-yellow-300 rounded-md p-2 text-sm text-black placeholder-gray-600 bg-yellow-50 focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none"
+                    className="w-full border border-yellow-300 rounded-md p-2 text-sm text-black placeholder-gray-600 bg-[#fefdf5] focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none"
                     rows={3}
                   />
                 </div>
@@ -1005,7 +1005,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
                       value={editForm.mood || ''}
                       onChange={(e) => setEditForm(prev => ({ ...prev, mood: e.target.value }))}
                       placeholder="e.g., excited, chill"
-                      className="w-full border border-yellow-300 rounded-md p-2 text-sm text-black placeholder-gray-600 bg-yellow-50 focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none"
+                      className="w-full border border-yellow-300 rounded-md p-2 text-sm text-black placeholder-gray-600 bg-[#fefdf5] focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none"
                     />
                   </div>
                   <div>
@@ -1015,7 +1015,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
                       value={editForm.activity || ''}
                       onChange={(e) => setEditForm(prev => ({ ...prev, activity: e.target.value }))}
                       placeholder="e.g., testing, coding"
-                      className="w-full border border-yellow-300 rounded-md p-2 text-sm text-black placeholder-gray-600 bg-yellow-50 focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none"
+                      className="w-full border border-yellow-300 rounded-md p-2 text-sm text-black placeholder-gray-600 bg-[#fefdf5] focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none"
                     />
                   </div>
                 </div>
@@ -1027,7 +1027,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
                     value={(editForm.tags || []).join(', ')}
                     onChange={(e) => setEditForm(prev => ({ ...prev, tags: e.target.value.split(',').map(t => t.trim()).filter(Boolean) }))}
                     placeholder="Comma separated (e.g., updated, edited)"
-                    className="w-full border border-yellow-300 rounded-md p-2 text-sm text-black placeholder-gray-600 bg-yellow-50 focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none"
+                    className="w-full border border-yellow-300 rounded-md p-2 text-sm text-black placeholder-gray-600 bg-[#fefdf5] focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none"
                   />
                 </div>
               </div>
@@ -1043,7 +1043,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
                 <button
                   type="submit"
                   disabled={isSavingEdit}
-                  className={`px-4 py-2 rounded-md text-sm text-white ${isSavingEdit ? 'bg-gray-400' : 'bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600'} shadow`}
+                  className={`px-4 py-2 rounded-md text-sm text-white text-shadow ${isSavingEdit ? 'bg-gray-400' : 'bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600'} shadow`}
                 >
                   {isSavingEdit ? 'Saving...' : 'Save Changes'}
                 </button>
@@ -1106,7 +1106,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
                          setShowImageModal(true);
                        }}
                      >
-                       {/* Always render source if we have a valid URL */}
+                       {/* Always render source if we have a valid video URL */}
                        {safeUrl && <source src={safeUrl} type="video/mp4" />}
                        Your browser does not support the video tag.
                      </video>
@@ -1238,7 +1238,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
                 <div>
                     <div className='flex gap-2'>
                   <h3 
-                    className="font-semibold text-gray-900 cursor-pointer hover:text-yellow-600 transition-colors"
+                    className="font-semibold text-gray-900 cursor-pointer hover:text-[#cc9b2e] transition-colors"
                     onClick={(e) => {
                       e.stopPropagation();
                       requireAuth(() => {
@@ -1252,7 +1252,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
                     </div>
                 {shouldShowLocation && (
                 <div className="flex items-center gap-1 text-gray-700">
-                  <MapPin className="w-3 h-3 text-yellow-500" />
+                  <MapPin className="w-3 h-3 text-[#ffd65c]" />
                   <p className="text-xs">{normalizedLocationName}</p>
                 </div>
                   )}
@@ -1291,7 +1291,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
                           </>
                         ) : isPostSaved ? (
                           <>
-                            <BookmarkCheck className="w-4 h-4 text-yellow-600" />
+                            <BookmarkCheck className="w-4 h-4 text-[#cc9b2e]" />
                             {isSaving ? 'Removing...' : 'Unsave'}
                           </>
                         ) : (
@@ -1363,11 +1363,11 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
               <form
                 onSubmit={handleEditSubmit}
                 onClick={(e) => e.stopPropagation()}
-                className="mt-2 bg-yellow-50 border border-yellow-200 rounded-xl p-4 text-black edit-panel shadow-sm"
+                className="mt-2 bg-[#fefdf5] border border-[#ffe08a] rounded-xl p-4 text-black edit-panel shadow-sm"
               >
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <Pencil className="w-4 h-4 text-yellow-700" />
+                    <Pencil className="w-4 h-4 text-[#b8871f]" />
                     <span className="font-semibold">Edit Post</span>
                   </div>
                   <button
@@ -1388,7 +1388,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
                       value={editForm.caption || ''}
                       onChange={(e) => setEditForm(prev => ({ ...prev, caption: e.target.value }))}
                       placeholder="Write a catchy caption"
-                      className="w-full border border-yellow-300 rounded-md p-2 text-sm text-black placeholder-gray-600 bg-yellow-50 focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none"
+                      className="w-full border border-yellow-300 rounded-md p-2 text-sm text-black placeholder-gray-600 bg-[#fefdf5] focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none"
                     />
                   </div>
 
@@ -1398,7 +1398,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
                       value={editForm.description || ''}
                       onChange={(e) => setEditForm(prev => ({ ...prev, description: e.target.value }))}
                       placeholder="Add more details about your post"
-                      className="w-full border border-yellow-300 rounded-md p-2 text-sm text-black placeholder-gray-600 bg-yellow-50 focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none"
+                      className="w-full border border-yellow-300 rounded-md p-2 text-sm text-black placeholder-gray-600 bg-[#fefdf5] focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none"
                       rows={3}
                     />
                   </div>
@@ -1411,7 +1411,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
                         value={editForm.mood || ''}
                         onChange={(e) => setEditForm(prev => ({ ...prev, mood: e.target.value }))}
                         placeholder="e.g., excited, chill"
-                        className="w-full border border-yellow-300 rounded-md p-2 text-sm text-black placeholder-gray-600 bg-yellow-50 focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none"
+                        className="w-full border border-yellow-300 rounded-md p-2 text-sm text-black placeholder-gray-600 bg-[#fefdf5] focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none"
                       />
                     </div>
                     <div>
@@ -1421,7 +1421,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
                         value={editForm.activity || ''}
                         onChange={(e) => setEditForm(prev => ({ ...prev, activity: e.target.value }))}
                         placeholder="e.g., testing, coding"
-                        className="w-full border border-yellow-300 rounded-md p-2 text-sm text-black placeholder-gray-600 bg-yellow-50 focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none"
+                        className="w-full border border-yellow-300 rounded-md p-2 text-sm text-black placeholder-gray-600 bg-[#fefdf5] focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none"
                       />
                     </div>
                   </div>
@@ -1433,7 +1433,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
                       value={(editForm.tags || []).join(', ')}
                       onChange={(e) => setEditForm(prev => ({ ...prev, tags: e.target.value.split(',').map(t => t.trim()).filter(Boolean) }))}
                       placeholder="Comma separated (e.g., updated, edited)"
-                      className="w-full border border-yellow-300 rounded-md p-2 text-sm text-black placeholder-gray-600 bg-yellow-50 focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none"
+                      className="w-full border border-yellow-300 rounded-md p-2 text-sm text-black placeholder-gray-600 bg-[#fefdf5] focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none"
                     />
                   </div>
                 </div>
@@ -1449,7 +1449,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
                   <button
                     type="submit"
                     disabled={isSavingEdit}
-                    className={`px-4 py-2 rounded-md text-sm text-white ${isSavingEdit ? 'bg-gray-400' : 'bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600'} shadow`}
+                    className={`px-4 py-2 rounded-md text-sm text-white text-shadow ${isSavingEdit ? 'bg-gray-400' : 'bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600'} shadow`}
                   >
                     {isSavingEdit ? 'Saving...' : 'Save Changes'}
                   </button>
@@ -1469,7 +1469,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
                   <button
                     key={index}
                     onClick={(e) => handleTagClick(typeof tag === 'string' ? tag : String(tag), e)}
-                    className='text-yellow-600 hover:text-yellow-800 hover:underline transition-colors cursor-pointer'
+                    className='text-[#cc9b2e] hover:text-yellow-800 hover:underline transition-colors cursor-pointer'
                   >
                     #{typeof tag === 'string' ? tag : String(tag)}
                   </button>
@@ -1480,7 +1480,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
             {/* Comment Box - Only show for normal/regular posts and not on single post pages */}
             {/* {(!post.contentType || post.contentType === 'normal' || post.contentType === 'regular') && !pathname.includes('/post/') && (
               <div className="px-2 -mb-5 mt-auto">
-                <form onSubmit={handleCommentSubmit} className="flex items-center gap-3 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-full border border-yellow-200 px-4 py-2 shadow-sm hover:shadow-md transition-all duration-200">
+                <form onSubmit={handleCommentSubmit} className="flex items-center gap-3 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-full border border-[#ffe08a] px-4 py-2 shadow-sm hover:shadow-md transition-all duration-200">
                   <div className="flex-1 relative">
                     <input
                       type="text"
@@ -1568,7 +1568,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
                   <button
                     key={index}
                     onClick={(e) => handleTagClick(typeof tag === 'string' ? tag : String(tag), e)}
-                    className='text-yellow-600 hover:text-yellow-800 hover:underline transition-colors cursor-pointer text-sm'
+                    className='text-[#cc9b2e] hover:text-yellow-800 hover:underline transition-colors cursor-pointer text-sm'
                   >
                     #{typeof tag === 'string' ? tag : String(tag)}
                   </button>

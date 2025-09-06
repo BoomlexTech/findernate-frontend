@@ -201,7 +201,7 @@ const UserCard: React.FC<UserCardProps> = ({ user, onFollow }) => {
                   className="w-14 h-14 rounded-full object-cover border-2 border-gray-100"
                 />
               ) : (
-                <div className="w-14 h-14 rounded-full bg-button-gradient flex items-center justify-center text-white font-semibold text-lg border-2 border-gray-100">
+                <div className="w-14 h-14 rounded-full bg-button-gradient flex items-center justify-center text-white text-shadow font-semibold text-lg border-2 border-gray-100">
                   {user.fullName ? getInitials(user.fullName) : 
                    user.username ? getInitials(user.username) : 
                    <User size={24} />}
@@ -245,7 +245,7 @@ const UserCard: React.FC<UserCardProps> = ({ user, onFollow }) => {
                     className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all duration-200 flex items-center gap-1.5 ${
                       isFollowing
                         ? "bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300"
-                        : "bg-button-gradient text-white hover:bg-blue-700"
+                        : "bg-button-gradient text-white text-shadow hover:bg-blue-700"
                     } disabled:opacity-50 disabled:cursor-not-allowed`}
                   >
                     {isLoading ? (

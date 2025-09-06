@@ -178,7 +178,7 @@ const CommentItem = ({ comment, onUpdate, onDelete, onReplyAdded, isReply = fals
             />
           ) : (
             <div className="w-8 h-8 rounded-full bg-button-gradient flex items-center justify-center hover:ring-2 hover:ring-yellow-400 transition-all cursor-pointer">
-              <span className="text-white text-xs font-bold">
+              <span className="text-white text-shadow text-xs font-bold">
                 {getInitials(comment.user?.fullName || comment.user?.username || 'U')}
               </span>
             </div>

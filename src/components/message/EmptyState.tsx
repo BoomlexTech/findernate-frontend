@@ -13,7 +13,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({ onNewChat }) => {
       <p className="text-gray-500 mt-1">Choose a conversation to start messaging</p>
       <button 
         onClick={onNewChat}
-        className="mt-4 bg-button-gradient text-white px-4 py-2 rounded-lg hover:bg-yellow-500 cursor-pointer"
+        className="mt-4 bg-button-gradient text-white text-shadow px-4 py-2 rounded-lg hover:bg-yellow-500 cursor-pointer"
       >
         Start New Chat
       </button>

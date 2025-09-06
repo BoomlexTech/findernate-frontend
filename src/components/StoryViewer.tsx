@@ -406,7 +406,7 @@ export default function StoryViewer({
               />
             ) : (
               <div className="w-8 h-8 rounded-full border-2 border-white hover:border-yellow-400 bg-button-gradient flex items-center justify-center transition-colors">
-                <span className="text-white text-xs font-bold">
+                <span className="text-white text-shadow text-xs font-bold">
                   {getInitials(currentUser.username)}
                 </span>
               </div>

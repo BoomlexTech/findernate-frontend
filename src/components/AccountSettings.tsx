@@ -345,7 +345,7 @@ export default function AccountSettings() {
                 </h3>
                 <button
                   onClick={() => setShowPlanModal(true)}
-                  className="px-4 sm:px-6 py-2 bg-button-gradient text-white rounded-lg hover:bg-orange-600 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base md:w-56 lg:w-56"
+                  className="px-4 sm:px-6 py-2 bg-button-gradient text-white text-shadow rounded-lg hover:bg-orange-600 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base md:w-56 lg:w-56"
                 >
                   <span className="hidden sm:inline">Manage Plan</span>
                   <span className="sm:hidden">Manage</span>

@@ -16,12 +16,14 @@ import {
   Volume2,
   Layers,
 } from "lucide-react";
+import { HelpCenterModal } from "@/components/HelpCenterModal";
 
 const SettingsPage = () => {
   const [muteNotifications, setMuteNotifications] = useState(false);
   const [hideAddress, setHideAddress] = useState(false);
   const [hideNumber, setHideNumber] = useState(false);
- const router = useRouter();
+  const [isHelpCenterOpen, setIsHelpCenterOpen] = useState(false);
+  const router = useRouter();
   return (
     <div className="bg-gray-50 min-h-screen">
       {/* Status Bar */}
@@ -71,7 +73,9 @@ const SettingsPage = () => {
           />
           <SettingItem icon={<User />} title="Account" />
           <SettingItem icon={<Layers />} title="About App" />
-          <SettingItem icon={<HelpCircle />} title="Help Center" />
+          <div onClick={() => setIsHelpCenterOpen(true)} className="cursor-pointer">
+            <SettingItem icon={<HelpCircle />} title="Help Center" />
+          </div>
         </div>
 
         {/* Divider */}
@@ -121,6 +125,12 @@ const SettingsPage = () => {
       <div className="fixed bottom-0 left-0 right-0 bg-black h-1 flex justify-center items-center">
         <div className="w-32 h-1 bg-white rounded-full"></div>
       </div>
+
+      {/* Help Center Modal */}
+      <HelpCenterModal
+        isOpen={isHelpCenterOpen}
+        onClose={() => setIsHelpCenterOpen(false)}
+      />
     </div>
   );
 };

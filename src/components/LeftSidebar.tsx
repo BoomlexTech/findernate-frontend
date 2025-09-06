@@ -10,6 +10,7 @@ import { Plus } from 'lucide-react';
 import { useAuthGuard } from '@/hooks/useAuthGuard';
 import { useMessageCounts } from '@/hooks/useMessageCounts';
 import { useUnreadCounts } from '@/hooks/useUnreadCounts';
+import { callAPI } from './../api/call';
 
 interface leftSidebarProps {
 	togglePost?: () => void;
@@ -49,16 +50,19 @@ export default function LeftSidebar({togglePost, onItemClick}: leftSidebarProps)
 	<div className="h-full flex flex-col">
 	  {/* Logo - Fixed at top */}
 	  <Link href="/">
-	  <div className='sticky top-0 bg-white z-10 border-b p-6 pb-4'>
+	  <div className='sticky top-0 bg-white z-10 border-b pl-3 pr-6 pt-6 pb-4'>
 	  <div className="mb-4">
-		<div className="flex items-center space-x-2 w-[13rem]">
+		<div className="flex items-center w-[13rem]">
 		  <Image
-		  src={'/Findernate_Logo.png'}
+		  src={'/Findernate.ico'}
 		  alt='Company-Logo'
-		  width={220}
-		  height={130}
-		  className="text-xl font-bold text-gray-900 "/>
+		  width={50}
+		  height={50}
+		  className="text-xl font-bold"
+		  style={{ color: 'inherit' }}/>
+		  <p className='text-[#ffd65c] text-3xl font-bold -ml-2'> FiNDERNATE</p>
 		</div>
+		
 	  </div>
 	  </div>
 	  </Link>
@@ -79,7 +83,7 @@ export default function LeftSidebar({togglePost, onItemClick}: leftSidebarProps)
                  }}
 				  className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-all duration-200 ${
 					index===isActive
-					  ? 'bg-yellow-50 text-yellow-600 border border-yellow-400 font-medium'
+					  ? 'bg-[#fefdf5] text-[#cc9b2e] border border-[#e6c045] font-medium'
 					  : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}`}>
 				  {item.label === 'Reels' ? (
 					<item.icon className="w-6 h-6 border-0" />
@@ -109,7 +113,7 @@ export default function LeftSidebar({togglePost, onItemClick}: leftSidebarProps)
 			<Button 
 			onClick={togglePost}
 			variant='custom' 
-			className="flex gap-3 w-full h-[3rem] bg-gradient-to-r from-yellow-400 to-yellow-600 hover:bg-[#DBB42C]/80 text-white font-medium py-3 rounded-xl transition-all duration-600 shadow-sm hover:shadow-md transform hover:scale-105">
+			className="flex gap-3 w-full h-[3rem] bg-[#ffd65c] hover:bg-[#e6c045] text-white text-shadow font-medium py-3 rounded-xl transition-all duration-600 shadow-sm hover:shadow-md transform hover:scale-105">
 			  <Plus size={20}/> Create Post
 			</Button>
 		  </div>
@@ -134,7 +138,7 @@ export default function LeftSidebar({togglePost, onItemClick}: leftSidebarProps)
 				  }}
 					className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-all duration-200
 							  ${index===isActive
-							  ? 'bg-yellow-50 text-yellow-600 border border-yellow-400 font-medium'
+							  ? 'bg-[#fefdf5] text-[#cc9b2e] border border-[#e6c045] font-medium'
 							  : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}`}>
 				  <item.icon className="w-6 h-6" />
 				  <span>{item.label}</span>

@@ -229,7 +229,7 @@ const BusinessProfilePage = () => {
                       className="rounded-full w-full h-full object-cover"
                     />
                   ) : (
-                    <div className="w-full h-full rounded-full bg-button-gradient flex items-center justify-center text-white font-bold text-lg sm:text-2xl">
+                    <div className="w-full h-full rounded-full bg-button-gradient flex items-center justify-center text-white text-shadow font-bold text-lg sm:text-2xl">
                       <Building2 className="w-8 h-8" />
                     </div>
                   )}
