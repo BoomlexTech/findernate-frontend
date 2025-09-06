@@ -82,7 +82,7 @@ export default function CreateAdminPage() {
     e.preventDefault();
     if (validateForm()) {
       // Here you would call the API to create the admin
-      console.log('Creating admin with data:', formData);
+      //console.log('Creating admin with data:', formData);
       // API call would go here
     }
   };

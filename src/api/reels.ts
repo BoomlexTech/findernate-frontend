@@ -7,16 +7,12 @@ export const getReels = async () => {
 
 // Like/Unlike functions for reels
 export const likeReel = async (reelId: string) => {
-    console.log('API: Calling likeReel with reelId:', reelId);
     const response = await axios.post('/posts/like', { postId: reelId }, { timeout: 10000 });
-    console.log('API: likeReel response:', response.data);
     return response.data;
 }
 
 export const unlikeReel = async (reelId: string) => {
-    console.log('API: Calling unlikeReel with reelId:', reelId);
     const response = await axios.post('/posts/unlike', { postId: reelId }, { timeout: 10000 });
-    console.log('API: unlikeReel response:', response.data);
     return response.data;
 }
 

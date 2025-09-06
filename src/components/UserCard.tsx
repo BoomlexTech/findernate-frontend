@@ -37,11 +37,11 @@ const UserCard: React.FC<UserCardProps> = ({ user, onFollow }) => {
       if (isLoading) return;
       
       // Debug check - same as UserProfile
-      console.log('Attempting to follow/unfollow user:', {
-        targetUserId: user._id,
-        currentlyFollowing: isFollowing,
-        token: typeof window !== 'undefined' ? !!localStorage.getItem('token') : false
-      });
+      //console.log('Attempting to follow/unfollow user:', {
+      //  targetUserId: user._id,
+      //  currentlyFollowing: isFollowing,
+      //  token: typeof window !== 'undefined' ? !!localStorage.getItem('token') : false
+      // });
       
       setIsLoading(true);
       try {
@@ -63,21 +63,21 @@ const UserCard: React.FC<UserCardProps> = ({ user, onFollow }) => {
         const responseMessage = error.response?.data?.message || '';
         const status = error.response?.status;
         
-        console.log('Error details:', {
-          status,
-          responseMessage,
-          errorMessage,
-          currentFollowState: isFollowing
-        });
+        //console.log('Error details:', {
+        //  status,
+        //  responseMessage,
+        //  errorMessage,
+        //  currentFollowState: isFollowing
+        // });
         
         // Handle specific error cases - these are actually success cases
         if (status === 400) {
           if (responseMessage.includes('Already following') || errorMessage.includes('Already following')) {
-            console.log('Already following - user should see Unfollow button');
+            //console.log('Already following - user should see Unfollow button');
             setIsFollowing(true); // User is following, show Unfollow
             onFollow?.(user._id);
           } else if (responseMessage.includes('Not following') || errorMessage.includes('Not following')) {
-            console.log('Not following - user should see Follow button');
+            //console.log('Not following - user should see Follow button');
             setIsFollowing(false); // User is not following, show Follow
             onFollow?.(user._id);
           } else if (responseMessage.includes('yourself')) {
@@ -85,16 +85,16 @@ const UserCard: React.FC<UserCardProps> = ({ user, onFollow }) => {
             setIsFollowing(false);
           } else {
             // For other 400 errors, revert to original state
-            console.log('Other 400 error, reverting state:', responseMessage || errorMessage);
+            //console.log('Other 400 error, reverting state:', responseMessage || errorMessage);
             setIsFollowing(user.isFollowing || false);
           }
         } else if (status === 409) {
           // Conflict - status already updated, keep optimistic state
-          console.log('Conflict error - keeping optimistic state');
+          //console.log('Conflict error - keeping optimistic state');
           onFollow?.(user._id);
         } else {
           // For other errors, revert the state
-          console.log('Reverting state due to error:', status);
+          //console.log('Reverting state due to error:', status);
           setIsFollowing(user.isFollowing || false);
           alert(errorMessage || responseMessage || 'Failed to update follow status');
         }
@@ -120,7 +120,7 @@ const UserCard: React.FC<UserCardProps> = ({ user, onFollow }) => {
         
         // Create a direct chat with both users (current user + target user)
         const participants = [currentUser._id, user._id];
-        console.log('Creating chat with participants:', participants);
+        //console.log('Creating chat with participants:', participants);
         
         const chat = await messageAPI.createChat(participants, 'direct');
         
@@ -201,7 +201,7 @@ const UserCard: React.FC<UserCardProps> = ({ user, onFollow }) => {
                   className="w-14 h-14 rounded-full object-cover border-2 border-gray-100"
                 />
               ) : (
-                <div className="w-14 h-14 rounded-full bg-button-gradient flex items-center justify-center text-white text-shadow font-semibold text-lg border-2 border-gray-100">
+                <div className="w-14 h-14 rounded-full bg-button-gradient flex items-center justify-center text-black font-semibold text-lg border-2 border-gray-100">
                   {user.fullName ? getInitials(user.fullName) : 
                    user.username ? getInitials(user.username) : 
                    <User size={24} />}
@@ -245,7 +245,7 @@ const UserCard: React.FC<UserCardProps> = ({ user, onFollow }) => {
                     className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all duration-200 flex items-center gap-1.5 ${
                       isFollowing
                         ? "bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300"
-                        : "bg-button-gradient text-white text-shadow hover:bg-blue-700"
+                        : "bg-button-gradient text-black hover:bg-blue-700"
                     } disabled:opacity-50 disabled:cursor-not-allowed`}
                   >
                     {isLoading ? (

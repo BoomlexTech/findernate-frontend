@@ -16,12 +16,6 @@ export const getBusinessProfileDetails = async (userId: string) => {
         const response = await axios.get(`/business/profile?userId=${userId}`);
         return response.data;
     } catch (error: any) {
-        console.error('Get business profile details error:', {
-            status: error.response?.status,
-            message: error.response?.data?.message,
-            userId,
-            error: error.message
-        });
         throw error;
     }
 }
@@ -46,11 +40,6 @@ export const switchToBusiness = async () => {
         const response = await axios.post("/business/switch-to-business");
         return response.data;
     } catch (error: any) {
-        console.error('Switch to business error:', {
-            status: error.response?.status,
-            message: error.response?.data?.message,
-            error: error.message
-        });
         throw error;
     }
 }
@@ -60,11 +49,6 @@ export const switchToPersonal = async () => {
         const response = await axios.post("/business/switch-to-personal");
         return response.data;
     } catch (error: any) {
-        console.error('Switch to personal error:', {
-            status: error.response?.status,
-            message: error.response?.data?.message,
-            error: error.message
-        });
         throw error;
     }
 }
@@ -74,12 +58,6 @@ export const getBusinessRatingSummary = async (businessId: string) => {
         const response = await axios.get(`/business/${businessId}/rating-summary`);
         return response.data;
     } catch (error: any) {
-        console.error('Get business rating error:', {
-            status: error.response?.status,
-            message: error.response?.data?.message,
-            businessId,
-            error: error.message
-        });
         throw error;
     }
 }
@@ -89,13 +67,6 @@ export const rateBusiness = async (businessId: string, rating: number) => {
         const response = await axios.post(`/business/${businessId}/rate`, { rating });
         return response.data;
     } catch (error: any) {
-        console.error('Rate business error:', {
-            status: error.response?.status,
-            message: error.response?.data?.message,
-            businessId,
-            rating,
-            error: error.message
-        });
         throw error;
     }
 }

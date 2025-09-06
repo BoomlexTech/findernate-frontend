@@ -123,15 +123,15 @@ const BusinessDetailsModal: React.FC<Props> = ({
   useEffect(() => {
     const fetchBusinessDetails = async () => {
       if (isEdit && isOpen) {
-        console.log('🔄 Fetching business details...'); // Debug log
+        //console.log('🔄 Fetching business details...'); // Debug log
         setFetchingData(true);
         try {
           const response = await GetBusinessDetails();
-          console.log('📡 API Response:', response); // Debug log
+          //console.log('📡 API Response:', response); // Debug log
           
           if (response && response.data && response.data.business) {
             const businessData = response.data.business; // Extract the actual business data
-            console.log('✅ Business data:', businessData); // Debug log
+            //console.log('✅ Business data:', businessData); // Debug log
             
             // Map the API response to form structure
             const formData = {
@@ -160,10 +160,10 @@ const BusinessDetailsModal: React.FC<Props> = ({
               aadhaarNumber: businessData.aadhaarNumber || '',
             };
             
-            console.log('📝 Setting form data:', formData); // Debug log
+            //console.log('📝 Setting form data:', formData); // Debug log
             setForm(formData);
           } else {
-            console.log('❌ No business data in response'); // Debug log
+            //console.log('❌ No business data in response'); // Debug log
           }
         } catch (error) {
           console.error('❌ Error fetching business details:', error);
@@ -172,7 +172,7 @@ const BusinessDetailsModal: React.FC<Props> = ({
           setFetchingData(false);
         }
       } else {
-        console.log('⏸️ Not fetching - isEdit:', isEdit, 'isOpen:', isOpen); // Debug log
+        //console.log('⏸️ Not fetching - isEdit:', isEdit, 'isOpen:', isOpen); // Debug log
       }
     };
 
@@ -399,7 +399,7 @@ const BusinessDetailsModal: React.FC<Props> = ({
         response = await AddBusinessDetails(formDataToSubmit);
       }
       
-      console.log('Success:', response);
+      //console.log('Success:', response);
       
       // Show success toast
       const successMessage = isEdit 
@@ -652,7 +652,7 @@ const BusinessDetailsModal: React.FC<Props> = ({
                       type="button"
                       onClick={addTag}
                       disabled={!tagInput.trim()}
-                      className="px-4 py-2 text-sm font-medium text-white text-shadow bg-button-gradient rounded-lg hover:bg-yellow-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all duration-200"
+                      className="px-4 py-2 text-sm font-medium text-black bg-button-gradient rounded-lg hover:bg-yellow-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all duration-200"
                     >
                       Add
                     </button>
@@ -851,7 +851,7 @@ const BusinessDetailsModal: React.FC<Props> = ({
                 size="lg" 
                 onClick={handleSubmit} 
                 disabled={loading || fetchingData || !form.businessName?.trim()}
-                className="w-full bg-button-gradient text-white text-shadow py-4 rounded-lg font-semibold text-lg transition-all duration-200 transform hover:scale-[1.02] focus:ring-4 focus:ring-blue-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                className="w-full bg-button-gradient text-black py-4 rounded-lg font-semibold text-lg transition-all duration-200 transform hover:scale-[1.02] focus:ring-4 focus:ring-blue-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
               >
                 {getSubmitButtonText()}
               </Button>

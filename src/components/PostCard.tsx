@@ -162,7 +162,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
       : post.engagement.comments;
     setCommentsCount(actualCommentsCount);
     
-    // console.log(`PostCard ${post._id} - Setting comments count to ${actualCommentsCount} (from ${post.comments ? 'comments array' : 'engagement'})`);
+    // //console.log(`PostCard ${post._id} - Setting comments count to ${actualCommentsCount} (from ${post.comments ? 'comments array' : 'engagement'})`);
   }, [post.isLikedBy, post.engagement.likes, post.engagement.comments, post.comments]);
 
   // Reset media index when post changes
@@ -211,7 +211,6 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
           return acc;
         }, {} as { [index: number]: number });
         
-        console.log('📐 Image heights calculated:', heightsMap);
         setLoadedImageHeights(heightsMap);
       });
     }
@@ -223,7 +222,6 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
       const heights = Object.values(loadedImageHeights);
       if (heights.length > 0) {
         const minHeight = Math.min(...heights);
-        console.log('📏 Smallest height set to:', minHeight, 'from heights:', heights);
         setSmallestImageHeight(minHeight);
       }
     } else {
@@ -238,9 +236,9 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
 
   // For debugging - log the initial state including comments
   useEffect(() => {
-    // console.log(`PostCard loaded for post ${post._id}: isLikedBy=${post.isLikedBy}, likes=${post.engagement.likes}, comments=${post.engagement.comments}`);
-    // console.log(`PostCard comments array:`, post.comments);
-    // console.log(`PostCard showComments prop:`, showComments);
+    // //console.log(`PostCard loaded for post ${post._id}: isLikedBy=${post.isLikedBy}, likes=${post.engagement.likes}, comments=${post.engagement.comments}`);
+    // //console.log(`PostCard comments array:`, post.comments);
+    // //console.log(`PostCard showComments prop:`, showComments);
   }, [post._id, post.comments, showComments, post.tags]);
 
   // No-op effect to mark onPostClick as used (prop is consumed by parent flows like Search page)
@@ -258,7 +256,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
         const isLikedFromStorage = savedLikeStatus === 'true';
         const likesCountFromStorage = savedLikesCount ? parseInt(savedLikesCount) : post.engagement.likes;
         
-        // console.log(`Loading like status from localStorage for post ${post._id}: isLiked=${isLikedFromStorage}, count=${likesCountFromStorage}`);
+        // //console.log(`Loading like status from localStorage for post ${post._id}: isLiked=${isLikedFromStorage}, count=${likesCountFromStorage}`);
         setIsLiked(isLikedFromStorage);
         setLikesCount(likesCountFromStorage);
       }
@@ -267,7 +265,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
         const commentsCountFromStorage = parseInt(savedCommentsCount);
         // Only use saved count if it's higher than the server count (to account for new comments)
         if (commentsCountFromStorage > post.engagement.comments) {
-          // console.log(`Loading comment count from localStorage for post ${post._id}: ${commentsCountFromStorage}`);
+          // //console.log(`Loading comment count from localStorage for post ${post._id}: ${commentsCountFromStorage}`);
           setCommentsCount(commentsCountFromStorage);
         }
       }
@@ -279,7 +277,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
   // Listen for comment count changes from other tabs/components
   useEffect(() => {
     const cleanup = postEvents.on(post._id, 'commentCountChange', (newCount: number) => {
-      // console.log(`Comment count updated for post ${post._id}: ${newCount}`);
+      // //console.log(`Comment count updated for post ${post._id}: ${newCount}`);
       setCommentsCount(newCount);
     });
 
@@ -323,8 +321,6 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
     requireAuth(async () => {
       if (isLoading) return;
       
-      console.log(`=== LIKE TOGGLE START for post ${post._id} ===`);
-      console.log(`Current state - isLiked: ${isLiked}, likesCount: ${likesCount}`);
       
       setIsLoading(true);
       const previousIsLiked = isLiked;
@@ -332,7 +328,6 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
       
       // Determine the action BEFORE updating state
       const shouldLike = !isLiked;
-      console.log(`Action determined: ${shouldLike ? 'LIKE' : 'UNLIKE'}`);
 
       // Optimistic update
       const newLikesCount = shouldLike ? likesCount + 1 : likesCount - 1;
@@ -345,7 +340,6 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
         localStorage.setItem(`post_likes_count_${post._id}`, newLikesCount.toString());
       }
       
-      console.log(`Optimistic update - new isLiked: ${shouldLike}, new likesCount: ${newLikesCount}`);
 
       try {
         const timeoutPromise = new Promise((_, reject) => 
@@ -353,14 +347,14 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
         );
 
         if (shouldLike) {
-          // console.log(`API Call: Liking post ${post._id}`);
+          // //console.log(`API Call: Liking post ${post._id}`);
           try {
             await Promise.race([likePost(post._id), timeoutPromise]);
-            // console.log(`API Call: Successfully liked post ${post._id}`);
+            // //console.log(`API Call: Successfully liked post ${post._id}`);
           } catch (likeError) {
             // Handle "already liked" error
             const axiosError = likeError as AxiosError;
-            // console.log('Like error details:', {
+            // //console.log('Like error details:', {
             //   error: likeError,
             //   responseData: axiosError?.response?.data,
             //   responseStatus: axiosError?.response?.status,
@@ -368,7 +362,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
             // });
             
             if (axiosError?.response?.status === 409) {
-              // console.log(`Post ${post._id} already liked - treating as successful like`);
+              // //console.log(`Post ${post._id} already liked - treating as successful like`);
               // Don't revert the optimistic update since the post is effectively "liked"
               return;
             }
@@ -376,16 +370,16 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
             throw likeError;
           }
         } else {
-          // console.log(`Unliking post ${post._id}`);
+          // //console.log(`Unliking post ${post._id}`);
           try {
             await Promise.race([unlikePost(post._id), timeoutPromise]);
-            // console.log(`Successfully unliked post ${post._id}`);
+            // //console.log(`Successfully unliked post ${post._id}`);
           } catch (unlikeError) {
             // Handle specific "Like not found" error or timeout
             const axiosError = unlikeError as AxiosError;
             const errorMessage = (unlikeError as Error)?.message;
             
-            // console.log('Unlike error details:', {
+            // //console.log('Unlike error details:', {
             //   error: unlikeError,
             //   axiosError: axiosError,
             //   errorMessage: errorMessage,
@@ -397,7 +391,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
             if ((axiosError?.response?.data as any)?.message === 'Like not found for this post' || 
                 errorMessage?.includes('timeout') ||
                 axiosError?.code === 'ECONNABORTED') {
-              // console.log(`Unlike failed (${errorMessage || 'Like not found'}) - treating as successful unlike`);
+              // //console.log(`Unlike failed (${errorMessage || 'Like not found'}) - treating as successful unlike`);
               // Don't revert the optimistic update since the post is effectively "unliked"
               return;
             }
@@ -422,7 +416,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
           localStorage.setItem(`post_likes_count_${post._id}`, previousLikesCount.toString());
         }
       } finally {
-        // console.log(`=== LIKE TOGGLE END - Expected final state: isLiked: ${shouldLike}, loading: false ===`);
+        // //console.log(`=== LIKE TOGGLE END - Expected final state: isLiked: ${shouldLike}, loading: false ===`);
         setIsLoading(false);
       }
     });
@@ -505,7 +499,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
       
   //     setIsSubmittingComment(true);
   //     try {
-  //       console.log(`Adding comment to post ${post._id}:`, comment);
+  //       //console.log(`Adding comment to post ${post._id}:`, comment);
         
   //       // Call the actual API to create comment
   //       const newComment = await createComment({
@@ -513,7 +507,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
   //         content: comment.trim()
   //       });
         
-  //       console.log('Comment created successfully:', newComment);
+  //       //console.log('Comment created successfully:', newComment);
         
   //       // Update comments count optimistically and clear input
   //       const newCount = commentsCount + 1;
@@ -575,7 +569,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
     e.stopPropagation();
     requireAuth(() => {
       // Implement your share functionality here
-      // console.log('Share post:', post._id);
+      // //console.log('Share post:', post._id);
       
       // Example: Copy link to clipboard
       if (navigator.share) {
@@ -609,24 +603,24 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
       
       try {
         if (isPostSaved) {
-          // console.log(`Unsaving post ${post._id}`);
+          // //console.log(`Unsaving post ${post._id}`);
           await unsavePost(post._id);
           setIsPostSaved(false);
           
           // Update cache
           updateSavedPostsCache(post._id, false);
           
-          // console.log('Post unsaved successfully');
+          // //console.log('Post unsaved successfully');
           toast.info('Post removed from saved!', { autoClose: 2000 });
         } else {
-          // console.log(`Saving post ${post._id}`);
+          // //console.log(`Saving post ${post._id}`);
           await savePost(post._id);
           setIsPostSaved(true);
           
           // Update cache
           updateSavedPostsCache(post._id, true);
           
-          // console.log('Post saved successfully');
+          // //console.log('Post saved successfully');
           toast.success('Post saved successfully!', { autoClose: 2000 });
         }
         setShowDropdown(false);
@@ -695,10 +689,10 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
       
       setIsDeleting(true);
       try {
-        // console.log(`Deleting post ${post._id}`);
+        // //console.log(`Deleting post ${post._id}`);
         await deletePost(post._id);
         
-        // console.log('Post deleted successfully');
+        // //console.log('Post deleted successfully');
         setShowDropdown(false);
         
         // Call the callback if provided to remove from UI
@@ -839,7 +833,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
                   >
                     {post.username || post.userId?.username || 'No Username'}
                   </h3>
-                  {post.contentType && <Badge className='bg-button-gradient' variant='outline'>{post.contentType}</Badge>}
+                  {post.contentType && post.contentType.toLowerCase() !== 'normal' && <Badge className='bg-button-gradient' variant='outline'>{post.contentType}</Badge>}
                 </div>
                 {shouldShowLocation && (
                   <div className="flex items-center gap-1 text-gray-700">
@@ -1248,7 +1242,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
                   >
                     {post.username || post.userId?.username || 'No Username'}
                   </h3>
-                  {post.contentType && <Badge className='bg-button-gradient' variant='outline'>{post.contentType}</Badge>}
+                  {post.contentType && post.contentType.toLowerCase() !== 'normal' && <Badge className='bg-button-gradient' variant='outline'>{post.contentType}</Badge>}
                     </div>
                 {shouldShowLocation && (
                 <div className="flex items-center gap-1 text-gray-700">

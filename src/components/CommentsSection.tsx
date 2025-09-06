@@ -70,15 +70,15 @@ const CommentsSection = ({ postId, postOwnerId, onCommentCountChange, initialCom
         setPaginationLoading(true);
       }
       
-      console.log(`Fetching comments for post: ${postId}, page: ${page}`);
+      //console.log(`Fetching comments for post: ${postId}, page: ${page}`);
       const commentsData = await getCommentsByPost(postId, page, commentsPerPage);
-      console.log('Comments data received:', commentsData);
+      //console.log('Comments data received:', commentsData);
       
       // Log individual comment structure to debug user data
       if (commentsData?.comments && commentsData.comments.length > 0) {
-        console.log('First comment structure:', commentsData.comments[0]);
-        console.log('First comment userId type:', typeof commentsData.comments[0].userId);
-        console.log('First comment userId value:', commentsData.comments[0].userId);
+        //console.log('First comment structure:', commentsData.comments[0]);
+        //console.log('First comment userId type:', typeof commentsData.comments[0].userId);
+        //console.log('First comment userId value:', commentsData.comments[0].userId);
       }
       
       // Handle pagination response
@@ -119,7 +119,7 @@ const CommentsSection = ({ postId, postOwnerId, onCommentCountChange, initialCom
           } else if (typeof comment.userId === 'object' && comment.userId !== null) {
             // userId is populated user object, use it as user
             const userObj = comment.userId as any;
-            console.log('Processing comment user object:', userObj);
+            //console.log('Processing comment user object:', userObj);
             const commentWithUser = {
               ...comment,
               user: {
@@ -239,17 +239,17 @@ const CommentsSection = ({ postId, postOwnerId, onCommentCountChange, initialCom
     if (sortBy === 'likes') {
       const aLikes = a.likesCount || a.likes?.length || 0;
       const bLikes = b.likesCount || b.likes?.length || 0;
-      console.log(`Sorting by likes: Comment ${a._id} has ${aLikes} likes, Comment ${b._id} has ${bLikes} likes`);
+      //console.log(`Sorting by likes: Comment ${a._id} has ${aLikes} likes, Comment ${b._id} has ${bLikes} likes`);
       return bLikes - aLikes;
     } else {
       const aTime = new Date(a.createdAt).getTime();
       const bTime = new Date(b.createdAt).getTime();
-      console.log(`Sorting by latest: Comment ${a._id} created at ${a.createdAt}, Comment ${b._id} created at ${b.createdAt}`);
+      //console.log(`Sorting by latest: Comment ${a._id} created at ${a.createdAt}, Comment ${b._id} created at ${b.createdAt}`);
       return bTime - aTime;
     }
   }) : [];
 
-  console.log(`CommentsSection: Sorting ${comments.length} comments by ${sortBy}, result: ${sortedComments.length} sorted comments`);
+  //console.log(`CommentsSection: Sorting ${comments.length} comments by ${sortBy}, result: ${sortedComments.length} sorted comments`);
 
   return (
     <div className="p-6" data-comments-section>
@@ -269,7 +269,7 @@ const CommentsSection = ({ postId, postOwnerId, onCommentCountChange, initialCom
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              console.log('Toggle sort options, current:', showSortOptions);
+              //console.log('Toggle sort options, current:', showSortOptions);
               setShowSortOptions(!showSortOptions);
             }}
             className="flex items-center gap-2 text-sm"
@@ -285,7 +285,7 @@ const CommentsSection = ({ postId, postOwnerId, onCommentCountChange, initialCom
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  console.log('Sorting by latest');
+                  //console.log('Sorting by latest');
                   setSortBy('latest');
                   setShowSortOptions(false);
                 }}
@@ -299,7 +299,7 @@ const CommentsSection = ({ postId, postOwnerId, onCommentCountChange, initialCom
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  console.log('Sorting by likes');
+                  //console.log('Sorting by likes');
                   setSortBy('likes');
                   setShowSortOptions(false);
                 }}

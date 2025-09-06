@@ -37,7 +37,6 @@ export const searchLocations = async (query: string): Promise<LocationSuggestion
     const data = await response.json();
     return data || [];
   } catch (error) {
-    console.error('Error searching locations:', error);
     return [];
   }
 };

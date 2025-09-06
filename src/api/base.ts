@@ -19,16 +19,12 @@ axiosInstance.interceptors.request.use(
         
         if (validToken) {
           config.headers.Authorization = `Bearer ${validToken}`;
-          console.log('=== DEBUG: API Request:', config.method?.toUpperCase(), config.url, 'with Authorization header:', config.headers.Authorization);
         } else {
-          console.warn('API Request:', config.method?.toUpperCase(), config.url, 'NO VALID TOKEN - may trigger logout');
         }
       } catch (error) {
-        console.error('Error validating token for API request:', error);
         const token = localStorage.getItem('token');
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
-          console.log('=== DEBUG: API Request (fallback):', config.method?.toUpperCase(), config.url, 'with Authorization header:', config.headers.Authorization);
         }
       }
     }
@@ -78,23 +74,9 @@ axiosInstance.interceptors.response.use(
       }
     }
 
-    console.error('API Error Interceptor:', errorInfo);
     
     // // Handle authentication errors
     // if (error.response?.status === 401) {
-    //   console.error('Authentication Error: Token may be expired or invalid');
-    //   console.log('Current token:', localStorage.getItem('token') ? 'Present' : 'Missing');
-      
-    //   // Trigger logout if we get a 401 error
-    //   if (typeof window !== 'undefined') {
-    //     import('@/store/useUserStore').then(({ useUserStore }) => {
-    //       console.warn('401 error received, logging out user');
-    //       useUserStore.getState().logout();
-    //       window.location.href = '/signin';
-    //     }).catch(err => {
-    //       console.error('Failed to import userStore for logout:', err);
-    //     });
-    //   }
     // }
     
     return Promise.reject(error);

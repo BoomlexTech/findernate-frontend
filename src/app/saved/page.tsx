@@ -85,19 +85,19 @@ const SavedPage = () => {
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       )
 
-      console.log('Private saved posts:', privatePosts.length)
-      console.log('Public saved posts:', publicPosts.length)
-      console.log('Total saved posts:', allSavedPosts.length)
+      //console.log('Private saved posts:', privatePosts.length)
+      //console.log('Public saved posts:', publicPosts.length)
+      //console.log('Total saved posts:', allSavedPosts.length)
 
-      console.log('Initial saved posts:', allSavedPosts.slice(0, 2));
+      //console.log('Initial saved posts:', allSavedPosts.slice(0, 2));
       
       // Fetch comments for all saved posts
       const postsWithComments = await Promise.all(
         allSavedPosts.map(async (post) => {
           try {
-            console.log(`Fetching comments for saved post: ${post._id}`);
+            //console.log(`Fetching comments for saved post: ${post._id}`);
             const commentsResponse = await getCommentsByPost(post._id, 1, 5); // Fetch first 5 comments
-            console.log(`Comments response for saved post ${post._id}:`, commentsResponse);
+            //console.log(`Comments response for saved post ${post._id}:`, commentsResponse);
             
             // Handle different possible response structures
             let comments: Comment[] = [];
@@ -113,11 +113,11 @@ const SavedPage = () => {
                 comments = commentsResponse;
                 totalComments = comments.length;
               } else {
-                console.log('Unexpected comments response structure:', commentsResponse);
+                //console.log('Unexpected comments response structure:', commentsResponse);
               }
             }
             
-            console.log(`Processed ${comments.length} comments for saved post ${post._id}, total: ${totalComments}`);
+            //console.log(`Processed ${comments.length} comments for saved post ${post._id}, total: ${totalComments}`);
             
             return {
               ...post,
@@ -160,7 +160,7 @@ const SavedPage = () => {
   const handleLoginClick = () => {
     requireAuth(() => {
       // This will trigger a re-render once user is authenticated
-      console.log('User authenticated, saved posts will load');
+      //console.log('User authenticated, saved posts will load');
     });
   };
 
@@ -245,7 +245,7 @@ const SavedPage = () => {
           <p className="text-yellow-500 mb-4">{error}</p>
           <button 
             onClick={handleRefresh}
-            className="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 transition-colors"
+            className="bg-yellow-500 text-black px-4 py-2 rounded-lg hover:bg-yellow-600 transition-colors"
           >
             Try Again
           </button>

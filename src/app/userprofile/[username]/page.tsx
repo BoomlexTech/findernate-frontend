@@ -50,7 +50,7 @@ const UserProfilePage = () => {
           const commentsData = await getCommentsByPost(post._id, 1, 1); // Only fetch first page to get total count
           const actualCommentCount = commentsData.totalComments || 0;
           
-          console.log(`Post ${post._id}: API comments=${actualCommentCount}, localStorage=${savedCommentsCount}`);
+          //console.log(`Post ${post._id}: API comments=${actualCommentCount}, localStorage=${savedCommentsCount}`);
           
           return {
             ...post,
@@ -82,12 +82,12 @@ const UserProfilePage = () => {
         setLoading(true);
         setError(null);
         
-        console.log("=== DEBUG: Fetching profile for username:", username);
+        //console.log("=== DEBUG: Fetching profile for username:", username);
         
         // Fetch other user's profile
         const profileResponse = await getOtherUserProfile(username);
-        console.log("=== DEBUG: Other user profile API response:", profileResponse);
-        console.log("=== DEBUG: Profile response userId:", profileResponse.userId);
+        //console.log("=== DEBUG: Other user profile API response:", profileResponse);
+        //console.log("=== DEBUG: Profile response userId:", profileResponse.userId);
         
         if (profileResponse.userId) {
           // Transform the backend response to include isFollowing
@@ -96,20 +96,20 @@ const UserProfilePage = () => {
                              profileResponse.isFollowedBy === "True" || 
                              profileResponse.isFollowedBy === "true";
           
-          console.log("Follow state debug:", {
-            isFollowedBy: profileResponse.isFollowedBy,
-            isFollowedByType: typeof profileResponse.isFollowedBy,
-            calculatedIsFollowing: isFollowing
-          });
+          //console.log("Follow state debug:", {
+          //  isFollowedBy: profileResponse.isFollowedBy,
+          //  isFollowedByType: typeof profileResponse.isFollowedBy,
+          //  calculatedIsFollowing: isFollowing
+          // });
           
           const userProfileData = {
             ...profileResponse.userId,
             isFollowing: isFollowing
           };
           
-          console.log("=== DEBUG: Processed userProfileData:", userProfileData);
-          console.log("=== DEBUG: userProfileData username:", userProfileData.username);
-          console.log("=== DEBUG: userProfileData _id:", userProfileData._id);
+          //console.log("=== DEBUG: Processed userProfileData:", userProfileData);
+          //console.log("=== DEBUG: userProfileData username:", userProfileData.username);
+          //console.log("=== DEBUG: userProfileData _id:", userProfileData._id);
           
           setProfileData(userProfileData);
           
@@ -123,10 +123,10 @@ const UserProfilePage = () => {
               getUserPublicSavedPosts(profileResponse.userId._id, 1, 100)
             ]);
             
-            console.log('User posts API response:', postsResponse);
-            console.log('User reels API response:', reelsResponse);
-            console.log('User videos API response:', videosResponse);
-            console.log('User public saved posts API response:', savedPostsResponse);
+            //console.log('User posts API response:', postsResponse);
+            //console.log('User reels API response:', reelsResponse);
+            //console.log('User videos API response:', videosResponse);
+            //console.log('User public saved posts API response:', savedPostsResponse);
             
             // Helper function to process any type of post data
             const processPostData = (response: any, type: string) => {
@@ -200,7 +200,7 @@ const UserProfilePage = () => {
             const savedPostsWithUserInfo = processSavedPostsData(savedPostsResponse);
 
             // Fetch actual comment counts for all content types
-            console.log('Fetching comment counts for posts, reels, videos, and saved posts...');
+            //console.log('Fetching comment counts for posts, reels, videos, and saved posts...');
             const [postsWithCommentCounts, reelsWithCommentCounts, videosWithCommentCounts, savedPostsWithCommentCounts] = await Promise.all([
               fetchCommentCounts(postsWithUserInfo),
               fetchCommentCounts(reelsWithUserInfo),
@@ -208,10 +208,10 @@ const UserProfilePage = () => {
               fetchCommentCounts(savedPostsWithUserInfo)
             ]);
             
-            console.log('Posts with updated comment counts:', postsWithCommentCounts.length);
-            console.log('Reels with updated comment counts:', reelsWithCommentCounts.length);
-            console.log('Videos with updated comment counts:', videosWithCommentCounts.length);
-            console.log('Saved posts with updated comment counts:', savedPostsWithCommentCounts.length);
+            //console.log('Posts with updated comment counts:', postsWithCommentCounts.length);
+            //console.log('Reels with updated comment counts:', reelsWithCommentCounts.length);
+            //console.log('Videos with updated comment counts:', videosWithCommentCounts.length);
+            //console.log('Saved posts with updated comment counts:', savedPostsWithCommentCounts.length);
             
             setPosts(postsWithCommentCounts);
             setReels(reelsWithCommentCounts);
@@ -240,7 +240,7 @@ const UserProfilePage = () => {
     
     // Since we now load all data on initial mount, we don't need to fetch anything here
     // This function now just handles the tab switching without API calls
-    console.log(`Switching to ${tab} tab`);
+    //console.log(`Switching to ${tab} tab`);
     
     // Optional: Add refresh logic in the future if needed
     // For now, all data is already loaded on mount
@@ -264,7 +264,7 @@ const UserProfilePage = () => {
           <p className="text-lg font-medium">{error}</p>
           <button 
             onClick={() => window.location.reload()}
-            className="mt-4 px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
+            className="mt-4 px-4 py-2 bg-yellow-500 text-black rounded-md hover:bg-yellow-600"
           >
             Try Again
           </button>
@@ -281,12 +281,12 @@ const UserProfilePage = () => {
     );
   }
 
-  console.log("=== DEBUG: About to render UserProfile with data:", {
-    username: profileData.username,
-    fullName: profileData.fullName,
-    _id: profileData._id,
-    isCurrentUser: false
-  });
+  //console.log("=== DEBUG: About to render UserProfile with data:", {
+  //  username: profileData.username,
+  //  fullName: profileData.fullName,
+  //  _id: profileData._id,
+  //  isCurrentUser: false
+  // });
 
   return (
     <div className='bg-gray-50 w-full mx-auto pt-2 px-4'>

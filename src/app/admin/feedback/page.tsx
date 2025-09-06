@@ -140,7 +140,7 @@ export default function UserFeedbackPage() {
             </div>
             <button
               onClick={() => fetchFeedback(currentPage)}
-              className="flex items-center gap-2 px-4 py-2 bg-[#ffd65c] text-white text-shadow rounded-lg hover:bg-[#e6c045] transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-[#ffd65c] text-black rounded-lg hover:bg-[#e6c045] transition-colors"
             >
               <RefreshCw className="h-4 w-4" />
               Refresh

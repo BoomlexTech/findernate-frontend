@@ -63,7 +63,7 @@ export const AuthDialog: React.FC<AuthDialogProps> = ({ isOpen, onClose }) => {
           <div className="space-y-3">
             <button
               onClick={handleSignIn}
-              className="w-full bg-yellow-500 text-white text-shadow py-3 px-4 rounded-lg hover:bg-yellow-600 transition-colors font-medium"
+              className="w-full bg-yellow-500 text-black py-3 px-4 rounded-lg hover:bg-yellow-600 transition-colors font-medium"
             >
               Sign In
             </button>

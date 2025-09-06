@@ -37,7 +37,7 @@ export const useWebRTC = () => {
   // Ensure WebRTC manager is initialized when hook is used (only log once per session)
   const isInitialized = useRef(false);
   if (!isInitialized.current) {
-    console.log('🎯 useWebRTC hook initialized for the first time, WebRTC manager ready:', !!webRTCManager);
+    //console.log('🎯 useWebRTC hook initialized for the first time, WebRTC manager ready:', !!webRTCManager);
     isInitialized.current = true;
   }
   
@@ -76,26 +76,26 @@ export const useWebRTC = () => {
   useEffect(() => {
     // This forces WebRTC manager singleton to initialize and set up socket listeners
     // as soon as the hook is used, not just when a call starts
-    console.log('Initializing WebRTC manager...');
+    //console.log('Initializing WebRTC manager...');
     webRTCManager; // Access singleton to trigger constructor
   }, []);
 
   // Setup WebRTC event handlers
   useEffect(() => {
     webRTCManager.onRemoteStream((stream) => {
-      console.log('Remote stream received');
+      //console.log('Remote stream received');
       updateCallState({ remoteStream: stream });
     });
 
     webRTCManager.onConnectionStateChange((state) => {
-      console.log('Connection state changed:', state);
-      console.log('Current call in callStateRef:', callStateRef.current.call?._id);
+      //console.log('Connection state changed:', state);
+      //console.log('Current call in callStateRef:', callStateRef.current.call?._id);
       updateCallState({ connectionState: state });
       
       // Update call status on backend and local state
       if (callStateRef.current.call) {
         if (state === 'connected') {
-          console.log('🔥 WebRTC connected, updating call status to active for call:', callStateRef.current.call._id);
+          //console.log('🔥 WebRTC connected, updating call status to active for call:', callStateRef.current.call._id);
           
           // Update local state immediately for responsiveness
           updateCallState({ 
@@ -106,7 +106,7 @@ export const useWebRTC = () => {
           callAPI.updateCallStatus(callStateRef.current.call._id, { 
             status: 'active' 
           }).then(() => {
-            console.log('✅ Call status updated to active successfully');
+            //console.log('✅ Call status updated to active successfully');
           }).catch((error) => {
             console.error('❌ Failed to update call status to active:', error);
             // Revert local state on error
@@ -123,7 +123,7 @@ export const useWebRTC = () => {
           }).catch(console.error);
         }
       } else {
-        console.log('⚠️ No active call found when WebRTC state changed to:', state);
+        //console.log('⚠️ No active call found when WebRTC state changed to:', state);
       }
     });
 
@@ -141,19 +141,19 @@ export const useWebRTC = () => {
   // End call locally (cleanup without emitting to others)
   const endCallLocally = useCallback(async (endReason: string = 'normal') => {
     if (!callStateRef.current.call) {
-      console.log('No active call to end locally');
+      //console.log('No active call to end locally');
       return;
     }
 
     try {
-      console.log('Ending call locally:', callStateRef.current.call._id, 'with reason:', endReason);
+      //console.log('Ending call locally:', callStateRef.current.call._id, 'with reason:', endReason);
       
       // Stop any playing ringtones
       ringtoneManager.stopRingtone();
       
       // End WebRTC call
       webRTCManager.endCall();
-      console.log('WebRTC call ended locally');
+      //console.log('WebRTC call ended locally');
 
       // Reset call state
       updateCallState({
@@ -166,7 +166,7 @@ export const useWebRTC = () => {
         callStats: null,
         error: null
       });
-      console.log('Call state reset locally');
+      //console.log('Call state reset locally');
 
     } catch (error) {
       console.error('Error ending call locally:', error);
@@ -178,17 +178,17 @@ export const useWebRTC = () => {
   useEffect(() => {
     // Handle incoming call
     socketManager.on('incoming_call', (data: IncomingCall) => {
-      console.log('Incoming call received:', data);
+      //console.log('Incoming call received:', data);
       setIncomingCall(data);
       
       // Start incoming call ringtone
       ringtoneManager.startRingtone('incoming');
       
       // CRITICAL FIX: Prepare WebRTC manager to receive offers for this incoming call
-      console.log('🎯 Preparing WebRTC manager for incoming call:', data.callId, 'from caller:', data.caller._id);
-      console.log('🎯 WebRTC Manager instance before prepare:', webRTCManager);
+      //console.log('🎯 Preparing WebRTC manager for incoming call:', data.callId, 'from caller:', data.caller._id);
+      //console.log('🎯 WebRTC Manager instance before prepare:', webRTCManager);
       webRTCManager.prepareForIncomingCall(data.callId, data.caller._id);
-      console.log('🎯 WebRTC Manager prepared successfully for incoming call');
+      //console.log('🎯 WebRTC Manager prepared successfully for incoming call');
       
       // Set a preliminary call state so WebRTC events can reference it
       updateCallState({
@@ -211,26 +211,26 @@ export const useWebRTC = () => {
 
     // Handle call accepted
     socketManager.on('call_accepted', (data) => {
-      console.log('Call accepted:', data);
+      //console.log('Call accepted:', data);
       
       // Stop ringtones when call is accepted
       ringtoneManager.stopRingtone();
       
       if (callStateRef.current.call && callStateRef.current.call._id === data.callId) {
-        console.log('Call accepted for our call, updating status to connecting');
+        //console.log('Call accepted for our call, updating status to connecting');
         updateCallState({
           call: { ...callStateRef.current.call, status: 'connecting' }
         });
         
         // NOW send the WebRTC offer that was prepared during initiateCall
-        console.log('🚀 Call accepted - now sending WebRTC offer to receiver');
+        //console.log('🚀 Call accepted - now sending WebRTC offer to receiver');
         webRTCManager.sendPendingOffer();
       }
     });
 
     // Handle call declined
     socketManager.on('call_declined', (data) => {
-      console.log('Call declined:', data);
+      //console.log('Call declined:', data);
       
       // Stop ringtones when call is declined
       ringtoneManager.stopRingtone();
@@ -242,31 +242,31 @@ export const useWebRTC = () => {
 
     // Handle call ended
     socketManager.on('call_ended', (data) => {
-      console.log('Call ended by remote user:', data);
+      //console.log('Call ended by remote user:', data);
       
       // Stop ringtones when call is ended
       ringtoneManager.stopRingtone();
-      console.log('Current call state:', callStateRef.current.call ? {
-        id: callStateRef.current.call._id,
-        status: callStateRef.current.call.status,
-        isInCall: callStateRef.current.isInCall
-      } : 'No active call');
+      //console.log('Current call state:', callStateRef.current.call ? {
+      //  id: callStateRef.current.call._id,
+      //  status: callStateRef.current.call.status,
+      //  isInCall: callStateRef.current.isInCall
+      // } : 'No active call');
       
       if (callStateRef.current.call && callStateRef.current.call._id === data.callId) {
-        console.log('Remote call end received, ending our call locally with reason:', data.endReason);
+        //console.log('Remote call end received, ending our call locally with reason:', data.endReason);
         endCallLocally(data.endReason || 'normal');
       } else {
-        console.log('Call end received but no matching active call');
-        console.log('Expected callId:', data.callId);
-        console.log('Current callId:', callStateRef.current.call?._id || 'none');
+        //console.log('Call end received but no matching active call');
+        //console.log('Expected callId:', data.callId);
+        //console.log('Current callId:', callStateRef.current.call?._id || 'none');
       }
     });
 
     // Handle call status updates
     socketManager.on('call_status_update', (data) => {
-      console.log('Call status updated via socket:', data);
+      //console.log('Call status updated via socket:', data);
       if (callStateRef.current.call && callStateRef.current.call._id === data.callId) {
-        console.log(`Updating call status from ${callStateRef.current.call.status} to ${data.status}`);
+        //console.log(`Updating call status from ${callStateRef.current.call.status} to ${data.status}`);
         updateCallState({
           call: { ...callStateRef.current.call, status: data.status }
         });
@@ -294,20 +294,20 @@ export const useWebRTC = () => {
 
       // Clean up any existing call first
       if (callStateRef.current.call) {
-        console.log('🧹 Cleaning up existing call before starting new one');
+        //console.log('🧹 Cleaning up existing call before starting new one');
         await endCall('cancelled');
         // Wait a bit for cleanup to complete
         await new Promise(resolve => setTimeout(resolve, 500));
       }
 
       // Create call on backend
-      console.log('Creating call on backend for receiver:', receiverId);
+      //console.log('Creating call on backend for receiver:', receiverId);
       const call = await callAPI.initiateCall({
         receiverId,
         chatId,
         callType
       });
-      console.log('Call created on backend:', call._id);
+      //console.log('Call created on backend:', call._id);
 
       updateCallState({
         call,
@@ -322,25 +322,25 @@ export const useWebRTC = () => {
         video: callType === 'video'
       };
 
-      console.log('Initializing local stream for initiator');
+      //console.log('Initializing local stream for initiator');
       const localStream = await webRTCManager.initializeLocalStream(config);
       updateCallState({ localStream });
 
-      console.log('About to start WebRTC call with receiver:', receiverId);
-      console.log('Call config:', config);
-      console.log('Call ID:', call._id);
+      //console.log('About to start WebRTC call with receiver:', receiverId);
+      //console.log('Call config:', config);
+      //console.log('Call ID:', call._id);
       try {
         await webRTCManager.startCall(call._id, receiverId, config);
-        console.log('WebRTC startCall completed successfully');
+        //console.log('WebRTC startCall completed successfully');
       } catch (startCallError) {
         console.error('Error in webRTCManager.startCall:', startCallError);
         throw startCallError;
       }
 
       // Emit call initiation via socket
-      console.log('Emitting call initiation via socket');
+      //console.log('Emitting call initiation via socket');
       socketManager.initiateCall(receiverId, chatId, callType, call._id);
-      console.log('Socket call initiation emitted');
+      //console.log('Socket call initiation emitted');
 
       // Start outgoing call ringtone
       ringtoneManager.startRingtone('outgoing');
@@ -352,16 +352,16 @@ export const useWebRTC = () => {
       
       // Handle 409 conflict (user already in call) by cleaning up and retrying
       if (error?.response?.status === 409 || error?.status === 409) {
-        console.log('🔄 Call conflict detected, cleaning up and retrying...');
+        //console.log('🔄 Call conflict detected, cleaning up and retrying...');
         try {
           // Force cleanup any server-side call state
           const activeCall = await callAPI.getActiveCall().catch(() => null);
           if (activeCall) {
-            console.log('🔄 Found active call to cleanup:', activeCall._id);
+            //console.log('🔄 Found active call to cleanup:', activeCall._id);
             await callAPI.endCall(activeCall._id, { endReason: 'cancelled' });
-            console.log('🔄 Active call cleaned up successfully');
+            //console.log('🔄 Active call cleaned up successfully');
           } else {
-            console.log('🔄 No active call found on server');
+            //console.log('🔄 No active call found on server');
           }
           
           // Reset local state
@@ -371,7 +371,7 @@ export const useWebRTC = () => {
             error: null
           });
           
-          console.log('🔄 Retrying call initiation in 1 second...');
+          //console.log('🔄 Retrying call initiation in 1 second...');
           // Retry after a short delay
           setTimeout(() => {
             initiateCall(receiverId, chatId, callType);
@@ -395,7 +395,7 @@ export const useWebRTC = () => {
     
     // Prevent multiple acceptance attempts
     if (isLoading) {
-      console.log('⚠️ Call acceptance already in progress, ignoring duplicate request');
+      //console.log('⚠️ Call acceptance already in progress, ignoring duplicate request');
       return;
     }
 
@@ -407,10 +407,10 @@ export const useWebRTC = () => {
       ringtoneManager.stopRingtone();
 
       // Accept call on backend
-      console.log('🔄 Attempting to accept call:', incomingCall.callId);
-      console.log('🔄 Call details:', incomingCall);
+      //console.log('🔄 Attempting to accept call:', incomingCall.callId);
+      //console.log('🔄 Call details:', incomingCall);
       const call = await callAPI.acceptCall(incomingCall.callId);
-      console.log('✅ Call accepted successfully on backend:', call);
+      //console.log('✅ Call accepted successfully on backend:', call);
 
       updateCallState({
         call,
@@ -428,11 +428,11 @@ export const useWebRTC = () => {
       const localStream = await webRTCManager.initializeLocalStream(config);
       updateCallState({ localStream });
 
-      console.log('About to accept WebRTC call:', incomingCall.callId);
+      //console.log('About to accept WebRTC call:', incomingCall.callId);
       await webRTCManager.acceptCall(incomingCall.callId, config);
 
       // Emit call acceptance via socket
-      console.log('Emitting call acceptance via socket to caller:', incomingCall.caller._id);
+      //console.log('Emitting call acceptance via socket to caller:', incomingCall.caller._id);
       socketManager.acceptCall(incomingCall.callId, incomingCall.caller._id);
 
       setIncomingCall(null);
@@ -486,23 +486,23 @@ export const useWebRTC = () => {
   // End the current call (initiator - notifies others)
   const endCall = useCallback(async (endReason: string = 'normal') => {
     if (!callState.call) {
-      console.log('No active call to end');
+      //console.log('No active call to end');
       return;
     }
 
     try {
-      console.log('Ending call:', callState.call._id, 'with reason:', endReason);
+      //console.log('Ending call:', callState.call._id, 'with reason:', endReason);
       
       // Stop any playing ringtones
       ringtoneManager.stopRingtone();
       
       // End call on backend
       await callAPI.endCall(callState.call._id, { endReason: endReason as any });
-      console.log('Call ended on backend');
+      //console.log('Call ended on backend');
 
       // Emit call end via socket to notify other participants
       const participantIds = callState.call.participants.map(p => p._id);
-      console.log('Emitting call end to participants:', participantIds);
+      //console.log('Emitting call end to participants:', participantIds);
       socketManager.endCall(
         callState.call._id,
         participantIds,

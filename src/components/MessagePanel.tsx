@@ -121,7 +121,7 @@ export default function MessagePanel() {
     if (!receiverId) return;
 
     try {
-      console.log('Starting voice call with:', getChatDisplayName(chat));
+      //console.log('Starting voice call with:', getChatDisplayName(chat));
       await initiateCall(receiverId, chat._id, 'voice');
     } catch (error) {
       console.error('Failed to start voice call:', error);
@@ -136,7 +136,7 @@ export default function MessagePanel() {
     if (!receiverId) return;
 
     try {
-      console.log('Starting video call with:', getChatDisplayName(chat));
+      //console.log('Starting video call with:', getChatDisplayName(chat));
       await initiateCall(receiverId, chat._id, 'video');
     } catch (error) {
       console.error('Failed to start video call:', error);

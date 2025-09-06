@@ -22,7 +22,7 @@ class RingtoneManager {
     try {
       // Request audio permissions if needed
       if (this.audio) {
-        console.log(`🔔 Starting ${type} ringtone`);
+        //console.log(`🔔 Starting ${type} ringtone`);
         this.isPlaying = true;
         await this.audio.play();
       } else {
@@ -38,23 +38,23 @@ class RingtoneManager {
 
   stopRingtone() {
     if (!this.isPlaying) {
-      console.log('🔕 Ringtone already stopped');
+      //console.log('🔕 Ringtone already stopped');
       return;
     }
 
-    console.log('🔕 Stopping ringtone');
+    //console.log('🔕 Stopping ringtone');
     this.isPlaying = false;
 
     // Stop HTML audio
     if (this.audio) {
       this.audio.pause();
       this.audio.currentTime = 0;
-      console.log('🔕 HTML audio stopped');
+      //console.log('🔕 HTML audio stopped');
     }
 
     // Clear any browser beep intervals
     this.stopBrowserBeep();
-    console.log('🔕 Browser beep stopped');
+    //console.log('🔕 Browser beep stopped');
   }
 
   // Fallback browser beep using AudioContext
@@ -91,7 +91,7 @@ class RingtoneManager {
       playBeep();
       this.beepInterval = setInterval(playBeep, 2000);
       
-      console.log(`🔔 Playing browser beep for ${type} call`);
+      //console.log(`🔔 Playing browser beep for ${type} call`);
     } catch (error) {
       console.warn('Failed to create browser beep:', error);
     }
@@ -101,13 +101,13 @@ class RingtoneManager {
     if (this.beepInterval) {
       clearInterval(this.beepInterval);
       this.beepInterval = null;
-      console.log('🔕 Browser beep interval cleared');
+      //console.log('🔕 Browser beep interval cleared');
     }
 
     if (this.audioContext) {
       try {
         this.audioContext.close();
-        console.log('🔕 AudioContext closed');
+        //console.log('🔕 AudioContext closed');
       } catch (error) {
         console.warn('Error closing AudioContext:', error);
       }

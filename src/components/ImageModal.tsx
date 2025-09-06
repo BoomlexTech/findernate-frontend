@@ -322,7 +322,7 @@ export default function ImageModal({ isOpen, onClose, post }: ImageModalProps) {
                               (video as any).msRequestFullscreen();
                             }
                           } catch (error) {
-                            console.log('Auto fullscreen failed:', error);
+                            //console.log('Auto fullscreen failed:', error);
                           }
                         }, 1500);
                       }}

@@ -135,7 +135,7 @@ const ForgotPasswordComponent: React.FC = () => {
               type="submit"
               variant="custom"
               disabled={isLoading || !!emailError || !formData.email}
-              className="w-full bg-button-gradient text-white text-shadow py-3 px-4 rounded-lg font-medium hover:from-yellow-600 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-md"
+              className="w-full bg-button-gradient text-black py-3 px-4 rounded-lg font-medium hover:from-yellow-600 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-md"
             >
               {isLoading ? (
                 <div className="flex items-center justify-center">

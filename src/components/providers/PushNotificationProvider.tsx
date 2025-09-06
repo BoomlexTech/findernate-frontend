@@ -26,9 +26,9 @@ export default function PushNotificationProvider({
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        console.log('App went to background - notifications will be shown');
+        //console.log('App went to background - notifications will be shown');
       } else {
-        console.log('App came to foreground - notifications will be suppressed');
+        //console.log('App came to foreground - notifications will be suppressed');
       }
     };
 

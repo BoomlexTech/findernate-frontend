@@ -12,7 +12,7 @@ export async function fetchUserData(userId: string): Promise<{ username: string;
   }
 
   try {
-    console.log(`Fetching user data for ${userId}`);
+    //console.log(`Fetching user data for ${userId}`);
     const userData = await getUserById(userId);
     
     const result = {

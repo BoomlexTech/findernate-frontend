@@ -111,7 +111,7 @@ export default function LeftSidebar({togglePost, onItemClick}: leftSidebarProps)
 			<Button 
 			onClick={togglePost}
 			variant='custom' 
-			className="flex gap-3 w-full h-[3rem] bg-[#ffd65c] hover:bg-[#e6c045] text-white text-shadow font-medium py-3 rounded-xl transition-all duration-600 shadow-sm hover:shadow-md transform hover:scale-105">
+			className="flex gap-3 w-full h-[3rem] bg-[#ffd65c] hover:bg-[#e6c045] text-black font-medium py-3 rounded-xl transition-all duration-600 shadow-sm hover:shadow-md transform hover:scale-105">
 			  <Plus size={20}/> Create Post
 			</Button>
 		  </div>

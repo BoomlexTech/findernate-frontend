@@ -14,7 +14,7 @@ const OTPStep = () => {
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const [error, setError] = useState('');
   const router = useRouter();
-  // console.log(data);
+  // //console.log(data);
   const {setUser, setToken} = useUserStore();
 
   useEffect(() => {

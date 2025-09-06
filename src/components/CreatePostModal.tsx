@@ -15,6 +15,7 @@ import TagInput from './TagInput';
 import { toast } from 'react-toastify';
 import { searchLocations, LocationSuggestion } from '@/api/location';
 import { postRefreshEvents } from '@/utils/postRefreshEvents';
+import BusinessDetailsModal from './business/BusinessDetailsModal';
 
 interface createPostModalProps {
     closeModal: () => void;
@@ -48,6 +49,13 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
   const [locationSearchTimeout, setLocationSearchTimeout] = useState<NodeJS.Timeout | null>(null);
   const locationInputRef = useRef<HTMLInputElement>(null);
   const locationDropdownRef = useRef<HTMLDivElement>(null);
+  
+  // Business profile modal state
+  const [showBusinessProfileModal, setShowBusinessProfileModal] = useState(false);
+  
+  // Debug logging for modal state changes
+  useEffect(() => {
+  }, [showBusinessProfileModal]);
 
   // Location search functionality
   const searchLocationSuggestions = async (query: string) => {
@@ -62,7 +70,6 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
       setLocationSuggestions(suggestions);
       setShowLocationSuggestions(suggestions.length > 0);
     } catch (error) {
-      console.error('Error fetching location suggestions:', error);
       setLocationSuggestions([]);
       setShowLocationSuggestions(false);
     }
@@ -286,7 +293,6 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
         return optimizedFile;
       }
     } catch (error) {
-      console.error('File optimization failed:', error);
       toast.error('File optimization failed. Please try a smaller file.');
     } finally {
       setIsOptimizing(false);
@@ -332,7 +338,6 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
           setRegularForm(prev => ({ ...prev, postType: 'video' }));
         }
       } catch (error) {
-        console.error('Error detecting video duration:', error);
         // Default to video if we can't detect duration
         setShowReelVisibility(false);
         setReelVisibility(false);
@@ -606,7 +611,6 @@ const handleProductChange = (
             await updatePostTypeBasedOnVideo(optimizedFile);
           }
         } catch (error) {
-          console.error('Failed to optimize file:', file.name, error);
           toast.error(`Failed to optimize ${file.name}. Please try a smaller file.`);
           return;
         }
@@ -772,7 +776,7 @@ const handleProductChange = (
     }
     
     const finalPayload = buildPostPayload();
-    console.log('Final payload for business post:', finalPayload);
+    //console.log('Final payload for business post:', finalPayload);
     setLoading(true);
     setError(null);
     
@@ -780,25 +784,25 @@ const handleProductChange = (
       let response;
       
       if (postType === 'Regular') {
-        console.log("Payload being sent:", sharedForm, regularForm);
+        //console.log("Payload being sent:", sharedForm, regularForm);
         const regularPayload = finalPayload as RegularPostPayload;
         response = await createRegularPost(regularPayload);
-        console.log(response);
+        //console.log(response);
       } else if (postType === 'Product') {
-        console.log('Product Post Data:',sharedForm, productForm); 
+        //console.log('Product Post Data:',sharedForm, productForm); 
         const productPayload = finalPayload;
         response = await createProductPost({formData:productPayload} as unknown as ProductDetailsFormProps);
-        console.log(response);
+        //console.log(response);
       } else if (postType === 'Service') {
-        console.log('Service Post Data:',sharedForm, serviceForm);
+        //console.log('Service Post Data:',sharedForm, serviceForm);
         const servicePayload = finalPayload;
         response = await createServicePost({formData:servicePayload} as unknown as ServiceDetailsFormProps);
-        console.log(response);
+        //console.log(response);
        } else if (postType === 'Business') {
-        console.log('Business Post Data:',sharedForm, businessForm);
+        //console.log('Business Post Data:',sharedForm, businessForm);
         const businessPayload = finalPayload;
         response = await createBusinessPost({formData:businessPayload} as unknown as BusinessPostFormProps);
-        console.log(response);
+        //console.log(response);
        }
 
       // Only show success toast if we actually got a successful response
@@ -829,9 +833,52 @@ const handleProductChange = (
 
     } catch (error: unknown) {
       console.error('Error creating post:', error);
+      //console.log('Post type:', postType);
+      
       let userMessage = 'Failed to create post. Please try again.';
       if (isAxiosError(error)) {
         userMessage = (error.response?.data as any)?.message || error.message || userMessage;
+        
+        // Debug logging for business profile errors
+        //console.log('Error response status:', error.response?.status);
+        //console.log('Error response data:', error.response?.data);
+        //console.log('User message:', userMessage);
+        //console.log('User message lowercase:', userMessage.toLowerCase());
+        
+        // Check if the error is related to business profile not found
+        const isBusinessProfileError = postType === 'Business' && (
+          userMessage.toLowerCase().includes('business profile not found') ||
+          userMessage.toLowerCase().includes('no business profile') ||
+          userMessage.toLowerCase().includes('business not found') ||
+          userMessage.toLowerCase().includes('business details not found') ||
+          userMessage.toLowerCase().includes('please add business details') ||
+          userMessage.toLowerCase().includes('complete your business profile') ||
+          userMessage.toLowerCase().includes('business profile is required') ||
+          userMessage.toLowerCase().includes('create business profile') ||
+          error.response?.status === 404 ||
+          // Fallback: Any error when creating business post could be profile related
+          (error.response?.status !== undefined && error.response.status >= 400 && error.response.status < 500)
+        );
+        
+        //console.log('Is business profile error:', isBusinessProfileError);
+        
+        if (isBusinessProfileError) {
+          //console.log('Opening business profile modal...');
+          
+          toast.error('Business profile not found. Please add your business details first.', {
+            position: "top-right",
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+          });
+          
+          // Open business profile modal
+          setShowBusinessProfileModal(true);
+          //console.log('Business modal state set to true');
+          return; // Don't show the generic error
+        }
       } else if (error instanceof Error) {
         userMessage = error.message || userMessage;
       }
@@ -857,6 +904,25 @@ const handleProductChange = (
     closeModal();
   };
 
+  // Business profile modal handlers
+  const handleBusinessProfileSubmit = (data: any) => {
+    //console.log('Business profile submitted:', data);
+    setShowBusinessProfileModal(false);
+    // Optionally, you can retry the business post creation here
+    toast.success('Business profile added successfully! You can now create business posts.', {
+      position: "top-right",
+      autoClose: 3000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+    });
+  };
+
+  const handleBusinessProfileClose = () => {
+    setShowBusinessProfileModal(false);
+  };
+
   return (
     <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-[10000]">
       <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-hidden flex flex-col">
@@ -876,7 +942,7 @@ const handleProductChange = (
           {/* User Info */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center">
-              <div className="w-12 h-12 bg-button-gradient rounded-full flex items-center justify-center text-white text-shadow font-semibold">
+              <div className="w-12 h-12 bg-button-gradient rounded-full flex items-center justify-center text-black font-semibold">
                 {user?.profileImageUrl ? <Image src={user?.profileImageUrl} alt="Profile" width={48} height={48} className="rounded-full" /> : user?.fullName?.charAt(0)}
               </div>
               <div className="ml-3">
@@ -886,7 +952,7 @@ const handleProductChange = (
             </div>
             <Button
               onClick={handlePost}
-              className="px-6 py-2 bg-button-gradient text-white text-shadow rounded-lg hover:bg-[#b8871f] transition-colors cursor-pointer"
+              className="px-6 py-2 bg-button-gradient text-black rounded-lg hover:bg-[#b8871f] transition-colors cursor-pointer"
               disabled={loading || isOptimizing}
             >
               {loading ? 'Posting...' : 'Submit Post'}
@@ -897,6 +963,21 @@ const handleProductChange = (
           {error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
               <p className="text-red-600 text-sm">{error}</p>
+            </div>
+          )}
+
+          {/* Debug button - Remove this after testing */}
+          {postType === 'Business' && (
+            <div className="mb-4">
+              <button
+                onClick={() => {
+                  //console.log('Manually opening business profile modal');
+                  setShowBusinessProfileModal(true);
+                }}
+                className="px-4 py-2 bg-red-500 text-white rounded-lg text-sm"
+              >
+                Test Business Modal
+              </button>
             </div>
           )}
 
@@ -1012,7 +1093,7 @@ const handleProductChange = (
               />
               <label
                 htmlFor="image-upload"
-                className="inline-flex items-center px-4 py-2 bg-button-gradient text-white text-shadow rounded-lg hover:bg-[#b8871f] cursor-pointer transition-colors"
+                className="inline-flex items-center px-4 py-2 bg-button-gradient text-black rounded-lg hover:bg-[#b8871f] cursor-pointer transition-colors"
               >
                 📎 Add Images & Videos
               </label>
@@ -1175,13 +1256,21 @@ const handleProductChange = (
           </Button>
           <Button
             onClick={handlePost}
-            className="px-6 py-2 bg-button-gradient text-white text-shadow rounded-lg hover:bg-[#b8871f] transition-colors cursor-pointer"
+            className="px-6 py-2 bg-button-gradient text-black rounded-lg hover:bg-[#b8871f] transition-colors cursor-pointer"
             disabled={loading || isOptimizing}
           >
             {loading ? 'Posting...': 'Post'}
           </Button>
         </div>
       </div>
+      
+      {/* Business Details Modal */}
+      <BusinessDetailsModal
+        isOpen={showBusinessProfileModal}
+        onClose={handleBusinessProfileClose}
+        onSubmit={handleBusinessProfileSubmit}
+        isEdit={false}
+      />
     </div>
   );
 };

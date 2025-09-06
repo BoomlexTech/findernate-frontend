@@ -316,16 +316,24 @@ const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
                                       
                                       video.addEventListener('canplay', () => {
                                         const currentlyHovered = hoveredVideo === post._id;
-                                        if (!currentlyHovered) {
+                                        // For saved tab, only play on hover
+                                        // For other profile tabs, always play
+                                        const isProfileTab = activeTab !== 'saved';
+                                        const shouldPlay = isProfileTab || currentlyHovered;
+                                        
+                                        if (!shouldPlay) {
                                           video.pause();
                                         } else {
                                           video.play().catch(() => {});
                                         }
                                       });
                                       
-                                      // Initial state based on current hover
+                                      // Initial state based on tab and hover
+                                      const isProfileTab = activeTab !== 'saved';
                                       const currentlyHovered = hoveredVideo === post._id;
-                                      if (currentlyHovered) {
+                                      const shouldPlay = isProfileTab || currentlyHovered;
+                                      
+                                      if (shouldPlay) {
                                         video.play().catch(() => {});
                                       } else {
                                         video.pause();
@@ -336,12 +344,14 @@ const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
                                   {safeUrl && <source src={safeUrl} type="video/mp4" />}
                                 </video>
                                 
-                                {/* Play icon overlay - only when paused */}
-                                <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-300 ${shouldShowVideo ? 'opacity-0' : 'opacity-100'}`}>
-                                  <div className="bg-black/50 rounded-full p-3">
-                                    <Play className="w-6 h-6 text-white fill-white" />
+                                {/* Play icon overlay - only show for saved tab when paused */}
+                                {activeTab === 'saved' && (
+                                  <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-300 ${shouldShowVideo ? 'opacity-0' : 'opacity-100'}`}>
+                                    <div className="bg-black/50 rounded-full p-3">
+                                      <Play className="w-6 h-6 text-white fill-white" />
+                                    </div>
                                   </div>
-                                </div>
+                                )}
                               </>
                             ) : (
                               <Image
@@ -369,8 +379,11 @@ const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
                         if (isVideo) {
                           const isReelTab = activeTab === 'reels';
                           const isSavedTab = activeTab === 'saved';
+                          const isProfileTab = activeTab === 'posts' || activeTab === 'videos';
                           const isHovered = hoveredVideo === post._id;
-                          const shouldShowVideo = (isReelTab || isSavedTab) && isHovered;
+                          // For profile tabs (posts/videos), play video automatically without hover requirement
+                          // For reels/saved tabs, keep original hover behavior
+                          const shouldShowVideo = isProfileTab || ((isReelTab || isSavedTab) && isHovered);
                           
                           if (isReelTab) {
                             // Original reels logic - no thumbnail poster
@@ -454,8 +467,35 @@ const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
                                 </div>
                               </>
                             );
+                          } else if (isProfileTab) {
+                            // Profile tab videos - auto-play without poster, no hover needed
+                            return (
+                              <>
+                                <video
+                                  className="w-full h-full object-cover"
+                                  muted
+                                  loop
+                                  autoPlay
+                                  playsInline
+                                  preload="auto"
+                                  ref={(video) => {
+                                    if (video) {
+                                      video.load();
+                                      video.play().catch(() => {
+                                        // If autoplay fails, still try to play when loaded
+                                        video.addEventListener('loadeddata', () => {
+                                          video.play().catch(() => {});
+                                        });
+                                      });
+                                    }
+                                  }}
+                                >
+                                  {safeUrl && <source src={safeUrl} type="video/mp4" />}
+                                </video>
+                              </>
+                            );
                           } else {
-                            // Non-reel videos
+                            // Non-reel videos (fallback)
                             return (
                               <>
                                 <video

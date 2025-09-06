@@ -35,7 +35,7 @@ const Page = () => {
         types: 'all', // Get all types of posts
         sortBy: 'engagement' // Sort by engagement for trending
       });
-      console.log("trending data", response);
+      //console.log("trending data", response);
       
       // Transform the new API response structure
       const transformedData = response.data.feed.map((item) => {
@@ -94,15 +94,15 @@ const Page = () => {
         };
       });
       
-      console.log('Transformed trending data:', transformedData.slice(0, 2));
+      //console.log('Transformed trending data:', transformedData.slice(0, 2));
       
       // Fetch comments for all posts
       const postsWithComments = await Promise.all(
         transformedData.map(async (post) => {
           try {
-            console.log(`Fetching comments for post: ${post._id}`);
+            //console.log(`Fetching comments for post: ${post._id}`);
             const commentsResponse = await getCommentsByPost(post._id, 1, 5); // Fetch first 5 comments
-            console.log(`Comments response for post ${post._id}:`, commentsResponse);
+            //console.log(`Comments response for post ${post._id}:`, commentsResponse);
             
             // Handle different possible response structures
             let comments: Comment[] = [];
@@ -118,11 +118,11 @@ const Page = () => {
                 comments = commentsResponse;
                 totalComments = comments.length;
               } else {
-                console.log('Unexpected comments response structure:', commentsResponse);
+                //console.log('Unexpected comments response structure:', commentsResponse);
               }
             }
             
-            console.log(`Processed ${comments.length} comments for post ${post._id}, total: ${totalComments}`);
+            //console.log(`Processed ${comments.length} comments for post ${post._id}, total: ${totalComments}`);
             
             return {
               ...post,
@@ -269,7 +269,7 @@ const Page = () => {
                     onClick={() => setActiveFilter(filter.name)}
                     className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 flex items-center gap-2 ${
                       activeFilter === filter.name
-                        ? 'bg-button-gradient text-white text-shadow shadow-lg transform scale-105'
+                        ? 'bg-button-gradient text-black shadow-lg transform scale-105'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:scale-105'
                     }`}
                   >

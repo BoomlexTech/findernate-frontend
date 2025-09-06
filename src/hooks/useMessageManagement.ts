@@ -24,11 +24,11 @@ export const useMessageManagement = ({ selectedChat, user, setChats, messageRequ
     if (typeof newMessages === 'function') {
       originalSetMessages(prev => {
         const result = newMessages(prev);
-        console.log('Messages state updated (function):', result.length, 'previous:', prev.length);
+        //console.log('Messages state updated (function):', result.length, 'previous:', prev.length);
         return result;
       });
     } else {
-      console.log('Messages state updated (direct):', newMessages.length, 'messages');
+      //console.log('Messages state updated (direct):', newMessages.length, 'messages');
       originalSetMessages(newMessages);
     }
   };
@@ -94,32 +94,32 @@ export const useMessageManagement = ({ selectedChat, user, setChats, messageRequ
         const hasBeenViewed = viewedRequests?.has(selectedChat) || false;
         
         if (isRequestChatFromState) {
-          console.log('Detected request chat from state:', selectedChat);
+          //console.log('Detected request chat from state:', selectedChat);
           
           // Mark this as a request chat so we can disable messaging
           setIsRequestChat(true);
           
           // Try to load messages directly using the chat ID - no temporary acceptance needed
-          console.log('Loading messages directly for request chat:', selectedChat);
+          //console.log('Loading messages directly for request chat:', selectedChat);
           try {
             const response = await messageAPI.getChatMessages(selectedChat);
-            console.log('Messages loaded for request chat:', selectedChat, 'Count:', response.messages?.length || 0);
+            //console.log('Messages loaded for request chat:', selectedChat, 'Count:', response.messages?.length || 0);
             
             if (response.messages && response.messages.length > 0) {
               setMessagesWithDebug(response.messages);
-              console.log('Successfully loaded', response.messages.length, 'messages for request chat');
+              //console.log('Successfully loaded', response.messages.length, 'messages for request chat');
             } else {
-              console.log('No messages returned for request chat, checking cached messages and lastMessage');
+              //console.log('No messages returned for request chat, checking cached messages and lastMessage');
               
               // First, check if we have cached messages for this request chat
               const cachedMessages = requestChatCache.getMessages(selectedChat);
               const requestChat = messageRequests?.find(req => req._id === selectedChat);
               
               if (cachedMessages.length > 0) {
-                console.log('Found', cachedMessages.length, 'cached messages for request chat');
+                //console.log('Found', cachedMessages.length, 'cached messages for request chat');
                 setMessagesWithDebug(cachedMessages);
               } else if (requestChat && requestChat.lastMessage && requestChat.lastMessage.message) {
-                console.log('No cached messages, caching and displaying lastMessage');
+                //console.log('No cached messages, caching and displaying lastMessage');
                 
                 // Cache the lastMessage using the utility function
                 requestChatCache.addLastMessage(
@@ -131,7 +131,7 @@ export const useMessageManagement = ({ selectedChat, user, setChats, messageRequ
                 // Now get the cached messages (which should include the lastMessage we just cached)
                 const updatedCachedMessages = requestChatCache.getMessages(selectedChat);
                 setMessagesWithDebug(updatedCachedMessages);
-                console.log('Cached and displaying lastMessage, total messages:', updatedCachedMessages.length);
+                //console.log('Cached and displaying lastMessage, total messages:', updatedCachedMessages.length);
               } else {
                 setMessagesWithDebug([]);
               }
@@ -147,11 +147,11 @@ export const useMessageManagement = ({ selectedChat, user, setChats, messageRequ
             // Check if the current user is the sender (creator) of this chat
             const requestChat = messageRequests?.find(req => req._id === selectedChat);
             if (requestChat && requestChat.createdBy && requestChat.createdBy._id === user?._id) {
-              console.log('Current user is the sender of this request chat, trying regular message loading...');
+              //console.log('Current user is the sender of this request chat, trying regular message loading...');
               try {
                 // Try loading as a regular chat since sender should always see their messages
                 const regularResponse = await messageAPI.getChatMessages(selectedChat);
-                console.log('Messages loaded as regular chat for sender:', regularResponse.messages.length);
+                //console.log('Messages loaded as regular chat for sender:', regularResponse.messages.length);
                 setMessagesWithDebug(regularResponse.messages || []);
                 setIsRequestChat(false); // Allow sender to continue messaging
               } catch (regularError) {
@@ -160,7 +160,7 @@ export const useMessageManagement = ({ selectedChat, user, setChats, messageRequ
               }
             } else {
               // This is a true request chat where receiver can't see messages yet
-              console.log('Receiver cannot see messages until acceptance - showing empty state');
+              //console.log('Receiver cannot see messages until acceptance - showing empty state');
               setMessagesWithDebug([]);
             }
           }
@@ -169,14 +169,14 @@ export const useMessageManagement = ({ selectedChat, user, setChats, messageRequ
           const shouldTreatAsRequest = viewedRequests?.has(selectedChat) || false;
           
           if (shouldTreatAsRequest) {
-            console.log('This chat was temporarily accepted but should remain as request');
+            //console.log('This chat was temporarily accepted but should remain as request');
             setIsRequestChat(true);
           } else {
             setIsRequestChat(false);
           }
           
           const response = await messageAPI.getChatMessages(selectedChat);
-          console.log('Loaded messages for regular chat:', selectedChat, 'count:', response.messages.length);
+          //console.log('Loaded messages for regular chat:', selectedChat, 'count:', response.messages.length);
           
           setMessagesWithDebug(response.messages);
         }
@@ -256,7 +256,7 @@ export const useMessageManagement = ({ selectedChat, user, setChats, messageRequ
     
     // Prevent sending messages if this is a request chat
     if (isRequestChat) {
-      console.log('Cannot send message - this is a request chat. User must accept first.');
+      //console.log('Cannot send message - this is a request chat. User must accept first.');
       return;
     }
 
@@ -269,15 +269,15 @@ export const useMessageManagement = ({ selectedChat, user, setChats, messageRequ
       setSendingMessage(true);
       const message = await messageAPI.sendMessage(selectedChat, messageText);
       
-      console.log('API: Adding message from API response', message._id);
+      //console.log('API: Adding message from API response', message._id);
       setMessagesWithDebug(prev => {
         const messageExists = prev.some(msg => msg._id === message._id);
-        console.log('API: Message exists?', messageExists, 'Message ID:', message._id);
+        //console.log('API: Message exists?', messageExists, 'Message ID:', message._id);
         if (messageExists) {
-          console.log('API: Skipping duplicate message');
+          //console.log('API: Skipping duplicate message');
           return prev;
         }
-        console.log('API: Adding new message to state');
+        //console.log('API: Adding new message to state');
         return [...prev, message];
       });
       

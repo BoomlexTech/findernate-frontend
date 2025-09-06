@@ -62,7 +62,7 @@ export default function Page() {
               
               <button
                 onClick={handleLoginClick}
-                className="w-full bg-button-gradient text-white text-shadow font-semibold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+                className="w-full bg-button-gradient text-black font-semibold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg flex items-center justify-center gap-2"
               >
                 <LogIn className="w-5 h-5" />
                 Sign In to Start Chatting

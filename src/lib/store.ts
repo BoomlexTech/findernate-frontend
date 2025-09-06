@@ -47,15 +47,15 @@ export const useAdminStore = create<AdminStore>()(
       
       login: async (email: string, password: string) => {
         try {
-          console.log('🔐 Admin Login: Starting login process...');
+          //console.log('🔐 Admin Login: Starting login process...');
           set({ isLoading: true, error: null });
 
           const response = await adminAPI.login({ email, password });
-          console.log('🔐 Admin Login: API response received:', response);
+          //console.log('🔐 Admin Login: API response received:', response);
           
           if (response.success) {
             const { admin, accessToken, refreshToken } = response.data;
-            console.log('🔐 Admin Login: Login successful, storing data...');
+            //console.log('🔐 Admin Login: Login successful, storing data...');
             
             // Store tokens and admin data in localStorage for persistence
             localStorage.setItem('adminAccessToken', accessToken);
@@ -71,8 +71,8 @@ export const useAdminStore = create<AdminStore>()(
               error: null,
             });
             
-            console.log('🔐 Admin Login: State updated successfully');
-            console.log('🔐 Admin Login: isAuthenticated =', true);
+            //console.log('🔐 Admin Login: State updated successfully');
+            //console.log('🔐 Admin Login: isAuthenticated =', true);
           } else {
             console.error('🔐 Admin Login: API returned success=false');
             throw new Error(response.message || 'Login failed');
@@ -93,7 +93,7 @@ export const useAdminStore = create<AdminStore>()(
       
       logout: async () => {
         try {
-          console.log('🚪 Logout: Starting logout process...');
+          //console.log('🚪 Logout: Starting logout process...');
           set({ isLoading: true });
           
           // Try to call logout API
@@ -103,7 +103,7 @@ export const useAdminStore = create<AdminStore>()(
               credentials: 'include'
             });
           } catch (apiError) {
-            console.log('🚪 Logout: API call failed, but continuing with local logout:', apiError);
+            //console.log('🚪 Logout: API call failed, but continuing with local logout:', apiError);
           }
           
           // Clear stored data
@@ -122,7 +122,7 @@ export const useAdminStore = create<AdminStore>()(
             unreadCount: 0
           });
           
-          console.log('🚪 Logout: Logout completed successfully');
+          //console.log('🚪 Logout: Logout completed successfully');
         } catch (error: any) {
           console.error('🚪 Logout: Error during logout:', error);
           // Even if everything fails, clear local state
@@ -144,7 +144,7 @@ export const useAdminStore = create<AdminStore>()(
       },
       
       setUser: (user: AdminUser) => {
-        console.log('🏪 Store: Setting user and marking as authenticated:', user);
+        //console.log('🏪 Store: Setting user and marking as authenticated:', user);
         set({ 
           user, 
           isAuthenticated: true,
@@ -156,28 +156,28 @@ export const useAdminStore = create<AdminStore>()(
 
       initializeAuth: () => {
         try {
-          console.log('🔄 InitAuth: Starting auth initialization...');
+          //console.log('🔄 InitAuth: Starting auth initialization...');
           const storedAccessToken = localStorage.getItem('adminAccessToken');
           const storedRefreshToken = localStorage.getItem('adminRefreshToken');
           const storedAdminString = localStorage.getItem('adminUser');
 
-          console.log('🔄 InitAuth: Stored data check:', {
-            hasAccessToken: !!storedAccessToken,
-            hasRefreshToken: !!storedRefreshToken,
-            hasAdmin: !!storedAdminString
-          });
+          //console.log('🔄 InitAuth: Stored data check:', {
+          //  hasAccessToken: !!storedAccessToken,
+          //  hasRefreshToken: !!storedRefreshToken,
+          //  hasAdmin: !!storedAdminString
+          // });
 
           if (storedAccessToken && storedRefreshToken && storedAdminString) {
             try {
               const storedAdmin = JSON.parse(storedAdminString);
-              console.log('🔄 InitAuth: All data found, restoring auth state...');
+              //console.log('🔄 InitAuth: All data found, restoring auth state...');
               set({
                 user: storedAdmin,
                 accessToken: storedAccessToken,
                 refreshToken: storedRefreshToken,
                 isAuthenticated: true,
               });
-              console.log('🔄 InitAuth: Auth state restored successfully');
+              //console.log('🔄 InitAuth: Auth state restored successfully');
             } catch (parseError) {
               console.error('🔄 InitAuth: Error parsing stored admin data:', parseError);
               // Clear corrupted data
@@ -192,7 +192,7 @@ export const useAdminStore = create<AdminStore>()(
               });
             }
           } else {
-            console.log('🔄 InitAuth: Missing data, clearing auth state...');
+            //console.log('🔄 InitAuth: Missing data, clearing auth state...');
             // If any piece is missing, clear everything
             localStorage.removeItem('adminUser');
             localStorage.removeItem('adminAccessToken');
@@ -279,7 +279,7 @@ export const useAdminStore = create<AdminStore>()(
     isAuthenticated: state.isAuthenticated,
   }),
   onRehydrateStorage: () => (state) => {
-    console.log('💾 Persist: Rehydrating state from localStorage:', state);
+    //console.log('💾 Persist: Rehydrating state from localStorage:', state);
   },
 }
 )

@@ -80,7 +80,7 @@ export default function SuggestedUsers({ users: initialUsers = defaultSuggestedU
       setError(null);
       try {
         const res = await getSuggestedUsers();
-        console.log("suggested for you",res)
+        //console.log("suggested for you",res)
         const safeUsers = Array.isArray(res) ? res : [];
         setUsers(safeUsers);
         setUserStates(safeUsers.reduce((acc, user) => ({
@@ -92,7 +92,7 @@ export default function SuggestedUsers({ users: initialUsers = defaultSuggestedU
           }
         }), {}));
       } catch (err) {
-        console.log(err);
+        //console.log(err);
         setError('suggestions not found.');
         setUsers(defaultSuggestedUsers);
         setUserStates(defaultSuggestedUsers.reduce((acc, user) => ({
@@ -164,7 +164,7 @@ export default function SuggestedUsers({ users: initialUsers = defaultSuggestedU
             isLoading: false
           }
         }));
-        console.log('User was already following - updating UI state');
+        //console.log('User was already following - updating UI state');
       } else if (errorMessage === 'Not following this user') {
         // Update state to reflect reality
         setUserStates(prev => ({
@@ -175,7 +175,7 @@ export default function SuggestedUsers({ users: initialUsers = defaultSuggestedU
             isLoading: false
           }
         }));
-        console.log('User was not following - updating UI state');
+        //console.log('User was not following - updating UI state');
       } else {
         // Show user-friendly error message for other errors
         alert(errorMessage || 'Failed to update follow status');
@@ -278,7 +278,7 @@ export default function SuggestedUsers({ users: initialUsers = defaultSuggestedU
                     className={`text-xs px-3 py-1.5 cursor-pointer flex items-center gap-1 min-w-[80px] justify-center ${
                       userState?.isFollowing 
                         ? 'bg-gray-500 hover:bg-gray-600 text-white border-gray-500' 
-                        : 'bg-button-gradient border-[#FCD45C] text-white text-shadow hover:bg-[#FCD45C]'
+                        : 'bg-button-gradient border-[#FCD45C] text-black hover:bg-[#FCD45C]'
                     }`}
                   >
                     {userState?.isLoading ? (

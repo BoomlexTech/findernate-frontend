@@ -85,7 +85,7 @@ const CommentItem = ({ comment, onUpdate, onDelete, onReplyAdded, isReply = fals
         } catch (likeError: any) {
           // Handle "already liked" error or self-like restriction
           if (likeError?.response?.status === 409) {
-            console.log(`Comment ${comment._id} already liked or self-like not allowed - treating as successful`);
+            //console.log(`Comment ${comment._id} already liked or self-like not allowed - treating as successful`);
             return; // Keep the optimistic update
           }
           throw likeError;
@@ -97,7 +97,7 @@ const CommentItem = ({ comment, onUpdate, onDelete, onReplyAdded, isReply = fals
           // Handle "like not found" error
           if (unlikeError?.response?.status === 404 || 
               unlikeError?.response?.data?.message?.includes('not found')) {
-            console.log(`Like not found for comment ${comment._id} - treating as successful unlike`);
+            //console.log(`Like not found for comment ${comment._id} - treating as successful unlike`);
             return; // Keep the optimistic update
           }
           throw unlikeError;
@@ -111,7 +111,7 @@ const CommentItem = ({ comment, onUpdate, onDelete, onReplyAdded, isReply = fals
       
       // Show user-friendly message for specific errors
       if (error?.response?.status === 409) {
-        console.log('Cannot like your own comment or comment already liked');
+        //console.log('Cannot like your own comment or comment already liked');
       }
     } finally {
       setIsLikeLoading(false);

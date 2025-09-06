@@ -37,7 +37,7 @@ export const CallModal: React.FC<CallModalProps> = ({
   // Setup video streams
   useEffect(() => {
     if (localVideoRef.current && callState.localStream) {
-      console.log('🎥 Setting local video stream:', callState.localStream);
+      //console.log('🎥 Setting local video stream:', callState.localStream);
       localVideoRef.current.srcObject = callState.localStream;
       
       // Ensure video plays
@@ -49,8 +49,8 @@ export const CallModal: React.FC<CallModalProps> = ({
 
   useEffect(() => {
     if (remoteVideoRef.current && callState.remoteStream) {
-      console.log('🎥 Setting remote video stream:', callState.remoteStream);
-      console.log('🎥 Remote stream tracks:', callState.remoteStream.getTracks().map(t => `${t.kind}: ${t.enabled}`));
+      //console.log('🎥 Setting remote video stream:', callState.remoteStream);
+      //console.log('🎥 Remote stream tracks:', callState.remoteStream.getTracks().map(t => `${t.kind}: ${t.enabled}`));
       
       remoteVideoRef.current.srcObject = callState.remoteStream;
       
@@ -67,7 +67,7 @@ export const CallModal: React.FC<CallModalProps> = ({
   // Setup audio element for audio-only calls or as backup
   useEffect(() => {
     if (remoteAudioRef.current && callState.remoteStream) {
-      console.log('🔊 Setting remote audio stream:', callState.remoteStream);
+      //console.log('🔊 Setting remote audio stream:', callState.remoteStream);
       remoteAudioRef.current.srcObject = callState.remoteStream;
       remoteAudioRef.current.volume = 1.0;
       

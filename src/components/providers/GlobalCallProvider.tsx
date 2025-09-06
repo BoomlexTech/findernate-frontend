@@ -102,16 +102,16 @@ export const GlobalCallProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   // End call locally (cleanup without emitting to others)
   const endCallLocally = useCallback(async (endReason: string = 'normal') => {
     if (!callStateRef.current.call) {
-      console.log('No active call to end locally');
+      //console.log('No active call to end locally');
       return;
     }
 
     try {
-      console.log('Ending call locally:', callStateRef.current.call._id, 'with reason:', endReason);
+      //console.log('Ending call locally:', callStateRef.current.call._id, 'with reason:', endReason);
       
       // End WebRTC call
       webRTCManager.endCall();
-      console.log('WebRTC call ended locally');
+      //console.log('WebRTC call ended locally');
 
       // Reset call state
       updateCallState({
@@ -124,7 +124,7 @@ export const GlobalCallProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         callStats: null,
         error: null
       });
-      console.log('Call state reset locally');
+      //console.log('Call state reset locally');
 
     } catch (error) {
       console.error('Error ending call locally:', error);
@@ -135,25 +135,25 @@ export const GlobalCallProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   // Setup WebRTC event handlers
   useEffect(() => {
     if (!user) {
-      console.log('🌍 Global Call Provider: No user logged in, skipping WebRTC setup');
+      //console.log('🌍 Global Call Provider: No user logged in, skipping WebRTC setup');
       return;
     }
     
-    console.log('🌍 Global Call Provider: Setting up WebRTC event handlers');
+    //console.log('🌍 Global Call Provider: Setting up WebRTC event handlers');
     
     webRTCManager.onRemoteStream((stream) => {
-      console.log('🌍 Global: Remote stream received');
+      //console.log('🌍 Global: Remote stream received');
       updateCallState({ remoteStream: stream });
     });
 
     webRTCManager.onConnectionStateChange((state) => {
-      console.log('🌍 Global: Connection state changed:', state);
+      //console.log('🌍 Global: Connection state changed:', state);
       updateCallState({ connectionState: state });
       
       // Update call status on backend and local state
       if (callStateRef.current.call) {
         if (state === 'connected') {
-          console.log('🔥 Global: WebRTC connected, updating call status to active for call:', callStateRef.current.call._id);
+          //console.log('🔥 Global: WebRTC connected, updating call status to active for call:', callStateRef.current.call._id);
           
           // Update local state immediately for responsiveness
           updateCallState({ 
@@ -164,7 +164,7 @@ export const GlobalCallProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           callAPI.updateCallStatus(callStateRef.current.call._id, { 
             status: 'active' 
           }).then(() => {
-            console.log('✅ Global: Call status updated to active successfully');
+            //console.log('✅ Global: Call status updated to active successfully');
           }).catch((error) => {
             console.error('❌ Global: Failed to update call status to active:', error);
           });
@@ -193,21 +193,21 @@ export const GlobalCallProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   // Setup socket event handlers
   useEffect(() => {
     if (!user) {
-      console.log('🌍 Global Call Provider: No user logged in, skipping setup');
+      //console.log('🌍 Global Call Provider: No user logged in, skipping setup');
       return;
     }
     
-    console.log('🌍 Global Call Provider: Setting up socket event handlers');
-    console.log('🌍 Socket manager ready:', socketManager ? 'yes' : 'no');
-    console.log('🌍 User logged in:', user.username);
+    //console.log('🌍 Global Call Provider: Setting up socket event handlers');
+    //console.log('🌍 Socket manager ready:', socketManager ? 'yes' : 'no');
+    //console.log('🌍 User logged in:', user.username);
     
     // Handle incoming call
     socketManager.on('incoming_call', (data: IncomingCall) => {
-      console.log('🌍 Global: Incoming call received:', data);
+      //console.log('🌍 Global: Incoming call received:', data);
       
       // If there's already an active call, clean it up first
       if (callStateRef.current.call && callStateRef.current.isInCall) {
-        console.log('🧹 Global: Cleaning up existing call for new incoming call');
+        //console.log('🧹 Global: Cleaning up existing call for new incoming call');
         endCallLocally('cancelled').then(() => {
           // Set incoming call after cleanup
           setIncomingCall(data);
@@ -252,7 +252,7 @@ export const GlobalCallProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
     // Handle call accepted
     socketManager.on('call_accepted', (data) => {
-      console.log('🌍 Global: Call accepted:', data);
+      //console.log('🌍 Global: Call accepted:', data);
       if (callStateRef.current.call && callStateRef.current.call._id === data.callId) {
         updateCallState({
           call: { ...callStateRef.current.call, status: 'connecting' }
@@ -262,7 +262,7 @@ export const GlobalCallProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
     // Handle call declined
     socketManager.on('call_declined', (data) => {
-      console.log('🌍 Global: Call declined:', data);
+      //console.log('🌍 Global: Call declined:', data);
       if (callStateRef.current.call && callStateRef.current.call._id === data.callId) {
         endCallLocally('declined');
       }
@@ -270,16 +270,16 @@ export const GlobalCallProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
     // Handle call ended
     socketManager.on('call_ended', (data) => {
-      console.log('🌍 Global: Call ended by remote user:', data);
+      //console.log('🌍 Global: Call ended by remote user:', data);
       if (callStateRef.current.call && callStateRef.current.call._id === data.callId) {
-        console.log('🌍 Global: Remote call end received, ending our call locally with reason:', data.endReason);
+        //console.log('🌍 Global: Remote call end received, ending our call locally with reason:', data.endReason);
         endCallLocally(data.endReason || 'normal');
       }
     });
 
     // Handle call status updates
     socketManager.on('call_status_update', (data) => {
-      console.log('🌍 Global: Call status updated via socket:', data);
+      //console.log('🌍 Global: Call status updated via socket:', data);
       if (callStateRef.current.call && callStateRef.current.call._id === data.callId) {
         updateCallState({
           call: { ...callStateRef.current.call, status: data.status }
@@ -288,7 +288,7 @@ export const GlobalCallProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     });
 
     return () => {
-      console.log('🌍 Global Call Provider: Cleaning up socket event handlers');
+      //console.log('🌍 Global Call Provider: Cleaning up socket event handlers');
       socketManager.off('incoming_call');
       socketManager.off('call_accepted');
       socketManager.off('call_declined');
@@ -307,11 +307,11 @@ export const GlobalCallProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       setIsLoading(true);
       updateCallState({ error: null });
 
-      console.log('🌍 Global: Initiating call to:', receiverId);
+      //console.log('🌍 Global: Initiating call to:', receiverId);
 
       // Clean up any existing call first
       if (callStateRef.current.call) {
-        console.log('🧹 Global: Cleaning up existing call before starting new one');
+        //console.log('🧹 Global: Cleaning up existing call before starting new one');
         await endCallLocally('cancelled');
         await new Promise(resolve => setTimeout(resolve, 500));
       }
@@ -349,7 +349,7 @@ export const GlobalCallProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       
       // Handle 409 conflict (user already in call) by cleaning up and retrying
       if (error?.response?.status === 409) {
-        console.log('🔄 Global: Call conflict detected, cleaning up and retrying...');
+        //console.log('🔄 Global: Call conflict detected, cleaning up and retrying...');
         try {
           // Force cleanup any server-side call state
           await callAPI.getActiveCall().then(activeCall => {
@@ -390,7 +390,7 @@ export const GlobalCallProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       setIsLoading(true);
       updateCallState({ error: null });
 
-      console.log('🌍 Global: Accepting call:', incomingCall.callId);
+      //console.log('🌍 Global: Accepting call:', incomingCall.callId);
 
       // Accept call on backend
       const call = await callAPI.acceptCall(incomingCall.callId);
@@ -431,7 +431,7 @@ export const GlobalCallProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     if (!incomingCall) return;
 
     try {
-      console.log('🌍 Global: Declining call:', incomingCall.callId);
+      //console.log('🌍 Global: Declining call:', incomingCall.callId);
 
       // Decline call on backend
       await callAPI.declineCall(incomingCall.callId);
@@ -450,12 +450,12 @@ export const GlobalCallProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   // End the current call
   const endCall = useCallback(async (endReason: string = 'normal') => {
     if (!callState.call) {
-      console.log('🌍 Global: No active call to end');
+      //console.log('🌍 Global: No active call to end');
       return;
     }
 
     try {
-      console.log('🌍 Global: Ending call:', callState.call._id, 'with reason:', endReason);
+      //console.log('🌍 Global: Ending call:', callState.call._id, 'with reason:', endReason);
       
       // End call on backend
       await callAPI.endCall(callState.call._id, { endReason: endReason as any });

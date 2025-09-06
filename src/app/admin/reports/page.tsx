@@ -28,7 +28,7 @@ export default function ReportManagementPage() {
       setIsLoading(true);
       setError(null);
       
-      console.log('🔍 Fetching reports:', { page, search, status, reason, type });
+      //console.log('🔍 Fetching reports:', { page, search, status, reason, type });
       
       const response = await reportsAPI.getReports({
         page,
@@ -39,7 +39,7 @@ export default function ReportManagementPage() {
         type: type !== 'all' ? type : undefined,
       });
 
-      console.log('✅ API Response:', response);
+      //console.log('✅ API Response:', response);
 
       if (response.success) {
         setReports(response.data.reports);
@@ -49,7 +49,7 @@ export default function ReportManagementPage() {
         throw new Error(response.message || 'Failed to fetch data');
       }
     } catch (err: any) {
-      console.error('❌ Error fetching reports:', err);
+      //console.error('❌ Error fetching reports:', err);
       setError(err.message || 'Failed to load reports');
     } finally {
       setIsLoading(false);
@@ -97,7 +97,7 @@ export default function ReportManagementPage() {
     
     try {
       setIsUpdating(showActionModal.reportId);
-      console.log(`🔄 Updating report ${showActionModal.reportId} to ${status}`);
+      //console.log(`🔄 Updating report ${showActionModal.reportId} to ${status}`);
       
       const updateData: any = { status };
       
@@ -111,13 +111,13 @@ export default function ReportManagementPage() {
       
       await reportsAPI.updateReportStatus(showActionModal.reportId, updateData);
       
-      console.log('✅ Report updated successfully');
+      //console.log('✅ Report updated successfully');
       
       // Close modal and refresh list
       handleCloseActionModal();
       await fetchReports(currentPage, searchQuery, statusFilter, reasonFilter, typeFilter);
     } catch (err: any) {
-      console.error('❌ Error updating report:', err);
+      //console.error('❌ Error updating report:', err);
       setError(err.message || 'Failed to update report');
     } finally {
       setIsUpdating(null);
@@ -129,16 +129,16 @@ export default function ReportManagementPage() {
     
     try {
       setIsUpdating(reportId);
-      console.log(`🗑️ Deleting report ${reportId}`);
+      //console.log(`🗑️ Deleting report ${reportId}`);
       
       await reportsAPI.deleteReport(reportId);
       
-      console.log('✅ Report deleted successfully');
+      //console.log('✅ Report deleted successfully');
       
       // Refresh the reports list
       await fetchReports(currentPage, searchQuery, statusFilter, reasonFilter, typeFilter);
     } catch (err: any) {
-      console.error('❌ Error deleting report:', err);
+      //console.error('❌ Error deleting report:', err);
       setError(err.message || 'Failed to delete report');
     } finally {
       setIsUpdating(null);
