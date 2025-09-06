@@ -16,7 +16,7 @@ export default function Home() {
         {/* Main Content Area */}
         <div className="flex-1 lg:pr-[23rem] pr-0">
           {/* Mobile Logo - Only visible on small screens */}
-          <div className="lg:hidden pt-4">
+          <div className="lg:hidden pt-4 bg-white">
             <div className="flex justify-center w-full">
               <Image
                 src="/Findernate_Logo.png"
