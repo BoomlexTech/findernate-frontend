@@ -54,15 +54,13 @@ export default function LeftSidebar({togglePost, onItemClick}: leftSidebarProps)
 	  <div className="mb-4">
 		<div className="flex items-center w-[13rem]">
 		  <Image
-		  src={'/Findernate.ico'}
+		  src={'/Findernate_Logo.png'}
 		  alt='Company-Logo'
-		  width={50}
-		  height={50}
-		  className="text-xl font-bold"
-		  style={{ color: 'inherit' }}/>
-		  <p className='text-[#ffd65c] text-3xl font-bold -ml-2'> FiNDERNATE</p>
+		  width={220}
+		  height={160}
+		  className="text-xl font-bold p-0 m-0 object-contain"
+		/>
 		</div>
-		
 	  </div>
 	  </div>
 	  </Link>
