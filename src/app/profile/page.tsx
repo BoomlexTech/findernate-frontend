@@ -407,7 +407,7 @@ const Page = () => {
           accountBadge={true}
         /> */}
 
-        <div className='flex flex-col gap-6 pt-5'>
+        <div className='flex flex-col gap-6'>
           <UserProfile 
             userData={profileData}
             isCurrentUser={true}
