@@ -173,24 +173,24 @@ function SearchContent() {
         useCurrentLocation && currentCoordinates ? searchRadius : undefined,
         useCurrentLocation && currentCoordinates ? currentCoordinates : undefined
       );
-      console.log("Search params:", {
-        query: searchQuery,
-        location: locationParam,
-        contentType: selectedContentType === "all" ? undefined : selectedContentType || undefined,
-        postType: selectedPostType || undefined,
-        useCurrentLocation,
-        coordinates: currentCoordinates,
-        radius: searchRadius
-      });
+      //console.log("Search params:", {
+      //  query: searchQuery,
+      //  location: locationParam,
+      //  contentType: selectedContentType === "all" ? undefined : selectedContentType || undefined,
+      //  postType: selectedPostType || undefined,
+      //  useCurrentLocation,
+      //  coordinates: currentCoordinates,
+      //  radius: searchRadius
+      // });
       
-      console.log("API response:", response);
+      //console.log("API response:", response);
 
       let filteredResults = response.data.results || [];
       let filteredUsers = response.data.users || [];
 
       // Client-side location filtering for posts if not using current location
       if (!useCurrentLocation && selectedLocation !== "") {
-        console.log("Applying client-side location filtering for:", selectedLocation);
+        //console.log("Applying client-side location filtering for:", selectedLocation);
         
         filteredResults = filteredResults.filter((post) => {
           // Check if post has location in customization for different content types
@@ -205,7 +205,7 @@ function SearchContent() {
             const normalizedSelectedLocation = selectedLocation.toLowerCase().trim();
             const selectedCity = selectedLocation.split(',')[0].toLowerCase().trim();
             
-            console.log("Comparing post location:", normalizedPostLocation, "with selected:", normalizedSelectedLocation);
+            //console.log("Comparing post location:", normalizedPostLocation, "with selected:", normalizedSelectedLocation);
             
             // Check for various matching patterns
             const isMatch = normalizedPostLocation.includes(selectedCity) ||
@@ -228,7 +228,7 @@ function SearchContent() {
             const normalizedSelectedLocation = selectedLocation.toLowerCase().trim();
             const selectedCity = selectedLocation.split(',')[0].toLowerCase().trim();
             
-            console.log("Comparing user location:", normalizedUserLocation, "with selected:", normalizedSelectedLocation);
+            //console.log("Comparing user location:", normalizedUserLocation, "with selected:", normalizedSelectedLocation);
             
             const isMatch = normalizedUserLocation.includes(selectedCity) ||
                            normalizedSelectedLocation.includes(normalizedUserLocation) ||
@@ -242,7 +242,7 @@ function SearchContent() {
           return false;
         });
         
-        console.log("Filtered results:", filteredResults.length, "posts,", filteredUsers.length, "users");
+        //console.log("Filtered results:", filteredResults.length, "posts,", filteredUsers.length, "users");
       }
 
       const flattenedResults = filteredResults.map((post) => ({
@@ -261,9 +261,9 @@ function SearchContent() {
       const postsWithComments = await Promise.all(
         flattenedResults.map(async (post) => {
           try {
-            console.log(`Fetching comments for post: ${post._id}`);
+            //console.log(`Fetching comments for post: ${post._id}`);
             const commentsResponse = await getCommentsByPost(post._id, 1, 5); // Fetch first 5 comments
-            console.log(`Comments response for post ${post._id}:`, commentsResponse);
+            //console.log(`Comments response for post ${post._id}:`, commentsResponse);
             
             // Handle different possible response structures
             let comments: Comment[] = [];
@@ -279,11 +279,11 @@ function SearchContent() {
                 comments = commentsResponse;
                 totalComments = comments.length;
               } else {
-                console.log('Unexpected comments response structure:', commentsResponse);
+                //console.log('Unexpected comments response structure:', commentsResponse);
               }
             }
             
-            console.log(`Processed ${comments.length} comments for post ${post._id}, total: ${totalComments}`);
+            //console.log(`Processed ${comments.length} comments for post ${post._id}, total: ${totalComments}`);
             
             return {
               ...post,
@@ -419,7 +419,7 @@ function SearchContent() {
       };
       setUsers(updatedUsers);
       
-      console.log(`Updated user ${userId} follow status to: ${newIsFollowing}`);
+      //console.log(`Updated user ${userId} follow status to: ${newIsFollowing}`);
     }
   };
 
@@ -453,7 +453,7 @@ function SearchContent() {
                 variant="custom"
                 onClick={activeTab === "Users" ? handleUserSearch : handleSearch}
                 disabled={!searchQuery.trim() || loading}
-                className="absolute right-10 top-1/2 -translate-y-1/2 bg-button-gradient cursor-pointer disabled:bg-gray-300 text-white text-shadow px-6 py-4 rounded-xl transition-colors flex items-center"
+                className="absolute right-10 top-1/2 -translate-y-1/2 bg-button-gradient cursor-pointer disabled:bg-gray-300 text-black px-6 py-4 rounded-xl transition-colors flex items-center"
               >
                 {loading ? "Searching..." : "Search"}
               </Button> */}

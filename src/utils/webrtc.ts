@@ -71,13 +71,13 @@ export class WebRTCManager {
 
   constructor() {
     const instanceId = Math.random().toString(36).substr(2, 9);
-    console.log('🎯 WebRTC Manager: Constructor called, setting up socket listeners - Instance:', instanceId);
+    //console.log('🎯 WebRTC Manager: Constructor called, setting up socket listeners - Instance:', instanceId);
     
     // Log and validate TURN server configuration
-    console.log('🔧 TURN Server Configuration:');
-    console.log('URL:', process.env.NEXT_PUBLIC_TURN_SERVER_URL);
-    console.log('Username:', process.env.NEXT_PUBLIC_TURN_SERVER_USERNAME);
-    console.log('Password:', process.env.NEXT_PUBLIC_TURN_SERVER_PASSWORD ? '[SET]' : '[NOT SET]');
+    //console.log('🔧 TURN Server Configuration:');
+    //console.log('URL:', process.env.NEXT_PUBLIC_TURN_SERVER_URL);
+    //console.log('Username:', process.env.NEXT_PUBLIC_TURN_SERVER_USERNAME);
+    //console.log('Password:', process.env.NEXT_PUBLIC_TURN_SERVER_PASSWORD ? '[SET]' : '[NOT SET]');
     
     // Validate TURN server config
     if (!process.env.NEXT_PUBLIC_TURN_SERVER_URL || 
@@ -90,20 +90,20 @@ export class WebRTCManager {
         password: !process.env.NEXT_PUBLIC_TURN_SERVER_PASSWORD ? 'NEXT_PUBLIC_TURN_SERVER_PASSWORD' : null,
       });
     } else {
-      console.log('✅ TURN server configuration is valid');
+      //console.log('✅ TURN server configuration is valid');
     }
     
-    console.log('📡 ICE Servers:', this.iceServers);
+    //console.log('📡 ICE Servers:', this.iceServers);
     
     // Always set up socket listeners immediately
     // Socket events will be queued until socket connects, which is fine
-    console.log('🎯 Setting up WebRTC socket listeners immediately');
+    //console.log('🎯 Setting up WebRTC socket listeners immediately');
     this.setupSocketListeners();
   }
 
   // Initialize peer connection with enhanced settings
   private createPeerConnection(forceRelay: boolean = false): RTCPeerConnection {
-    console.log('🔧 Creating peer connection with ICE servers:', this.iceServers);
+    //console.log('🔧 Creating peer connection with ICE servers:', this.iceServers);
     
     const config: RTCConfiguration = {
       iceServers: this.iceServers,
@@ -118,7 +118,7 @@ export class WebRTCManager {
       config.iceServers = this.iceServers.filter(server => 
         server.urls.toString().includes('turn:') || server.urls.toString().includes('turns:')
       );
-      console.log('🔄 Using TURN-only servers:', config.iceServers);
+      //console.log('🔄 Using TURN-only servers:', config.iceServers);
     }
     
     const pc = new RTCPeerConnection(config);
@@ -143,11 +143,11 @@ export class WebRTCManager {
         const candidateType = candidate.includes('typ relay') ? '🔄 RELAY' : 
                               candidate.includes('typ srflx') ? '🌐 SRFLX' : 
                               candidate.includes('typ host') ? '🏠 HOST' : '❓ UNKNOWN';
-        console.log(`ICE candidate generated (${candidateType}):`, candidate.substring(0, 80) + '...');
+        //console.log(`ICE candidate generated (${candidateType}):`, candidate.substring(0, 80) + '...');
         
         if (this.callId) {
           const targetUserId = this.isInitiator ? this.receiverId : this.callerId;
-          console.log('Sending ICE candidate to:', targetUserId);
+          //console.log('Sending ICE candidate to:', targetUserId);
           if (targetUserId) {
             socketManager.sendICECandidate(
               this.callId,
@@ -165,7 +165,7 @@ export class WebRTCManager {
 
     // Handle remote stream
     pc.ontrack = (event) => {
-      console.log('Received remote track:', event.track.kind);
+      //console.log('Received remote track:', event.track.kind);
       if (event.streams && event.streams[0]) {
         this.remoteStream = event.streams[0];
         this.onRemoteStreamCallback?.(this.remoteStream);
@@ -174,7 +174,7 @@ export class WebRTCManager {
 
     // Handle connection state changes
     pc.onconnectionstatechange = () => {
-      console.log('Peer connection state:', pc.connectionState);
+      //console.log('Peer connection state:', pc.connectionState);
       this.onConnectionStateChangeCallback?.(pc.connectionState);
       
       // Calculate and emit call stats
@@ -182,7 +182,7 @@ export class WebRTCManager {
       
       // Stop ringtone when connection is established
       if (pc.connectionState === 'connected') {
-        console.log('🎉 Peer connection established successfully!');
+        //console.log('🎉 Peer connection established successfully!');
         ringtoneManager.stopRingtone();
       }
       
@@ -193,11 +193,11 @@ export class WebRTCManager {
 
     // Handle ICE connection state changes
     pc.oniceconnectionstatechange = () => {
-      console.log('ICE connection state:', pc.iceConnectionState);
-      console.log('ICE gathering state:', pc.iceGatheringState);
+      //console.log('ICE connection state:', pc.iceConnectionState);
+      //console.log('ICE gathering state:', pc.iceGatheringState);
       
       if ((pc.iceConnectionState as string) === 'connected' || (pc.iceConnectionState as string) === 'completed') {
-        console.log('🎉 ICE connection established successfully!');
+        //console.log('🎉 ICE connection established successfully!');
         clearTimeout(connectionTimeout);
         this.connectionRetryCount = 0; // Reset retry count on success
         
@@ -211,7 +211,7 @@ export class WebRTCManager {
         console.error('4. Network doesn\'t allow UDP traffic');
         
         // Try TURN-only fallback immediately
-        console.log('🔄 ICE failed - attempting TURN-only fallback');
+        //console.log('🔄 ICE failed - attempting TURN-only fallback');
         this.retryConnectionWithTurnOnly(pc);
       } else if ((pc.iceConnectionState as string) === 'disconnected') {
         console.warn('⚠️ ICE connection disconnected - attempting to reconnect...');
@@ -223,32 +223,32 @@ export class WebRTCManager {
 
   // Setup socket event listeners for WebRTC signaling
   private setupSocketListeners(): void {
-    console.log('🎯 WebRTC Manager: Setting up socket listeners');
-    console.log('🎯 WebRTC Manager: SocketManager instance:', socketManager);
-    console.log('🎯 WebRTC Manager: Registering webrtc_offer handler');
+    //console.log('🎯 WebRTC Manager: Setting up socket listeners');
+    //console.log('🎯 WebRTC Manager: SocketManager instance:', socketManager);
+    //console.log('🎯 WebRTC Manager: Registering webrtc_offer handler');
     
     // Test if the event system is working at all
     socketManager.on('test_webrtc_event', (data) => {
-      console.log('🧪 TEST: WebRTC Manager received test event:', data);
+      //console.log('🧪 TEST: WebRTC Manager received test event:', data);
     });
     
     // Manually test the event system after a delay
     setTimeout(() => {
-      console.log('🧪 TEST: Manually emitting test_webrtc_event');
+      //console.log('🧪 TEST: Manually emitting test_webrtc_event');
       (socketManager as any).emit('test_webrtc_event', { test: 'manual trigger' });
     }, 2000);
     
     // Handle incoming WebRTC offer
     socketManager.on('webrtc_offer', async (data) => {
       const { callId, offer, senderId } = data;
-      console.log('🚨 WEBRTC_OFFER HANDLER EXECUTED!!! 🚨');
-      console.log('🎯 WebRTC Manager: Received WebRTC offer for call:', callId, 'from sender:', senderId);
-      console.log('🎯 WebRTC Manager: Current callId:', this.callId);
-      console.log('🎯 WebRTC Manager: Current callerId:', this.callerId);
-      console.log('🎯 WebRTC Manager: isInitiator:', this.isInitiator);
-      console.log('🎯 WebRTC Manager: Offer SDP type:', offer?.type);
-      console.log('🎯 WebRTC Manager: PeerConnection exists:', !!this.peerConnection);
-      console.log('🎯 WebRTC Manager: LocalStream exists:', !!this.localStream);
+      //console.log('🚨 WEBRTC_OFFER HANDLER EXECUTED!!! 🚨');
+      //console.log('🎯 WebRTC Manager: Received WebRTC offer for call:', callId, 'from sender:', senderId);
+      //console.log('🎯 WebRTC Manager: Current callId:', this.callId);
+      //console.log('🎯 WebRTC Manager: Current callerId:', this.callerId);
+      //console.log('🎯 WebRTC Manager: isInitiator:', this.isInitiator);
+      //console.log('🎯 WebRTC Manager: Offer SDP type:', offer?.type);
+      //console.log('🎯 WebRTC Manager: PeerConnection exists:', !!this.peerConnection);
+      //console.log('🎯 WebRTC Manager: LocalStream exists:', !!this.localStream);
       
       try {
         // Validate the call ID matches what we're expecting
@@ -259,30 +259,30 @@ export class WebRTCManager {
         
         // If we don't have a local stream yet, store the offer for later
         if (!this.localStream) {
-          console.log('⏳ Local stream not ready, storing offer for later processing...');
-          console.log('⏳ PeerConnection exists:', !!this.peerConnection);
-          console.log('⏳ LocalStream exists:', !!this.localStream);
-          console.log('⏳ CallId already set:', !!this.callId);
+          //console.log('⏳ Local stream not ready, storing offer for later processing...');
+          //console.log('⏳ PeerConnection exists:', !!this.peerConnection);
+          //console.log('⏳ LocalStream exists:', !!this.localStream);
+          //console.log('⏳ CallId already set:', !!this.callId);
           
           this.pendingOffer = { offer, senderId };
           
           // Only set these if they weren't already set by prepareForIncomingCall
           if (!this.callId) {
-            console.log('⏳ Setting callId and callerId from offer (fallback)');
+            //console.log('⏳ Setting callId and callerId from offer (fallback)');
             this.callId = callId;
             this.callerId = senderId;
             this.isInitiator = false;
           } else {
-            console.log('⏳ CallId already prepared, keeping existing values');
+            //console.log('⏳ CallId already prepared, keeping existing values');
           }
           
-          console.log('⏳ Stored pending offer with senderId:', senderId, 'for callId:', this.callId);
+          //console.log('⏳ Stored pending offer with senderId:', senderId, 'for callId:', this.callId);
           return;
         }
         
         // If we have both peer connection and are ready, process immediately
         if (this.peerConnection) {
-          console.log('🚀 Ready to process offer immediately - peer connection and local stream available');
+          //console.log('🚀 Ready to process offer immediately - peer connection and local stream available');
         }
 
         await this.processOffer(callId, offer, senderId);
@@ -296,16 +296,16 @@ export class WebRTCManager {
     // Handle incoming WebRTC answer
     socketManager.on('webrtc_answer', async (data) => {
       const { callId, answer, senderId } = data;
-      console.log('🎯 WebRTC Manager: Received WebRTC answer for call:', callId, 'from:', senderId);
+      //console.log('🎯 WebRTC Manager: Received WebRTC answer for call:', callId, 'from:', senderId);
       
       try {
         if (this.peerConnection && this.callId === callId) {
-          console.log('✅ Setting remote description (answer)');
+          //console.log('✅ Setting remote description (answer)');
           await this.peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
-          console.log('✅ Answer set successfully - WebRTC should connect soon!');
+          //console.log('✅ Answer set successfully - WebRTC should connect soon!');
           
           // Process any pending ICE candidates
-          console.log('Processing', this.pendingCandidates.length, 'pending ICE candidates');
+          //console.log('Processing', this.pendingCandidates.length, 'pending ICE candidates');
           for (const candidate of this.pendingCandidates) {
             await this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
           }
@@ -323,7 +323,7 @@ export class WebRTCManager {
     // Handle incoming ICE candidates
     socketManager.on('webrtc_ice_candidate', async (data) => {
       const { callId, candidate, senderId } = data;
-      console.log('Received ICE candidate for call:', callId);
+      //console.log('Received ICE candidate for call:', callId);
       
       try {
         if (this.peerConnection && this.callId === callId) {
@@ -351,7 +351,7 @@ export class WebRTCManager {
       
       if (isSameMachineTest && config.audio && !config.video) {
         // For voice calls on same machine, create a minimal audio stream with very low volume
-        console.log('⚠️ Same machine testing detected - using minimal audio to prevent feedback');
+        //console.log('⚠️ Same machine testing detected - using minimal audio to prevent feedback');
         constraints = {
           audio: {
             echoCancellation: true,
@@ -372,7 +372,7 @@ export class WebRTCManager {
       }
 
       this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
-      console.log('Local stream initialized:', this.localStream.getTracks().map(t => t.kind));
+      //console.log('Local stream initialized:', this.localStream.getTracks().map(t => t.kind));
       
       // For same machine testing, reduce volume but don't completely mute
       if (isSameMachineTest && config.audio && !config.video) {
@@ -381,13 +381,13 @@ export class WebRTCManager {
           // For video calls, keep audio enabled as user can see both streams
           track.enabled = false;
         });
-        console.log('Local audio muted for same-machine voice call testing to prevent feedback');
+        //console.log('Local audio muted for same-machine voice call testing to prevent feedback');
       } else if (config.audio) {
         // Ensure audio tracks are enabled for normal calls
         this.localStream.getAudioTracks().forEach(track => {
           track.enabled = true;
         });
-        console.log('Local audio enabled for call');
+        //console.log('Local audio enabled for call');
       }
       
       return this.localStream;
@@ -403,7 +403,7 @@ export class WebRTCManager {
       this.callId = callId;
       this.receiverId = receiverId;
       this.isInitiator = true;
-      console.log('Starting call with receiverId:', receiverId);
+      //console.log('Starting call with receiverId:', receiverId);
       
       // Initialize local stream
       await this.initializeLocalStream(config);
@@ -420,13 +420,13 @@ export class WebRTCManager {
       
       // Create offer but don't send it yet - will be sent after call is accepted
       const offer = await this.peerConnection.createOffer();
-      console.log('Created WebRTC offer:', offer.type);
+      //console.log('Created WebRTC offer:', offer.type);
       await this.peerConnection.setLocalDescription(offer);
-      console.log('Set local description (offer)');
+      //console.log('Set local description (offer)');
       
       // Store the offer to send after call acceptance
       this.pendingOffer = { offer, senderId: this.receiverId || '' };
-      console.log('⏳ Stored offer to send after call acceptance');
+      //console.log('⏳ Stored offer to send after call acceptance');
       
     } catch (error) {
       console.error('Error starting call:', error);
@@ -437,14 +437,14 @@ export class WebRTCManager {
 
   // Prepare for incoming call (receiver side) - sets up WebRTC manager to receive offers
   prepareForIncomingCall(callId: string, callerId: string): void {
-    console.log('🎯 WebRTC Manager: Preparing for incoming call - CallId:', callId, 'CallerId:', callerId);
+    //console.log('🎯 WebRTC Manager: Preparing for incoming call - CallId:', callId, 'CallerId:', callerId);
     this.callId = callId;
     this.callerId = callerId;
     this.isInitiator = false;
     
     // Reset any existing connection state
     if (this.peerConnection) {
-      console.log('🧹 Cleaning up existing peer connection before incoming call');
+      //console.log('🧹 Cleaning up existing peer connection before incoming call');
       this.peerConnection.close();
       this.peerConnection = null;
     }
@@ -454,20 +454,20 @@ export class WebRTCManager {
     this.pendingCandidates = [];
     
     // Pre-create peer connection so it's ready for incoming offers
-    console.log('🔧 Pre-creating peer connection for incoming call');
+    //console.log('🔧 Pre-creating peer connection for incoming call');
     this.peerConnection = this.createPeerConnection();
-    console.log('✅ Peer connection pre-created for incoming call');
+    //console.log('✅ Peer connection pre-created for incoming call');
     
-    console.log('✅ WebRTC Manager ready to receive offers for call:', callId);
+    //console.log('✅ WebRTC Manager ready to receive offers for call:', callId);
   }
 
   // Send pending offer (caller side) - called after call acceptance
   sendPendingOffer(): void {
     if (this.pendingOffer && this.receiverId && this.callId) {
-      console.log('📤 Sending stored WebRTC offer to receiver:', this.receiverId);
+      //console.log('📤 Sending stored WebRTC offer to receiver:', this.receiverId);
       socketManager.sendWebRTCOffer(this.callId, this.receiverId, this.pendingOffer.offer);
       this.pendingOffer = null; // Clear after sending
-      console.log('✅ Pending offer sent successfully');
+      //console.log('✅ Pending offer sent successfully');
     } else {
       console.warn('⚠️ No pending offer to send or missing receiver info');
       console.warn('⚠️ PendingOffer exists:', !!this.pendingOffer);
@@ -487,19 +487,19 @@ export class WebRTCManager {
         console.warn('⚠️ Call ID mismatch during acceptance. Expected:', this.callId, 'Received:', callId);
         this.callId = callId; // Update to match
       }
-      console.log('🎯 WebRTC Manager: Accepting call with callId:', callId);
+      //console.log('🎯 WebRTC Manager: Accepting call with callId:', callId);
       
       // Initialize local stream
       await this.initializeLocalStream(config);
-      console.log('✅ Local stream initialized for receiver');
+      //console.log('✅ Local stream initialized for receiver');
       
       // Create peer connection if not already created (should already exist from prepareForIncomingCall)
       if (!this.peerConnection) {
-        console.log('⚠️ Peer connection not found, creating new one (this shouldn\'t happen if prepareForIncomingCall was called)');
+        //console.log('⚠️ Peer connection not found, creating new one (this shouldn\'t happen if prepareForIncomingCall was called)');
         this.peerConnection = this.createPeerConnection();
-        console.log('✅ Peer connection created for receiver');
+        //console.log('✅ Peer connection created for receiver');
       } else {
-        console.log('✅ Using existing peer connection from prepareForIncomingCall');
+        //console.log('✅ Using existing peer connection from prepareForIncomingCall');
       }
       
       // Add local stream tracks
@@ -507,18 +507,18 @@ export class WebRTCManager {
         this.localStream.getTracks().forEach(track => {
           this.peerConnection!.addTrack(track, this.localStream!);
         });
-        console.log('✅ Local stream tracks added to peer connection');
+        //console.log('✅ Local stream tracks added to peer connection');
       }
 
       // Important: If we already received an offer, process it now
       if (this.pendingOffer) {
-        console.log('🎯 Processing pending offer after call acceptance...');
-        console.log('🎯 Pending offer details:', this.pendingOffer);
+        //console.log('🎯 Processing pending offer after call acceptance...');
+        //console.log('🎯 Pending offer details:', this.pendingOffer);
         await this.processPendingOffer();
       } else {
-        console.log('⚠️ No pending offer found after call acceptance');
-        console.log('⚠️ Call ID:', this.callId);
-        console.log('⚠️ Caller ID:', this.callerId);
+        //console.log('⚠️ No pending offer found after call acceptance');
+        //console.log('⚠️ Call ID:', this.callId);
+        //console.log('⚠️ Caller ID:', this.callerId);
       }
       
     } catch (error) {
@@ -530,7 +530,7 @@ export class WebRTCManager {
 
   // End the call
   endCall(): void {
-    console.log('Ending WebRTC call');
+    //console.log('Ending WebRTC call');
     
     // Stop local stream
     if (this.localStream) {
@@ -577,8 +577,8 @@ export class WebRTCManager {
 
   // Process WebRTC offer
   private async processOffer(callId: string, offer: RTCSessionDescriptionInit, senderId: string): Promise<void> {
-    console.log('🎯 Processing WebRTC offer for call:', callId, 'from sender:', senderId);
-    console.log('🎯 Offer type:', offer?.type);
+    //console.log('🎯 Processing WebRTC offer for call:', callId, 'from sender:', senderId);
+    //console.log('🎯 Offer type:', offer?.type);
     
     if (!this.peerConnection) {
       console.error('❌ No peer connection available to process offer');
@@ -590,26 +590,26 @@ export class WebRTCManager {
     this.isInitiator = false;
 
     // Set remote description (offer)
-    console.log('✅ Setting remote description (offer)');
+    //console.log('✅ Setting remote description (offer)');
     await this.peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
-    console.log('✅ Remote description set successfully');
+    //console.log('✅ Remote description set successfully');
 
     // Create answer
-    console.log('🔄 Creating WebRTC answer...');
+    //console.log('🔄 Creating WebRTC answer...');
     const answer = await this.peerConnection.createAnswer();
-    console.log('✅ Answer created:', answer.type);
+    //console.log('✅ Answer created:', answer.type);
     
     // Set local description (answer)
     await this.peerConnection.setLocalDescription(answer);
-    console.log('✅ Local description set (answer)');
+    //console.log('✅ Local description set (answer)');
 
     // Send answer via socket
-    console.log('📤 Sending WebRTC answer to caller:', senderId);
+    //console.log('📤 Sending WebRTC answer to caller:', senderId);
     socketManager.sendWebRTCAnswer(callId, senderId, answer);
-    console.log('✅ Answer sent successfully');
+    //console.log('✅ Answer sent successfully');
 
     // Process any pending ICE candidates
-    console.log('Processing', this.pendingCandidates.length, 'pending ICE candidates for answer');
+    //console.log('Processing', this.pendingCandidates.length, 'pending ICE candidates for answer');
     for (const candidate of this.pendingCandidates) {
       await this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
     }
@@ -619,11 +619,11 @@ export class WebRTCManager {
   // Process pending offer after call acceptance
   private async processPendingOffer(): Promise<void> {
     if (!this.pendingOffer) {
-      console.log('⚠️ No pending offer to process');
+      //console.log('⚠️ No pending offer to process');
       return;
     }
 
-    console.log('🎯 Processing pending offer after call acceptance...');
+    //console.log('🎯 Processing pending offer after call acceptance...');
     const { offer, senderId } = this.pendingOffer;
     this.pendingOffer = null; // Clear pending offer
 
@@ -694,7 +694,7 @@ export class WebRTCManager {
 
   // Retry connection with fresh peer connection
   private async retryConnection(): Promise<void> {
-    console.log('🔄 Retrying WebRTC connection with fresh peer connection...');
+    //console.log('🔄 Retrying WebRTC connection with fresh peer connection...');
     
     try {
       // Close current peer connection
@@ -717,12 +717,12 @@ export class WebRTCManager {
         const offer = await this.peerConnection.createOffer();
         await this.peerConnection.setLocalDescription(offer);
         
-        console.log('🔄 Sending retry WebRTC offer');
+        //console.log('🔄 Sending retry WebRTC offer');
         socketManager.sendWebRTCOffer(this.callId!, this.receiverId, offer);
       } 
       // If we have a pending offer (receiver), process it again
       else if (this.pendingOffer) {
-        console.log('🔄 Reprocessing pending offer after retry');
+        //console.log('🔄 Reprocessing pending offer after retry');
         await this.processOffer(this.callId!, this.pendingOffer.offer, this.pendingOffer.senderId);
       }
     } catch (error) {
@@ -739,7 +739,7 @@ export class WebRTCManager {
     }
 
     this.connectionRetryCount++;
-    console.log(`🔄 Retry attempt ${this.connectionRetryCount}/${this.maxRetries} with TURN-only configuration`);
+    //console.log(`🔄 Retry attempt ${this.connectionRetryCount}/${this.maxRetries} with TURN-only configuration`);
 
     try {
       // Close the failed connection
@@ -756,7 +756,7 @@ export class WebRTCManager {
             this.peerConnection.addTrack(track, this.localStream!);
           }
         });
-        console.log('✅ Local stream re-added to TURN-only connection');
+        //console.log('✅ Local stream re-added to TURN-only connection');
       }
 
       // If we're the initiator, create a new offer
@@ -764,7 +764,7 @@ export class WebRTCManager {
         const offer = await turnOnlyPc.createOffer();
         await turnOnlyPc.setLocalDescription(offer);
         
-        console.log('🔄 Sending retry offer with TURN-only configuration');
+        //console.log('🔄 Sending retry offer with TURN-only configuration');
         socketManager.sendWebRTCOffer(this.callId!, this.receiverId, offer);
       }
       
@@ -778,10 +778,10 @@ export class WebRTCManager {
   private setupPeerConnectionHandlers(pc: RTCPeerConnection): void {
     // Handle ICE candidates
     pc.onicecandidate = (event) => {
-      console.log('ICE candidate generated:', event.candidate?.candidate?.substring(0, 50) + '...');
+      //console.log('ICE candidate generated:', event.candidate?.candidate?.substring(0, 50) + '...');
       if (event.candidate && this.callId) {
         const targetUserId = this.isInitiator ? this.receiverId : this.callerId;
-        console.log('Sending ICE candidate to:', targetUserId);
+        //console.log('Sending ICE candidate to:', targetUserId);
         if (targetUserId) {
           socketManager.sendICECandidate(
             this.callId,
@@ -798,10 +798,10 @@ export class WebRTCManager {
 
     // Handle ICE connection state changes
     pc.oniceconnectionstatechange = () => {
-      console.log('ICE connection state:', pc.iceConnectionState);
+      //console.log('ICE connection state:', pc.iceConnectionState);
       
       if ((pc.iceConnectionState as string) === 'connected' || (pc.iceConnectionState as string) === 'completed') {
-        console.log('🎉 ICE connection established successfully!');
+        //console.log('🎉 ICE connection established successfully!');
         this.connectionRetryCount = 0; // Reset retry count on success
         
         // Ensure ringtone is stopped when connection is established
@@ -813,12 +813,12 @@ export class WebRTCManager {
 
     // Handle ICE gathering state changes
     pc.onicegatheringstatechange = () => {
-      console.log('ICE gathering state:', pc.iceGatheringState);
+      //console.log('ICE gathering state:', pc.iceGatheringState);
     };
 
     // Handle remote stream
     pc.ontrack = (event) => {
-      console.log('Received remote track:', event.track.kind);
+      //console.log('Received remote track:', event.track.kind);
       if (event.streams && event.streams[0]) {
         this.remoteStream = event.streams[0];
         this.onRemoteStreamCallback?.(this.remoteStream);
@@ -827,7 +827,7 @@ export class WebRTCManager {
 
     // Handle peer connection state changes with retry logic
     pc.onconnectionstatechange = () => {
-      console.log('Peer connection state:', pc.connectionState);
+      //console.log('Peer connection state:', pc.connectionState);
       this.onConnectionStateChangeCallback?.(pc.connectionState);
       
       // Calculate and emit call stats
@@ -855,16 +855,16 @@ export const webRTCManager = (() => {
   // Use global window object to store singleton across HMR reloads
   if (typeof window !== 'undefined') {
     if (!(window as any)[GLOBAL_KEY]) {
-      console.log('🎯 Creating GLOBAL WebRTC Manager singleton instance');
+      //console.log('🎯 Creating GLOBAL WebRTC Manager singleton instance');
       (window as any)[GLOBAL_KEY] = new WebRTCManager();
-      console.log('🎯 Global WebRTC Manager singleton created');
+      //console.log('🎯 Global WebRTC Manager singleton created');
     } else {
-      console.log('🎯 Reusing EXISTING global WebRTC Manager singleton instance');
+      //console.log('🎯 Reusing EXISTING global WebRTC Manager singleton instance');
     }
     return (window as any)[GLOBAL_KEY];
   } else {
     // Server-side fallback (shouldn't be used for WebRTC)
-    console.log('🎯 Creating server-side WebRTC Manager instance');
+    //console.log('🎯 Creating server-side WebRTC Manager instance');
     return new WebRTCManager();
   }
 })();

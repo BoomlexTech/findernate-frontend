@@ -6,7 +6,9 @@ type DocumentKey =
   | 'taxCertificate'
   | 'representativeId'
   | 'representativeAddress'
-  | 'businessAddress';
+  | 'businessAddress'
+  | 'aadhaar'
+  | 'panCard';
 
 export interface BusinessVerificationPayload {
   businessRegistration?: File;
@@ -15,6 +17,8 @@ export interface BusinessVerificationPayload {
   representativeId?: File;
   representativeAddress?: File;
   businessAddress?: File;
+  aadhaar?: File;
+  panCard?: File;
 }
 
 interface BusinessVerificationModalProps {
@@ -29,18 +33,37 @@ const LABELS: Record<DocumentKey, string> = {
   taxCertificate: 'Upload TIN Number or GST Certificate',
   representativeId: "Upload Authorized Representative's ID Proof",
   representativeAddress: "Upload Authorized Representative's Address Proof",
-  businessAddress: 'Upload Business Address Proof'
+  businessAddress: 'Upload Business Address Proof',
+  aadhaar: 'Upload Aadhaar Card',
+  panCard: 'Upload PAN Card'
 };
+
+const REGISTERED_DOCUMENTS: DocumentKey[] = [
+  'businessRegistration',
+  'companyPan',
+  'taxCertificate',
+  'representativeId',
+  'representativeAddress',
+  'businessAddress'
+];
+
+const NON_REGISTERED_DOCUMENTS: DocumentKey[] = [
+  'aadhaar',
+  'panCard'
+];
 
 const BusinessVerificationModal: React.FC<BusinessVerificationModalProps> = ({ isOpen, onClose, onSubmit }) => {
   const [files, setFiles] = useState<BusinessVerificationPayload>({});
+  const [isRegistered, setIsRegistered] = useState<boolean>(true);
   const inputRefs = useRef<Record<DocumentKey, HTMLInputElement | null>>({
     businessRegistration: null,
     companyPan: null,
     taxCertificate: null,
     representativeId: null,
     representativeAddress: null,
-    businessAddress: null
+    businessAddress: null,
+    aadhaar: null,
+    panCard: null
   });
 
   if (!isOpen) return null;
@@ -69,8 +92,34 @@ const BusinessVerificationModal: React.FC<BusinessVerificationModalProps> = ({ i
           <h2 className="text-black text-lg font-semibold">Upload KYC</h2>
         </div>
 
+        {/* Toggle for Registered/Non-Registered */}
+        <div className="mb-6">
+          <div className="flex items-center justify-center bg-gray-100 rounded-lg p-1">
+            <button
+              onClick={() => setIsRegistered(true)}
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                isRegistered 
+                  ? 'bg-button-gradient text-black shadow-sm' 
+                  : 'text-gray-600 hover:text-gray-800'
+              }`}
+            >
+              Registered
+            </button>
+            <button
+              onClick={() => setIsRegistered(false)}
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                !isRegistered 
+                  ? 'bg-button-gradient text-black shadow-sm' 
+                  : 'text-gray-600 hover:text-gray-800'
+              }`}
+            >
+              Non-Registered
+            </button>
+          </div>
+        </div>
+
         <div className="space-y-3">
-          {(Object.keys(LABELS) as DocumentKey[]).map(key => (
+          {(isRegistered ? REGISTERED_DOCUMENTS : NON_REGISTERED_DOCUMENTS).map(key => (
             <div key={key} className="border rounded-xl px-3 py-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <svg className="w-4 h-4 text-red-500" viewBox="0 0 24 24" fill="currentColor">
@@ -100,7 +149,7 @@ const BusinessVerificationModal: React.FC<BusinessVerificationModalProps> = ({ i
 
         <button
           onClick={handleUpload}
-          className="mt-5 w-full py-2.5 rounded-lg bg-button-gradient text-white text-shadow font-medium"
+          className="mt-5 w-full py-2.5 rounded-lg bg-button-gradient text-black font-medium"
         >
           Upload
         </button>

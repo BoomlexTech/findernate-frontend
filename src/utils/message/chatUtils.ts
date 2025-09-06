@@ -52,22 +52,22 @@ export const isIncomingRequest = (chat: Chat, currentUserId: string): boolean =>
   // 4. Key fix: Check who created the chat, not who sent the last message
   // If current user created the chat, it's an outgoing request (should be hidden)
   if (chat.createdBy && chat.createdBy._id === currentUserId) {
-    console.log('Filtering out outgoing request (created by current user):', chat._id);
+    //console.log('Filtering out outgoing request (created by current user):', chat._id);
     return false;
   }
   
   // 5. Ensure there's another participant who is not the current user
   const otherParticipant = validParticipants.find(p => p._id !== currentUserId);
   if (!otherParticipant) {
-    console.log('Filtering out request with no other participant:', chat._id);
+    //console.log('Filtering out request with no other participant:', chat._id);
     return false;
   }
   
-  console.log('Allowing incoming request:', {
-    chatId: chat._id,
-    otherParticipant: otherParticipant.username || otherParticipant.fullName,
-    createdBy: chat.createdBy?._id || 'unknown'
-  });
+  //console.log('Allowing incoming request:', {
+  //  chatId: chat._id,
+  //  otherParticipant: otherParticipant.username || otherParticipant.fullName,
+  //  createdBy: chat.createdBy?._id || 'unknown'
+  // });
   
   return true;
 };

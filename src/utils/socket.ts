@@ -31,7 +31,7 @@ class SocketManager {
 
     const serverUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
     
-    console.log(`Attempting socket connection (attempt ${this.reconnectAttempts + 1}/${this.maxReconnectAttempts})`);
+    //console.log(`Attempting socket connection (attempt ${this.reconnectAttempts + 1}/${this.maxReconnectAttempts})`);
     
     this.socket = io(serverUrl, {
       auth: {
@@ -89,7 +89,7 @@ class SocketManager {
       this.reconnectAttempts++;
       const delay = Math.min(this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1), this.maxReconnectDelay);
       
-      console.log(`Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+      //console.log(`Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
       
       this.reconnectTimeoutId = setTimeout(() => {
         this.connect(validToken);
@@ -118,7 +118,7 @@ class SocketManager {
     if (!this.socket) return;
 
     this.socket.on('connect', () => {
-      console.log('Successfully connected to server');
+      //console.log('Successfully connected to server');
       this.isConnected = true;
       
       // Reset counters on successful connection
@@ -135,7 +135,7 @@ class SocketManager {
     });
 
     this.socket.on('disconnect', () => {
-      console.log('Disconnected from server');
+      //console.log('Disconnected from server');
       this.isConnected = false;
       this.emit('connection_status', { connected: false });
     });
@@ -152,7 +152,7 @@ class SocketManager {
         this.reconnectAttempts++;
         if (this.reconnectAttempts < this.maxReconnectAttempts) {
           const delay = Math.min(this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1), this.maxReconnectDelay);
-          console.log(`Reconnecting after connection error in ${delay}ms`);
+          //console.log(`Reconnecting after connection error in ${delay}ms`);
           
           this.reconnectTimeoutId = setTimeout(() => {
             import('@/store/useUserStore').then(({ useUserStore }) => {
@@ -240,17 +240,17 @@ class SocketManager {
 
     // WebRTC signaling events
     this.socket.on('webrtc_offer', (data) => {
-      console.log('🔄 Socket: Received WebRTC offer event:', data.callId, 'from:', data.senderId);
+      //console.log('🔄 Socket: Received WebRTC offer event:', data.callId, 'from:', data.senderId);
       this.emit('webrtc_offer', data);
     });
 
     this.socket.on('webrtc_answer', (data) => {
-      console.log('🔄 Socket: Received WebRTC answer event:', data.callId, 'from:', data.senderId);
+      //console.log('🔄 Socket: Received WebRTC answer event:', data.callId, 'from:', data.senderId);
       this.emit('webrtc_answer', data);
     });
 
     this.socket.on('webrtc_ice_candidate', (data) => {
-      console.log('🔄 Socket: Received ICE candidate event:', data.callId, 'from:', data.senderId);
+      //console.log('🔄 Socket: Received ICE candidate event:', data.callId, 'from:', data.senderId);
       this.emit('webrtc_ice_candidate', data);
     });
   }
@@ -414,9 +414,9 @@ class SocketManager {
   // WebRTC signaling
   sendWebRTCOffer(callId: string, receiverId: string, offer: RTCSessionDescriptionInit) {
     if (this.socket?.connected) {
-      console.log('🔄 Socket: Sending WebRTC offer via socket to receiver:', receiverId);
+      //console.log('🔄 Socket: Sending WebRTC offer via socket to receiver:', receiverId);
       this.socket.emit('webrtc_offer', { callId, receiverId, offer });
-      console.log('🔄 Socket: WebRTC offer emitted successfully');
+      //console.log('🔄 Socket: WebRTC offer emitted successfully');
     } else {
       console.error('❌ Socket: Cannot send WebRTC offer - socket not connected');
     }

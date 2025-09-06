@@ -20,7 +20,7 @@ export default function UserManagementPage() {
       setIsLoading(true);
       setError(null);
       
-      console.log('🔍 Fetching users:', { page, search, accountStatus });
+      //console.log('🔍 Fetching users:', { page, search, accountStatus });
       
       const response = await usersAPI.getUsers({
         page,
@@ -29,7 +29,7 @@ export default function UserManagementPage() {
         accountStatus: accountStatus !== 'all' ? accountStatus : undefined,
       });
 
-      console.log('✅ API Response:', response);
+      //console.log('✅ API Response:', response);
 
       if (response.success) {
         setUsers(response.data.users);
@@ -38,7 +38,7 @@ export default function UserManagementPage() {
         throw new Error(response.message || 'Failed to fetch data');
       }
     } catch (err: any) {
-      console.error('❌ Error fetching users:', err);
+      //console.error('❌ Error fetching users:', err);
       setError(err.message || 'Failed to load users');
     } finally {
       setIsLoading(false);
@@ -64,16 +64,16 @@ export default function UserManagementPage() {
     
     try {
       setIsUpdating(userId);
-      console.log(`🔄 Updating user ${userId} to ${status}`);
+      //console.log(`🔄 Updating user ${userId} to ${status}`);
       
       await usersAPI.updateUserStatus(userId, status);
       
-      console.log('✅ User status updated successfully');
+      //console.log('✅ User status updated successfully');
       
       // Refresh the users list
       await fetchUsers(currentPage, searchQuery, accountStatusFilter);
     } catch (err: any) {
-      console.error('❌ Error updating user status:', err);
+      //console.error('❌ Error updating user status:', err);
       setError(err.message || 'Failed to update user status');
     } finally {
       setIsUpdating(null);
@@ -85,16 +85,16 @@ export default function UserManagementPage() {
     
     try {
       setIsUpdating(userId);
-      console.log(`🗑️ Deleting user ${userId}`);
+      //console.log(`🗑️ Deleting user ${userId}`);
       
       await usersAPI.deleteUser(userId);
       
-      console.log('✅ User deleted successfully');
+      //console.log('✅ User deleted successfully');
       
       // Refresh the users list
       await fetchUsers(currentPage, searchQuery, accountStatusFilter);
     } catch (err: any) {
-      console.error('❌ Error deleting user:', err);
+      //console.error('❌ Error deleting user:', err);
       setError(err.message || 'Failed to delete user');
     } finally {
       setIsUpdating(null);

@@ -38,7 +38,7 @@ export const useSocket = ({
 
   // Update ref when selectedChat changes
   useEffect(() => {
-    console.log('selectedChat changed to:', selectedChat);
+    // //console.log('selectedChat changed to:', selectedChat);
     selectedChatRef.current = selectedChat;
   }, [selectedChat]);
 
@@ -50,18 +50,18 @@ export const useSocket = ({
     if (validToken) {
       socketManager.connect(validToken);
     } else {
-      console.warn('No valid token for socket connection');
+      // console.warn('No valid token for socket connection');
     }
 
     const handleAuthFailure = (data: any) => {
-      console.error('Permanent authentication failure:', data.message);
+      // console.error('Permanent authentication failure:', data.message);
       alert('Your session has expired. Please log in again.');
       logout();
       router.push('/signin');
     };
 
     const handleConnectionFailure = (data: any) => {
-      console.error('Permanent connection failure:', data.message);
+      // console.error('Permanent connection failure:', data.message);
     };
 
     socketManager.on('auth_failure_permanent', handleAuthFailure);
@@ -82,7 +82,7 @@ export const useSocket = ({
       const chat = chatInRegular || chatInRequests;
       
       if (!chat) {
-        console.log('New message from unknown chat, reloading chats...');
+        // //console.log('New message from unknown chat, reloading chats...');
         if (user) {
           Promise.all([
             messageAPI.getActiveChats(),
@@ -103,26 +103,28 @@ export const useSocket = ({
             setChats(sortedActiveChats);
             setMessageRequests(sortedRequests);
             setAllChatsCache([...sortedActiveChats, ...sortedRequests]);
-          }).catch(error => console.error('Failed to reload chats:', error));
+          }).catch(error => { 
+            // console.error('Failed to reload chats:', error);
+          });
         }
         return;
       }
 
       // Update messages if this is the selected chat
       if (data.chatId === selectedChatRef.current) {
-        console.log('Socket: Received new message', data.message._id);
+        // //console.log('Socket: Received new message', data.message._id);
         setMessages(prev => {
           const messageExists = prev.some(msg => msg._id === data.message._id);
           if (messageExists) {
-            console.log('Socket: Skipping duplicate message');
+            // //console.log('Socket: Skipping duplicate message');
             return prev;
           }
-          console.log('Socket: Adding new message to state');
+          // //console.log('Socket: Adding new message to state');
           
           // If this is a request chat that we're currently viewing, update the cache as well
           const chatInRequests = messageRequests.find(r => r._id === data.chatId);
           if (chatInRequests) {
-            console.log('Adding message to cache for currently selected request chat');
+            // //console.log('Adding message to cache for currently selected request chat');
             requestChatCache.addMessage(data.chatId, data.message);
           }
           
@@ -137,12 +139,12 @@ export const useSocket = ({
           const updatedChats = prev.map(chat => {
             if (chat._id === data.chatId) {
               const newUnreadCount = data.chatId !== selectedChatRef.current ? (chat.unreadCount || 0) + 1 : 0;
-              console.log(`Socket: Updating unread count for chat ${data.chatId}:`, {
-                wasSelected: data.chatId === selectedChatRef.current,
-                selectedChat: selectedChatRef.current,
-                oldCount: chat.unreadCount,
-                newCount: newUnreadCount
-              });
+              // //console.log(`Socket: Updating unread count for chat ${data.chatId}:`, {
+              //   wasSelected: data.chatId === selectedChatRef.current,
+              //   selectedChat: selectedChatRef.current,
+              //   oldCount: chat.unreadCount,
+              //   newCount: newUnreadCount
+              // });
               
               return {
                 ...chat,
@@ -165,7 +167,7 @@ export const useSocket = ({
         refreshUnreadCounts();
       } else if (chatInRequests) {
         // Cache the message for request chats so recipients can see the full conversation
-        console.log('Caching message for request chat:', data.chatId, data.message.message);
+        // //console.log('Caching message for request chat:', data.chatId, data.message.message);
         requestChatCache.addMessage(data.chatId, data.message);
         
         setMessageRequests(prev => {

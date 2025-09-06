@@ -121,15 +121,15 @@ const ServicesPage = () => {
         };
       });
       
-      console.log('Transformed service data:', transformedData.slice(0, 2));
+      //console.log('Transformed service data:', transformedData.slice(0, 2));
       
       // Fetch comments for all service posts
       const servicesWithComments = await Promise.all(
         transformedData.map(async (service) => {
           try {
-            console.log(`Fetching comments for service: ${service._id}`);
+            //console.log(`Fetching comments for service: ${service._id}`);
             const commentsResponse = await getCommentsByPost(service._id, 1, 5); // Fetch first 5 comments
-            console.log(`Comments response for service ${service._id}:`, commentsResponse);
+            //console.log(`Comments response for service ${service._id}:`, commentsResponse);
             
             // Handle different possible response structures
             let comments: Comment[] = [];
@@ -145,11 +145,11 @@ const ServicesPage = () => {
                 comments = commentsResponse;
                 totalComments = comments.length;
               } else {
-                console.log('Unexpected comments response structure:', commentsResponse);
+                //console.log('Unexpected comments response structure:', commentsResponse);
               }
             }
             
-            console.log(`Processed ${comments.length} comments for service ${service._id}, total: ${totalComments}`);
+            //console.log(`Processed ${comments.length} comments for service ${service._id}, total: ${totalComments}`);
             
             return {
               ...service,
@@ -233,15 +233,15 @@ const ServicesPage = () => {
         return { ...post, caption: captionFallback, media, location, tags };
       });
       
-      console.log('Service search results:', normalizedSearchResults.slice(0, 2));
+      //console.log('Service search results:', normalizedSearchResults.slice(0, 2));
       
       // Fetch comments for search results
       const searchResultsWithComments = await Promise.all(
         normalizedSearchResults.map(async (service) => {
           try {
-            console.log(`Fetching comments for search result service: ${service._id}`);
+            //console.log(`Fetching comments for search result service: ${service._id}`);
             const commentsResponse = await getCommentsByPost(service._id, 1, 5);
-            console.log(`Comments response for search service ${service._id}:`, commentsResponse);
+            //console.log(`Comments response for search service ${service._id}:`, commentsResponse);
             
             // Handle different possible response structures
             let comments: Comment[] = [];
@@ -255,11 +255,11 @@ const ServicesPage = () => {
                 comments = commentsResponse;
                 totalComments = comments.length;
               } else {
-                console.log('Unexpected search comments response structure:', commentsResponse);
+                //console.log('Unexpected search comments response structure:', commentsResponse);
               }
             }
             
-            console.log(`Processed ${comments.length} comments for search service ${service._id}, total: ${totalComments}`);
+            //console.log(`Processed ${comments.length} comments for search service ${service._id}, total: ${totalComments}`);
             
             return {
               ...service,

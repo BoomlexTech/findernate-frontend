@@ -89,15 +89,15 @@ const ReelsComponent: React.FC<ReelsComponentProps> = ({
 
   useEffect(() => {
     if (apiReelsData && apiReelsData.length > 0) {
-      // console.log('Processing API reels data:', apiReelsData);
+      // //console.log('Processing API reels data:', apiReelsData);
       // Map API reels data to Reel interface, extracting video URLs from media array
       const mappedReels: Reel[] = apiReelsData.map((item: any, idx: number) => {
         // Find the first video media item or any media with URL
         const videoMedia = item.media?.find((m: any) => m.type === 'video' || m.url) || item.media?.[0];
         
         // Log each reel's media structure for debugging
-        // console.log(`Reel ${idx + 1} media:`, item.media);
-        // console.log(`Selected video media:`, videoMedia);
+        // //console.log(`Reel ${idx + 1} media:`, item.media);
+        // //console.log(`Selected video media:`, videoMedia);
         
         return {
           id: idx + 1,
@@ -106,7 +106,7 @@ const ReelsComponent: React.FC<ReelsComponentProps> = ({
         };
       });
       
-      // console.log('Mapped reels:', mappedReels);
+      // //console.log('Mapped reels:', mappedReels);
       setReels(mappedReels);
       setLoading(false);
     } else {
@@ -116,7 +116,7 @@ const ReelsComponent: React.FC<ReelsComponentProps> = ({
         try {
           const res = await getReels();
           const apiReels = res?.reels;
-          // console.log('API reels response:', apiReels);
+          // //console.log('API reels response:', apiReels);
           // Map API response to Reel interface
           const mappedReels: Reel[] = Array.isArray(apiReels)
             ? apiReels.map((item: any, idx: number) => {
@@ -140,7 +140,7 @@ const ReelsComponent: React.FC<ReelsComponentProps> = ({
                   videoUrl = defaultReelsData[idx % defaultReelsData.length].videoUrl;
                 }
 
-                // console.log(`Fallback reel ${idx + 1} media:`, { videoUrl, thumbnail });
+                // //console.log(`Fallback reel ${idx + 1} media:`, { videoUrl, thumbnail });
                 return {
                   id: idx + 1,
                   videoUrl,
@@ -148,10 +148,10 @@ const ReelsComponent: React.FC<ReelsComponentProps> = ({
                 };
               })
             : [];
-          // console.log('Fallback mapped reels:', mappedReels);
+          // //console.log('Fallback mapped reels:', mappedReels);
           setReels(mappedReels.length > 0 ? mappedReels : defaultReelsData);
         } catch (err) {
-          // console.log('Error fetching reels:', err);
+          // //console.log('Error fetching reels:', err);
           setReels(defaultReelsData);
         } finally {
           setLoading(false);

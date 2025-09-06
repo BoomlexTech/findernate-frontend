@@ -83,7 +83,6 @@ export const callAPI = {
       const response = await apiClient.post<{ success: boolean; data: Call; message: string }>('/calls/initiate', data);
       return response.data.data;
     } catch (error: any) {
-      console.error('Error initiating call:', error.response?.data || error.message);
       throw error;
     }
   },
@@ -94,7 +93,6 @@ export const callAPI = {
       const response = await apiClient.patch<{ success: boolean; data: Call; message: string }>(`/calls/${callId}/accept`);
       return response.data.data;
     } catch (error: any) {
-      console.error('Error accepting call:', error.response?.data || error.message);
       throw error;
     }
   },
@@ -105,7 +103,6 @@ export const callAPI = {
       const response = await apiClient.patch<{ success: boolean; data: Call; message: string }>(`/calls/${callId}/decline`);
       return response.data.data;
     } catch (error: any) {
-      console.error('Error declining call:', error.response?.data || error.message);
       throw error;
     }
   },
@@ -116,7 +113,6 @@ export const callAPI = {
       const response = await apiClient.patch<{ success: boolean; data: Call; message: string }>(`/calls/${callId}/end`, data);
       return response.data.data;
     } catch (error: any) {
-      console.error('Error ending call:', error.response?.data || error.message);
       throw error;
     }
   },
@@ -127,7 +123,6 @@ export const callAPI = {
       const response = await apiClient.patch<{ success: boolean; data: Call; message: string }>(`/calls/${callId}/status`, data);
       return response.data.data;
     } catch (error: any) {
-      console.error('Error updating call status:', error.response?.data || error.message);
       throw error;
     }
   },
@@ -138,7 +133,6 @@ export const callAPI = {
       const response = await apiClient.get<{ success: boolean; data: CallHistoryResponse; message: string }>(`/calls/history?page=${page}&limit=${limit}`);
       return response.data.data;
     } catch (error: any) {
-      console.error('Error fetching call history:', error.response?.data || error.message);
       throw error;
     }
   },
@@ -149,7 +143,6 @@ export const callAPI = {
       const response = await apiClient.get<{ success: boolean; data: Call | null; message: string }>('/calls/active');
       return response.data.data;
     } catch (error: any) {
-      console.error('Error fetching active call:', error.response?.data || error.message);
       throw error;
     }
   },
@@ -160,7 +153,6 @@ export const callAPI = {
       const response = await apiClient.get<{ success: boolean; data: CallStatsResponse; message: string }>(`/calls/stats?days=${days}`);
       return response.data.data;
     } catch (error: any) {
-      console.error('Error fetching call stats:', error.response?.data || error.message);
       throw error;
     }
   },
@@ -170,7 +162,6 @@ export const callAPI = {
     try {
       await apiClient.post(`/calls/${callId}/session-data`, data);
     } catch (error: any) {
-      console.error('Error storing session data:', error.response?.data || error.message);
       throw error;
     }
   }

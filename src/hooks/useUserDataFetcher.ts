@@ -19,7 +19,7 @@ export function useUserDataFetcher(posts: FeedPost[]): FeedPost[] {
         return;
       }
 
-      console.log(`Fetching user data for ${postsNeedingUserData.length} posts`);
+      //console.log(`Fetching user data for ${postsNeedingUserData.length} posts`);
 
       const enrichedPostsData = await Promise.all(
         posts.map(async (post) => {

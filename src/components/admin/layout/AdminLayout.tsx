@@ -17,7 +17,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
   // Initialize authentication on mount
   useEffect(() => {
-    console.log('🏗️ AdminLayout: Initializing auth...');
+    //console.log('🏗️ AdminLayout: Initializing auth...');
     initializeAuth();
     setIsInitialized(true);
   }, [initializeAuth]);
@@ -25,9 +25,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   // Check authentication after initialization
   useEffect(() => {
     if (isInitialized) {
-      console.log('🏗️ AdminLayout: Auth state changed - isAuthenticated:', isAuthenticated, 'user:', !!user);
+      //console.log('🏗️ AdminLayout: Auth state changed - isAuthenticated:', isAuthenticated, 'user:', !!user);
       if (!isAuthenticated) {
-        console.log('🏗️ AdminLayout: Not authenticated, redirecting to login...');
+        //console.log('🏗️ AdminLayout: Not authenticated, redirecting to login...');
         router.push('/admin/login');
       }
     }
@@ -35,11 +35,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
   // Show loading until initialized and authenticated
   if (!isInitialized || !isAuthenticated || !user) {
-    console.log('🏗️ AdminLayout: Showing loading state - initialized:', isInitialized, 'isAuthenticated:', isAuthenticated, 'user:', !!user);
+    //console.log('🏗️ AdminLayout: Showing loading state - initialized:', isInitialized, 'isAuthenticated:', isAuthenticated, 'user:', !!user);
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <Sidebar />
-        <div className="ml-72 flex items-center justify-center min-h-screen">
+        <div className="ml-64 flex items-center justify-center min-h-screen">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#ffd65c] mx-auto"></div>
             <p className="mt-2 text-gray-600">Loading admin panel...</p>
@@ -52,8 +52,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   return (
     <div className="min-h-screen bg-gray-50">
       <Sidebar />
-      <div className="ml-72">
-        <main className="min-h-screen p-6">
+      <div className="ml-10 mt-2">
+        <main className="min-h-screen p-1">
           {children}
         </main>
       </div>

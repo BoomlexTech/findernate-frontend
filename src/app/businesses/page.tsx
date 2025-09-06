@@ -85,15 +85,15 @@ const BusinessesPage = () => {
       
       const transformedData = transformExploreFeedToFeedPost(response.data.feed);
       
-      console.log('Transformed business data:', transformedData.slice(0, 2));
+      //console.log('Transformed business data:', transformedData.slice(0, 2));
       
       // Fetch comments for all business posts
       const businessesWithComments = await Promise.all(
         transformedData.map(async (business) => {
           try {
-            console.log(`Fetching comments for business: ${business._id}`);
+            //console.log(`Fetching comments for business: ${business._id}`);
             const commentsResponse = await getCommentsByPost(business._id, 1, 5); // Fetch first 5 comments
-            console.log(`Comments response for business ${business._id}:`, commentsResponse);
+            //console.log(`Comments response for business ${business._id}:`, commentsResponse);
             
             // Handle different possible response structures
             let comments: Comment[] = [];
@@ -109,11 +109,11 @@ const BusinessesPage = () => {
                 comments = commentsResponse;
                 totalComments = comments.length;
               } else {
-                console.log('Unexpected comments response structure:', commentsResponse);
+                //console.log('Unexpected comments response structure:', commentsResponse);
               }
             }
             
-            console.log(`Processed ${comments.length} comments for business ${business._id}, total: ${totalComments}`);
+            //console.log(`Processed ${comments.length} comments for business ${business._id}, total: ${totalComments}`);
             
             return {
               ...business,

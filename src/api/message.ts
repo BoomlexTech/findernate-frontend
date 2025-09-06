@@ -96,7 +96,6 @@ export const messageAPI = {
       const response = await axiosInstance.get(`/chats?page=${page}&limit=${limit}&chatStatus=active`);
       return response.data.data;
     } catch (error: any) {
-      console.error('Error fetching chats:', error.response?.data || error.message);
       throw error;
     }
   },
@@ -107,7 +106,6 @@ export const messageAPI = {
       const response = await axiosInstance.get(`/chats?page=${page}&limit=${limit}&chatStatus=active`);
       return response.data.data;
     } catch (error: any) {
-      console.error('Error fetching active chats:', error.response?.data || error.message);
       throw error;
     }
   },
@@ -123,7 +121,6 @@ export const messageAPI = {
       });
       return response.data.data;
     } catch (error: any) {
-      console.error('Error creating chat:', error.response?.data || error.message);
       throw error;
     }
   },
@@ -134,7 +131,6 @@ export const messageAPI = {
       const response = await axiosInstance.get(`/chats/${chatId}/messages?page=${page}&limit=${limit}`);
       return response.data.data;
     } catch (error: any) {
-      console.error('Error fetching chat messages:', error.response?.data || error.message);
       throw error;
     }
   },
@@ -175,7 +171,6 @@ export const messageAPI = {
     });
     
     if (response.data.success && response.data.data) {
-      console.log('Media upload successful:', response.data.data.secure_url);
       return {
         secure_url: response.data.data.secure_url,
         resource_type: response.data.data.resource_type,
@@ -191,16 +186,10 @@ export const messageAPI = {
 
   // Send a message with media file (upload using upload-single-media API first, then send URL as JSON message)
   sendMessageWithFile: async (chatId: string, file: File, message?: string, messageType?: string, replyTo?: string): Promise<Message> => {
-    console.log('Uploading file using upload-single-media API:', {
-      fileName: file.name,
-      fileType: file.type,
-      fileSize: file.size,
-    });
 
     try {
       // Step 1: Upload file using upload-single-media API and get response
       const uploadResponse = await messageAPI.uploadFileToMedia(file);
-      console.log('File uploaded successfully:', uploadResponse.secure_url);
       
       // Step 2: Determine message type based on file type and extension
       let finalMessageType = messageType;
@@ -233,12 +222,6 @@ export const messageAPI = {
           finalMessageType = 'file';
         }
         
-        console.log('File type detection:', {
-          originalFileType: file.type,
-          fileExtension,
-          cloudinaryResourceType: uploadResponse.resource_type,
-          finalMessageType
-        });
       }
       
       // Step 3: Send the media URL as a regular JSON message using existing sendMessage function
@@ -257,7 +240,6 @@ export const messageAPI = {
       );
       
     } catch (error) {
-      console.error('Failed to upload file or send message:', error);
       throw error;
     }
   },
@@ -336,7 +318,6 @@ export const messageAPI = {
       const response = await axiosInstance.get(`/users/following/${userId}`);
       return Array.isArray(response.data.data) ? response.data.data : [];
     } catch (error: any) {
-      console.error('Error fetching user following:', error.response?.data || error.message);
       return []; // Return empty array instead of throwing error
     }
   },
@@ -346,7 +327,6 @@ export const messageAPI = {
     try {
       await axiosInstance.post('/users/follow', { userId });
     } catch (error: any) {
-      console.error('Error following user:', error.response?.data || error.message);
       throw error;
     }
   },
@@ -356,7 +336,6 @@ export const messageAPI = {
     try {
       await axiosInstance.patch(`/chats/${chatId}/accept`);
     } catch (error: any) {
-      console.error('Error accepting message request:', error.response?.data || error.message);
       throw error;
     }
   },
@@ -366,7 +345,6 @@ export const messageAPI = {
     try {
       await axiosInstance.patch(`/chats/${chatId}/decline`);
     } catch (error: any) {
-      console.error('Error declining message request:', error.response?.data || error.message);
       throw error;
     }
   },
@@ -377,7 +355,6 @@ export const messageAPI = {
       const response = await axiosInstance.get(`/chats?page=${page}&limit=${limit}&chatStatus=requested`);
       return response.data.data;
     } catch (error: any) {
-      console.error('Error fetching message requests:', error.response?.data || error.message);
       throw error;
     }
   }
@@ -402,7 +379,6 @@ export const handleIncomingMessage = (message: Message, currentUserId: string) =
 export const setupMessageNotifications = (currentUserId: string) => {
   // This function would typically be called when setting up WebSocket listeners
   // For now, it's a placeholder for the integration point
-  console.log('Setting up message notifications for user:', currentUserId);
   
   // You would integrate this with your WebSocket/Socket.IO setup
   // Example:

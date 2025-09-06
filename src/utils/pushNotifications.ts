@@ -85,7 +85,7 @@ class PushNotificationManager {
         scope: '/'
       });
 
-      console.log('Service Worker registered successfully:', registration);
+      //console.log('Service Worker registered successfully:', registration);
 
       // Handle service worker updates
       registration.addEventListener('updatefound', () => {
@@ -94,7 +94,7 @@ class PushNotificationManager {
           newWorker.addEventListener('statechange', () => {
             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
               // New service worker is available
-              console.log('New service worker available');
+              //console.log('New service worker available');
               // You can show a notification to user to refresh
             }
           });
@@ -152,7 +152,7 @@ class PushNotificationManager {
     try {
       const permission = await this.requestPermission();
       if (permission !== 'granted') {
-        console.log('Push notification permission denied');
+        //console.log('Push notification permission denied');
         return null;
       }
 
@@ -179,7 +179,7 @@ class PushNotificationManager {
         });
       }
 
-      console.log('Push subscription successful:', subscription);
+      //console.log('Push subscription successful:', subscription);
 
       // Send subscription to backend (optional - won't fail if backend not ready)
       try {
@@ -223,7 +223,7 @@ class PushNotificationManager {
           console.warn('Could not remove subscription from backend:', backendError);
           // Don't throw error - local unsubscribe still worked
         }
-        console.log('Successfully unsubscribed from push notifications');
+        //console.log('Successfully unsubscribed from push notifications');
       }
 
       return result;
@@ -252,7 +252,7 @@ class PushNotificationManager {
         throw new Error('Failed to send subscription to backend');
       }
 
-      console.log('Subscription sent to backend successfully');
+      //console.log('Subscription sent to backend successfully');
     } catch (error) {
       console.error('Error sending subscription to backend:', error);
       // Don't throw error as local subscription still works
@@ -278,7 +278,7 @@ class PushNotificationManager {
         throw new Error('Failed to remove subscription from backend');
       }
 
-      console.log('Subscription removed from backend successfully');
+      //console.log('Subscription removed from backend successfully');
     } catch (error) {
       console.error('Error removing subscription from backend:', error);
     }
@@ -296,7 +296,7 @@ class PushNotificationManager {
       return;
     }
 
-    console.log('Showing local notification:', data.title);
+    //console.log('Showing local notification:', data.title);
 
     try {
       const notification = new Notification(data.title, {
@@ -314,7 +314,7 @@ class PushNotificationManager {
       });
 
       notification.onclick = () => {
-        console.log('Notification clicked, navigating to:', data.url || `/chats?chatId=${data.chatId}`);
+        //console.log('Notification clicked, navigating to:', data.url || `/chats?chatId=${data.chatId}`);
         window.focus();
         const url = data.url || `/chats?chatId=${data.chatId}`;
         window.location.href = url;
@@ -326,7 +326,7 @@ class PushNotificationManager {
       };
 
       notification.onshow = () => {
-        console.log('Notification shown successfully');
+        //console.log('Notification shown successfully');
       };
 
       // Auto close after 10 seconds
@@ -351,7 +351,7 @@ class PushNotificationManager {
       return;
     }
 
-    console.log('Showing general notification:', data.title);
+    //console.log('Showing general notification:', data.title);
 
     try {
       const notification = new Notification(data.title, {
@@ -369,7 +369,7 @@ class PushNotificationManager {
       });
 
       notification.onclick = () => {
-        console.log('General notification clicked, navigating to:', data.url || '/notifications');
+        //console.log('General notification clicked, navigating to:', data.url || '/notifications');
         window.focus();
         const url = data.url || '/notifications';
         window.location.href = url;
@@ -381,7 +381,7 @@ class PushNotificationManager {
       };
 
       notification.onshow = () => {
-        console.log('General notification shown successfully');
+        //console.log('General notification shown successfully');
       };
 
       // Auto close after 8 seconds (slightly shorter than message notifications)

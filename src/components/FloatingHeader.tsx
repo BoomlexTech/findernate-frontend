@@ -39,10 +39,10 @@ const FloatingHeader = ({paragraph, heading, username, accountBadge, width=""}: 
             const fetchProfile = async () => {
               try{
                 const data = await getUserProfile();
-                console.log(data)
+                //console.log(data)
                 setProfile(data.userId)
               } catch(err){
-                console.log(err)
+                //console.log(err)
               }
             }
             fetchProfile();

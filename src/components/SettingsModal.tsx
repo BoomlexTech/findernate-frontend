@@ -123,7 +123,7 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
     setTimeout(() => setSuccessToast({ show: false, message: "" }), 3000); // Hide after 3 seconds
     onClose()
     // Optionally show a success message or refresh data
-    console.log('Business details created:', data);
+    //console.log('Business details created:', data);
     // Immediately reflect upgrade in client store
     try { updateUser({ isBusinessProfile: true }); } catch {}
   };
@@ -137,7 +137,7 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
     }, 3000);
    
     // Optionally show a success message or refresh data
-    console.log('Business details updated:', data);
+    //console.log('Business details updated:', data);
   };
 
   return (

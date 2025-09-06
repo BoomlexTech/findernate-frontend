@@ -19,7 +19,7 @@ export default function PendingAadhaarPage() {
       setIsLoading(true);
       setError(null);
       
-      console.log('🔍 Fetching pending Aadhaar verifications:', { page, search });
+      //console.log('🔍 Fetching pending Aadhaar verifications:', { page, search });
       
       const response = await aadhaarVerificationAPI.getPendingVerifications({
         page,
@@ -27,7 +27,7 @@ export default function PendingAadhaarPage() {
         search: search.trim() || undefined,
       });
 
-      console.log('✅ API Response:', response);
+      //console.log('✅ API Response:', response);
 
       if (response.success) {
         setPendingVerifications(response.data.businesses);
@@ -36,7 +36,7 @@ export default function PendingAadhaarPage() {
         throw new Error(response.message || 'Failed to fetch data');
       }
     } catch (err: any) {
-      console.error('❌ Error fetching pending verifications:', err);
+      //console.error('❌ Error fetching pending verifications:', err);
       setError(err.message || 'Failed to load pending verifications');
     } finally {
       setIsLoading(false);
@@ -55,16 +55,16 @@ export default function PendingAadhaarPage() {
   const handleVerifyAadhaar = async (businessId: string, status: 'approved' | 'rejected', remarks = '') => {
     try {
       setIsVerifying(businessId);
-      console.log(`🔐 ${status === 'approved' ? 'Approving' : 'Rejecting'} Aadhaar for business:`, businessId);
+      //console.log(`🔐 ${status === 'approved' ? 'Approving' : 'Rejecting'} Aadhaar for business:`, businessId);
       
       await aadhaarVerificationAPI.verifyAadhaar(businessId, { status, remarks });
       
-      console.log('✅ Aadhaar verification updated successfully');
+      //console.log('✅ Aadhaar verification updated successfully');
       
       // Refresh the list
       await fetchPendingVerifications(currentPage, searchQuery);
     } catch (err: any) {
-      console.error('❌ Error verifying Aadhaar:', err);
+      //console.error('❌ Error verifying Aadhaar:', err);
       setError(err.message || 'Failed to update verification');
     } finally {
       setIsVerifying(null);

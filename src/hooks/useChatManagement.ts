@@ -60,7 +60,7 @@ export const useChatManagement = ({ user }: UseChatManagementProps) => {
   // Function to refresh chats with accurate unread counts
   const refreshChatsWithAccurateUnreadCounts = async () => {
     try {
-      console.log('Refreshing chats with accurate unread counts...');
+      //console.log('Refreshing chats with accurate unread counts...');
       const [activeChatsResponse, requestsResponse] = await Promise.all([
         messageAPI.getActiveChats(),
         messageAPI.getMessageRequests()
@@ -84,7 +84,7 @@ export const useChatManagement = ({ user }: UseChatManagementProps) => {
       setMessageRequests(sortedRequests);
       setAllChatsCache([...sortedActiveChats, ...sortedRequests]);
       
-      console.log('Chats refreshed with accurate unread counts');
+      //console.log('Chats refreshed with accurate unread counts');
     } catch (error) {
       console.error('Failed to refresh chats with accurate unread counts:', error);
     }
@@ -105,14 +105,14 @@ export const useChatManagement = ({ user }: UseChatManagementProps) => {
     const loadUserFollowing = async () => {
       if (user) {
         try {
-          console.log('Loading following list for user:', user.username);
+          //console.log('Loading following list for user:', user.username);
           const following = await messageAPI.getUserFollowing(user._id);
           const followingArray = (following || []);
           const followingIds = followingArray.filter(u => u && u._id).map(u => u._id);
-          console.log('Following list loaded:', {
-            count: followingIds.length,
-            users: followingArray.filter(u => u && u._id).map(u => ({ id: u._id, username: u.username }))
-          });
+          //console.log('Following list loaded:', {
+          //  count: followingIds.length,
+          //  users: followingArray.filter(u => u && u._id).map(u => ({ id: u._id, username: u.username }))
+          // });
           setUserFollowingList(followingIds);
         } catch (error) {
           console.error('Failed to load user following:', error);
@@ -130,22 +130,22 @@ export const useChatManagement = ({ user }: UseChatManagementProps) => {
       try {
         setLoading(true);
         
-        console.log('Loading active chats and requests from:', process.env.NEXT_PUBLIC_API_BASE_URL);
+        //console.log('Loading active chats and requests from:', process.env.NEXT_PUBLIC_API_BASE_URL);
         
         const [activeChatsResponse, requestsResponse] = await Promise.all([
           messageAPI.getActiveChats(),
           messageAPI.getMessageRequests()
         ]);
         
-        console.log('Active chats from server:', activeChatsResponse.chats.length);
-        console.log('Message requests from server:', requestsResponse.chats.length);
+        //console.log('Active chats from server:', activeChatsResponse.chats.length);
+        //console.log('Message requests from server:', requestsResponse.chats.length);
         
         // Include chats created by current user (outgoing requests) in active chats for Instagram-like behavior
         const outgoingChats = requestsResponse.chats.filter(chat => 
           chat.createdBy && chat.createdBy._id === user._id
         );
         
-        console.log('Outgoing chats (created by current user):', outgoingChats.length);
+        //console.log('Outgoing chats (created by current user):', outgoingChats.length);
         
         // Merge active chats and outgoing chats, avoiding duplicates by checking participants
         const combinedChats = [...activeChatsResponse.chats];
@@ -164,9 +164,9 @@ export const useChatManagement = ({ user }: UseChatManagementProps) => {
           if (!existingChat) {
             // No duplicate found, add the outgoing chat
             combinedChats.push(outgoingChat);
-            console.log('Added outgoing chat to active chats:', outgoingChat._id);
+            //console.log('Added outgoing chat to active chats:', outgoingChat._id);
           } else {
-            console.log('Found duplicate chat, skipping outgoing chat:', outgoingChat._id, 'existing:', existingChat._id);
+            //console.log('Found duplicate chat, skipping outgoing chat:', outgoingChat._id, 'existing:', existingChat._id);
           }
         });
         
@@ -179,8 +179,8 @@ export const useChatManagement = ({ user }: UseChatManagementProps) => {
           return isIncomingRequest(chat, user._id);
         });
         
-        console.log('Original requests:', requestsResponse.chats.length);
-        console.log('Filtered requests (incoming only):', filteredRequests.length);
+        //console.log('Original requests:', requestsResponse.chats.length);
+        //console.log('Filtered requests (incoming only):', filteredRequests.length);
         
         const sortedRequests = filteredRequests.sort((a, b) => 
           new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
@@ -202,7 +202,7 @@ export const useChatManagement = ({ user }: UseChatManagementProps) => {
         setAllChatsCache([...sortedActiveChats, ...sortedRequests]);
         
         // Cache any existing lastMessages from the initial load
-        console.log('Caching initial lastMessages for', sortedRequests.length, 'request chats');
+        //console.log('Caching initial lastMessages for', sortedRequests.length, 'request chats');
         sortedRequests.forEach(request => {
           if (request.lastMessage && request.lastMessage.message) {
             requestChatCache.addLastMessage(
@@ -216,7 +216,7 @@ export const useChatManagement = ({ user }: UseChatManagementProps) => {
       } catch (error) {
         console.error('Failed to load chats:', error);
         const axiosError = error as AxiosError;
-        console.log(axiosError.response?.status);
+        //console.log(axiosError.response?.status);
         setChats([]);
         setMessageRequests([]);
       } finally {
@@ -231,7 +231,7 @@ export const useChatManagement = ({ user }: UseChatManagementProps) => {
 
   // Simple categorization for when we need to update chats locally
   const categorizeChats = (allChats: Chat[]) => {
-    console.log('Local categorization called with:', allChats.length, 'chats');
+    //console.log('Local categorization called with:', allChats.length, 'chats');
     
     const regularChats: Chat[] = [];
     const requestChats: Chat[] = [];
@@ -255,10 +255,10 @@ export const useChatManagement = ({ user }: UseChatManagementProps) => {
       }
     });
 
-    console.log('Local categorization result:', {
-      regularChats: regularChats.length,
-      requestChats: requestChats.length
-    });
+    //console.log('Local categorization result:', {
+    //  regularChats: regularChats.length,
+    //  requestChats: requestChats.length
+    // });
 
     setChats(regularChats);
     setMessageRequests(requestChats);
@@ -267,7 +267,7 @@ export const useChatManagement = ({ user }: UseChatManagementProps) => {
   // Recategorize chats when following list or decisions change
   useEffect(() => {
     if (allChatsCache.length > 0 && userFollowingList.length >= 0) {
-      console.log('Recategorizing due to state change');
+      //console.log('Recategorizing due to state change');
       categorizeChats(allChatsCache);
     }
   }, [userFollowingList, requestDecisionCache, allChatsCache, user]);
@@ -276,7 +276,7 @@ export const useChatManagement = ({ user }: UseChatManagementProps) => {
   useEffect(() => {
     if (!user || messageRequests.length === 0) return;
     
-    console.log('Monitoring message requests for lastMessage caching...');
+    //console.log('Monitoring message requests for lastMessage caching...');
     
     messageRequests.forEach(request => {
       if (request.lastMessage && request.lastMessage.message) {
@@ -296,7 +296,7 @@ export const useChatManagement = ({ user }: UseChatManagementProps) => {
     if (chatId && chats.length > 0 && !selectedChat) {
       const chatExists = chats.find(chat => chat._id === chatId);
       if (chatExists) {
-        console.log('Setting selectedChat from URL params:', chatId);
+        //console.log('Setting selectedChat from URL params:', chatId);
         setSelectedChat(chatId);
       }
     }
@@ -311,7 +311,7 @@ export const useChatManagement = ({ user }: UseChatManagementProps) => {
     if (userId && message && user && chats.length >= 0) {
       const handleDirectMessage = async () => {
         try {
-          console.log('Processing direct message request for userId:', userId, 'fromContactInfo:', fromContactInfo);
+          //console.log('Processing direct message request for userId:', userId, 'fromContactInfo:', fromContactInfo);
           
           // Check if chat already exists in active chats or requests
           const existingChat = [...chats, ...messageRequests].find(chat => 
@@ -321,11 +321,11 @@ export const useChatManagement = ({ user }: UseChatManagementProps) => {
           );
 
           if (existingChat) {
-            console.log('Found existing chat, selecting it:', existingChat._id);
+            //console.log('Found existing chat, selecting it:', existingChat._id);
             
             // If this is from contact info and chat is currently in requests, move it to regular chats
             if (fromContactInfo && messageRequests.some(r => r._id === existingChat._id)) {
-              console.log('Moving existing chat from requests to regular chats for contact info');
+              //console.log('Moving existing chat from requests to regular chats for contact info');
               
               // Mark as accepted in cache
               const newDecisions = new Map(requestDecisionCache);
@@ -352,10 +352,10 @@ export const useChatManagement = ({ user }: UseChatManagementProps) => {
             }, 1000);
           } else if (fromContactInfo) {
             // Special handling for "Get Contact Info" - create chat directly and send message
-            console.log('Creating direct chat from Contact Info, bypassing follow requirements');
+            //console.log('Creating direct chat from Contact Info, bypassing follow requirements');
             try {
               const newChat = await messageAPI.createChat([user._id, userId], 'direct');
-              console.log('Created new chat:', newChat._id);
+              //console.log('Created new chat:', newChat._id);
               
               // For contact info requests, always add to sender's regular chats
               // The receiver will see it in their requests tab until they accept
@@ -374,7 +374,7 @@ export const useChatManagement = ({ user }: UseChatManagementProps) => {
               setTimeout(async () => {
                 try {
                   const sentMessage = await messageAPI.sendMessage(newChat._id, decodeURIComponent(message));
-                  console.log('Message sent successfully to new chat from Contact Info');
+                  //console.log('Message sent successfully to new chat from Contact Info');
                   
                   // Update the chat with the last message to ensure it stays visible in Direct tab
                   setChats(prev => prev.map(chat => 
@@ -409,10 +409,10 @@ export const useChatManagement = ({ user }: UseChatManagementProps) => {
             
             if (canDirectMessage) {
               // Both users follow each other - allow direct messaging
-              console.log('Users mutually follow - creating direct chat');
+              //console.log('Users mutually follow - creating direct chat');
               try {
                 const newChat = await messageAPI.createChat([user._id, userId], 'direct');
-                console.log('Created mutual follow chat:', newChat._id);
+                //console.log('Created mutual follow chat:', newChat._id);
                 
                 setChats(prev => [newChat, ...prev]);
                 setSelectedChat(newChat._id);
@@ -430,10 +430,10 @@ export const useChatManagement = ({ user }: UseChatManagementProps) => {
               }
             } else {
               // Users don't mutually follow - create request chat with message capability
-              console.log('Users don\'t mutually follow - creating request chat with messaging capability');
+              //console.log('Users don\'t mutually follow - creating request chat with messaging capability');
               try {
                 const newChat = await messageAPI.createChat([user._id, userId], 'direct');
-                console.log('Created request chat:', newChat._id);
+                //console.log('Created request chat:', newChat._id);
                 
                 // Add to sender's regular chats (Instagram-like: sender can always message)
                 setChats(prev => [newChat, ...prev]);
@@ -620,7 +620,7 @@ export const useChatManagement = ({ user }: UseChatManagementProps) => {
 
       // Clear cached messages since we'll now get them from backend
       requestChatCache.clearChat(chatId);
-      console.log('Cleared cached messages for accepted request:', chatId);
+      //console.log('Cleared cached messages for accepted request:', chatId);
 
       // Only switch to direct tab and select chat after explicit acceptance
       setSelectedChat(chatId);
@@ -650,7 +650,7 @@ export const useChatManagement = ({ user }: UseChatManagementProps) => {
 
       // Clear cached messages since the request is declined
       requestChatCache.clearChat(chatId);
-      console.log('Cleared cached messages for declined request:', chatId);
+      //console.log('Cleared cached messages for declined request:', chatId);
 
     } catch (error) {
       console.error('Failed to decline request:', error);
@@ -660,14 +660,14 @@ export const useChatManagement = ({ user }: UseChatManagementProps) => {
 
   // Handle when user follows/unfollows someone from other parts of the app
   const handleUserFollowUpdate = (userId: string, isFollowing: boolean) => {
-    console.log(`Follow update: ${userId}, following: ${isFollowing}`);
+    //console.log(`Follow update: ${userId}, following: ${isFollowing}`);
     
     setUserFollowingList(prev => {
       const newList = isFollowing 
         ? (prev.includes(userId) ? prev : [...prev, userId])
         : prev.filter(id => id !== userId);
       
-      console.log('Updated following list:', newList);
+      //console.log('Updated following list:', newList);
       return newList;
     });
   };
@@ -680,17 +680,17 @@ export const useChatManagement = ({ user }: UseChatManagementProps) => {
 
   // Handle profile navigation for direct chats and group details for group chats
   const handleProfileClick = (chat: Chat, setShowGroupDetails?: (show: boolean) => void) => {
-    console.log('Profile clicked for chat:', chat._id, 'type:', chat.chatType);
+    //console.log('Profile clicked for chat:', chat._id, 'type:', chat.chatType);
     
     if (chat.chatType === 'direct') {
-      console.log('Chat participants:', chat.participants);
-      console.log('Current user ID:', user?._id);
+      //console.log('Chat participants:', chat.participants);
+      //console.log('Current user ID:', user?._id);
       
       const otherParticipant = chat.participants.find(p => p && p._id && p._id !== user?._id);
-      console.log('Found other participant:', otherParticipant);
+      //console.log('Found other participant:', otherParticipant);
       
       if (otherParticipant && otherParticipant.username) {
-        console.log('Navigating to profile:', otherParticipant.username);
+        //console.log('Navigating to profile:', otherParticipant.username);
         router.push(`/userprofile/${otherParticipant.username}`);
       } else {
         console.warn('Could not find other participant or username missing', otherParticipant);

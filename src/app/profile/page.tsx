@@ -42,7 +42,7 @@ const Page = () => {
         
         // Fetch user profile
         const profileResponse = await getUserProfile();
-        console.log("Profile API response:", profileResponse);
+        //console.log("Profile API response:", profileResponse);
         
         // Updated to match actual API response structure
         if (profileResponse?.userId) {
@@ -137,18 +137,18 @@ const Page = () => {
           );
           
           setSavedPosts(allSavedPosts);
-          console.log("Private Posts Response:", privatePostsResponse.data?.savedPosts?.length);
-          console.log("Public Posts Response:", publicPostsResponse.data?.savedPosts?.length);
+          //console.log("Private Posts Response:", privatePostsResponse.data?.savedPosts?.length);
+          //console.log("Public Posts Response:", publicPostsResponse.data?.savedPosts?.length);
           
           // Debug first saved post structure
           if (allSavedPosts.length > 0) {
-            console.log("First saved post structure:", {
-              _id: allSavedPosts[0]._id,
-              isLikedBy: allSavedPosts[0].isLikedBy,
-              engagement: allSavedPosts[0].engagement,
-              userId: allSavedPosts[0].userId,
-              savedPostPrivacy: (allSavedPosts[0] as any).savedPostPrivacy
-            });
+            //console.log("First saved post structure:", {
+            //  _id: allSavedPosts[0]._id,
+            //  isLikedBy: allSavedPosts[0].isLikedBy,
+            //  engagement: allSavedPosts[0].engagement,
+            //  userId: allSavedPosts[0].userId,
+            //  savedPostPrivacy: (allSavedPosts[0] as any).savedPostPrivacy
+            // });
           }
         } catch (savedPostsError) {
           console.error('Error fetching saved posts:', savedPostsError);
@@ -156,9 +156,9 @@ const Page = () => {
           setSavedPosts([]);
         }
         
-        console.log("Posts:", postsResponse.data?.posts);
-        console.log("Reels:", reelsResponse.data?.posts);
-        console.log("Videos:", videosResponse.data?.posts);
+        //console.log("Posts:", postsResponse.data?.posts);
+        //console.log("Reels:", reelsResponse.data?.posts);
+        //console.log("Videos:", videosResponse.data?.posts);
       } catch (error) {
         console.error('Error fetching data:', error);
         setError('Failed to load profile data');
@@ -366,7 +366,7 @@ const Page = () => {
           <p className="text-gray-600 mb-6">{error}</p>
           <button 
             onClick={() => window.location.reload()}
-            className="px-6 py-3 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors font-medium"
+            className="px-6 py-3 bg-yellow-500 text-black rounded-lg hover:bg-yellow-600 transition-colors font-medium"
           >
             Try Again
           </button>
@@ -387,7 +387,7 @@ const Page = () => {
           <p className="text-gray-600 mb-6">We couldn&apos;t load your profile information.</p>
           <button 
             onClick={() => window.location.reload()}
-            className="px-6 py-3 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors font-medium"
+            className="px-6 py-3 bg-yellow-500 text-black rounded-lg hover:bg-yellow-600 transition-colors font-medium"
           >
             Refresh Page
           </button>

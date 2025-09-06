@@ -154,7 +154,7 @@ export const HelpCenterModal: React.FC<HelpCenterModalProps> = ({ isOpen, onClos
             <button
               type="submit"
               disabled={isSubmitting || isSuccess || !message.trim()}
-              className="w-full bg-[#ffd65c] text-white text-shadow py-3 px-4 rounded-lg font-medium hover:bg-[#e6c045] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full bg-[#ffd65c] text-black py-3 px-4 rounded-lg font-medium hover:bg-[#e6c045] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {isSubmitting ? (
                 <>

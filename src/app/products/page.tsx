@@ -88,15 +88,15 @@ const ProductsPage = () => {
       
       const transformedData = transformExploreFeedToFeedPost(response.data.feed);
       
-      console.log('Transformed product data:', transformedData.slice(0, 2));
+      //console.log('Transformed product data:', transformedData.slice(0, 2));
       
       // Fetch comments for all product posts
       const productsWithComments = await Promise.all(
         transformedData.map(async (product) => {
           try {
-            console.log(`Fetching comments for product: ${product._id}`);
+            //console.log(`Fetching comments for product: ${product._id}`);
             const commentsResponse = await getCommentsByPost(product._id, 1, 5); // Fetch first 5 comments
-            console.log(`Comments response for product ${product._id}:`, commentsResponse);
+            //console.log(`Comments response for product ${product._id}:`, commentsResponse);
             
             // Handle different possible response structures
             let comments: Comment[] = [];
@@ -112,11 +112,11 @@ const ProductsPage = () => {
                 comments = commentsResponse;
                 totalComments = comments.length;
               } else {
-                console.log('Unexpected comments response structure:', commentsResponse);
+                //console.log('Unexpected comments response structure:', commentsResponse);
               }
             }
             
-            console.log(`Processed ${comments.length} comments for product ${product._id}, total: ${totalComments}`);
+            //console.log(`Processed ${comments.length} comments for product ${product._id}, total: ${totalComments}`);
             
             return {
               ...product,
@@ -184,15 +184,15 @@ const ProductsPage = () => {
         profileImageUrl: post.userId?.profileImageUrl,
       }));
       
-      console.log('Search results:', flattenedResults.slice(0, 2));
+      //console.log('Search results:', flattenedResults.slice(0, 2));
       
       // Fetch comments for search results
       const searchResultsWithComments = await Promise.all(
         flattenedResults.map(async (product) => {
           try {
-            console.log(`Fetching comments for search result product: ${product._id}`);
+            //console.log(`Fetching comments for search result product: ${product._id}`);
             const commentsResponse = await getCommentsByPost(product._id, 1, 5);
-            console.log(`Comments response for search product ${product._id}:`, commentsResponse);
+            //console.log(`Comments response for search product ${product._id}:`, commentsResponse);
             
             // Handle different possible response structures
             let comments: Comment[] = [];
@@ -206,11 +206,11 @@ const ProductsPage = () => {
                 comments = commentsResponse;
                 totalComments = comments.length;
               } else {
-                console.log('Unexpected search comments response structure:', commentsResponse);
+                //console.log('Unexpected search comments response structure:', commentsResponse);
               }
             }
             
-            console.log(`Processed ${comments.length} comments for search product ${product._id}, total: ${totalComments}`);
+            //console.log(`Processed ${comments.length} comments for search product ${product._id}, total: ${totalComments}`);
             
             return {
               ...product,

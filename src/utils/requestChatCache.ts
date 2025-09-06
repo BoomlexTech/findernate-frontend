@@ -67,7 +67,7 @@ export const requestChatCache = {
     // Check if message already exists (avoid duplicates)
     const existingMessage = cache[chatId].messages.find(m => m._id === message._id);
     if (existingMessage) {
-      console.log('Message already cached, skipping:', message._id);
+      //console.log('Message already cached, skipping:', message._id);
       return;
     }
     
@@ -78,7 +78,7 @@ export const requestChatCache = {
     );
     cache[chatId].lastUpdated = Date.now();
     
-    console.log(`Cached message for request chat ${chatId}:`, message.message);
+    //console.log(`Cached message for request chat ${chatId}:`, message.message);
     saveCache(cache);
   },
 
@@ -110,7 +110,7 @@ export const requestChatCache = {
     );
     cache[chatId].lastUpdated = Date.now();
     
-    console.log(`Updated cached messages for request chat ${chatId}, total:`, cache[chatId].messages.length);
+    //console.log(`Updated cached messages for request chat ${chatId}, total:`, cache[chatId].messages.length);
     saveCache(cache);
   },
 
@@ -120,7 +120,7 @@ export const requestChatCache = {
     
     if (cache[chatId]) {
       delete cache[chatId];
-      console.log(`Cleared cached messages for chat ${chatId}`);
+      //console.log(`Cleared cached messages for chat ${chatId}`);
       saveCache(cache);
     }
   },
@@ -129,7 +129,7 @@ export const requestChatCache = {
   clearAll: (): void => {
     if (typeof window !== 'undefined') {
       localStorage.removeItem(REQUEST_MESSAGES_CACHE_KEY);
-      console.log('Cleared all request message cache');
+      //console.log('Cleared all request message cache');
     }
   },
 
@@ -164,7 +164,7 @@ export const requestChatCache = {
     );
     
     if (!alreadyCached) {
-      console.log('Caching lastMessage for request chat:', chatId, lastMessage.message);
+      //console.log('Caching lastMessage for request chat:', chatId, lastMessage.message);
       requestChatCache.addMessage(chatId, messageFromLastMessage);
     }
   },

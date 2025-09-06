@@ -13,20 +13,20 @@ export const testServerRoutes = async () => {
     '/media'
   ];
 
-  console.log('Testing server routes...');
+  //console.log('Testing server routes...');
   
   for (const route of baseRoutes) {
     try {
       // Try a simple GET request to each route
       await axiosInstance.get(route);
-      console.log(`✅ Route ${route} is available`);
+      //console.log(`✅ Route ${route} is available`);
     } catch (error: any) {
       if (error.response?.status === 404) {
-        console.log(`❌ Route ${route} returns 404 - not available`);
+        //console.log(`❌ Route ${route} returns 404 - not available`);
       } else if (error.response?.status === 401) {
-        console.log(`🔐 Route ${route} requires authentication (but exists)`);
+        //console.log(`🔐 Route ${route} requires authentication (but exists)`);
       } else {
-        console.log(`⚠️ Route ${route} returned status: ${error.response?.status}`);
+        //console.log(`⚠️ Route ${route} returned status: ${error.response?.status}`);
       }
     }
   }

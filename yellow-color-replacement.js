@@ -78,7 +78,7 @@ function replaceColorsInFile(filePath) {
     
     if (modified) {
       fs.writeFileSync(filePath, content, 'utf8');
-      console.log(`Updated: ${filePath}`);
+      //console.log(`Updated: ${filePath}`);
       return true;
     }
     return false;
@@ -94,17 +94,17 @@ function findFilesWithYellow(directory) {
     const result = execSync(command, { encoding: 'utf8' });
     return result.trim().split('\n').filter(file => file.length > 0);
   } catch (error) {
-    console.log('No more files found or ripgrep not available');
+    //console.log('No more files found or ripgrep not available');
     return [];
   }
 }
 
 function main() {
   const srcDirectory = path.join(__dirname, 'src');
-  console.log('Starting yellow color replacement...');
+  //console.log('Starting yellow color replacement...');
   
   const files = findFilesWithYellow(srcDirectory);
-  console.log(`Found ${files.length} files with yellow references`);
+  //console.log(`Found ${files.length} files with yellow references`);
   
   let updatedCount = 0;
   for (const file of files) {
@@ -114,12 +114,12 @@ function main() {
     }
   }
   
-  console.log(`\nCompleted! Updated ${updatedCount} files out of ${files.length}`);
-  console.log('\nColor mapping applied:');
-  console.log('- Light shades (50-200) → Light tints of #ffd65c');
-  console.log('- Medium shades (300-500) → #ffd65c (base color)');
-  console.log('- Dark shades (600-900) → Darker variants of #ffd65c');
-  console.log('- Hex colors → Corresponding #ffd65c variants');
+  //console.log(`\nCompleted! Updated ${updatedCount} files out of ${files.length}`);
+  //console.log('\nColor mapping applied:');
+  //console.log('- Light shades (50-200) → Light tints of #ffd65c');
+  //console.log('- Medium shades (300-500) → #ffd65c (base color)');
+  //console.log('- Dark shades (600-900) → Darker variants of #ffd65c');
+  //console.log('- Hex colors → Corresponding #ffd65c variants');
 }
 
 if (require.main === module) {

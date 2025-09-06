@@ -97,7 +97,7 @@ export default function Sidebar() {
 
   const handleLogout = async () => {
     try {
-      console.log('🚪 Sidebar: Starting logout...');
+      //console.log('🚪 Sidebar: Starting logout...');
       
       // Call logout API
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/logout`, {
@@ -105,7 +105,7 @@ export default function Sidebar() {
         credentials: 'include'
       });
       
-      console.log('🚪 Sidebar: Logout API response:', response.status);
+      //console.log('🚪 Sidebar: Logout API response:', response.status);
       
       // Clear all admin-related localStorage data
       localStorage.removeItem('adminAccessToken');
@@ -116,7 +116,7 @@ export default function Sidebar() {
       // Clear store state
       await logout();
       
-      console.log('🚪 Sidebar: Logout completed, redirecting to login...');
+      //console.log('🚪 Sidebar: Logout completed, redirecting to login...');
       
       // Redirect to login page
       router.push('/admin/login');

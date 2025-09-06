@@ -137,7 +137,7 @@ export const ChatList: React.FC<ChatListProps> = ({
                   : `hover:bg-yellow-50 ${selectedChat === chat._id ? "bg-yellow-50 border border-yellow-300" : ""}`
               }`} 
               onClick={() => {
-                console.log('Selecting chat:', chat._id, 'from tab:', activeTab);
+                //console.log('Selecting chat:', chat._id, 'from tab:', activeTab);
                 // Only set selected chat, don't auto-accept or switch tabs for requests
                 setSelectedChat(chat._id);
               }}

@@ -19,7 +19,7 @@ export default function AadhaarHistoryPage() {
       setIsLoading(true);
       setError(null);
       
-      console.log('🔍 Fetching Aadhaar verification history:', { page, search, status });
+      //console.log('🔍 Fetching Aadhaar verification history:', { page, search, status });
       
       const response = await aadhaarVerificationAPI.getVerificationHistory({
         page,
@@ -28,7 +28,7 @@ export default function AadhaarHistoryPage() {
         status: status as 'approved' | 'rejected' | undefined,
       });
 
-      console.log('✅ API Response:', response);
+      //console.log('✅ API Response:', response);
 
       if (response.success) {
         setVerificationHistory(response.data.businesses);
@@ -37,7 +37,7 @@ export default function AadhaarHistoryPage() {
         throw new Error(response.message || 'Failed to fetch data');
       }
     } catch (err: any) {
-      console.error('❌ Error fetching verification history:', err);
+      //console.error('❌ Error fetching verification history:', err);
       setError(err.message || 'Failed to load verification history');
     } finally {
       setIsLoading(false);

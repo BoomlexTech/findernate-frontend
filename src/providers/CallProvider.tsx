@@ -128,10 +128,10 @@ export const CallProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // Auto state transition based on WebRTC connection state
   useEffect(() => {
     if (state.connectionState === 'connected' && state.currentState === CallState.CONNECTING) {
-      console.log('🎉 CallProvider: Auto-transitioning to CONNECTED state');
+      //console.log('🎉 CallProvider: Auto-transitioning to CONNECTED state');
       dispatch({ type: 'SET_STATE', payload: CallState.CONNECTED });
     } else if (state.connectionState === 'failed') {
-      console.log('❌ CallProvider: Auto-transitioning to FAILED state');
+      //console.log('❌ CallProvider: Auto-transitioning to FAILED state');
       dispatch({ type: 'SET_STATE', payload: CallState.FAILED });
     }
   }, [state.connectionState, state.currentState]);
@@ -158,17 +158,17 @@ export const CallProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // Initialize WebRTC event handlers
   useEffect(() => {
-    console.log('🎯 CallProvider: Setting up WebRTC event handlers');
+    //console.log('🎯 CallProvider: Setting up WebRTC event handlers');
 
     // Remote stream handler
     webRTCManager.onRemoteStream((stream) => {
-      console.log('📺 CallProvider: Remote stream received');
+      //console.log('📺 CallProvider: Remote stream received');
       dispatch({ type: 'SET_REMOTE_STREAM', payload: stream });
     });
 
     // Connection state handler
     webRTCManager.onConnectionStateChange((connectionState) => {
-      console.log('🔗 CallProvider: Connection state changed to:', connectionState);
+      //console.log('🔗 CallProvider: Connection state changed to:', connectionState);
       dispatch({ type: 'SET_CONNECTION_STATE', payload: connectionState });
     });
 
@@ -180,17 +180,17 @@ export const CallProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     });
 
     return () => {
-      console.log('🧹 CallProvider: Cleaning up WebRTC handlers');
+      //console.log('🧹 CallProvider: Cleaning up WebRTC handlers');
     };
   }, []);
 
   // Initialize socket event handlers
   useEffect(() => {
-    console.log('🔌 CallProvider: Setting up socket event handlers');
+    //console.log('🔌 CallProvider: Setting up socket event handlers');
 
     // Incoming call
     socketManager.on('incoming_call', (data) => {
-      console.log('📞 CallProvider: Incoming call received:', data);
+      //console.log('📞 CallProvider: Incoming call received:', data);
       dispatch({ type: 'SET_INCOMING_CALL', payload: data });
       dispatch({ type: 'SET_STATE', payload: CallState.INCOMING });
       
@@ -203,7 +203,7 @@ export const CallProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     // Call accepted
     socketManager.on('call_accepted', (data) => {
-      console.log('✅ CallProvider: Call accepted:', data);
+      //console.log('✅ CallProvider: Call accepted:', data);
       if (state.currentCall && state.currentCall._id === data.callId) {
         dispatch({ type: 'SET_STATE', payload: CallState.CONNECTING });
         ringtoneManager.stopRingtone();
@@ -215,7 +215,7 @@ export const CallProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     // Call declined
     socketManager.on('call_declined', (data) => {
-      console.log('❌ CallProvider: Call declined:', data);
+      //console.log('❌ CallProvider: Call declined:', data);
       const isCurrentCall = state.currentCall && state.currentCall._id === data.callId;
       const isIncomingCall = state.incomingCall && state.incomingCall.callId === data.callId;
       
@@ -230,7 +230,7 @@ export const CallProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     // Call ended
     socketManager.on('call_ended', (data) => {
-      console.log('🔚 CallProvider: Call ended:', data);
+      //console.log('🔚 CallProvider: Call ended:', data);
       const isCurrentCall = state.currentCall && state.currentCall._id === data.callId;
       const isIncomingCall = state.incomingCall && state.incomingCall.callId === data.callId;
       
@@ -264,7 +264,7 @@ export const CallProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       dispatch({ type: 'SET_ERROR', payload: null });
       dispatch({ type: 'SET_STATE', payload: CallState.CALLING });
 
-      console.log('📞 CallProvider: Starting voice call to:', receiverName);
+      //console.log('📞 CallProvider: Starting voice call to:', receiverName);
 
       // Create call on backend
       const call = await callAPI.initiateCall({
@@ -316,7 +316,7 @@ export const CallProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       dispatch({ type: 'SET_ERROR', payload: null });
       dispatch({ type: 'SET_STATE', payload: CallState.CALLING });
 
-      console.log('📹 CallProvider: Starting video call to:', receiverName);
+      //console.log('📹 CallProvider: Starting video call to:', receiverName);
 
       // Create call on backend
       const call = await callAPI.initiateCall({
@@ -366,7 +366,7 @@ export const CallProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       ringtoneManager.stopRingtone();
 
-      console.log('✅ CallProvider: Accepting call:', state.incomingCall.callId);
+      //console.log('✅ CallProvider: Accepting call:', state.incomingCall.callId);
 
       // Accept on backend
       const call = await callAPI.acceptCall(state.incomingCall.callId);
@@ -405,12 +405,12 @@ export const CallProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (!state.incomingCall) return;
 
     try {
-      console.log('🔴 CallProvider: Declining call:', state.incomingCall.callId);
+      //console.log('🔴 CallProvider: Declining call:', state.incomingCall.callId);
       ringtoneManager.stopRingtone();
       
       // Immediately clear the modal by resetting state
       dispatch({ type: 'RESET_CALL' });
-      console.log('🔴 CallProvider: Call state reset after decline');
+      //console.log('🔴 CallProvider: Call state reset after decline');
       
       // Decline on backend
       await callAPI.declineCall(state.incomingCall.callId);
@@ -465,7 +465,7 @@ export const CallProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // Retry connection
   const retryConnection = useCallback(async () => {
     if (state.currentCall) {
-      console.log('🔄 CallProvider: Retrying connection');
+      //console.log('🔄 CallProvider: Retrying connection');
       dispatch({ type: 'SET_STATE', payload: CallState.CONNECTING });
       // WebRTC manager will handle the retry
     }

@@ -261,7 +261,7 @@ export default function SignupComponent() {
         gender: formData.gender
       };
       const response = await signUp(signupData);
-      console.log(response);
+      //console.log(response);
       setUser(response.data.user);
       setToken(response.data.accessToken);
       // localStorage is handled automatically by setToken in the store
@@ -583,7 +583,7 @@ export default function SignupComponent() {
                                      className={`
                                        p-2 text-xs rounded transition-all duration-200 font-medium
                                        ${isSelectedDate(day) 
-                                         ? 'bg-[#ffd65c] text-white shadow-md' 
+                                         ? 'bg-[#ffd65c] text-black shadow-md' 
                                          : isToday(day) 
                                          ? 'bg-yellow-100 text-yellow-800 border-2 border-yellow-400' 
                                          : isCurrentMonth(day) 
@@ -619,7 +619,7 @@ export default function SignupComponent() {
                                      const today = new Date();
                                      handleDateSelect(today);
                                    }}
-                                   className="px-4 py-2 text-sm bg-[#ffd65c] text-white hover:bg-yellow-600 rounded-lg transition-colors font-medium"
+                                   className="px-4 py-2 text-sm bg-[#ffd65c] text-black hover:bg-yellow-600 rounded-lg transition-colors font-medium"
                                  >
                                    Today
                                  </button>
@@ -707,7 +707,7 @@ export default function SignupComponent() {
           {/* Submit Button */}
           <button
             type="submit"
-            className="w-full py-3 px-4 bg-button-gradient text-white text-shadow font-semibold rounded-lg transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl"
+            className="w-full py-3 px-4 bg-button-gradient text-black font-semibold rounded-lg transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl"
           >
             Create Account
           </button>

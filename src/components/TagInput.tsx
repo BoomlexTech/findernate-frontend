@@ -49,7 +49,7 @@ const TagInput: React.FC<TagInputProps> = ({ tags, setTags }) => {
         <button
           type="button"
           onClick={handleAddTag}
-          className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
+          className="px-4 py-2 bg-yellow-500 text-black rounded-md hover:bg-yellow-600"
         >
           Add
         </button>

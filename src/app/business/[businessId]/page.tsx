@@ -52,7 +52,7 @@ const BusinessProfilePage = () => {
         let businessResponse;
         try {
           businessResponse = await getBusinessProfile(businessName);
-          console.log("Business profile API response:", businessResponse);
+          //console.log("Business profile API response:", businessResponse);
         } catch (apiError) {
           console.error('Business profile API failed, using fallback:', apiError);
           // Create fallback business data using the business name from URL
@@ -133,7 +133,7 @@ const BusinessProfilePage = () => {
       try {
         // TODO: Implement follow/unfollow business API call
         // const response = await followBusiness(businessData._id);
-        console.log('Follow/unfollow business:', businessData._id);
+        //console.log('Follow/unfollow business:', businessData._id);
         
         // Update local state
         setBusinessData(prev => prev ? {
@@ -229,7 +229,7 @@ const BusinessProfilePage = () => {
                       className="rounded-full w-full h-full object-cover"
                     />
                   ) : (
-                    <div className="w-full h-full rounded-full bg-button-gradient flex items-center justify-center text-white text-shadow font-bold text-lg sm:text-2xl">
+                    <div className="w-full h-full rounded-full bg-button-gradient flex items-center justify-center text-black font-bold text-lg sm:text-2xl">
                       <Building2 className="w-8 h-8" />
                     </div>
                   )}

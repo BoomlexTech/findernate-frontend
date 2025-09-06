@@ -84,36 +84,36 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
     try {
       setRatingLoading(true);
       
-      console.log('🔍 DEBUG: Fetching business rating for businessId:', businessId);
-      console.log('🔍 DEBUG: Current user (me):', currentUser?._id);
-      console.log('🔍 DEBUG: Profile being viewed:', userData._id, userData.username);
-      console.log('🔍 DEBUG: Are we on our own profile?', isCurrentUser);
-      console.log('🔍 DEBUG: userData.isBusinessProfile:', userData.isBusinessProfile);
+      // //console.log('🔍 DEBUG: Fetching business rating for businessId:', businessId);
+      // //console.log('🔍 DEBUG: Current user (me):', currentUser?._id);
+      // //console.log('🔍 DEBUG: Profile being viewed:', userData._id, userData.username);
+      // //console.log('🔍 DEBUG: Are we on our own profile?', isCurrentUser);
+      // //console.log('🔍 DEBUG: userData.isBusinessProfile:', userData.isBusinessProfile);
       
       // Skip if this is our own profile
       if (isCurrentUser) {
-        console.log('❌ Cannot rate own business - this is our own profile');
+        // //console.log('❌ Cannot rate own business - this is our own profile');
         setBusinessRating(0);
         setTotalRatings(0);
         return;
       }
       
       // Fetch business rating using the businessId directly
-      console.log('🔄 Fetching business rating for businessId:', businessId);
+      // //console.log('🔄 Fetching business rating for businessId:', businessId);
       const ratingResponse = await getBusinessRatingSummary(businessId);
-      console.log('⭐ Business rating response:', ratingResponse);
+      // //console.log('⭐ Business rating response:', ratingResponse);
       
       if (ratingResponse.data?.business) {
         setBusinessRating(ratingResponse.data.business.averageRating || 0);
         setTotalRatings(ratingResponse.data.business.totalRatings || 0);
-        console.log('✅ Successfully fetched business rating');
+        // //console.log('✅ Successfully fetched business rating');
       } else {
-        console.log('⚠️ No business data in rating response');
+        // //console.log('⚠️ No business data in rating response');
         setBusinessRating(0);
         setTotalRatings(0);
       }
     } catch (error) {
-      console.error('❌ Error fetching business rating:', error);
+      // console.error('❌ Error fetching business rating:', error);
       setBusinessRating(0);
       setTotalRatings(0);
     } finally {
@@ -133,30 +133,20 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
       return story.viewers.includes(currentUser._id);
     });
     
-    console.log('Stories viewed check:', {
-      currentUserId: currentUser._id,
-      storiesCount: userStories.length,
-      allViewed,
-      storiesWithViewers: userStories.map(story => ({
-        storyId: story._id,
-        viewers: story.viewers || [],
-        viewedByCurrentUser: story.viewers?.includes(currentUser._id) || false
-      }))
-    });
     
     return allViewed;
   };
 
   // Update internal state if userData prop changes
   useEffect(() => {
-    console.log("UserProfile useEffect - userData:", {
-      username: userData.username,
-      isFollowing: userData.isFollowing,
-      isFollowingType: typeof userData.isFollowing,
-      followersCount: userData.followersCount,
-      isBusinessProfile: userData.isBusinessProfile,
-      businessId: userData.businessId
-    });
+    // //console.log("UserProfile useEffect - userData:", {
+    //   username: userData.username,
+    //   isFollowing: userData.isFollowing,
+    //   isFollowingType: typeof userData.isFollowing,
+    //   followersCount: userData.followersCount,
+    //   isBusinessProfile: userData.isBusinessProfile,
+    //   businessId: userData.businessId
+    // });
     
     setProfile(userData);
     setIsFollowing(userData.isFollowing || false);
@@ -221,7 +211,7 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
       const stories = await storyAPI.fetchStoriesByUser(userId);
       setUserStories(stories);
     } catch (error) {
-      console.error('Error fetching user stories:', error);
+      // console.error('Error fetching user stories:', error);
       setUserStories([]);
     }
   };
@@ -229,16 +219,16 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
   const handleRatingSubmit = async () => {
     if (selectedRating === 0 || !businessId) return;
     
-    console.log('🚀 DEBUG: Submitting rating...');
-    console.log('🚀 DEBUG: Business ID to rate:', businessId);
-    console.log('🚀 DEBUG: Rating value:', selectedRating);
-    console.log('🚀 DEBUG: Current user (me):', currentUser?._id);
-    console.log('🚀 DEBUG: Profile being rated:', userData._id, userData.username);
+    // //console.log('🚀 DEBUG: Submitting rating...');
+    // //console.log('🚀 DEBUG: Business ID to rate:', businessId);
+    // //console.log('🚀 DEBUG: Rating value:', selectedRating);
+    // //console.log('🚀 DEBUG: Current user (me):', currentUser?._id);
+    // //console.log('🚀 DEBUG: Profile being rated:', userData._id, userData.username);
     
     try {
       setSubmittingRating(true);
       const response = await rateBusiness(businessId, selectedRating);
-      console.log('✅ Rating submitted successfully:', response);
+      // //console.log('✅ Rating submitted successfully:', response);
       
       // Refresh the business rating after successful submission using the businessId
       await fetchBusinessRating(businessId);
@@ -248,9 +238,9 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
       setSelectedRating(0);
       
       // You could show a success message here
-      console.log('Rating submitted successfully!');
+      // //console.log('Rating submitted successfully!');
     } catch (error) {
-      console.error('Error submitting rating:', error);
+      // console.error('Error submitting rating:', error);
       // You could show an error message here
     } finally {
       setSubmittingRating(false);
@@ -262,13 +252,13 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
       const blocked = await checkIfUserBlocked(userId);
       setIsBlocked(blocked);
     } catch (error) {
-      console.error('Error checking block status:', error);
+      // console.error('Error checking block status:', error);
       setIsBlocked(false);
     }
   };
 
   // Debug the createdAt value
-  //console.log('Profile createdAt:', profile?.createdAt);
+  //// //console.log('Profile createdAt:', profile?.createdAt);
 
   const getJoinedDate = (dateString: string) => {
     if (!dateString) return 'N/A';
@@ -284,7 +274,7 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
         month: 'long',
       });
     } catch (error) {
-      console.error('Error parsing date:', error);
+      // console.error('Error parsing date:', error);
       return 'N/A';
     }
   };
@@ -302,7 +292,7 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
       setLocationSuggestions(suggestions);
       setShowLocationSuggestions(suggestions.length > 0);
     } catch (error) {
-      console.error('Error fetching location suggestions:', error);
+      // console.error('Error fetching location suggestions:', error);
       setLocationSuggestions([]);
       setShowLocationSuggestions(false);
     }
@@ -388,10 +378,10 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
         setShowStoryViewer(true);
       } else {
         // User has no stories
-        console.log('User has no stories to show');
+        // //console.log('User has no stories to show');
       }
     } catch (error) {
-      console.error('Error fetching user stories:', error);
+      // console.error('Error fetching user stories:', error);
     } finally {
       setStoriesLoading(false);
     }
@@ -500,14 +490,14 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
       };
       
       // Debug: Log what we're sending to the API
-      console.log('Sending profile data to API:', {
-        fullName: profileData.fullName,
-        bio: profileData.bio,
-        location: profileData.location,
-        link: profileData.link,
-        profileImageUrlLength: profileData.profileImageUrl ? profileData.profileImageUrl.length : 0,
-        profileImageUrlStart: profileData.profileImageUrl ? profileData.profileImageUrl.substring(0, 100) : 'No image URL'
-      });
+      // //console.log('Sending profile data to API:', {
+      //   fullName: profileData.fullName,
+      //   bio: profileData.bio,
+      //   location: profileData.location,
+      //   link: profileData.link,
+      //   profileImageUrlLength: profileData.profileImageUrl ? profileData.profileImageUrl.length : 0,
+      //   profileImageUrlStart: profileData.profileImageUrl ? profileData.profileImageUrl.substring(0, 100) : 'No image URL'
+      // });
 
       // If image is a data URL (newly selected), resize and send to backend
       if (profileData.profileImageUrl && profileData.profileImageUrl.startsWith('data:')) {
@@ -522,7 +512,7 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
       const updatedProfile = await editProfile(profileData);
       
       // Debug: Log the response
-      console.log('API Response:', updatedProfile);
+      // //console.log('API Response:', updatedProfile);
       
       // Update local profile state with the response from API
       setProfile(prev => ({
@@ -548,10 +538,10 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
       setIsEditing(false);
       
       // Show success feedback (optional)
-      console.log('Profile updated successfully');
+      // //console.log('Profile updated successfully');
       
     } catch (error: any) {
-      console.error('Error updating profile:', error);
+      // console.error('Error updating profile:', error);
       
       // Show user-friendly error message
       const errorMessage = error instanceof Error 
@@ -581,11 +571,11 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
     if (isFollowLoading) return;
     
     // Debug check
-    console.log('Attempting to follow/unfollow user:', {
-      targetUserId: profile._id,
-      currentlyFollowing: isFollowing,
-      token: typeof window !== 'undefined' ? !!localStorage.getItem('token') : false
-    });
+    // //console.log('Attempting to follow/unfollow user:', {
+    //   targetUserId: profile._id,
+    //   currentlyFollowing: isFollowing,
+    //   token: typeof window !== 'undefined' ? !!localStorage.getItem('token') : false
+    // });
     
     setIsFollowLoading(true);
     try {
@@ -613,7 +603,7 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
         }
       }
     } catch (error: any) {
-      console.error('Error toggling follow status:', error);
+      // console.error('Error toggling follow status:', error);
       
       // Get error message from API response
       const errorMessage = error?.response?.data?.message || error?.message || '';
@@ -623,14 +613,14 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
         // Update state to reflect reality - user is already following
         setIsFollowing(true);
         // Don't change followers count since we're already following
-        console.log('User was already following - updating UI state');
+        // //console.log('User was already following - updating UI state');
       } else if (errorMessage === 'Not following this user') {
         // Update state to reflect reality - user is not following
         setIsFollowing(false);
-        console.log('User was not following - updating UI state');
+        // //console.log('User was not following - updating UI state');
       } else if (errorMessage === 'Cannot follow yourself') {
         // Handle self-follow attempt
-        console.log('Cannot follow yourself');
+        // //console.log('Cannot follow yourself');
         alert('You cannot follow yourself');
       } else {
         // Show user-friendly error message for other errors
@@ -666,7 +656,7 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
       
       // Create a direct chat with both users (current user + target user)
       const participants = [currentUser._id, profile._id];
-      console.log('Creating chat with participants:', participants);
+      // //console.log('Creating chat with participants:', participants);
       
       const chat = await messageAPI.createChat(participants, 'direct');
       
@@ -674,7 +664,7 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
       router.push(`/chats?chatId=${chat._id}`);
     } catch (error) {
       const axiosError = error as AxiosError;
-      console.error('Error creating chat:', axiosError);
+      // console.error('Error creating chat:', axiosError);
       
       if (axiosError.response?.status === 404) {
         alert('Chat functionality is not available on this server yet. Please contact the administrator.');
@@ -730,7 +720,7 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
           setIsFollowing(false);
           setFollowersCount(prev => prev - 1);
         } catch (unfollowError) {
-          console.error('Error unfollowing user during block:', unfollowError);
+          // console.error('Error unfollowing user during block:', unfollowError);
           // Still proceed with block even if unfollow fails
           setIsFollowing(false);
           setFollowersCount(prev => prev - 1);
@@ -738,7 +728,7 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
       }
       
     } catch (error: any) {
-      console.error('Error blocking user:', error);
+      // console.error('Error blocking user:', error);
       
       const errorMessage = error?.response?.data?.message || error?.message || 'Failed to block user';
       alert(errorMessage);
@@ -756,7 +746,7 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
       setIsBlocked(false);
       
     } catch (error: any) {
-      console.error('Error unblocking user:', error);
+      // console.error('Error unblocking user:', error);
       
       const errorMessage = error?.response?.data?.message || error?.message || 'Failed to unblock user';
       alert(errorMessage);
@@ -799,7 +789,7 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
               </button>
               <button
                 onClick={handleCropSave}
-                className="px-4 py-2 rounded bg-yellow-500 hover:bg-yellow-600 text-white"
+                className="px-4 py-2 rounded bg-yellow-500 hover:bg-yellow-600 text-black"
               >
                 Save
               </button>
@@ -854,7 +844,7 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
                   </>
                 ) : (
                   <>
-                    <div className={`w-full h-full rounded-full bg-button-gradient flex items-center justify-center text-white text-shadow font-bold text-lg sm:text-2xl ${
+                    <div className={`w-full h-full rounded-full bg-button-gradient flex items-center justify-center text-black font-bold text-lg sm:text-2xl ${
                       !isCurrentUser && userStories.length > 0 
                         ? 'border-0' 
                         : 'border-2 sm:border-4 border-white'
@@ -1070,7 +1060,7 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
                   <>
                     <Button
                       onClick={handleSave}
-                      className="bg-yellow-600 hover:bg-yellow-700 text-white px-3 sm:px-4 py-1.5 rounded-md text-sm sm:text-md font-medium flex items-center gap-1"
+                      className="bg-yellow-600 hover:bg-yellow-700 text-black px-3 sm:px-4 py-1.5 rounded-md text-sm sm:text-md font-medium flex items-center gap-1"
                     >
                       <Check className="w-4 h-4" /> <span className="hidden sm:inline">Save</span>
                     </Button>
@@ -1118,7 +1108,7 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
                       className={`px-3 sm:px-4 py-1.5 rounded-md text-sm sm:text-md font-medium flex items-center gap-1 ${
                         isFollowing 
                           ? 'bg-gray-500 hover:bg-gray-600 text-white border-gray-500' 
-                          : 'bg-yellow-600 hover:bg-yellow-700 text-white'
+                          : 'bg-yellow-600 hover:bg-yellow-700 text-black'
                       }`}
                     >
                       {isFollowLoading ? (
@@ -1239,7 +1229,7 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
           onClose={() => setShowStoryViewer(false)}
           onStoryViewed={(storyId) => {
             // Mark story as viewed
-            console.log('Story viewed:', storyId);
+            // //console.log('Story viewed:', storyId);
           }}
         />
       )}
@@ -1311,7 +1301,7 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
               <button
                 onClick={handleRatingSubmit}
                 disabled={selectedRating === 0 || submittingRating}
-                className="flex-1 px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="flex-1 px-4 py-2 bg-yellow-500 text-black rounded-lg hover:bg-yellow-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {submittingRating ? (
                   <>

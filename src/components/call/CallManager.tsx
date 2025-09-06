@@ -26,7 +26,7 @@ export const CallManager: React.FC<CallManagerProps> = ({ currentUserId }) => {
 
   const [isMinimized, setIsMinimized] = useState(false);
 
-  console.log('🎯 CallManager: Call state:', callState.isInCall, 'Call:', callState.call?._id, 'IncomingCall:', incomingCall?.callId);
+  //console.log('🎯 CallManager: Call state:', callState.isInCall, 'Call:', callState.call?._id, 'IncomingCall:', incomingCall?.callId);
 
   // Helper function to get the other participant ID
   const getOtherParticipantId = (chat: Chat): string => {

@@ -43,7 +43,7 @@ export default function TrendingBusiness() {
       try {
         setLoading(true);
         const response: AxiosResponse = await getTrendingBusinessOwners();
-        console.log("trending business owners", response);
+        //console.log("trending business owners", response);
         
         // Extract businesses array from the Axios response structure
         // response.data.data.businesses (because of Axios wrapper)

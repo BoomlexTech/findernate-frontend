@@ -3,19 +3,19 @@ const CACHE_NAME = 'findernate-v1';
 
 // Install event
 self.addEventListener('install', (event) => {
-  console.log('Service Worker: Installed');
+  //console.log('Service Worker: Installed');
   self.skipWaiting();
 });
 
 // Activate event
 self.addEventListener('activate', (event) => {
-  console.log('Service Worker: Activated');
+  //console.log('Service Worker: Activated');
   event.waitUntil(self.clients.claim());
 });
 
 // Push event - handle incoming push notifications
 self.addEventListener('push', (event) => {
-  console.log('Service Worker: Push event received', event);
+  //console.log('Service Worker: Push event received', event);
   
   let notificationData = {
     title: 'New Message',
@@ -51,7 +51,7 @@ self.addEventListener('push', (event) => {
         }
       };
     } catch (error) {
-      console.error('Error parsing push data:', error);
+      //console.error('Error parsing push data:', error);
     }
   }
 
@@ -82,7 +82,7 @@ self.addEventListener('push', (event) => {
 
 // Notification click event
 self.addEventListener('notificationclick', (event) => {
-  console.log('Service Worker: Notification clicked', event);
+  //console.log('Service Worker: Notification clicked', event);
   
   event.notification.close();
 
@@ -127,14 +127,14 @@ self.addEventListener('sync', (event) => {
   if (event.tag === 'background-message-sync') {
     event.waitUntil(
       // Handle background sync for messages
-      console.log('Service Worker: Background sync for messages')
+      //console.log('Service Worker: Background sync for messages')
     );
   }
 });
 
 // Message event (for communication with main thread)
 self.addEventListener('message', (event) => {
-  console.log('Service Worker: Message received', event.data);
+  //console.log('Service Worker: Message received', event.data);
   
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();

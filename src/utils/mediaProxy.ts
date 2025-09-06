@@ -23,10 +23,10 @@ export function getProxiedMediaUrl(cloudinaryUrl: string): string {
     // Create the proxied URL
     const proxiedUrl = `/api/media/${pathAfterDomain}`;
     
-    console.log('Converting Cloudinary URL:', {
-      original: cloudinaryUrl,
-      proxied: proxiedUrl
-    });
+    //console.log('Converting Cloudinary URL:', {
+    //  original: cloudinaryUrl,
+    //  proxied: proxiedUrl
+    // });
     
     return proxiedUrl;
     

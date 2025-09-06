@@ -104,10 +104,21 @@ export default function AccountSettings() {
       setTimeout(() => setUpdateMessage(''), 3000);
     } catch (error: any) {
       console.error('Failed to update category:', error);
-      setUpdateMessage(error.response?.data?.message || 'Failed to update category');
-      setTimeout(() => setUpdateMessage(''), 5000);
+      
+      // Check if it's a 404 error (business profile not found)
+      if (error.response?.status === 404) {
+        setUpdateMessage('Business profile not found. Please add your business details first.');
+        setTimeout(() => {
+          setUpdateMessage('');
+          setShowBusinessDetailsModal(true); // Open the business details modal
+        }, 1000);
+      } else {
+        setUpdateMessage(error.response?.data?.message || 'Failed to update category');
+        setTimeout(() => setUpdateMessage(''), 5000);
+      }
     } finally {
       setIsUpdatingCategory(false);
+      setShowCategoryDropdown(false); // Close the dropdown
     }
   };
 
@@ -126,12 +137,21 @@ export default function AccountSettings() {
 
 
 
-  const handleBusinessDetailsSubmit = () => {
+  const handleBusinessDetailsSubmit = async () => {
     setShowBusinessDetailsModal(false);
     setIsBusiness(true);
     try { updateUser({ isBusinessProfile: true }); } catch {}
-    setUpdateMessage('Business account created successfully!');
-    setTimeout(() => setUpdateMessage(''), 3000);
+    setUpdateMessage('Business account created successfully! You can now update your business category.');
+    
+    // Refresh the business category after creating the profile
+    try {
+      const response = await GetBusinessCategory();
+      setCurrentCategory(response.data?.category || '');
+    } catch (error) {
+      //console.log('Note: Business category not set yet, but profile created successfully');
+    }
+    
+    setTimeout(() => setUpdateMessage(''), 5000);
   };
 
   // Switch to business account
@@ -151,7 +171,7 @@ export default function AccountSettings() {
         setUpdateMessage('Successfully switched to business account!');
         setTimeout(() => setUpdateMessage(''), 3000);
         
-        console.log('Switch to business response:', response);
+        //console.log('Switch to business response:', response);
       } catch (error: any) {
         console.error('Failed to switch to business:', error);
         setUpdateMessage(error.response?.data?.message || 'Failed to switch to business account');
@@ -182,7 +202,7 @@ export default function AccountSettings() {
         // Hide business options when switching to personal
         setShowBusinessOptions(false);
         
-        console.log('Switch to personal response:', response);
+        //console.log('Switch to personal response:', response);
       } catch (error: any) {
         console.error('Failed to switch to personal:', error);
         setUpdateMessage(error.response?.data?.message || 'Failed to switch to personal account');
@@ -345,7 +365,7 @@ export default function AccountSettings() {
                 </h3>
                 <button
                   onClick={() => setShowPlanModal(true)}
-                  className="px-4 sm:px-6 py-2 bg-button-gradient text-white text-shadow rounded-lg hover:bg-orange-600 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base md:w-56 lg:w-56"
+                  className="px-4 sm:px-6 py-2 bg-button-gradient text-black rounded-lg hover:bg-orange-600 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base md:w-56 lg:w-56"
                 >
                   <span className="hidden sm:inline">Manage Plan</span>
                   <span className="sm:hidden">Manage</span>
