@@ -47,7 +47,7 @@ const router = useRouter();
           {/* Floating Icons Container */}
           <div className="relative w-[30rem] h-[30rem] mx-auto">
             {/* Center Circle with Icon */}
-            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-yellow-400 rounded-full flex items-center justify-center text-6xl z-10 shadow-lg">
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-[#ffd65c] rounded-full flex items-center justify-center text-6xl z-10 shadow-lg">
                    <Image
                     width={100}
                     height={100}
@@ -77,7 +77,7 @@ const router = useRouter();
               return (
                 <div
                   key={index}
-                  className={`absolute ${size} bg-yellow-300 rounded-full flex items-center justify-center text-2xl shadow-md hover:scale-110 transition-transform duration-300`}
+                  className={`absolute ${size} bg-[#ffe08a] rounded-full flex items-center justify-center text-2xl shadow-md hover:scale-110 transition-transform duration-300`}
                   style={positionStyle}
                 >
             <Image
@@ -112,7 +112,7 @@ const router = useRouter();
             {/* Primary Button */}
             <button
               onClick={handleSignupClick}
-              className="w-full bg-button-gradient text-black font-semibold py-4 px-8 rounded-lg hover:bg-yellow-500 transition-colors duration-200 text-lg shadow-sm cursor-pointer"
+              className="w-full bg-button-gradient text-black font-semibold py-4 px-8 rounded-lg hover:bg-[#ffd65c] transition-colors duration-200 text-lg shadow-sm cursor-pointer"
             >
               {DEFAULT_ONBOARDING_ITEMS.primaryButtonText}
             </button>

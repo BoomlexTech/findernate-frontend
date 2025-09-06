@@ -19,11 +19,11 @@ export default function Home() {
           <div className="lg:hidden bg-gray-50 pt-4 pb-2 px-4 border-b border-gray-200">
             <div className="flex justify-center">
               <Image
-                src="/Findernate_Logo.png"
+                src="/Findernate.ico"
                 alt="FinderNate Logo"
-                width={160}
+                width={160}     
                 height={60}
-                className="object-contain"
+                className="object-contain drop-shadow-md"
               />
             </div>
           </div>

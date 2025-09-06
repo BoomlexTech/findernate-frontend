@@ -36,6 +36,8 @@ import { getCommentsByPost, Comment } from "@/api/comment";
 function SearchContent() {
   const searchParams = useSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
+  const [displayQuery, setDisplayQuery] = useState("");
+  const [isDefaultSearch, setIsDefaultSearch] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState("");
   const [activeTab, setActiveTab] = useState("All");
   const [contentTypeDropdownOpen, setContentTypeDropdownOpen] = useState(false);
@@ -300,7 +302,12 @@ function SearchContent() {
       );
       
       setResults(postsWithComments);
-      setUsers(filteredUsers);
+      // Don't set users if this is the default search
+      if (!isDefaultSearch) {
+        setUsers(filteredUsers);
+      } else {
+        setUsers([]);
+      }
       setShowAllUsers(false);
     } catch (err) {
       console.error("Search error:", err);
@@ -335,11 +342,19 @@ function SearchContent() {
     }
   };
 
-  // Set search query from URL params on mount
+  // Set search query from URL params on mount, or default to "a"
   useEffect(() => {
     const queryFromUrl = searchParams.get('q');
     if (queryFromUrl) {
-      setSearchQuery(decodeURIComponent(queryFromUrl));
+      const decodedQuery = decodeURIComponent(queryFromUrl);
+      setSearchQuery(decodedQuery);
+      setDisplayQuery(decodedQuery);
+      setIsDefaultSearch(false);
+    } else {
+      // Set default search query to "a" when page mounts, but don't show it in search bar
+      setSearchQuery("a");
+      setDisplayQuery("");
+      setIsDefaultSearch(true);
     }
   }, [searchParams]);
 
@@ -425,15 +440,20 @@ function SearchContent() {
 
             <div className="w-full relative [&>*]:!max-w-full [&>*]:xl:!max-w-[54rem] mt-5">
               <SearchBar
-                value={searchQuery}
+                value={displayQuery}
                 placeholder="Search businesses, products, services..."
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                  const value = e.target.value;
+                  setDisplayQuery(value);
+                  setSearchQuery(value);
+                  setIsDefaultSearch(false);
+                }}
               />
               {/* <Button
                 variant="custom"
                 onClick={activeTab === "Users" ? handleUserSearch : handleSearch}
                 disabled={!searchQuery.trim() || loading}
-                className="absolute right-10 top-1/2 -translate-y-1/2 bg-button-gradient cursor-pointer disabled:bg-gray-300 text-white px-6 py-4 rounded-xl transition-colors flex items-center"
+                className="absolute right-10 top-1/2 -translate-y-1/2 bg-button-gradient cursor-pointer disabled:bg-gray-300 text-white text-shadow px-6 py-4 rounded-xl transition-colors flex items-center"
               >
                 {loading ? "Searching..." : "Search"}
               </Button> */}
@@ -444,7 +464,7 @@ function SearchContent() {
               <div className="flex justify-start mt-4">
                 <button
                   onClick={clearAllFilters}
-                  className="flex items-center gap-2 text-sm text-gray-600 hover:text-yellow-600 transition-colors"
+                  className="flex items-center gap-2 text-sm text-gray-600 hover:text-[#cc9b2e] transition-colors"
                 >
                   <X size={16} />
                   Clear all filters
@@ -462,7 +482,7 @@ function SearchContent() {
                     disabled={loading}
                     className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-medium transition-all ${
                       activeTab === tab.id
-                        ? "bg-yellow-100 text-yellow-800 border-yellow-300"
+                        ? "bg-[#fefdf5] text-[#b8871f] border-[#e6c045]"
                         : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
                     } ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
                   >
@@ -541,7 +561,7 @@ function SearchContent() {
                           onClick={() => handleContentTypeSelect(type.id)}
                           className={`w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors flex items-center gap-2 ${
                             (type.id === "all" && selectedContentType === null) || selectedContentType === type.id
-                              ? "bg-yellow-50 text-yellow-800"
+                              ? "bg-[#fefdf5] text-[#b8871f]"
                               : "text-gray-700"
                           }`}
                         >
@@ -587,7 +607,7 @@ function SearchContent() {
                           onClick={() => handlePostTypeSelect(type.id)}
                           className={`w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors flex items-center gap-2 ${
                             selectedPostType === type.id
-                              ? "bg-yellow-50 text-yellow-800"
+                              ? "bg-[#fefdf5] text-[#b8871f]"
                               : "text-gray-700"
                           }`}
                         >
@@ -642,16 +662,16 @@ function SearchContent() {
             )}
 
             {/* Search Results Info */}
-            {searchQuery.trim() && !loading && (
+            {searchQuery.trim() && !loading && !isDefaultSearch && (
               <div className="mb-4 text-sm text-gray-600">
                 {results.length > 0 || users.length > 0 ? (
                   <p>
                     Found {results.length} posts and {users.length} users
                     {selectedLocation !== "" && !useCurrentLocation && (
-                      <span className="text-yellow-600"> in {selectedLocation}</span>
+                      <span className="text-[#cc9b2e]"> in {selectedLocation}</span>
                     )}
                     {useCurrentLocation && (
-                      <span className="text-yellow-600"> within {searchRadius}km of your location</span>
+                      <span className="text-[#cc9b2e]"> within {searchRadius}km of your location</span>
                     )}
                   </p>
                 ) : (
@@ -674,14 +694,14 @@ function SearchContent() {
             {/* Loading Indicator */}
             {loading && (
               <div className="flex justify-center my-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-yellow-500"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#ffd65c]"></div>
               </div>
             )}
           </div>
 
           <div className="flex flex-col items-center gap-4 text-black">
-            {/* User Cards Section */}
-            {activeTab === "Users" || activeTab === "All" ? (
+            {/* User Cards Section - Hide if default search */}
+            {!isDefaultSearch && (activeTab === "Users" || activeTab === "All") ? (
               <>
                 {displayedUsers.map((user) => (
                   <div key={user._id} className="w-full max-w-2xl">
@@ -694,7 +714,7 @@ function SearchContent() {
                     onClick={() => setShowAllUsers(true)}
                     className="w-full max-w-2xl bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 p-4 group"
                   >
-                    <div className="flex items-center justify-center gap-3 text-gray-600 group-hover:text-yellow-600">
+                    <div className="flex items-center justify-center gap-3 text-gray-600 group-hover:text-[#cc9b2e]">
                       <Plus size={20} className="transition-transform group-hover:scale-110" />
                       <span className="font-medium">
                         Show {users.length - 2} more users
@@ -708,7 +728,7 @@ function SearchContent() {
                     onClick={() => setShowAllUsers(false)}
                     className="w-full max-w-2xl bg-gray-50 border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 p-3"
                   >
-                    <div className="flex items-center justify-center gap-2 text-gray-600 hover:text-yellow-600">
+                    <div className="flex items-center justify-center gap-2 text-gray-600 hover:text-[#cc9b2e]">
                       <ChevronDown size={16} className="rotate-180 transition-transform" />
                       <span className="font-medium text-sm">Show less</span>
                     </div>
@@ -767,7 +787,7 @@ export default function SearchPage() {
     <Suspense fallback={
       <div className="flex min-h-screen bg-gray-50 items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-yellow-500 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#ffd65c] mx-auto mb-4"></div>
           <p className="text-gray-600">Loading search...</p>
         </div>
       </div>

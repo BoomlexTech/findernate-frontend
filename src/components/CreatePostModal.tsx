@@ -876,7 +876,7 @@ const handleProductChange = (
           {/* User Info */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center">
-              <div className="w-12 h-12 bg-button-gradient rounded-full flex items-center justify-center text-white font-semibold">
+              <div className="w-12 h-12 bg-button-gradient rounded-full flex items-center justify-center text-white text-shadow font-semibold">
                 {user?.profileImageUrl ? <Image src={user?.profileImageUrl} alt="Profile" width={48} height={48} className="rounded-full" /> : user?.fullName?.charAt(0)}
               </div>
               <div className="ml-3">
@@ -886,7 +886,7 @@ const handleProductChange = (
             </div>
             <Button
               onClick={handlePost}
-              className="px-6 py-2 bg-button-gradient text-white rounded-lg hover:bg-yellow-700 transition-colors cursor-pointer"
+              className="px-6 py-2 bg-button-gradient text-white text-shadow rounded-lg hover:bg-[#b8871f] transition-colors cursor-pointer"
               disabled={loading || isOptimizing}
             >
               {loading ? 'Posting...' : 'Submit Post'}
@@ -908,7 +908,7 @@ const handleProductChange = (
               onClick={() => setPostType('Regular')}
               className={`px-4 py-2 rounded-lg border transition-colors ${
                 postType === 'Regular'
-                  ? 'border-yellow-500 bg-yellow-50 text-yellow-700'
+                  ? 'border-[#ffd65c] bg-[#fefdf5] text-[#b8871f]'
                   : 'border-gray-300 text-gray-600 hover:bg-gray-50'
               } w-full sm:w-auto justify-center`}
             >
@@ -921,7 +921,7 @@ const handleProductChange = (
               onClick={() => setPostType('Product')}
               className={`px-4 py-2 rounded-lg border transition-colors ${
                 postType === 'Product'
-                  ? 'border-yellow-500 bg-yellow-50 text-yellow-700'
+                  ? 'border-[#ffd65c] bg-[#fefdf5] text-[#b8871f]'
                   : 'border-gray-300 text-gray-600 hover:bg-gray-50'
               } w-full sm:w-auto justify-center`}
             >
@@ -932,7 +932,7 @@ const handleProductChange = (
               onClick={() => setPostType('Service')}
               className={`px-4 py-2 rounded-lg border transition-colors ${
                 postType === 'Service'
-                  ? 'border-yellow-500 bg-yellow-50 text-yellow-700'
+                  ? 'border-[#ffd65c] bg-[#fefdf5] text-[#b8871f]'
                   : 'border-gray-300 text-gray-600 hover:bg-gray-50'
               } w-full sm:w-auto justify-center`}
             >
@@ -943,7 +943,7 @@ const handleProductChange = (
               onClick={() => setPostType('Business')}
               className={`px-4 py-2 rounded-lg border transition-colors ${
                 postType === 'Business'
-                  ? 'border-yellow-500 bg-yellow-50 text-yellow-700'
+                  ? 'border-[#ffd65c] bg-[#fefdf5] text-[#b8871f]'
                   : 'border-gray-300 text-gray-600 hover:bg-gray-50'
               } w-full sm:w-auto justify-center`}
             >
@@ -1012,7 +1012,7 @@ const handleProductChange = (
               />
               <label
                 htmlFor="image-upload"
-                className="inline-flex items-center px-4 py-2 bg-button-gradient text-white rounded-lg hover:bg-yellow-700 cursor-pointer transition-colors"
+                className="inline-flex items-center px-4 py-2 bg-button-gradient text-white text-shadow rounded-lg hover:bg-[#b8871f] cursor-pointer transition-colors"
               >
                 📎 Add Images & Videos
               </label>
@@ -1175,7 +1175,7 @@ const handleProductChange = (
           </Button>
           <Button
             onClick={handlePost}
-            className="px-6 py-2 bg-button-gradient text-white rounded-lg hover:bg-yellow-700 transition-colors cursor-pointer"
+            className="px-6 py-2 bg-button-gradient text-white text-shadow rounded-lg hover:bg-[#b8871f] transition-colors cursor-pointer"
             disabled={loading || isOptimizing}
           >
             {loading ? 'Posting...': 'Post'}

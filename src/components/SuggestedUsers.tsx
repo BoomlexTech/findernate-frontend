@@ -278,7 +278,7 @@ export default function SuggestedUsers({ users: initialUsers = defaultSuggestedU
                     className={`text-xs px-3 py-1.5 cursor-pointer flex items-center gap-1 min-w-[80px] justify-center ${
                       userState?.isFollowing 
                         ? 'bg-gray-500 hover:bg-gray-600 text-white border-gray-500' 
-                        : 'bg-button-gradient border-[#FCD45C] text-white hover:bg-[#FCD45C]'
+                        : 'bg-button-gradient border-[#FCD45C] text-white text-shadow hover:bg-[#FCD45C]'
                     }`}
                   >
                     {userState?.isLoading ? (

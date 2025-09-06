@@ -278,7 +278,7 @@ export default function SignupComponent() {
   return (
     <>
     
-    <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-orange-50 flex items-center justify-center p-4" onClick={() => {
+    <div className="min-h-screen bg-gradient-to-br from-[#fefdf5] to-orange-50 flex items-center justify-center p-4" onClick={() => {
       setShowCountryDropdown(false);
       setShowDatePicker(false);
       setShowSuggestions(false);
@@ -371,7 +371,7 @@ export default function SignupComponent() {
                       key={index}
                       type="button"
                       onClick={() => handleSuggestionClick(suggestion)}
-                      className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800 hover:bg-yellow-200 transition-colors cursor-pointer border border-yellow-300"
+                      className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-[#fff5d6] text-[#b8871f] hover:bg-[#ffe08a] transition-colors cursor-pointer border border-[#ffd65c]"
                     >
                       {suggestion}
                     </button>
@@ -583,7 +583,7 @@ export default function SignupComponent() {
                                      className={`
                                        p-2 text-xs rounded transition-all duration-200 font-medium
                                        ${isSelectedDate(day) 
-                                         ? 'bg-yellow-500 text-white shadow-md' 
+                                         ? 'bg-[#ffd65c] text-white shadow-md' 
                                          : isToday(day) 
                                          ? 'bg-yellow-100 text-yellow-800 border-2 border-yellow-400' 
                                          : isCurrentMonth(day) 
@@ -619,7 +619,7 @@ export default function SignupComponent() {
                                      const today = new Date();
                                      handleDateSelect(today);
                                    }}
-                                   className="px-4 py-2 text-sm bg-yellow-500 text-white hover:bg-yellow-600 rounded-lg transition-colors font-medium"
+                                   className="px-4 py-2 text-sm bg-[#ffd65c] text-white hover:bg-yellow-600 rounded-lg transition-colors font-medium"
                                  >
                                    Today
                                  </button>
@@ -707,7 +707,7 @@ export default function SignupComponent() {
           {/* Submit Button */}
           <button
             type="submit"
-            className="w-full py-3 px-4 bg-button-gradient text-white font-semibold rounded-lg transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl"
+            className="w-full py-3 px-4 bg-button-gradient text-white text-shadow font-semibold rounded-lg transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl"
           >
             Create Account
           </button>

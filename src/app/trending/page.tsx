@@ -269,7 +269,7 @@ const Page = () => {
                     onClick={() => setActiveFilter(filter.name)}
                     className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 flex items-center gap-2 ${
                       activeFilter === filter.name
-                        ? 'bg-button-gradient text-white shadow-lg transform scale-105'
+                        ? 'bg-button-gradient text-white text-shadow shadow-lg transform scale-105'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:scale-105'
                     }`}
                   >

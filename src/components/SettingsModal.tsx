@@ -13,6 +13,7 @@ import SuccessToast from "@/components/SuccessToast"; // Update path as needed
 import { CreateBusinessRequest, UpdateBusinessRequest } from "@/types";
 import { useEffect } from "react";
 import { getUserProfile } from "@/api/user";
+import { HelpCenterModal } from "./HelpCenterModal";
 
 
 const SettingsModal = ({ onClose }: { onClose: () => void }) => {
@@ -27,6 +28,7 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [showEditBusinessDetails, setShowEditBusinessDetails] = useState(false);
   const [showVerificationModal, setShowVerificationModal] = useState(false);
+  const [showHelpCenter, setShowHelpCenter] = useState(false);
   const [successToast, setSuccessToast] = useState({ show: false, message: "" });
   const router = useRouter();
   const { logout: logoutUser, user, updateUser } = useUserStore();
@@ -188,7 +190,11 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
           <SettingItem icon={<Bell />} title="Custom Notification" /> */}
           {/* <SettingItem icon={<User />} title="Account" />
           <SettingItem icon={<Layers />} title="About App" /> */}
-          <SettingItem icon={<HelpCircle />} title="Help Center" />
+          <SettingItem 
+            icon={<HelpCircle />} 
+            title="Help Center" 
+            onClick={() => setShowHelpCenter(true)}
+          />
         </div>
 
         <div className="h-px bg-gray-200 mx-4"></div>
@@ -332,6 +338,12 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
       isOpen={showVerificationModal}
       onClose={() => { setShowVerificationModal(false); onClose(); }}
       onSubmit={() => { setShowVerificationModal(false); onClose(); }}
+    />
+
+    {/* Help Center Modal */}
+    <HelpCenterModal
+      isOpen={showHelpCenter}
+      onClose={() => setShowHelpCenter(false)}
     />
   </>
   );

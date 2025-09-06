@@ -2,7 +2,7 @@
 
 /* Button Styles */
 .btn-primary {
-  background: linear-gradient(to right, #facc15, #ca8a04);
+  background: linear-gradient(to right, #ffd65c, #cc9b2e);
   color: white;
   font-weight: 500;
   padding: 0.5rem 1rem;
@@ -12,7 +12,7 @@
 }
 
 .btn-primary:hover {
-  background: linear-gradient(to right, #eab308, #a16207);
+  background: linear-gradient(to right, #e6c045, #b8871f);
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
@@ -48,7 +48,7 @@
 }
 
 .btn-gradient {
-  background: linear-gradient(to right, #facc15, #ca8a04);
+  background: linear-gradient(to right, #ffd65c, #cc9b2e);
   color: white;
   font-weight: 500;
   padding: 0.5rem 1rem;
@@ -58,12 +58,12 @@
 }
 
 .btn-gradient:hover {
-  background: linear-gradient(to right, #eab308, #a16207);
+  background: linear-gradient(to right, #e6c045, #b8871f);
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
 .btn-gradient-sm {
-  background: linear-gradient(to right, #facc15, #ca8a04);
+  background: linear-gradient(to right, #ffd65c, #cc9b2e);
   color: white;
   font-weight: 500;
   padding: 0.375rem 0.75rem;
@@ -74,12 +74,12 @@
 }
 
 .btn-gradient-sm:hover {
-  background: linear-gradient(to right, #eab308, #a16207);
+  background: linear-gradient(to right, #e6c045, #b8871f);
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
 .btn-gradient-lg {
-  background: linear-gradient(to right, #facc15, #ca8a04);
+  background: linear-gradient(to right, #ffd65c, #cc9b2e);
   color: white;
   font-weight: 500;
   padding: 0.75rem 1.5rem;
@@ -90,7 +90,7 @@
 }
 
 .btn-gradient-lg:hover {
-  background: linear-gradient(to right, #eab308, #a16207);
+  background: linear-gradient(to right, #e6c045, #b8871f);
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
@@ -115,7 +115,7 @@
 
 .input-field:focus {
   outline: none;
-  ring: 2px solid #facc15;
+  ring: 2px solid #ffd65c;
   border-color: transparent;
 }
 
@@ -135,12 +135,12 @@
 }
 
 .sidebar-item:hover {
-  color: #ca8a04;
-  background-color: #fefce8;
+  color: #cc9b2e;
+  background-color: #fefdf5;
 }
 
 .sidebar-item.active {
-  color: #ca8a04;
-  background-color: #fefce8;
+  color: #cc9b2e;
+  background-color: #fefdf5;
   font-weight: 500;
 }
