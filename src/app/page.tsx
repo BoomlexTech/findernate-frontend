@@ -23,13 +23,13 @@ export default function Home() {
                 alt="FinderNate Logo"
                 width={220}     
                 height={200}
-                className="w-full h-12 sm:h-20 px-4 sm:px-6 sm:py-5"
+                className="h-12 sm:h-16 w-auto max-w-full object-contain px-4 sm:px-6"
               />
             </div>
           </div>
 
           {/* Stories Bar - Sticky on desktop, scrollable on mobile/medium */}
-          <div className="lg:top-0 lg:z-20 bg-gray-50 pt-4 px-0">
+          <div className="lg:top-0 lg:z-20 bg-gray-50 px-0">
             <StoriesBar />
           </div>
 
