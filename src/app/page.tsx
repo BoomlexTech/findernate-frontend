@@ -16,14 +16,14 @@ export default function Home() {
         {/* Main Content Area */}
         <div className="flex-1 lg:pr-[23rem] pr-0">
           {/* Mobile Logo - Only visible on small screens */}
-          <div className="lg:hidden  pt-4">
+          <div className="lg:hidden pt-4">
             <div className="flex justify-center w-full">
               <Image
                 src="/Findernate_Logo.png"
                 alt="FinderNate Logo"
                 width={220}     
-                height={180}
-                className="w-full h-12 sm:h-20 sm:p-5"
+                height={200}
+                className="w-full h-12 sm:h-20 px-4 sm:px-6 sm:py-5"
               />
             </div>
           </div>
