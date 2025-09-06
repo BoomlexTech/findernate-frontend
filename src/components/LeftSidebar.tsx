@@ -57,7 +57,8 @@ export default function LeftSidebar({togglePost, onItemClick}: leftSidebarProps)
 		  alt='Company-Logo'
 		  width={220}
 		  height={130}
-		  className="text-xl font-bold text-gray-900 "/>
+		  className="text-xl font-bold"
+		  style={{ color: 'inherit' }}/>
 		</div>
 	  </div>
 	  </div>
