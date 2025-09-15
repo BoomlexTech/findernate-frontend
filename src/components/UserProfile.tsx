@@ -2,10 +2,11 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import Image from "next/image";
-import { BadgeCheck, Settings, Pencil, Shield, Check, X, UserPlus, UserMinus, MessageCircle, Flag, Ban, UserX } from "lucide-react";
+import { BadgeCheck, Settings, Pencil, Shield, Check, X, UserPlus, UserMinus, MessageCircle, Flag, Ban, UserX, Share2 } from "lucide-react";
 import ReportModal from './ReportModal';
 import BlockedUsersModal from './BlockedUsersModal';
 import BlockConfirmModal from './BlockConfirmModal';
+import ShareModal from './ShareModal';
 import { Button } from "./ui/button";
 import SettingsModal from "./SettingsModal";
 import { UserProfile as UserProfileType } from "@/types";
@@ -72,6 +73,7 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
   const [selectedRating, setSelectedRating] = useState(0);
   const [submittingRating, setSubmittingRating] = useState(false);
   const [businessId, setBusinessId] = useState<string | null>(null);
+  const [showShareModal, setShowShareModal] = useState(false);
 
   // Location suggestion states
   const [locationSuggestions, setLocationSuggestions] = useState<LocationSuggestion[]>([]);
@@ -1094,6 +1096,13 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
                     >
                       <UserX className="w-4 h-4" />
                     </Button>
+                    <Button
+                      onClick={() => setShowShareModal(true)}
+                      className="border px-2.5 py-1.5 rounded-md text-blue-600 hover:bg-blue-50"
+                      title="Share Profile"
+                    >
+                      <Share2 className="w-4 h-4" />
+                    </Button>
                   </>
                 )}
               </>
@@ -1166,6 +1175,15 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
                   <span className="hidden sm:inline">
                     {isBlocked ? (isBlocking ? 'Unblocking...' : 'Unblock') : (isBlocking ? 'Blocking...' : 'Block')}
                   </span>
+                </Button>
+                <Button
+                  onClick={() => setShowShareModal(true)}
+                  variant="outline"
+                  className="border px-2.5 py-1.5 rounded-md text-sm sm:text-md font-medium text-blue-600 hover:bg-blue-50 flex items-center gap-1"
+                  aria-label="Share Profile"
+                >
+                  <Share2 className="w-4 h-4" />
+                  <span className="hidden sm:inline">Share</span>
                 </Button>
                 <Button
                   onClick={handleOpenReport}
@@ -1268,6 +1286,13 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
         isBlocking={isBlocking}
       />
 
+      {/* Share Modal */}
+      <ShareModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        userData={profile}
+      />
+
       {/* Rating Modal */}
       {showRatingModal && (
         <div className="fixed inset-0 bg-black/40 bg-opacity-50 flex items-center justify-center z-50">
@@ -1278,7 +1303,7 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
             <p className="text-gray-600 text-sm mb-4">
               Share your experience with this business
             </p>
-            
+
             <div className="flex justify-center mb-6">
               <StarRating
                 currentRating={selectedRating}
@@ -1286,7 +1311,7 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
                 size="lg"
               />
             </div>
-            
+
             <div className="flex gap-3">
               <button
                 onClick={() => {

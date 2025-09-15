@@ -49,12 +49,16 @@ export const useUnreadCounts = () => {
             detail: notificationsResponse 
           }));
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error fetching unread counts:', error);
-        setCounts({
-          unreadNotifications: 0,
-          unreadMessages: 0
-        });
+
+        // If it's a rate limiting error (429), don't reset counts to 0
+        if (error?.response?.status !== 429) {
+          setCounts({
+            unreadNotifications: 0,
+            unreadMessages: 0
+          });
+        }
       } finally {
         setLoading(false);
       }
@@ -62,8 +66,8 @@ export const useUnreadCounts = () => {
 
     fetchCounts();
 
-    // Set up an interval to refresh counts every 3 seconds
-    const interval = setInterval(fetchCounts, 3000);
+    // Set up an interval to refresh counts every 30 seconds (reduced from 3 seconds to prevent rate limiting)
+    const interval = setInterval(fetchCounts, 30000);
 
     // Listen for custom events to refresh counts
     const handleRefreshCounts = () => {
