@@ -42,7 +42,7 @@ const Page = () => {
         
         // Fetch user profile
         const profileResponse = await getUserProfile();
-        //console.log("Profile API response:", profileResponse);
+        //  console.log(profileResponse)
         
         // Updated to match actual API response structure
         if (profileResponse?.userId) {

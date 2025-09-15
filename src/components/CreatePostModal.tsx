@@ -375,6 +375,7 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
       currency: '',
       link:'',
       inStock: true,
+      deliveryOptions: 'online',
     },
     status: 'scheduled',
 }); 
@@ -418,6 +419,7 @@ const [serviceForm, setServiceForm] = useState({
     deliverables: [],
     tags: [],
     link:'',
+    deliveryOptions: 'online',
   }
 });
 
@@ -461,6 +463,7 @@ const [businessForm, setBusinessForm] = useState({
       announcement: '',
       promotions: [],
       link: '',
+      deliveryOptions: 'online',
     }
   },
 });
@@ -702,12 +705,16 @@ const handleProductChange = (
     }
   };
 
-  // Business form validation function
-  const validateBusinessForm = () => {
-    const business = businessForm.formData.business;
-    
-    if (!business.businessName?.trim()) {
-      toast.error('Business name is required', {
+  // Form validation function
+  const validateForm = () => {
+    // Check location requirement based on delivery options
+    const isLocationRequired = 
+      (postType === 'Product' && (productForm.product.deliveryOptions === 'offline' || productForm.product.deliveryOptions === 'both')) ||
+      (postType === 'Service' && (serviceForm.service.deliveryOptions === 'offline' || serviceForm.service.deliveryOptions === 'both')) ||
+      (postType === 'Business' && (businessForm.formData.business.deliveryOptions === 'offline' || businessForm.formData.business.deliveryOptions === 'both'));
+
+    if (isLocationRequired && !sharedForm.location.name?.trim()) {
+      toast.error('Location is required for offline or both delivery options', {
         position: "top-right",
         autoClose: 3000,
         hideProgressBar: false,
@@ -717,61 +724,78 @@ const handleProductChange = (
       });
       return false;
     }
-    
-    if (!business.link?.trim()) {
-      toast.error('Business link is required', {
-        position: "top-right",
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-      });
-      return false;
-    }
-    
-    if (!business.announcement?.trim()) {
-      toast.error('Business announcement is required', {
-        position: "top-right",
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-      });
-      return false;
-    }
-    
-    if (!business.location?.address?.trim()) {
-      toast.error('Business location is required', {
-        position: "top-right",
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-      });
-      return false;
-    }
-    
-    if (!business.description?.trim()) {
-      toast.error('Business description is required', {
-        position: "top-right",
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-      });
-      return false;
+
+    // Business-specific validation
+    if (postType === 'Business') {
+      const business = businessForm.formData.business;
+      
+      if (!business.businessName?.trim()) {
+        toast.error('Business name is required', {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+        return false;
+      }
+      
+      if (!business.link?.trim()) {
+        toast.error('Business link is required', {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+        return false;
+      }
+      
+      if (!business.announcement?.trim()) {
+        toast.error('Business announcement is required', {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+        return false;
+      }
+      
+      if (!business.location?.address?.trim()) {
+        toast.error('Business location is required', {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+        return false;
+      }
+      
+      if (!business.description?.trim()) {
+        toast.error('Business description is required', {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+        return false;
+      }
     }
     
     return true;
   };
 
   const handlePost = async () => {
-    // Validate business form before submission
-    if (postType === 'Business' && !validateBusinessForm()) {
+    // Validate form before submission
+    if (!validateForm()) {
       return;
     }
     
@@ -1194,11 +1218,135 @@ const handleProductChange = (
             </div>
           )}
 
+          {/* Delivery Options - Only show for Product, Service, and Business post types */}
+          {(postType === 'Product' || postType === 'Service' || postType === 'Business') && (
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                Delivery Options
+              </label>
+              <div className="space-y-2">
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    name="deliveryOptions"
+                    value="online"
+                    checked={
+                      postType === 'Product' ? productForm.product.deliveryOptions === 'online' :
+                      postType === 'Service' ? serviceForm.service.deliveryOptions === 'online' :
+                      businessForm.formData.business.deliveryOptions === 'online'
+                    }
+                    onChange={(e) => {
+                      if (postType === 'Product') {
+                        setProductForm(prev => ({
+                          ...prev,
+                          product: { ...prev.product, deliveryOptions: e.target.value }
+                        }));
+                      } else if (postType === 'Service') {
+                        setServiceForm(prev => ({
+                          ...prev,
+                          service: { ...prev.service, deliveryOptions: e.target.value }
+                        }));
+                      } else if (postType === 'Business') {
+                        setBusinessForm(prev => ({
+                          ...prev,
+                          formData: {
+                            ...prev.formData,
+                            business: { ...prev.formData.business, deliveryOptions: e.target.value }
+                          }
+                        }));
+                      }
+                    }}
+                    className="mr-3 text-yellow-500 focus:ring-yellow-500"
+                  />
+                  <span className="text-gray-700">Online</span>
+                </label>
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    name="deliveryOptions"
+                    value="offline"
+                    checked={
+                      postType === 'Product' ? productForm.product.deliveryOptions === 'offline' :
+                      postType === 'Service' ? serviceForm.service.deliveryOptions === 'offline' :
+                      businessForm.formData.business.deliveryOptions === 'offline'
+                    }
+                    onChange={(e) => {
+                      if (postType === 'Product') {
+                        setProductForm(prev => ({
+                          ...prev,
+                          product: { ...prev.product, deliveryOptions: e.target.value }
+                        }));
+                      } else if (postType === 'Service') {
+                        setServiceForm(prev => ({
+                          ...prev,
+                          service: { ...prev.service, deliveryOptions: e.target.value }
+                        }));
+                      } else if (postType === 'Business') {
+                        setBusinessForm(prev => ({
+                          ...prev,
+                          formData: {
+                            ...prev.formData,
+                            business: { ...prev.formData.business, deliveryOptions: e.target.value }
+                          }
+                        }));
+                      }
+                    }}
+                    className="mr-3 text-yellow-500 focus:ring-yellow-500"
+                  />
+                  <span className="text-gray-700">Offline</span>
+                </label>
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    name="deliveryOptions"
+                    value="both"
+                    checked={
+                      postType === 'Product' ? productForm.product.deliveryOptions === 'both' :
+                      postType === 'Service' ? serviceForm.service.deliveryOptions === 'both' :
+                      businessForm.formData.business.deliveryOptions === 'both'
+                    }
+                    onChange={(e) => {
+                      if (postType === 'Product') {
+                        setProductForm(prev => ({
+                          ...prev,
+                          product: { ...prev.product, deliveryOptions: e.target.value }
+                        }));
+                      } else if (postType === 'Service') {
+                        setServiceForm(prev => ({
+                          ...prev,
+                          service: { ...prev.service, deliveryOptions: e.target.value }
+                        }));
+                      } else if (postType === 'Business') {
+                        setBusinessForm(prev => ({
+                          ...prev,
+                          formData: {
+                            ...prev.formData,
+                            business: { ...prev.formData.business, deliveryOptions: e.target.value }
+                          }
+                        }));
+                      }
+                    }}
+                    className="mr-3 text-yellow-500 focus:ring-yellow-500"
+                  />
+                  <span className="text-gray-700">Both</span>
+                </label>
+              </div>
+            </div>
+          )}
+
           {/* Location Input with Suggestions */}
           <div className="mb-6 relative">
             <label className="block text-sm font-medium text-gray-700 mb-2">
               <MapPin className="inline mr-2" size={16} />
-              Location (Optional)
+              Location {
+                (postType === 'Product' || postType === 'Service' || postType === 'Business') ? 
+                  (
+                    (postType === 'Product' && (productForm.product.deliveryOptions === 'offline' || productForm.product.deliveryOptions === 'both')) ||
+                    (postType === 'Service' && (serviceForm.service.deliveryOptions === 'offline' || serviceForm.service.deliveryOptions === 'both')) ||
+                    (postType === 'Business' && (businessForm.formData.business.deliveryOptions === 'offline' || businessForm.formData.business.deliveryOptions === 'both'))
+                  ) ? '(Required)' : '(Optional)'
+                : '(Optional)'
+              }
             </label>
             <input
               ref={locationInputRef}

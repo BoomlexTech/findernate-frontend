@@ -180,3 +180,13 @@ export const checkIfUserBlocked = async (userId: string) => {
         throw error;
     }
 }
+
+// Account Privacy function
+export const updateAccountPrivacy = async (privacy: 'public' | 'private') => {
+    try {
+        const response = await axios.put('/users/privacy/account', { privacy });
+        return response.data;
+    } catch (error: any) {
+        throw error;
+    }
+}

@@ -62,6 +62,7 @@ export interface ProductDetailsFormProps {
     currency: string;
     inStock: boolean;
     link: string;
+    deliveryOptions: string;
   };
   status: string;
 }
@@ -136,6 +137,7 @@ export interface ServiceDetailsFormProps {
     deliverables: string[];
     tags: string[];
     link: string;
+    deliveryOptions: string;
     };
   }
 
@@ -195,6 +197,7 @@ export interface BusinessPostFormProps {
       isActive: boolean;
     }>;
     link: string;
+    deliveryOptions: string;
   },
 }
 onChange?: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
