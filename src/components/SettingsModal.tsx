@@ -1,6 +1,6 @@
 "use client";
 
-import { HelpCircle, LogOut, Shield, ChevronRight, X } from "lucide-react";
+import { HelpCircle, LogOut, Shield, ChevronRight, X, Lock, Unlock } from "lucide-react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { logout } from "@/api/auth";
@@ -12,8 +12,9 @@ import BusinessVerificationModal from "./business/BusinessVerificationModal";
 import SuccessToast from "@/components/SuccessToast"; // Update path as needed
 import { CreateBusinessRequest, UpdateBusinessRequest } from "@/types";
 import { useEffect } from "react";
-import { getUserProfile } from "@/api/user";
+import { getUserProfile, updateAccountPrivacy } from "@/api/user";
 import { HelpCenterModal } from "./HelpCenterModal";
+import { toast } from "react-toastify";
 
 
 const SettingsModal = ({ onClose }: { onClose: () => void }) => {
@@ -30,6 +31,8 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
   const [showVerificationModal, setShowVerificationModal] = useState(false);
   const [showHelpCenter, setShowHelpCenter] = useState(false);
   const [successToast, setSuccessToast] = useState({ show: false, message: "" });
+  const [accountPrivacy, setAccountPrivacy] = useState<'public' | 'private'>('public');
+  const [isLoadingPrivacy, setIsLoadingPrivacy] = useState(false);
   const router = useRouter();
   const { logout: logoutUser, user, updateUser } = useUserStore();
   const [isBusinessProfile, setIsBusinessProfile] = useState<boolean>(user?.isBusinessProfile === true);
@@ -40,6 +43,7 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
     (async () => {
       try {
         const data = await getUserProfile();
+        //console.log(data)
         const profile = data?.userId ?? data; // tolerate either shape
         if (isMounted && typeof profile?.isBusinessProfile === 'boolean') {
           setIsBusinessProfile(profile.isBusinessProfile);
@@ -98,6 +102,41 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
 
   const handleUpgradeClick = () => {
     setShowBusinessPlans(true);
+  };
+
+  // Handle privacy toggle
+  const handlePrivacyToggle = async () => {
+    if (isLoadingPrivacy) return;
+    
+    setIsLoadingPrivacy(true);
+    try {
+      const newPrivacy = accountPrivacy === 'public' ? 'private' : 'public';
+      const response = await updateAccountPrivacy(newPrivacy);
+      
+      setAccountPrivacy(newPrivacy);
+      
+      // Show success message
+      toast.success(response.message || `Account is now ${newPrivacy}`, {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+    } catch (error: any) {
+      console.error('Failed to update privacy:', error);
+      toast.error('Failed to update privacy settings. Please try again.', {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+    } finally {
+      setIsLoadingPrivacy(false);
+    }
   };
 
   const handlePlanSelect = (plan: string) => {
@@ -194,6 +233,13 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
             icon={<HelpCircle />} 
             title="Help Center" 
             onClick={() => setShowHelpCenter(true)}
+          />
+          <SettingToggle
+            icon={accountPrivacy === 'private' ? <Lock /> : <Unlock />}
+            title="Account Privacy"
+            enabled={accountPrivacy === 'private'}
+            onToggle={handlePrivacyToggle}
+            isLoading={isLoadingPrivacy}
           />
         </div>
 
@@ -372,42 +418,50 @@ const SettingItem = ({
   </div>
 );
 
-// const SettingToggle = ({
-//   icon,
-//   title,
-//   enabled,
-//   onToggle,
-// }: {
-//   icon: React.ReactNode;
-//   title: string;
-//   enabled: boolean;
-//   onToggle: () => void;
-// }) => (
-//   <div className="flex items-center justify-between py-4">
-//     <div className="flex items-center gap-3">
-//     <span className="text-gray-600">{icon}</span>
-//     <span className="text-gray-900 font-medium">{title}</span>
-//   </div>
-//   <label className="inline-flex items-center cursor-pointer">
-//     <input
-//       type="checkbox"
-//       className="sr-only peer"
-//       checked={enabled}
-//       onChange={onToggle}
-//     />
-//     <div
-//       className={`relative w-12 h-6 rounded-full transition-colors duration-200 ${
-//         enabled ? "bg-gray-400" : "bg-gray-300"
-//       }`}
-//     >
-//       <div
-//         className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform duration-200 ${
-//           enabled ? "translate-x-6" : "translate-x-0.5"
-//         }`}
-//       ></div>
-//     </div>
-//   </label>
-// </div>
-// );
+const SettingToggle = ({
+  icon,
+  title,
+  enabled,
+  onToggle,
+  isLoading = false,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  enabled: boolean;
+  onToggle: () => void;
+  isLoading?: boolean;
+}) => (
+  <div className="flex items-center justify-between py-4">
+    <div className="flex items-center gap-3">
+      <span className="text-gray-600">{icon}</span>
+      <span className="text-gray-900 font-medium">{title}</span>
+    </div>
+    <label className={`inline-flex items-center ${isLoading ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
+      <input
+        type="checkbox"
+        className="sr-only peer"
+        checked={enabled}
+        onChange={onToggle}
+        disabled={isLoading}
+      />
+      <div
+        className={`relative w-12 h-6 rounded-full transition-colors duration-200 ${
+          enabled ? "bg-gray-400" : "bg-gray-300"
+        }`}
+      >
+        <div
+          className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform duration-200 ${
+            enabled ? "translate-x-6" : "translate-x-0.5"
+          }`}
+        ></div>
+        {isLoading && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        )}
+      </div>
+    </label>
+  </div>
+);
 
 export default SettingsModal;
