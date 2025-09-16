@@ -49,6 +49,9 @@ type User = {
   isBusinessProfile: boolean;
   profileImageUrl: string;
   avatar?: string;
+  privacy?: 'public' | 'private';
+  isPhoneNumberHidden?: boolean;
+  isAddressHidden?: boolean;
   // Add other fields as needed
 };
 
