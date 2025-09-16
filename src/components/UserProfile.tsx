@@ -123,6 +123,40 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
     }
   }, [isCurrentUser, userData._id, userData.username, userData.isBusinessProfile, currentUser?._id]);
 
+  const fetchBusinessByUserId = useCallback(async (userId: string) => {
+    try {
+      console.log('🏢 Fetching business document by userId:', userId);
+
+      // Import the business API function
+      const { getBusinessProfileDetails } = await import('@/api/business');
+
+      const businessResponse = await getBusinessProfileDetails(userId);
+      console.log('🏢 Business response:', businessResponse);
+
+      if (businessResponse?.data?.business?._id) {
+        const realBusinessId = businessResponse.data.business._id;
+        console.log('✅ Found real businessId:', realBusinessId);
+        setBusinessId(realBusinessId);
+        fetchBusinessRating(realBusinessId);
+      } else {
+        console.log('❌ No business document found - user may need to complete business setup');
+        // Show rating component but with no existing ratings
+        setBusinessId('no-business-doc');
+        setBusinessRating(0);
+        setTotalRatings(0);
+      }
+    } catch (error: any) {
+      console.error('❌ Error fetching business document:', error);
+      if (error?.response?.status === 404) {
+        console.log('📝 Business document not found - user needs to complete business registration');
+      }
+      // Still show rating component but indicate no business document exists
+      setBusinessId('no-business-doc');
+      setBusinessRating(0);
+      setTotalRatings(0);
+    }
+  }, [fetchBusinessRating]);
+
   // Helper function to check if all stories have been viewed by current user
   const areAllStoriesViewed = () => {
     if (!currentUser || !userStories.length) return false;
@@ -167,18 +201,27 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
       fetchUserStories(userData._id);
       checkBlockStatus(userData._id);
       
-      // Fetch business rating if this is a business profile and has businessId
-      if (userData.isBusinessProfile && userData.businessId) {
-        setBusinessId(userData.businessId);
-        fetchBusinessRating(userData.businessId);
+      // Fetch business rating if this is a business profile
+      if (userData.isBusinessProfile) {
+        if (userData.businessId) {
+          // Has proper businessId - use it directly
+          console.log('✅ BUSINESS WITH ID: Using businessId:', userData.businessId);
+          setBusinessId(userData.businessId);
+          fetchBusinessRating(userData.businessId);
+        } else {
+          // Business profile but no businessId - need to fetch business document first
+          console.log('🔍 BUSINESS NO ID: Fetching business document for userId:', userData._id);
+          fetchBusinessByUserId(userData._id);
+        }
       } else {
+        console.log('❌ NOT A BUSINESS: Skipping rating fetch');
         // Reset business-related state if not a business profile
         setBusinessId(null);
         setBusinessRating(0);
         setTotalRatings(0);
       }
     }
-  }, [userData, isCurrentUser, fetchBusinessRating]);
+  }, [userData, isCurrentUser, fetchBusinessRating, fetchBusinessByUserId]);
 
   // Click outside handler for location dropdown
   useEffect(() => {
@@ -219,7 +262,18 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
   };
 
   const handleRatingSubmit = async () => {
-    if (selectedRating === 0 || !businessId) return;
+    console.log('🚀 RATING SUBMIT: Button clicked', { selectedRating, businessId });
+
+    if (selectedRating === 0) {
+      console.log('❌ No rating selected');
+      return;
+    }
+
+    if (!businessId || businessId === 'no-business-doc') {
+      console.log('❌ Cannot submit rating - no valid businessId or business document not found');
+      alert('Cannot rate this business profile. The business registration may be incomplete.');
+      return;
+    }
     
     // //console.log('🚀 DEBUG: Submitting rating...');
     // //console.log('🚀 DEBUG: Business ID to rate:', businessId);
@@ -1027,8 +1081,8 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
                 </div>
               )}
 
-              {/* Business Rating - Only show for business profiles and other users with valid business ID */}
-              {profile?.isBusinessProfile && !isCurrentUser && businessId && (
+              {/* Business Rating - Only show for business profiles and other users */}
+              {profile?.isBusinessProfile && !isCurrentUser && (
                 <div className="flex items-center gap-2">
                   {ratingLoading ? (
                     <div className="flex items-center gap-2">

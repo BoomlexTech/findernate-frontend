@@ -66,6 +66,10 @@ const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
     { id: 'saved', label: 'Saved', icon: Bookmark, count: savedPosts.length }
   ];
 
+  const formatCount = (count: number) => {
+    return count > 99 ? '99+' : count.toString();
+  };
+
   const getCurrentPosts = () => {
     switch (activeTab) {
       case 'reels':
@@ -191,30 +195,35 @@ const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
     <div className="w-full bg-white rounded-xl shadow-sm px-4 py-6">
       {/* Tabs Header */}
       <div className="flex justify-center border-b border-gray-200 mb-6">
-        <div className="flex gap-6 sm:gap-12 text-center">
+        <div className="flex gap-4 sm:gap-100 md:gap-12 text-center">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             return (
               <button
                 key={tab.id}
                 onClick={() => handleTabClick(tab.id)}
-                className={`flex items-center gap-2 py-2 px-4 text-sm font-medium transition-colors ${
+                className={`flex flex-col sm:flex-row items-center gap-1 sm:gap-2 py-2 px-2 sm:px-4 text-sm font-medium transition-colors ${
                   activeTab === tab.id
-                    ? 'text-orange-600 border-b-2 border-orange-600'
+                    ? 'text-orange-600 border-b-2 border-orange-600'  
                     : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
-                <Icon className="w-4 h-4" />
-                {tab.label}
-                {tab.count > 0 && (
-                  <span
-                    className={`ml-1 text-xs ${
-                      activeTab === tab.id ? 'text-orange-600' : 'text-gray-400'
-                    }`}
-                  >
-                    ({tab.count})
-                  </span>
-                )}
+                <div className="flex items-center gap-0">
+                  <Icon className="w-5 h-5 sm:w-4 sm:h-4" />
+                  {tab.count > 0 && (
+                    <span
+                      className={`ml-2 text-xs font-semibold ${
+                        activeTab === tab.id ? 'text-orange-600' : 'text-gray-400'
+                      }`}
+                    >
+                      ({formatCount(tab.count)})
+                    </span>
+                  )}
+                </div>
+                {/* Show label on all screen sizes */}
+                <span className="text-xs sm:text-sm">
+                  {tab.label}
+                </span>
               </button>
             );
           })}
