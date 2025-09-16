@@ -11,6 +11,7 @@ import { Button } from "./ui/button";
 import SettingsModal from "./SettingsModal";
 import { UserProfile as UserProfileType } from "@/types";
 import { followUser, unfollowUser, editProfile, blockUser, unblockUser, checkIfUserBlocked } from "@/api/user";
+import { toggleAccountPrivacy } from "@/api/privacy";
 import { storyAPI } from "@/api/story";
 import { Story } from "@/types/story";
 import StoryViewer from "./StoryViewer";
@@ -74,6 +75,8 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
   const [submittingRating, setSubmittingRating] = useState(false);
   const [businessId, setBusinessId] = useState<string | null>(null);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [userPrivacy, setUserPrivacy] = useState<'public' | 'private'>(userData.privacy || 'public');
+  const [isToggling, setIsToggling] = useState(false);
 
   // Location suggestion states
   const [locationSuggestions, setLocationSuggestions] = useState<LocationSuggestion[]>([]);
@@ -195,7 +198,8 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
       bio: userData.bio,
       profileImageUrl: userData.profileImageUrl,
     });
-    
+    setUserPrivacy(userData.privacy || 'public');
+
     // Fetch stories for other users when component loads
     if (!isCurrentUser && userData._id) {
       fetchUserStories(userData._id);
@@ -610,6 +614,31 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
     }
   };
 
+  const handlePrivacyToggle = async () => {
+    if (isToggling) return;
+
+    setIsToggling(true);
+
+    try {
+      const response = await toggleAccountPrivacy();
+      const newPrivacy = response.data.privacy;
+
+      setUserPrivacy(newPrivacy);
+
+      // Update user store
+      useUserStore.getState().updateUser({ privacy: newPrivacy });
+
+      // Update profile state
+      setProfile(prev => ({ ...prev, privacy: newPrivacy }));
+    } catch (error: any) {
+      console.error('Error toggling privacy:', error);
+      const errorMessage = error?.response?.data?.message || 'Failed to update privacy settings';
+      alert(errorMessage);
+    } finally {
+      setIsToggling(false);
+    }
+  };
+
   const handleCancel = () => {
     // Reset form data to original profile data
     setFormData({
@@ -620,6 +649,8 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
       bio: profile.bio,
       profileImageUrl: profile.profileImageUrl,
     });
+    // Reset privacy to original value
+    setUserPrivacy(profile.privacy || 'public');
     setIsEditing(false);
   };
 
@@ -1113,21 +1144,62 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
             {isCurrentUser ? (
               <>
                 {isEditing ? (
-                  <>
-                    <Button
-                      onClick={handleSave}
-                      className="bg-yellow-600 hover:bg-yellow-700 text-black px-3 sm:px-4 py-1.5 rounded-md text-sm sm:text-md font-medium flex items-center gap-1"
-                    >
-                      <Check className="w-4 h-4" /> <span className="hidden sm:inline">Save</span>
-                    </Button>
-                    <Button
-                      onClick={handleCancel}
-                      variant="outline"
-                      className="border px-3 sm:px-4 py-1.5 rounded-md text-sm sm:text-md font-medium text-gray-700 hover:bg-gray-100 flex items-center gap-1"
-                    >
-                      <X className="w-4 h-4" /> <span className="hidden sm:inline">Cancel</span>
-                    </Button>
-                  </>
+                  <div className="flex flex-col gap-3 w-full sm:w-auto">
+                    {/* Privacy Toggle */}
+                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border mb-2">
+                      <div className="flex items-center gap-2">
+                        <Shield className="w-4 h-4 text-gray-600" />
+                        <div>
+                          <span className="text-sm font-medium text-gray-900">
+                            Account Privacy
+                          </span>
+                          <p className="text-xs text-gray-600">
+                            {userPrivacy === 'private'
+                              ? 'Only followers can see your posts'
+                              : 'Everyone can see your posts'
+                            }
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={handlePrivacyToggle}
+                        disabled={isToggling}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${
+                          userPrivacy === 'private'
+                            ? 'bg-yellow-600'
+                            : 'bg-gray-300'
+                        }`}
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                            userPrivacy === 'private' ? 'translate-x-6' : 'translate-x-1'
+                          }`}
+                        />
+                        {isToggling && (
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          </div>
+                        )}
+                      </button>
+                    </div>
+
+                    {/* Save/Cancel Buttons */}
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={handleSave}
+                        className="bg-yellow-600 hover:bg-yellow-700 text-black px-3 sm:px-4 py-1.5 rounded-md text-sm sm:text-md font-medium flex items-center gap-1"
+                      >
+                        <Check className="w-4 h-4" /> <span className="hidden sm:inline">Save</span>
+                      </Button>
+                      <Button
+                        onClick={handleCancel}
+                        variant="outline"
+                        className="border px-3 sm:px-4 py-1.5 rounded-md text-sm sm:text-md font-medium text-gray-700 hover:bg-gray-100 flex items-center gap-1"
+                      >
+                        <X className="w-4 h-4" /> <span className="hidden sm:inline">Cancel</span>
+                      </Button>
+                    </div>
+                  </div>
                 ) : (
                   <>
                     <Button

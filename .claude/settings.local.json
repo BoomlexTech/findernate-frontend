@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/KIIT/Desktop/FinderNate/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

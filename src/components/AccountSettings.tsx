@@ -3,6 +3,7 @@ import PlanSelectionModal from './business/PlanSelectionModal';
 import BusinessDetailsModal from './business/BusinessDetailsModal';
 import BusinessVerificationModal from './business/BusinessVerificationModal';
 import { PaymentMethodsModal } from './business/PaymentMethodModal';
+import FollowRequestManager from './FollowRequestManager';
 import { ChevronDown } from 'lucide-react';
 import { UpdateBusinessCategory, GetBusinessCategory, switchToBusiness, switchToPersonal } from '@/api/business';
 import { useUserStore } from '@/store/useUserStore';
@@ -375,6 +376,14 @@ export default function AccountSettings() {
                 Current plan: {selectedPlan || "Free"}
               </p>
             </div>
+         </div>
+       )}
+
+
+       {/* Follow Requests Section - Only show if account is private */}
+       {user?.privacy === 'private' && (
+         <div className="mb-6 sm:mb-8">
+           <FollowRequestManager />
          </div>
        )}
 
