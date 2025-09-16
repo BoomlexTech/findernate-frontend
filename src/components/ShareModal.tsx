@@ -72,7 +72,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
       console.error('Error generating QR code:', error);
       // Fallback: Use public QR endpoint as image URL
       try {
-        const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+        const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://eckss0cw0ggco0okoocc4wo4.194.164.151.15.sslip.io';
         setQrCodeUrl(`${baseURL}/api/v1/qr/${userData.username}`);
       } catch (fallbackError) {
         console.error('Fallback QR generation failed:', fallbackError);

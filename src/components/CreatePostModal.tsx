@@ -17,6 +17,31 @@ import { searchLocations, LocationSuggestion } from '@/api/location';
 import { postRefreshEvents } from '@/utils/postRefreshEvents';
 import BusinessDetailsModal from './business/BusinessDetailsModal';
 
+// Categories for all post types
+const postCategories = [
+  'Other',
+  'Technology & Software',
+  'E-commerce & Retail',
+  'Health & Wellness',
+  'Education & Training',
+  'Finance & Accounting',
+  'Marketing & Advertising',
+  'Real Estate',
+  'Travel & Hospitality',
+  'Food & Beverage',
+  'Fashion & Apparel',
+  'Automotive',
+  'Construction & Engineering',
+  'Legal & Consulting',
+  'Entertainment & Media',
+  'Art & Design',
+  'Logistics & Transportation',
+  'Agriculture & Farming',
+  'Manufacturing & Industrial',
+  'Non-profit & NGOs',
+  'Telecommunications'
+];
+
 interface createPostModalProps {
     closeModal: () => void;
 }
@@ -36,6 +61,8 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
   image: [] as File [], // array of File objects or URLs
   location: {name:''},
   tags: [] as string [],
+  category: 'Other', // Default to Other
+  customCategory: '', // For when user selects "Other"
 });
 
   const [videoDuration, setVideoDuration] = useState<number | null>(null);
@@ -673,12 +700,18 @@ const handleProductChange = (
   const buildPostPayload = () => {
     // Organize media if reel visibility is enabled
     const organizedMedia = organizeMediaForReel(sharedForm.image);
-    
-    // Create shared form with caption set to description value and organized media
-    const sharedFormWithCaption = { 
-      ...sharedForm, 
+
+    // Determine final category (use customCategory if "Other" is selected and customCategory has value)
+    const finalCategory = sharedForm.category === 'Other' && sharedForm.customCategory.trim()
+      ? sharedForm.customCategory.trim()
+      : sharedForm.category;
+
+    // Create shared form with caption set to description value, organized media, and category
+    const sharedFormWithCaption = {
+      ...sharedForm,
       caption: sharedForm.description,
-      image: organizedMedia
+      image: organizedMedia,
+      category: finalCategory
     };
     
     // Determine the final post type for regular posts
@@ -707,8 +740,21 @@ const handleProductChange = (
 
   // Form validation function
   const validateForm = () => {
+    // Check if "Other" category is selected but custom category is empty
+    if (sharedForm.category === 'Other' && !sharedForm.customCategory.trim()) {
+      toast.error('Please enter a custom category or select a different category', {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+      return false;
+    }
+
     // Check location requirement based on delivery options
-    const isLocationRequired = 
+    const isLocationRequired =
       (postType === 'Product' && (productForm.product.deliveryOptions === 'offline' || productForm.product.deliveryOptions === 'both')) ||
       (postType === 'Service' && (serviceForm.service.deliveryOptions === 'offline' || serviceForm.service.deliveryOptions === 'both')) ||
       (postType === 'Business' && (businessForm.formData.business.deliveryOptions === 'offline' || businessForm.formData.business.deliveryOptions === 'both'));
@@ -990,20 +1036,6 @@ const handleProductChange = (
             </div>
           )}
 
-          {/* Debug button - Remove this after testing */}
-          {postType === 'Business' && (
-            <div className="mb-4">
-              <button
-                onClick={() => {
-                  //console.log('Manually opening business profile modal');
-                  setShowBusinessProfileModal(true);
-                }}
-                className="px-4 py-2 bg-red-500 text-white rounded-lg text-sm"
-              >
-                Test Business Modal
-              </button>
-            </div>
-          )}
 
           {/* Post Type Tabs */}
           <div className="grid grid-cols-2 gap-2 sm:flex sm:space-x-4 sm:gap-0 mb-6">
@@ -1057,7 +1089,7 @@ const handleProductChange = (
           </div>
 
           {/* Post Content */}
-          <div className="mb-1">
+          <div className="mb-4">
             <label className='text-black text-bold ml-2'>Add Description</label>
             <textarea
               value={sharedForm.description}
@@ -1065,6 +1097,43 @@ const handleProductChange = (
               placeholder="What's on your mind?"
               className="w-full h-32 p-4 border border-gray-300 placeholder:text-gray-500 text-black rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
             />
+          </div>
+
+          {/* Category Selection */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Category
+            </label>
+            <select
+              value={sharedForm.category}
+              onChange={(e) => {
+                setSharedForm({
+                  ...sharedForm,
+                  category: e.target.value,
+                  customCategory: e.target.value === 'Other' ? sharedForm.customCategory : ''
+                });
+              }}
+              className="w-full p-3 border border-gray-300 text-black rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+            >
+              {postCategories.map((category) => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
+              ))}
+            </select>
+
+            {/* Custom Category Input - shown when "Other" is selected */}
+            {sharedForm.category === 'Other' && (
+              <div className="mt-3">
+                <input
+                  type="text"
+                  value={sharedForm.customCategory}
+                  onChange={(e) => setSharedForm({...sharedForm, customCategory: e.target.value})}
+                  placeholder="Enter custom category..."
+                  className="w-full p-3 border border-gray-300 placeholder:text-gray-500 text-black rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                />
+              </div>
+            )}
           </div>
 
 
