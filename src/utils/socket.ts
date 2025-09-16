@@ -29,7 +29,7 @@ class SocketManager {
       this.reconnectTimeoutId = null;
     }
 
-    const serverUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+    const serverUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://eckss0cw0ggco0okoocc4wo4.194.164.151.15.sslip.io';
     
     //console.log(`Attempting socket connection (attempt ${this.reconnectAttempts + 1}/${this.maxReconnectAttempts})`);
     

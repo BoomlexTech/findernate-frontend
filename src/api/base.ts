@@ -1,8 +1,13 @@
 
 import axios from 'axios';
 
+// Debug logging for environment variable
+console.log('🔧 API Base URL Environment Variable:', process.env.NEXT_PUBLIC_API_BASE_URL);
+const finalBaseURL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://eckss0cw0ggco0okoocc4wo4.194.164.151.15.sslip.io';
+console.log('🚀 Final API Base URL:', finalBaseURL);
+
 const axiosInstance = axios.create({
-  baseURL: `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/api/v1`, // from .env with fallback
+  baseURL: `${finalBaseURL}/api/v1`, // from .env with fallback
   headers: {
     'Content-Type': 'application/json',
   },
