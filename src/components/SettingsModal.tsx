@@ -14,6 +14,7 @@ import { CreateBusinessRequest, UpdateBusinessRequest } from "@/types";
 import { useEffect } from "react";
 import { getUserProfile, updateAccountPrivacy } from "@/api/user";
 import { HelpCenterModal } from "./HelpCenterModal";
+import PrivacySettings from "./PrivacySettings";
 import { toast } from "react-toastify";
 
 
@@ -31,13 +32,13 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
   const [showVerificationModal, setShowVerificationModal] = useState(false);
   const [showHelpCenter, setShowHelpCenter] = useState(false);
   const [successToast, setSuccessToast] = useState({ show: false, message: "" });
+  const [showPrivacySettings, setShowPrivacySettings] = useState(false);
   const [accountPrivacy, setAccountPrivacy] = useState<'public' | 'private'>('public');
-  const [isLoadingPrivacy, setIsLoadingPrivacy] = useState(false);
   const router = useRouter();
   const { logout: logoutUser, user, updateUser } = useUserStore();
   const [isBusinessProfile, setIsBusinessProfile] = useState<boolean>(user?.isBusinessProfile === true);
 
-  // Hydrate business flag from backend to avoid stale store values
+  // Hydrate business flag and privacy settings from backend to avoid stale store values
   useEffect(() => {
     let isMounted = true;
     (async () => {
@@ -45,9 +46,14 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
         const data = await getUserProfile();
         //console.log(data)
         const profile = data?.userId ?? data; // tolerate either shape
-        if (isMounted && typeof profile?.isBusinessProfile === 'boolean') {
-          setIsBusinessProfile(profile.isBusinessProfile);
-          updateUser({ isBusinessProfile: profile.isBusinessProfile });
+        if (isMounted) {
+          if (typeof profile?.isBusinessProfile === 'boolean') {
+            setIsBusinessProfile(profile.isBusinessProfile);
+            updateUser({ isBusinessProfile: profile.isBusinessProfile });
+          }
+          if (profile?.privacy) {
+            setAccountPrivacy(profile.privacy);
+          }
         }
       } catch {
         // ignore; fallback to store
@@ -104,40 +110,6 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
     setShowBusinessPlans(true);
   };
 
-  // Handle privacy toggle
-  const handlePrivacyToggle = async () => {
-    if (isLoadingPrivacy) return;
-    
-    setIsLoadingPrivacy(true);
-    try {
-      const newPrivacy = accountPrivacy === 'public' ? 'private' : 'public';
-      const response = await updateAccountPrivacy(newPrivacy);
-      
-      setAccountPrivacy(newPrivacy);
-      
-      // Show success message
-      toast.success(response.message || `Account is now ${newPrivacy}`, {
-        position: "top-right",
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-      });
-    } catch (error: any) {
-      console.error('Failed to update privacy:', error);
-      toast.error('Failed to update privacy settings. Please try again.', {
-        position: "top-right",
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-      });
-    } finally {
-      setIsLoadingPrivacy(false);
-    }
-  };
 
   const handlePlanSelect = (plan: string) => {
     setSelectedPlan(plan);
@@ -234,12 +206,10 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
             title="Help Center" 
             onClick={() => setShowHelpCenter(true)}
           />
-          <SettingToggle
+          <SettingItem
             icon={accountPrivacy === 'private' ? <Lock /> : <Unlock />}
-            title="Account Privacy"
-            enabled={accountPrivacy === 'private'}
-            onToggle={handlePrivacyToggle}
-            isLoading={isLoadingPrivacy}
+            title="Privacy Settings"
+            onClick={() => setShowPrivacySettings(true)}
           />
         </div>
 
@@ -391,6 +361,29 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
       isOpen={showHelpCenter}
       onClose={() => setShowHelpCenter(false)}
     />
+
+    {/* Privacy Settings Modal */}
+    {showPrivacySettings && (
+      <div className="fixed inset-0 z-[60] bg-black/40 flex items-center justify-center" onClick={() => setShowPrivacySettings(false)}>
+        <div className="bg-white w-full max-w-lg mx-4 rounded-xl shadow-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="sticky top-0 z-10 bg-white px-6 py-4 flex items-center justify-between border-b border-gray-200 rounded-t-xl">
+            <h2 className="text-xl font-semibold text-gray-900">Privacy Settings</h2>
+            <button
+              onClick={() => setShowPrivacySettings(false)}
+              className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+            >
+              <X className="w-6 h-6 text-gray-600" />
+            </button>
+          </div>
+          <div className="p-6">
+            <PrivacySettings
+              userPrivacy={accountPrivacy}
+              onPrivacyUpdate={(privacy) => setAccountPrivacy(privacy as 'public' | 'private')}
+            />
+          </div>
+        </div>
+      </div>
+    )}
   </>
   );
 };

@@ -65,3 +65,9 @@ export const getFollowing = async (userId: string) => {
   const response = await axios.get(`/users/following/${userId}`);
   return response.data;
 };
+
+// Toggle full account privacy
+export const toggleFullAccountPrivacy = async (privacy: 'private' | 'public') => {
+  const response = await axios.put('/users/privacy/full-private', { privacy });
+  return response.data;
+};

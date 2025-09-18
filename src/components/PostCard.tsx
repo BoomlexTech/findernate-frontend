@@ -1,6 +1,6 @@
 'use client';
 
-import { Heart, MessageCircle, MapPin, ChevronLeft, ChevronRight, MoreVertical, Bookmark, BookmarkCheck, Flag, Trash2, Pencil } from 'lucide-react';
+import { Heart, MessageCircle, MapPin, ChevronLeft, ChevronRight, MoreVertical, Bookmark, BookmarkCheck, Flag, Trash2, Pencil, Eye, EyeOff } from 'lucide-react';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { FeedPost, SavedPostsResponse } from '@/types';
@@ -11,7 +11,7 @@ import ServiceCard from './post-window/ServiceCard';
 import { Badge } from './ui/badge';
 import ProductCard from './post-window/ProductCard';
 import BusinessPostCard from './post-window/BusinessCard';
-import { likePost, unlikePost, savePost, unsavePost, getSavedPost, deletePost, editPost, EditPostPayload } from '@/api/post';
+import { likePost, unlikePost, savePost, unsavePost, getSavedPost, deletePost, editPost, EditPostPayload, togglePostPrivacy } from '@/api/post';
 //import { createComment } from '@/api/comment';
 import { postEvents } from '@/utils/postEvents';
 import { AxiosError } from 'axios';
@@ -115,6 +115,8 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
   const [isVideoMuted, setIsVideoMuted] = useState(true);
   const [smallestImageHeight, setSmallestImageHeight] = useState<number | null>(null);
   const [loadedImageHeights, setLoadedImageHeights] = useState<{ [index: number]: number }>({});
+  const [postPrivacy, setPostPrivacy] = useState<'private' | 'public'>((post as any)?.privacy || 'public');
+  const [isTogglingPrivacy, setIsTogglingPrivacy] = useState(false);
 
   // Intersection observer for lazy loading videos
   const { elementRef, hasIntersected } = useIntersectionObserver({
@@ -717,6 +719,34 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
     });
   };
 
+  const handlePostPrivacyToggle = async () => {
+    requireAuth(async () => {
+      if (isTogglingPrivacy) return;
+
+      setIsTogglingPrivacy(true);
+      const previousPrivacy = postPrivacy;
+      const newPrivacy = postPrivacy === 'private' ? 'public' : 'private';
+
+      // Optimistic update
+      setPostPrivacy(newPrivacy);
+
+      try {
+        await togglePostPrivacy(post._id, newPrivacy);
+        // Update the post object as well
+        (post as any).privacy = newPrivacy;
+        setShowDropdown(false);
+        toast.success(`Post is now ${newPrivacy}!`, { autoClose: 2000 });
+      } catch (error) {
+        console.error('Error toggling post privacy:', error);
+        // Revert on error
+        setPostPrivacy(previousPrivacy);
+        toast.error('Failed to update post privacy. Please try again.');
+      } finally {
+        setIsTogglingPrivacy(false);
+      }
+    });
+  };
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -927,7 +957,31 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
                       Edit
                     </button>
                   )}
-                  
+
+                  {/* Privacy toggle button - only for own posts */}
+                  {canEdit && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handlePostPrivacyToggle();
+                      }}
+                      disabled={isTogglingPrivacy}
+                      className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 disabled:opacity-50"
+                    >
+                      {postPrivacy === 'public' ? (
+                        <>
+                          <Eye className="w-4 h-4 text-green-600" />
+                          {isTogglingPrivacy ? 'Updating...' : 'Make Private'}
+                        </>
+                      ) : (
+                        <>
+                          <EyeOff className="w-4 h-4 text-gray-600" />
+                          {isTogglingPrivacy ? 'Updating...' : 'Make Public'}
+                        </>
+                      )}
+                    </button>
+                  )}
+
                   {/* Report button - only show if not own post */}
                   {!isOwnPost && (
                     <button
@@ -1333,7 +1387,31 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
                         Edit
                       </button>
                     )}
-                    
+
+                    {/* Privacy toggle button - only for own posts */}
+                    {canEdit && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handlePostPrivacyToggle();
+                        }}
+                        disabled={isTogglingPrivacy}
+                        className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 disabled:opacity-50"
+                      >
+                        {postPrivacy === 'public' ? (
+                          <>
+                            <Eye className="w-4 h-4 text-green-600" />
+                            {isTogglingPrivacy ? 'Updating...' : 'Make Private'}
+                          </>
+                        ) : (
+                          <>
+                            <EyeOff className="w-4 h-4 text-gray-600" />
+                            {isTogglingPrivacy ? 'Updating...' : 'Make Public'}
+                          </>
+                        )}
+                      </button>
+                    )}
+
                     {/* Report button - only show if not own post */}
                     {!isOwnPost && (
                       <button

@@ -30,7 +30,8 @@ const UserCard: React.FC<UserCardProps> = ({ user, onFollow }) => {
   // Update local state when user prop changes
   useEffect(() => {
     setIsFollowing(user.isFollowing || false);
-  }, [user.isFollowing]);
+    //console.log('UserCard: Setting follow state for user', user._id, 'to', user.isFollowing || false);
+  }, [user.isFollowing, user._id]);
 
   const handleFollowClick = async () => {
     requireAuth(async () => {
@@ -84,18 +85,18 @@ const UserCard: React.FC<UserCardProps> = ({ user, onFollow }) => {
             alert("You can't follow yourself");
             setIsFollowing(false);
           } else {
-            // For other 400 errors, revert to original state
-            //console.log('Other 400 error, reverting state:', responseMessage || errorMessage);
-            setIsFollowing(user.isFollowing || false);
+            // For other 400 errors, revert the optimistic state (don't use original user prop)
+            //console.log('Other 400 error, reverting optimistic state:', responseMessage || errorMessage);
+            setIsFollowing(!isFollowing); // Revert the optimistic change
           }
         } else if (status === 409) {
           // Conflict - status already updated, keep optimistic state
           //console.log('Conflict error - keeping optimistic state');
           onFollow?.(user._id);
         } else {
-          // For other errors, revert the state
-          //console.log('Reverting state due to error:', status);
-          setIsFollowing(user.isFollowing || false);
+          // For other errors, revert the optimistic state (don't use original user prop)
+          //console.log('Reverting optimistic state due to error:', status);
+          setIsFollowing(!isFollowing); // Revert the optimistic change
           alert(errorMessage || responseMessage || 'Failed to update follow status');
         }
       } finally {

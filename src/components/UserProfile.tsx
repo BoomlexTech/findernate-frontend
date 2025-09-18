@@ -25,6 +25,7 @@ import FollowersModal from "./FollowersModal";
 import { searchLocations, LocationSuggestion } from '@/api/location';
 import StarRating from './StarRating';
 import { getBusinessRatingSummary, rateBusiness } from '@/api/business';
+import PrivacySettings from './PrivacySettings';
 
 interface UserProfileProps {
   userData: UserProfileType;
@@ -75,8 +76,12 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
   const [submittingRating, setSubmittingRating] = useState(false);
   const [businessId, setBusinessId] = useState<string | null>(null);
   const [showShareModal, setShowShareModal] = useState(false);
-  const [userPrivacy, setUserPrivacy] = useState<'public' | 'private'>(userData.privacy || 'public');
+  const [userPrivacy, setUserPrivacy] = useState<'public' | 'private'>(() => {
+    console.log('UserProfile: Initial userData.privacy:', userData.privacy);
+    return userData.privacy || 'public';
+  });
   const [isToggling, setIsToggling] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
   // Location suggestion states
   const [locationSuggestions, setLocationSuggestions] = useState<LocationSuggestion[]>([]);
@@ -1145,43 +1150,6 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
               <>
                 {isEditing ? (
                   <div className="flex flex-col gap-3 w-full sm:w-auto">
-                    {/* Privacy Toggle */}
-                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border mb-2">
-                      <div className="flex items-center gap-2">
-                        <Shield className="w-4 h-4 text-gray-600" />
-                        <div>
-                          <span className="text-sm font-medium text-gray-900">
-                            Account Privacy
-                          </span>
-                          <p className="text-xs text-gray-600">
-                            {userPrivacy === 'private'
-                              ? 'Only followers can see your posts'
-                              : 'Everyone can see your posts'
-                            }
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        onClick={handlePrivacyToggle}
-                        disabled={isToggling}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${
-                          userPrivacy === 'private'
-                            ? 'bg-yellow-600'
-                            : 'bg-gray-300'
-                        }`}
-                      >
-                        <span
-                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                            userPrivacy === 'private' ? 'translate-x-6' : 'translate-x-1'
-                          }`}
-                        />
-                        {isToggling && (
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          </div>
-                        )}
-                      </button>
-                    </div>
 
                     {/* Save/Cancel Buttons */}
                     <div className="flex gap-2">
@@ -1327,6 +1295,31 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
 
         {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
 
+        {/* Privacy Settings Modal */}
+        {showPrivacyModal && (
+          <div className="fixed inset-0 z-[60] bg-black/40 flex items-center justify-center" onClick={() => setShowPrivacyModal(false)}>
+            <div className="bg-white w-full max-w-lg mx-4 rounded-xl shadow-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+              <div className="sticky top-0 z-10 bg-white px-6 py-4 flex items-center justify-between border-b border-gray-200 rounded-t-xl">
+                <h2 className="text-xl font-semibold text-gray-900">Privacy Settings</h2>
+                <button
+                  onClick={() => setShowPrivacyModal(false)}
+                  className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+                >
+                  <X className="w-6 h-6 text-gray-600" />
+                </button>
+              </div>
+              <div className="p-6">
+                <PrivacySettings
+                  userPrivacy={userPrivacy}
+                  onPrivacyUpdate={(privacy) => {
+                    console.log('UserProfile: Privacy updated to:', privacy);
+                    setUserPrivacy(privacy as 'public' | 'private');
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Stats */}
         <div className="flex gap-4 sm:gap-6 mt-6 text-sm text-gray-700 font-medium flex-wrap">

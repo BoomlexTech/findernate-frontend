@@ -230,3 +230,13 @@ export const editPost = async (postId: string, payload: EditPostPayload) => {
   const response = await axios.put(`/posts/edit/${postId}`, payload);
   return response.data;
 }
+
+// Toggle post privacy between private and public
+export const togglePostPrivacy = async (postId: string, privacy: 'private' | 'public') => {
+  try {
+    const response = await axios.put(`/posts/${postId}/privacy`, { privacy });
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+}

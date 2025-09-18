@@ -59,6 +59,10 @@ const PostPage = () => {
         //console.log('Post customization.normal.location:', postData.customization?.normal?.location);
         //console.log('All location-related fields:', Object.keys(postData).filter(key => key.toLowerCase().includes('location')));
         
+        // Preserve original username and profile image from post data as fallback
+        const originalUsername = postData.username || postData.userId?.username || 'User';
+        const originalProfileImage = postData.profileImageUrl || '';
+
         // Fetch user details if userId is available
         if (postData.userId) {
           try {
@@ -71,29 +75,33 @@ const PostPage = () => {
             //console.log('userData.userId.fullName:', userData.userId?.fullName);
             //console.log('userData.userId.location:', userData.userId?.location);
             //console.log('userData.location:', userData.location);
-            
-            // Add username and profile image to post data
-            postData.username = userData.userId?.username || userData.userId?.fullName || 'User';
-            postData.profileImageUrl = userData.userId?.profileImageUrl || '';
-            
+
+            // Add username and profile image to post data, fallback to original values
+            postData.username = userData.userId?.username || userData.userId?.fullName || originalUsername;
+            postData.profileImageUrl = userData.userId?.profileImageUrl || originalProfileImage;
+
             // Check for location in multiple possible places
             const userLocation = userData.userId?.location || userData.location || null;
             //console.log('Found user location:', userLocation);
-            
+
             // Ensure location data is properly structured
             if (userLocation && !postData.location) {
               postData.location = userLocation;
             }
-            
+
             //console.log('Final username set to:', postData.username);
             //console.log('Final location set to:', postData.location);
           } catch (userError: any) {
             console.error('Failed to fetch user data:', userError);
-            postData.username = 'Unknown User';
+            // Use original username and profile image instead of generic fallback
+            postData.username = originalUsername;
+            postData.profileImageUrl = originalProfileImage;
           }
         } else {
           //console.log('No userId found in post data');
-          postData.username = 'No User ID';
+          // Use original username and profile image instead of generic fallback
+          postData.username = originalUsername;
+          postData.profileImageUrl = originalProfileImage;
         }
         
         // Check localStorage for existing like state to override server data
