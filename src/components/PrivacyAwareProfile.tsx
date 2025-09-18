@@ -13,6 +13,7 @@ interface PrivacyAwareProfileProps {
     fullName: string;
     profileImageUrl?: string;
     privacy: 'public' | 'private';
+    isFullPrivate?: boolean;
     bio?: string;
     followers?: any[];
     following?: any[];
@@ -146,6 +147,7 @@ const PrivacyAwareProfile: React.FC<PrivacyAwareProfileProps> = ({
           videos={videos}
           savedPosts={isOwnProfile ? savedPosts : []} // Only show saved posts for own profile
           isOtherUser={!isOwnProfile}
+          isFullPrivate={userData.isFullPrivate || false}
         />
       )}
 

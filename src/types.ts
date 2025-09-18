@@ -345,6 +345,7 @@ export interface UserProfile {
   postsCount: number;
   isFollowing?: boolean;
   privacy?: 'public' | 'private';
+  isFullPrivate?: boolean;
 }
 
 // Below are the types for create,and update business details

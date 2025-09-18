@@ -299,13 +299,14 @@ const UserProfilePage = () => {
         <div className='w-full'>
           <ProfilePostsSection
             PostCard={PostCard}
-            posts={posts}  
+            posts={posts}
             reels={reels}
             videos={videos}
             savedPosts={savedPosts}
             isOtherUser={true}
             loading={postsLoading}
             onTabChange={handleTabChange}
+            isFullPrivate={profileData?.isFullPrivate || false}
           />
         </div>
       </div>

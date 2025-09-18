@@ -449,6 +449,7 @@ const Page = () => {
               }))}
               savedPosts={savedPosts}
               isOtherUser={false}
+              isFullPrivate={profileData?.isFullPrivate || false}
             />
           </div>
         </div>
