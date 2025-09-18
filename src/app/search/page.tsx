@@ -31,10 +31,13 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import ImageModal from "@/components/ImageModal";
 import { getCommentsByPost, Comment } from "@/api/comment";
+import { getFollowing } from "@/api/user";
+import { useUserStore } from "@/store/useUserStore";
 
 // Search component that uses useSearchParams
 function SearchContent() {
   const searchParams = useSearchParams();
+  const { user: currentUser } = useUserStore();
   const [searchQuery, setSearchQuery] = useState("");
   const [displayQuery, setDisplayQuery] = useState("");
   const [isDefaultSearch, setIsDefaultSearch] = useState(false);
@@ -56,6 +59,7 @@ function SearchContent() {
   const [searchRadius, setSearchRadius] = useState<number>(5);
   const [showImageModal, setShowImageModal] = useState(false);
   const [selectedPost, setSelectedPost] = useState<FeedPost | null>(null);
+  const [followingList, setFollowingList] = useState<string[]>([]);
 
   const tabs = [
     { id: "All", label: "All", icon: Search },
@@ -105,6 +109,34 @@ function SearchContent() {
     setSelectedLocation(location === "All Locations" ? "" : location);
     setUseCurrentLocation(false);
     setCurrentCoordinates(null);
+  };
+
+  // Fetch current user's following list on mount
+  useEffect(() => {
+    const fetchFollowingList = async () => {
+      if (currentUser?._id) {
+        try {
+          const followingData = await getFollowing(currentUser._id);
+          // Extract user IDs from following data
+          const followingIds = followingData.map((user: any) => user._id || user);
+          setFollowingList(followingIds);
+          //console.log('Following list loaded:', followingIds.length, 'users');
+        } catch (error) {
+          console.error('Failed to fetch following list:', error);
+          setFollowingList([]);
+        }
+      }
+    };
+
+    fetchFollowingList();
+  }, [currentUser?._id]);
+
+  // Helper function to enrich users with correct isFollowing state
+  const enrichUsersWithFollowingState = (users: SearchUser[]): SearchUser[] => {
+    return users.map(user => ({
+      ...user,
+      isFollowing: followingList.includes(user._id)
+    }));
   };
 
 
@@ -304,7 +336,9 @@ function SearchContent() {
       setResults(postsWithComments);
       // Don't set users if this is the default search
       if (!isDefaultSearch) {
-        setUsers(filteredUsers);
+        // Enrich users with correct isFollowing state
+        const enrichedUsers = enrichUsersWithFollowingState(filteredUsers);
+        setUsers(enrichedUsers);
       } else {
         setUsers([]);
       }
@@ -330,7 +364,10 @@ function SearchContent() {
       setError(null);
       
       const response = await searchUsers(searchQuery);
-      setUsers(response.data.users || response.data || []);
+      const rawUsers = response.data.users || response.data || [];
+      // Enrich users with correct isFollowing state
+      const enrichedUsers = enrichUsersWithFollowingState(rawUsers);
+      setUsers(enrichedUsers);
       setResults([]);
       setShowAllUsers(false);
     } catch (err) {
@@ -407,18 +444,29 @@ function SearchContent() {
     if (userIndex !== -1) {
       const updatedUsers = [...users];
       const currentUser = updatedUsers[userIndex];
-      
+
       // Toggle the follow status and update follower count
       const newIsFollowing = !currentUser.isFollowing;
       updatedUsers[userIndex] = {
         ...currentUser,
         isFollowing: newIsFollowing,
-        followersCount: newIsFollowing 
-          ? (currentUser.followersCount || 0) + 1 
+        followersCount: newIsFollowing
+          ? (currentUser.followersCount || 0) + 1
           : Math.max((currentUser.followersCount || 0) - 1, 0) // Don't go below 0
       };
       setUsers(updatedUsers);
-      
+
+      // Also update the following list to keep it in sync
+      setFollowingList(prev => {
+        if (newIsFollowing) {
+          // Add to following list if not already there
+          return prev.includes(userId) ? prev : [...prev, userId];
+        } else {
+          // Remove from following list
+          return prev.filter(id => id !== userId);
+        }
+      });
+
       //console.log(`Updated user ${userId} follow status to: ${newIsFollowing}`);
     }
   };

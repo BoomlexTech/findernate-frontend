@@ -1,34 +1,42 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Lock, Unlock, Phone, PhoneOff, MapPin, MapPinOff } from 'lucide-react';
-import { toggleAccountPrivacy, togglePhoneVisibility, toggleAddressVisibility } from '@/api/privacy';
+import React, { useState, useEffect } from 'react';
+import { Lock, Unlock } from 'lucide-react';
+import { toggleAccountPrivacy, toggleFullAccountPrivacy } from '@/api/privacy';
 import { toast } from 'react-toastify';
 import { useUserStore } from '@/store/useUserStore';
 
 interface PrivacySettingsProps {
   userPrivacy?: string;
-  isPhoneHidden?: boolean;
-  isAddressHidden?: boolean;
+  isFullPrivate?: boolean;
   onPrivacyUpdate?: (privacy: string) => void;
+  onFullPrivacyUpdate?: (isFullPrivate: boolean) => void;
 }
 
 const PrivacySettings: React.FC<PrivacySettingsProps> = ({
   userPrivacy = 'public',
-  isPhoneHidden = false,
-  isAddressHidden = false,
-  onPrivacyUpdate
+  isFullPrivate = false,
+  onPrivacyUpdate,
+  onFullPrivacyUpdate
 }) => {
   const [privacy, setPrivacy] = useState(userPrivacy);
-  const [phoneHidden, setPhoneHidden] = useState(isPhoneHidden);
-  const [addressHidden, setAddressHidden] = useState(isAddressHidden);
+  const [fullPrivate, setFullPrivate] = useState(isFullPrivate);
   const [loading, setLoading] = useState({
     privacy: false,
-    phone: false,
-    address: false
+    fullPrivacy: false
   });
 
   const { updateUser } = useUserStore();
+
+  // Sync local state when props change
+  useEffect(() => {
+    console.log('PrivacySettings: userPrivacy prop changed to:', userPrivacy);
+    setPrivacy(userPrivacy);
+  }, [userPrivacy]);
+
+  useEffect(() => {
+    setFullPrivate(isFullPrivate);
+  }, [isFullPrivate]);
 
   const handlePrivacyToggle = async () => {
     setLoading(prev => ({ ...prev, privacy: true }));
@@ -54,57 +62,43 @@ const PrivacySettings: React.FC<PrivacySettingsProps> = ({
     }
   };
 
-  const handlePhoneToggle = async () => {
-    setLoading(prev => ({ ...prev, phone: true }));
+
+  const handleFullPrivacyToggle = async () => {
+    setLoading(prev => ({ ...prev, fullPrivacy: true }));
     try {
-      const response = await togglePhoneVisibility();
-      const isHidden = response.data.isPhoneNumberHidden;
+      const newPrivacy = fullPrivate ? 'public' : 'private';
 
-      setPhoneHidden(isHidden);
-      updateUser({ isPhoneNumberHidden: isHidden });
+      // Call the full privacy API which handles both profile and posts privacy
+      const response = await toggleFullAccountPrivacy(newPrivacy);
 
-      toast.success(`Phone number is now ${isHidden ? 'hidden' : 'visible'}`, {
+      // Update local states
+      setFullPrivate(!fullPrivate);
+      setPrivacy(newPrivacy); // Also update the regular privacy state
+
+      // Update parent components
+      onFullPrivacyUpdate?.(!fullPrivate);
+      onPrivacyUpdate?.(newPrivacy);
+
+      // Update user store
+      updateUser({ privacy: newPrivacy });
+
+      toast.success(`Account and all posts are now ${newPrivacy}`, {
         position: "top-right",
         autoClose: 3000,
       });
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to update phone visibility', {
+      toast.error(error.response?.data?.message || 'Failed to update total account privacy', {
         position: "top-right",
         autoClose: 3000,
       });
     } finally {
-      setLoading(prev => ({ ...prev, phone: false }));
-    }
-  };
-
-  const handleAddressToggle = async () => {
-    setLoading(prev => ({ ...prev, address: true }));
-    try {
-      const response = await toggleAddressVisibility();
-      const isHidden = response.data.isAddressHidden;
-
-      setAddressHidden(isHidden);
-      updateUser({ isAddressHidden: isHidden });
-
-      toast.success(`Address is now ${isHidden ? 'hidden' : 'visible'}`, {
-        position: "top-right",
-        autoClose: 3000,
-      });
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to update address visibility', {
-        position: "top-right",
-        autoClose: 3000,
-      });
-    } finally {
-      setLoading(prev => ({ ...prev, address: false }));
+      setLoading(prev => ({ ...prev, fullPrivacy: false }));
     }
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm p-6">
-      <h3 className="text-lg font-semibold text-gray-800 mb-4">Privacy Settings</h3>
-
-      <div className="space-y-4">
+    <div>
+    <div className="space-y-4">
         {/* Account Privacy */}
         <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
           <div className="flex items-center space-x-3">
@@ -123,80 +117,70 @@ const PrivacySettings: React.FC<PrivacySettingsProps> = ({
               </p>
             </div>
           </div>
-          <button
-            onClick={handlePrivacyToggle}
-            disabled={loading.privacy}
-            className={`px-4 py-2 rounded-lg font-medium transition-all ${
-              privacy === 'private'
-                ? 'bg-red-100 text-red-700 hover:bg-red-200'
-                : 'bg-green-100 text-green-700 hover:bg-green-200'
-            } ${loading.privacy ? 'opacity-50 cursor-not-allowed' : ''}`}
-          >
-            {loading.privacy ? 'Updating...' : privacy === 'private' ? 'Make Public' : 'Make Private'}
-          </button>
+          <div className="flex items-center">
+            {loading.privacy ? (
+              <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin mr-3"></div>
+            ) : null}
+            <label className="flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={privacy === 'private'}
+                onChange={handlePrivacyToggle}
+                disabled={loading.privacy}
+                className="sr-only"
+              />
+              <div className={`relative w-11 h-6 rounded-full transition-colors ${
+                privacy === 'private' ? 'bg-red-500' : 'bg-green-500'
+              } ${loading.privacy ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
+                  privacy === 'private' ? 'translate-x-5' : 'translate-x-0'
+                }`} />
+              </div>
+            </label>
+          </div>
         </div>
 
-        {/* Phone Number Visibility */}
+        {/* Total Account Privacy */}
         <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
           <div className="flex items-center space-x-3">
-            {phoneHidden ? (
-              <PhoneOff className="w-5 h-5 text-red-500" />
+            {fullPrivate ? (
+              <Lock className="w-5 h-5 text-red-500" />
             ) : (
-              <Phone className="w-5 h-5 text-green-500" />
+              <Unlock className="w-5 h-5 text-green-500" />
             )}
             <div>
-              <h4 className="font-medium text-gray-800">Phone Number</h4>
+              <h4 className="font-medium text-gray-800">Total Account Privacy</h4>
               <p className="text-sm text-gray-600">
-                {phoneHidden
-                  ? 'Your phone number is hidden from your profile.'
-                  : 'Your phone number is visible on your profile.'
+                {fullPrivate
+                  ? 'Your profile and all posts are private. Only approved followers can see your content.'
+                  : 'Makes both your profile AND all your posts private in one click.'
                 }
               </p>
             </div>
           </div>
-          <button
-            onClick={handlePhoneToggle}
-            disabled={loading.phone}
-            className={`px-4 py-2 rounded-lg font-medium transition-all ${
-              phoneHidden
-                ? 'bg-red-100 text-red-700 hover:bg-red-200'
-                : 'bg-green-100 text-green-700 hover:bg-green-200'
-            } ${loading.phone ? 'opacity-50 cursor-not-allowed' : ''}`}
-          >
-            {loading.phone ? 'Updating...' : phoneHidden ? 'Show' : 'Hide'}
-          </button>
+          <div className="flex items-center">
+            {loading.fullPrivacy ? (
+              <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin mr-3"></div>
+            ) : null}
+            <label className="flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={fullPrivate}
+                onChange={handleFullPrivacyToggle}
+                disabled={loading.fullPrivacy}
+                className="sr-only"
+              />
+              <div className={`relative w-11 h-6 rounded-full transition-colors ${
+                fullPrivate ? 'bg-red-500' : 'bg-green-500'
+              } ${loading.fullPrivacy ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
+                  fullPrivate ? 'translate-x-5' : 'translate-x-0'
+                }`} />
+              </div>
+            </label>
+          </div>
         </div>
 
-        {/* Address Visibility */}
-        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-          <div className="flex items-center space-x-3">
-            {addressHidden ? (
-              <MapPinOff className="w-5 h-5 text-red-500" />
-            ) : (
-              <MapPin className="w-5 h-5 text-green-500" />
-            )}
-            <div>
-              <h4 className="font-medium text-gray-800">Address</h4>
-              <p className="text-sm text-gray-600">
-                {addressHidden
-                  ? 'Your address is hidden from your profile.'
-                  : 'Your address is visible on your profile.'
-                }
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={handleAddressToggle}
-            disabled={loading.address}
-            className={`px-4 py-2 rounded-lg font-medium transition-all ${
-              addressHidden
-                ? 'bg-red-100 text-red-700 hover:bg-red-200'
-                : 'bg-green-100 text-green-700 hover:bg-green-200'
-            } ${loading.address ? 'opacity-50 cursor-not-allowed' : ''}`}
-          >
-            {loading.address ? 'Updating...' : addressHidden ? 'Show' : 'Hide'}
-          </button>
-        </div>
       </div>
 
       {privacy === 'private' && (

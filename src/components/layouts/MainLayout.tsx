@@ -127,7 +127,11 @@ const MainLayout = ({children}:{children:React.ReactNode}) => {
         </div>
 
         {/* Toast Container */}
-        <ToastContainer />
+        <ToastContainer
+          style={{
+            zIndex: 20000
+          }}
+        />
       </GlobalCallProvider>
     </PushNotificationProvider>
   )

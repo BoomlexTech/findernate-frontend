@@ -19,6 +19,8 @@ import BusinessDetailsModal from './business/BusinessDetailsModal';
 
 // Categories for all post types
 const postCategories = [
+  'Personal',
+  'Entertainment & Media',
   'Other',
   'Technology & Software',
   'E-commerce & Retail',
@@ -33,7 +35,6 @@ const postCategories = [
   'Automotive',
   'Construction & Engineering',
   'Legal & Consulting',
-  'Entertainment & Media',
   'Art & Design',
   'Logistics & Transportation',
   'Agriculture & Farming',
@@ -61,7 +62,7 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
   image: [] as File [], // array of File objects or URLs
   location: {name:''},
   tags: [] as string [],
-  category: 'Other', // Default to Other
+  category: 'Personal', // Default to Personal
   customCategory: '', // For when user selects "Other"
 });
 
