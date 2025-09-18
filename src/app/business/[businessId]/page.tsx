@@ -356,6 +356,7 @@ const BusinessProfilePage = () => {
             PostCard={PostCard}
             posts={posts}
             isOtherUser={true}
+            isFullPrivate={false}
           />
         </div>
       </div>

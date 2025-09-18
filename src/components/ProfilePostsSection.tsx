@@ -18,6 +18,7 @@ interface ProfilePostsSectionProps {
   isOtherUser?: boolean;
   loading?: boolean;
   onTabChange?: (tab: string) => void;
+  isFullPrivate?: boolean;
 }
 
 const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
@@ -28,7 +29,8 @@ const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
   savedPosts = [],
   isOtherUser = false,
   loading = false,
-  onTabChange
+  onTabChange,
+  isFullPrivate = false
 }) => {
   const [activeTab, setActiveTab] = useState('posts');
   const { requireAuth } = useAuthGuard();
@@ -38,6 +40,13 @@ const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
   const [privacyToggles, setPrivacyToggles] = useState<{[key: string]: 'private' | 'public'}>({});
   const [postPrivacyToggles, setPostPrivacyToggles] = useState<{[key: string]: 'private' | 'public'}>({});
   const [isTogglingPostPrivacy, setIsTogglingPostPrivacy] = useState<{[key: string]: boolean}>({});
+
+  // React to changes in isFullPrivate state
+  useEffect(() => {
+    // When isFullPrivate changes, we don't need to update postPrivacyToggles
+    // because getRegularPostPrivacy handles the logic
+    // This effect is mainly for any future side effects we might need
+  }, [isFullPrivate]);
 
   // Handle video playback based on hover state
   useEffect(() => {
@@ -224,6 +233,11 @@ const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
   };
 
   const getRegularPostPrivacy = (post: FeedPost): 'private' | 'public' => {
+    // If total account privacy is enabled, all posts are private
+    if (isFullPrivate) {
+      return 'private';
+    }
+    // Otherwise use the individual post privacy setting
     return postPrivacyToggles[post._id] || (post as any).privacy || 'public';
   };
 
