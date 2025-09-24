@@ -38,9 +38,30 @@ const ShareModal: React.FC<ShareModalProps> = ({
     return () => document.removeEventListener('keydown', handleEscape);
   }, [isOpen, onClose]);
 
+  // Auto-generate QR code when modal opens
+  useEffect(() => {
+    if (isOpen && !qrCodeUrl && !qrCodeLoading) {
+      handleGenerateQR();
+    }
+  }, [isOpen, qrCodeUrl, qrCodeLoading]);
+
   if (!isOpen) return null;
 
   const profileUrl = `${window.location.origin}/userprofile/${userData.username}`;
+
+  // Calculate modal width based on URL length
+  const getModalWidth = () => {
+    const urlLength = profileUrl.length;
+    // Base width: 24rem (384px), add 0.5rem for every 10 characters over 40
+    const baseWidth = 24; // rem
+    const extraWidth = Math.max(0, (urlLength - 40) / 10) * 0.5;
+    const maxWidth = 36; // Maximum width in rem
+    const minWidth = 24; // Minimum width in rem
+
+    return Math.min(maxWidth, Math.max(minWidth, baseWidth + extraWidth));
+  };
+
+  const modalWidth = getModalWidth();
 
   const handleCopyLink = async () => {
     try {
@@ -293,7 +314,11 @@ const ShareModal: React.FC<ShareModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
-      <div className="bg-white rounded-lg w-full max-w-md mx-4 p-6" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="bg-white rounded-lg w-full mx-4 p-6"
+        style={{ maxWidth: `${modalWidth}rem` }}
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
@@ -351,25 +376,6 @@ const ShareModal: React.FC<ShareModalProps> = ({
             </div>
           </button>
 
-          {/* QR Code */}
-          <button
-            onClick={handleGenerateQR}
-            className="w-full flex items-center gap-3 p-3 text-left hover:bg-gray-50 rounded-lg transition-colors"
-          >
-            <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
-              {qrCodeLoading ? (
-                <div className="w-5 h-5 animate-spin rounded-full border-2 border-yellow-600 border-t-transparent" />
-              ) : (
-                <QrCode className="w-5 h-5 text-yellow-600" />
-              )}
-            </div>
-            <div className="flex-1">
-              <div className="font-medium text-gray-900">Generate QR Code</div>
-              <div className="text-sm text-gray-500">Share with nearby people</div>
-            </div>
-          </button>
-
-
           {/* External Share */}
           <button
             onClick={handleShareExternal}
@@ -386,41 +392,53 @@ const ShareModal: React.FC<ShareModalProps> = ({
         </div>
 
         {/* QR Code Display */}
-        {qrCodeUrl && (
-          <div className="mt-6 p-4 bg-gray-50 rounded-lg text-center">
-            <div className="mb-3">
-              {/* Use regular img tag instead of Next.js Image to avoid domain configuration issues */}
-              <img
-                src={qrCodeUrl}
-                alt="QR Code"
-                width={200}
-                height={200}
-                className="mx-auto rounded-lg"
-                style={{ maxWidth: '200px', maxHeight: '200px' }}
-              />
+        <div className="mt-6 p-4 bg-gray-50 rounded-lg text-center">
+          {qrCodeLoading ? (
+            <div className="flex flex-col items-center justify-center py-8">
+              <div className="w-8 h-8 animate-spin rounded-full border-4 border-yellow-600 border-t-transparent mb-3" />
+              <p className="text-gray-600 text-sm">Generating QR Code...</p>
             </div>
-            <div className="flex gap-2 justify-center">
-              <button
-                onClick={handleShareQR}
-                data-qr-share-btn
-                disabled={sharingQR}
-                className="flex items-center gap-2 px-4 py-2 bg-yellow-500 text-black rounded-md hover:bg-yellow-600 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {sharingQR ? (
-                  <>
-                    <div className="w-4 h-4 animate-spin rounded-full border-2 border-black border-t-transparent" />
-                    Sharing...
-                  </>
-                ) : (
-                  <>
-                    <Share2 className="w-4 h-4" />
-                    Share QR Code
-                  </>
-                )}
-              </button>
+          ) : qrCodeUrl ? (
+            <>
+              <div className="mb-3">
+                {/* Use regular img tag instead of Next.js Image to avoid domain configuration issues */}
+                <img
+                  src={qrCodeUrl}
+                  alt="QR Code"
+                  width={200}
+                  height={200}
+                  className="mx-auto rounded-lg"
+                  style={{ maxWidth: '200px', maxHeight: '200px' }}
+                />
+              </div>
+              <div className="flex gap-2 justify-center">
+                <button
+                  onClick={handleShareQR}
+                  data-qr-share-btn
+                  disabled={sharingQR}
+                  className="flex items-center gap-2 px-4 py-2 bg-yellow-500 text-black rounded-md hover:bg-yellow-600 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {sharingQR ? (
+                    <>
+                      <div className="w-4 h-4 animate-spin rounded-full border-2 border-black border-t-transparent" />
+                      Sharing...
+                    </>
+                  ) : (
+                    <>
+                      <Share2 className="w-4 h-4" />
+                      Share QR Code
+                    </>
+                  )}
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-8">
+              <QrCode className="w-12 h-12 text-gray-400 mb-3" />
+              <p className="text-gray-600 text-sm">QR Code will appear here</p>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
