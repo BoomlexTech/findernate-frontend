@@ -370,9 +370,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
               <div className="font-medium text-gray-900">
                 {copied ? 'Copied!' : 'Copy Link'}
               </div>
-              <div className="text-sm text-gray-500 truncate">
-                {profileUrl}
-              </div>
+              
             </div>
           </button>
 
