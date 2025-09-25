@@ -62,14 +62,39 @@ export default function CommentDrawer({ isOpen, onClose, post }: CommentDrawerPr
       </div>
 
       {/* Content */}
-      <div className="max-h-96 overflow-y-auto">
-        <CommentsSection 
-          postId={post._id}
-          postOwnerId={typeof post.userId === 'object' ? post.userId?._id : post.userId}
-          initialCommentCount={post.engagement.comments}
-          shouldFocusComment={true}
-        />
+      <div 
+        className="max-h-96 overflow-y-auto pb-4 comment-drawer-scroll"
+        style={{
+          scrollbarWidth: 'thin',
+          scrollbarColor: '#cbd5e0 #f7fafc'
+        }}
+      >
+        <div className="pb-4">
+          <CommentsSection 
+            postId={post._id}
+            postOwnerId={typeof post.userId === 'object' ? post.userId?._id : post.userId}
+            initialCommentCount={post.engagement.comments}
+            shouldFocusComment={true}
+          />
+        </div>
       </div>
+      
+      <style jsx>{`
+        .comment-drawer-scroll::-webkit-scrollbar {
+          width: 6px;
+        }
+        .comment-drawer-scroll::-webkit-scrollbar-track {
+          background: #f7fafc;
+          border-radius: 3px;
+        }
+        .comment-drawer-scroll::-webkit-scrollbar-thumb {
+          background: #cbd5e0;
+          border-radius: 3px;
+        }
+        .comment-drawer-scroll::-webkit-scrollbar-thumb:hover {
+          background: #a0aec0;
+        }
+      `}</style>
     </div>
   );
 }

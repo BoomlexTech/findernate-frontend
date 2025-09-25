@@ -361,7 +361,10 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
     <BusinessVerificationModal
       isOpen={showVerificationModal}
       onClose={() => { setShowVerificationModal(false); onClose(); }}
-      onSubmit={() => { setShowVerificationModal(false); onClose(); }}
+      onSubmit={() => {
+        // Don't close immediately - let the BusinessVerificationModal handle its own closing
+        // The modal will auto-close after showing the success message
+      }}
     />
 
     {/* Help Center Modal */}

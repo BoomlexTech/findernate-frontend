@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 
 type DocumentKey =
   | 'businessRegistration'
@@ -55,6 +55,7 @@ const NON_REGISTERED_DOCUMENTS: DocumentKey[] = [
 const BusinessVerificationModal: React.FC<BusinessVerificationModalProps> = ({ isOpen, onClose, onSubmit }) => {
   const [files, setFiles] = useState<BusinessVerificationPayload>({});
   const [isRegistered, setIsRegistered] = useState<boolean>(true);
+  const [showSuccess, setShowSuccess] = useState<boolean>(false);
   const inputRefs = useRef<Record<DocumentKey, HTMLInputElement | null>>({
     businessRegistration: null,
     companyPan: null,
@@ -65,6 +66,13 @@ const BusinessVerificationModal: React.FC<BusinessVerificationModalProps> = ({ i
     aadhaar: null,
     panCard: null
   });
+
+  useEffect(() => {
+    if (!isOpen) {
+      // Reset success state when modal is closed
+      setShowSuccess(false);
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -78,21 +86,50 @@ const BusinessVerificationModal: React.FC<BusinessVerificationModalProps> = ({ i
 
   const handleUpload = () => {
     onSubmit(files);
+    setShowSuccess(true);
+    
+    // Auto close the modal after showing success message for 3 seconds
+    setTimeout(() => {
+      setShowSuccess(false);
+      onClose();
+    }, 3000);
+  };
+
+  const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={handleBackdropClick}>
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-5">
-        <div className="flex items-center gap-3 mb-4">
-          <button onClick={onClose} aria-label="Close" className="text-gray-600 hover:text-gray-800">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-black text-lg font-semibold">Upload KYC</h2>
+          <button onClick={onClose} aria-label="Close" className="text-gray-600 hover:text-gray-800 p-1">
             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M15 18l-6-6 6-6" />
+              <path d="M18 6L6 18M6 6l12 12" />
             </svg>
           </button>
-          <h2 className="text-black text-lg font-semibold">Upload KYC</h2>
         </div>
 
-        {/* Toggle for Registered/Non-Registered */}
+        {showSuccess ? (
+          // Success Message
+          <div className="text-center py-8">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold text-black mb-2">Documents Submitted!</h3>
+            <p className="text-gray-600 text-sm mb-4">
+              Your documents have been submitted for verification. We'll review them and get back to you soon.
+            </p>
+            <div className="text-xs text-gray-500">This window will close automatically</div>
+          </div>
+        ) : (
+          <>
+            {/* Toggle for Registered/Non-Registered */}
         <div className="mb-6">
           <div className="flex items-center justify-center bg-gray-100 rounded-lg p-1">
             <button
@@ -115,6 +152,13 @@ const BusinessVerificationModal: React.FC<BusinessVerificationModalProps> = ({ i
             >
               Non-Registered
             </button>
+          </div>
+          
+          {/* Disclaimer Text */}
+          <div className="mt-3 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-xs text-blue-700 text-center">
+              <span className="font-medium">Note:</span> Any 2 documents are required for verification
+            </p>
           </div>
         </div>
 
@@ -157,6 +201,8 @@ const BusinessVerificationModal: React.FC<BusinessVerificationModalProps> = ({ i
         <p className="mt-3 text-[11px] text-gray-500 text-center">
           Please review all your uploaded documents before submitting.
         </p>
+        </>
+        )}
       </div>
     </div>
   );
