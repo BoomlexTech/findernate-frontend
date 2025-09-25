@@ -620,54 +620,91 @@ const handleProductChange = (
   const handleImageUpload = async (e:React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     
-    if (files.length + sharedForm.image.length <= 5) {
-      const optimizedFiles: File[] = [];
-      
-      // Show optimization progress
-      if (files.some(file => file.size > 10 * 1024 * 1024)) {
-        toast.info('Large files detected. Optimizing for upload...', {
-          position: "top-right",
-          autoClose: 3000,
-        });
-      }
-      
-      // Optimize each file
-      for (const file of files) {
-        try {
-          const optimizedFile = await optimizeFile(file);
-          optimizedFiles.push(optimizedFile);
-          
-          // Check for MP4 videos and update post type accordingly
-          if (file.type === 'video/mp4' || file.type === 'video/quicktime' || file.type === 'video/webm' || optimizedFile.type.startsWith('video/')) {
-            await updatePostTypeBasedOnVideo(optimizedFile);
-          }
-        } catch (error) {
-          toast.error(`Failed to optimize ${file.name}. Please try a smaller file.`);
-          return;
-        }
-      }
-      
-      setSharedForm((prev) => ({
-        ...prev,
-        image: [...prev.image, ...optimizedFiles]
-      }));
-      
-      // Show success message if files were optimized
-      const originalSize = files.reduce((acc, file) => acc + file.size, 0);
-      const optimizedSize = optimizedFiles.reduce((acc, file) => acc + file.size, 0);
-      
-      if (originalSize > optimizedSize) {
-        const savedMB = ((originalSize - optimizedSize) / 1024 / 1024).toFixed(1);
-        toast.success(`Files optimized! Saved ${savedMB}MB of upload data.`, {
-          position: "top-right",
-          autoClose: 3000,
-        });
-      }
-      
-    } else {
-      toast.error('You can upload a maximum of 5 files.', {
+    // Check if adding these files would exceed the 10 file limit
+    if (files.length + sharedForm.image.length > 10) {
+      toast.error('You can upload a maximum of 10 files per post.', {
         position: "top-right",
         autoClose: 3000,
+      });
+      return;
+    }
+    
+    // Function to check if a file is a duplicate
+    const isDuplicateFile = (newFile: File, existingFiles: File[]): boolean => {
+      return existingFiles.some(existingFile => 
+        existingFile.name === newFile.name &&
+        existingFile.size === newFile.size &&
+        existingFile.type === newFile.type &&
+        existingFile.lastModified === newFile.lastModified
+      );
+    };
+    
+    // Filter out duplicate files
+    const uniqueFiles = files.filter(file => {
+      const isDuplicate = isDuplicateFile(file, sharedForm.image);
+      if (isDuplicate) {
+        toast.warning(`"${file.name}" is already added to this post.`, {
+          position: "top-right",
+          autoClose: 3000,
+        });
+      }
+      return !isDuplicate;
+    });
+    
+    // If no unique files to process, return early
+    if (uniqueFiles.length === 0) {
+      return;
+    }
+    
+    const optimizedFiles: File[] = [];
+    
+    // Show optimization progress
+    if (uniqueFiles.some(file => file.size > 10 * 1024 * 1024)) {
+      toast.info('Large files detected. Optimizing for upload...', {
+        position: "top-right",
+        autoClose: 3000,
+      });
+    }
+    
+    // Optimize each unique file
+    for (const file of uniqueFiles) {
+      try {
+        const optimizedFile = await optimizeFile(file);
+        optimizedFiles.push(optimizedFile);
+        
+        // Check for MP4 videos and update post type accordingly
+        if (file.type === 'video/mp4' || file.type === 'video/quicktime' || file.type === 'video/webm' || optimizedFile.type.startsWith('video/')) {
+          await updatePostTypeBasedOnVideo(optimizedFile);
+        }
+      } catch (error) {
+        toast.error(`Failed to optimize ${file.name}. Please try a smaller file.`);
+        return;
+      }
+    }
+    
+    setSharedForm((prev) => ({
+      ...prev,
+      image: [...prev.image, ...optimizedFiles]
+    }));
+    
+    // Show success message if files were optimized
+    const originalSize = uniqueFiles.reduce((acc, file) => acc + file.size, 0);
+    const optimizedSize = optimizedFiles.reduce((acc, file) => acc + file.size, 0);
+    
+    if (originalSize > optimizedSize) {
+      const savedMB = ((originalSize - optimizedSize) / 1024 / 1024).toFixed(1);
+      toast.success(`Files optimized! Saved ${savedMB}MB of upload data.`, {
+        position: "top-right",
+        autoClose: 3000,
+      });
+    }
+    
+    // Show success message for added files
+    if (optimizedFiles.length > 0) {
+      const fileWord = optimizedFiles.length === 1 ? 'file' : 'files';
+      toast.success(`${optimizedFiles.length} ${fileWord} added successfully.`, {
+        position: "top-right",
+        autoClose: 2000,
       });
     }
   };
@@ -1171,11 +1208,21 @@ const handleProductChange = (
               <span className="text-sm text-gray-500">{sharedForm.image.length}/5</span>
             </div>
             
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-              <Camera className="mx-auto mb-4 text-gray-400" size={48} />
-              <h3 className="text-lg font-medium text-gray-700 mb-2">Add Photos & Videos</h3>
-              <p className="text-sm text-gray-500 mb-4">
-                Upload up to 5 images (JPG, PNG, GIF) or videos (MP4, MOV, WebM)
+            <div className={`border-2 border-dashed rounded-lg p-8 text-center ${
+              sharedForm.image.length >= 10 
+                ? 'border-gray-200 bg-gray-50' 
+                : 'border-gray-300'
+            }`}>
+              <Camera className={`mx-auto mb-4 ${
+                sharedForm.image.length >= 10 ? 'text-gray-300' : 'text-gray-400'
+              }`} size={48} />
+              <h3 className={`text-lg font-medium mb-2 ${
+                sharedForm.image.length >= 10 ? 'text-gray-500' : 'text-gray-700'
+              }`}>Add Photos & Videos</h3>
+              <p className={`text-sm mb-4 ${
+                sharedForm.image.length >= 10 ? 'text-gray-400' : 'text-gray-500'
+              }`}>
+                Upload up to 10 images (JPG, PNG, GIF) or videos (MP4, MOV, WebM)
               </p>
               <input
                 type="file"
@@ -1184,12 +1231,17 @@ const handleProductChange = (
                 onChange={handleImageUpload}
                 className="hidden"
                 id="image-upload"
+                disabled={sharedForm.image.length >= 10}
               />
               <label
                 htmlFor="image-upload"
-                className="inline-flex items-center px-4 py-2 bg-button-gradient text-black rounded-lg hover:bg-[#b8871f] cursor-pointer transition-colors"
+                className={`inline-flex items-center px-4 py-2 rounded-lg transition-colors ${
+                  sharedForm.image.length >= 10
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-button-gradient text-black hover:bg-[#b8871f] cursor-pointer'
+                }`}
               >
-                📎 Add Images & Videos
+                📎 {sharedForm.image.length >= 10 ? 'Maximum Files Reached' : 'Add Images & Videos'}
               </label>
               <p className="text-xs text-gray-400 mt-2">
                 Tip: Large files are automatically optimized. Videos (MP4, MOV, WebM) under 1 minute are eligible for reels with the &quot;Reel Visibility&quot; option below.
@@ -1201,6 +1253,18 @@ const handleProductChange = (
                 </div>
               )}
             </div>
+
+            {/* File Counter */}
+            {sharedForm.image.length > 0 && (
+              <div className="flex items-center justify-between text-sm text-gray-600 mt-4 mb-2">
+                <span className="font-medium">
+                  {sharedForm.image.length} of 10 files uploaded
+                </span>
+                <span className="text-xs text-gray-500">
+                  {sharedForm.image.length >= 10 ? 'Maximum limit reached' : `${10 - sharedForm.image.length} more files allowed`}
+                </span>
+              </div>
+            )}
 
             {/* Media Preview */}
             {sharedForm.image.length > 0 && (
