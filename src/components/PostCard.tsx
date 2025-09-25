@@ -107,8 +107,6 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
   const [editForm, setEditForm] = useState<EditPostPayload>({
     caption: post.caption || '',
     description: post.description || '',
-    mood: (post as any)?.mood || '',
-    activity: (post as any)?.activity || '',
     tags: Array.isArray(post.tags) ? post.tags.map(t => (typeof t === 'string' ? t : String(t))) : []
   });
   const [isSavingEdit, setIsSavingEdit] = useState(false);
@@ -444,16 +442,12 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
       const payload: EditPostPayload = {
         caption: editForm.caption?.trim() || '',
         description: editForm.description?.trim() || '',
-        mood: editForm.mood || '',
-        activity: editForm.activity || '',
         tags: (editForm.tags || []).filter(Boolean)
       };
       await editPost(post._id, payload);
       // Optimistically update visible fields
       (post as any).caption = payload.caption;
       (post as any).description = payload.description;
-      (post as any).mood = payload.mood;
-      (post as any).activity = payload.activity;
       (post as any).tags = payload.tags;
       setIsEditingPost(false);
       toast.success('Post updated');
@@ -916,8 +910,6 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
                         setEditForm({
                           caption: post.caption || '',
                           description: post.description || '',
-                          mood: (post as any)?.mood || '',
-                          activity: (post as any)?.activity || '',
                           tags: Array.isArray(post.tags) ? post.tags.map(t => (typeof t === 'string' ? t : String(t))) : []
                         });
                         setIsEditingPost(true);
@@ -991,29 +983,6 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
                     className="w-full border border-yellow-300 rounded-md p-2 text-sm text-black placeholder-gray-600 bg-[#fefdf5] focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none"
                     rows={3}
                   />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-medium text-yellow-800 mb-1">Mood</label>
-                    <input
-                      type="text"
-                      value={editForm.mood || ''}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, mood: e.target.value }))}
-                      placeholder="e.g., excited, chill"
-                      className="w-full border border-yellow-300 rounded-md p-2 text-sm text-black placeholder-gray-600 bg-[#fefdf5] focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-yellow-800 mb-1">Activity</label>
-                    <input
-                      type="text"
-                      value={editForm.activity || ''}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, activity: e.target.value }))}
-                      placeholder="e.g., testing, coding"
-                      className="w-full border border-yellow-300 rounded-md p-2 text-sm text-black placeholder-gray-600 bg-[#fefdf5] focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none"
-                    />
-                  </div>
                 </div>
 
                 <div>
@@ -1322,8 +1291,6 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
                           setEditForm({
                             caption: post.caption || '',
                             description: post.description || '',
-                            mood: (post as any)?.mood || '',
-                            activity: (post as any)?.activity || '',
                             tags: Array.isArray(post.tags) ? post.tags.map(t => (typeof t === 'string' ? t : String(t))) : []
                           });
                           setIsEditingPost(true);
@@ -1398,29 +1365,6 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
                       className="w-full border border-yellow-300 rounded-md p-2 text-sm text-black placeholder-gray-600 bg-[#fefdf5] focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none"
                       rows={3}
                     />
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-medium text-yellow-800 mb-1">Mood</label>
-                      <input
-                        type="text"
-                        value={editForm.mood || ''}
-                        onChange={(e) => setEditForm(prev => ({ ...prev, mood: e.target.value }))}
-                        placeholder="e.g., excited, chill"
-                        className="w-full border border-yellow-300 rounded-md p-2 text-sm text-black placeholder-gray-600 bg-[#fefdf5] focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-yellow-800 mb-1">Activity</label>
-                      <input
-                        type="text"
-                        value={editForm.activity || ''}
-                        onChange={(e) => setEditForm(prev => ({ ...prev, activity: e.target.value }))}
-                        placeholder="e.g., testing, coding"
-                        className="w-full border border-yellow-300 rounded-md p-2 text-sm text-black placeholder-gray-600 bg-[#fefdf5] focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none"
-                      />
-                    </div>
                   </div>
 
                   <div>

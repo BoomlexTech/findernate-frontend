@@ -52,6 +52,10 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
 
   // Temporarily show all post types everywhere (unused flag removed)
 
+  // Content type selection (Post, Story, Reel)
+  const [contentType, setContentType] = useState('Post');
+  const [previousContentType, setPreviousContentType] = useState('');
+  
   // Set default post type to Regular for all users
   const [postType, setPostType] = useState('Regular');
   const [loading, setLoading] = useState(false);
@@ -84,6 +88,154 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
   // Debug logging for modal state changes
   useEffect(() => {
   }, [showBusinessProfileModal]);
+
+  // Reset form data when content type changes
+  const resetFormData = () => {
+    setSharedForm({
+      description: '',
+      image: [],
+      location: {name:''},
+      tags: [],
+      category: 'Personal',
+      customCategory: '',
+    });
+    
+    // Reset all post type forms
+    setRegularForm({
+      postType: 'photo',
+      mood: 'Content',
+      activity: 'Chilling',
+      mentions: [],
+      settings: {
+        visibility: 'public',
+        allowComments: true,
+        allowLikes: true,
+      }, 
+      status: 'scheduled',
+    });
+    
+    setProductForm({
+      postType: 'photo',
+      mentions: [],
+      mood: 'testing',
+      activity: 'testing',
+      settings: {
+        visibility: 'public',
+        allowComments: true,
+        allowLikes: true,
+      }, 
+      product: {
+        name: '',
+        price: 0,
+        currency: '',
+        link:'',
+        inStock: true,
+        deliveryOptions: 'online',
+      },
+      status: 'scheduled',
+    });
+    
+    setServiceForm({
+      postType: 'photo',
+      mentions: [],
+      settings: {
+        visibility: 'public',
+        allowComments: true,
+        allowLikes: true,
+      },
+      status: 'scheduled',
+      service: {
+        name: '',
+        description: '',
+        price: 0,
+        currency: 'INR',
+        category: '',
+        subcategory: '',
+        duration: 0,
+        serviceType: '',
+        availability: {
+          schedule: [],
+          timezone: '',
+          bookingAdvance: '',
+          maxBookingsPerDay: '',
+        },
+        location: {
+          type: '',
+          address: '',
+          city: '',
+          state: '',
+          country: '',
+          coordinates: undefined,
+        },
+        requirements: [],
+        deliverables: [],
+        tags: [],
+        link:'',
+        deliveryOptions: 'online',
+      }
+    });
+    
+    setBusinessForm({
+      formData: {
+        postType: 'photo',
+        caption: '',
+        description: '',
+        image: [],
+        mentions: [],
+        settings: {
+          visibility: 'public',
+          allowComments: true,
+          allowLikes: true,
+        },
+        status: 'scheduled',
+        business: {
+          businessName: '',
+          businessType: '',
+          description: '',
+          category: '',
+          subcategory: '',
+          contact: {
+            phone: '',
+            email: '',
+            website: '',
+            socialMedia: [],
+          },
+          location: {
+            address: '',
+            city: '',
+            state: '',
+            country: '',
+            postalCode: '',
+          },
+          hours: [],
+          features: [],
+          priceRange: '',
+          rating: 0,
+          tags: [],
+          announcement: '',
+          promotions: [],
+          link: '',
+          deliveryOptions: 'online',
+        }
+      }
+    });
+    
+    setPostType('Regular');
+    setVideoDuration(null);
+    setShowReelVisibility(false);
+    setReelVisibility(false);
+    setError(null);
+    setLocationSuggestions([]);
+    setShowLocationSuggestions(false);
+  };
+
+  // Watch for content type changes and reset form data
+  useEffect(() => {
+    if (contentType !== previousContentType && previousContentType !== '') {
+      resetFormData();
+    }
+    setPreviousContentType(contentType);
+  }, [contentType]);
 
   // Location search functionality
   const searchLocationSuggestions = async (query: string) => {
@@ -360,10 +512,22 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
           setShowReelVisibility(true);
           // Don't automatically set to reel - let user choose
           setRegularForm(prev => ({ ...prev, postType: 'video' }));
+          
+          // Show notification about Reel availability
+          toast.success(`Video is ${Math.round(duration)}s - Perfect for a Reel! 🎬`, {
+            position: "top-right",
+            autoClose: 3000,
+          });
         } else {
           setShowReelVisibility(false);
           setReelVisibility(false);
           setRegularForm(prev => ({ ...prev, postType: 'video' }));
+          
+          // Show notification about video being too long for Reel
+          toast.info(`Video is ${Math.round(duration)}s - Too long for Reel (max 60s)`, {
+            position: "top-right",
+            autoClose: 3000,
+          });
         }
       } catch (error) {
         // Default to video if we can't detect duration
@@ -620,9 +784,13 @@ const handleProductChange = (
   const handleImageUpload = async (e:React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     
-    // Check if adding these files would exceed the 10 file limit
-    if (files.length + sharedForm.image.length > 10) {
-      toast.error('You can upload a maximum of 10 files per post.', {
+    // Check file limits based on content type
+    const maxFiles = contentType === 'Post' ? 10 : 1;
+    if (files.length + sharedForm.image.length > maxFiles) {
+      const limitMessage = contentType === 'Post' 
+        ? 'You can upload a maximum of 10 files per post.'
+        : `You can upload only 1 file for ${contentType.toLowerCase()}s.`;
+      toast.error(limitMessage, {
         position: "top-right",
         autoClose: 3000,
       });
@@ -719,6 +887,14 @@ const handleProductChange = (
       setShowReelVisibility(false);
       setReelVisibility(false);
       setRegularForm(prev => ({ ...prev, postType: 'photo' }));
+      
+      // Show info if user had Reel selected but removed video
+      if (contentType === 'Reel') {
+        toast.info('Video removed. You can upload another video for your Reel.', {
+          position: "top-right",
+          autoClose: 3000,
+        });
+      }
     }
   };
 
@@ -778,6 +954,50 @@ const handleProductChange = (
 
   // Form validation function
   const validateForm = () => {
+    // Stories and Reels require media
+    if ((contentType === 'Story' || contentType === 'Reel') && sharedForm.image.length === 0) {
+      toast.error(`${contentType} requires at least one image or video`, {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+      return false;
+    }
+    
+    // Reels must have a video under 60 seconds
+    if (contentType === 'Reel') {
+      const hasVideo = sharedForm.image.some(file => 
+        file.type === 'video/mp4' || file.type === 'video/quicktime' || file.type === 'video/webm'
+      );
+      
+      if (!hasVideo) {
+        toast.error('Reels require a video file', {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+        return false;
+      }
+      
+      if (videoDuration && videoDuration > 60) {
+        toast.error(`Video is ${Math.round(videoDuration)} seconds long. Reel videos must be under 60 seconds.`, {
+          position: "top-right",
+          autoClose: 4000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+        return false;
+      }
+    }
+    
     // Check if "Other" category is selected but custom category is empty
     if (sharedForm.category === 'Other' && !sharedForm.customCategory.trim()) {
       toast.error('Please enter a custom category or select a different category', {
@@ -878,7 +1098,48 @@ const handleProductChange = (
   };
 
   const handlePost = async () => {
-    // Validate form before submission
+    // Handle different content types
+    if (contentType === 'Story') {
+      // TODO: Implement story creation logic
+      toast.info('Story creation will be implemented soon', {
+        position: "top-right",
+        autoClose: 3000,
+      });
+      return;
+    }
+    
+    if (contentType === 'Reel') {
+      // Check if there's any video
+      const hasVideo = sharedForm.image.some(file => 
+        file.type === 'video/mp4' || file.type === 'video/quicktime' || file.type === 'video/webm'
+      );
+      
+      if (!hasVideo) {
+        toast.error('Please upload a video to create a Reel', {
+          position: "top-right",
+          autoClose: 3000,
+        });
+        return;
+      }
+      
+      // Check if video is under 60 seconds
+      if (videoDuration && videoDuration > 60) {
+        toast.error(`Video is ${Math.round(videoDuration)} seconds long. Please upload a video under 60 seconds for Reels.`, {
+          position: "top-right",
+          autoClose: 4000,
+        });
+        return;
+      }
+      
+      // TODO: Implement reel creation logic
+      toast.info('Reel creation will be implemented soon', {
+        position: "top-right",
+        autoClose: 3000,
+      });
+      return;
+    }
+    
+    // For regular posts, validate form before submission
     if (!validateForm()) {
       return;
     }
@@ -1063,7 +1324,10 @@ const handleProductChange = (
               className="px-6 py-2 bg-button-gradient text-black rounded-lg hover:bg-[#b8871f] transition-colors cursor-pointer"
               disabled={loading || isOptimizing}
             >
-              {loading ? 'Posting...' : 'Submit Post'}
+              {loading ? 
+                `${contentType === 'Post' ? 'Posting' : contentType === 'Story' ? 'Sharing Story' : 'Creating Reel'}...` : 
+                `Submit ${contentType}`
+              }
             </Button>
           </div>
 
@@ -1075,9 +1339,57 @@ const handleProductChange = (
           )}
 
 
-          {/* Post Type Tabs */}
-          <div className="grid grid-cols-2 gap-2 sm:flex sm:space-x-4 sm:gap-0 mb-6">
-            {/* Regular Post - Available for everyone */}
+          {/* Content Type Selection */}
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-3">Choose Content Type</h3>
+            <div className="flex space-x-4 mb-4">
+              <Button
+                variant='custom'
+                onClick={() => setContentType('Post')}
+                className={`px-6 py-2 rounded-lg border transition-colors ${
+                  contentType === 'Post'
+                    ? 'border-[#ffd65c] bg-[#fefdf5] text-[#b8871f]'
+                    : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+                } flex-1 justify-center`}
+              >
+                📝 Post
+              </Button>
+              <Button
+                variant='custom'
+                onClick={() => setContentType('Reel')}
+                className={`px-6 py-2 rounded-lg border transition-colors ${
+                  contentType === 'Reel'
+                    ? 'border-[#ffd65c] bg-[#fefdf5] text-[#b8871f]'
+                    : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+                } flex-1 justify-center`}
+              >
+                🎬 Reel
+              </Button>
+              <Button
+                variant='custom'
+                onClick={() => setContentType('Story')}
+                className={`px-6 py-2 rounded-lg border transition-colors ${
+                  contentType === 'Story'
+                    ? 'border-[#ffd65c] bg-[#fefdf5] text-[#b8871f]'
+                    : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+                } flex-1 justify-center`}
+              >
+                📷 Story
+              </Button>
+            </div>
+            {contentType === 'Reel' && videoDuration && videoDuration > 60 && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+                <p className="text-sm text-yellow-800">
+                  ⚠️ For Reels, videos should be under 60 seconds. Your current video is {Math.round(videoDuration)} seconds long.
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Post Type Tabs - Show for Posts and Reels */}
+          {(contentType === 'Post' || contentType === 'Reel') && (
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:space-x-4 sm:gap-0 mb-6">
+              {/* Regular Post - Available for everyone */}
             <Button
               variant='custom'
               onClick={() => setPostType('Regular')}
@@ -1124,25 +1436,29 @@ const handleProductChange = (
             >
               <Building2 className='mr-2' size={16} /> Business
             </Button>
-          </div>
+            </div>
+          )}
 
-          {/* Post Content */}
-          <div className="mb-4">
-            <label className='text-black text-bold ml-2'>Add Description</label>
-            <textarea
-              value={sharedForm.description}
-              onChange={(e) => setSharedForm({...sharedForm, description: e.target.value})}
-              placeholder="What's on your mind?"
-              className="w-full h-32 p-4 border border-gray-300 placeholder:text-gray-500 text-black rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
-            />
-          </div>
+          {/* Post Content - Show for Posts and Reels */}
+          {(contentType === 'Post' || contentType === 'Reel') && (
+            <div className="mb-4">
+              <label className='text-black text-bold ml-2'>Add Description</label>
+              <textarea
+                value={sharedForm.description}
+                onChange={(e) => setSharedForm({...sharedForm, description: e.target.value})}
+                placeholder="What's on your mind?"
+                className="w-full h-32 p-4 border border-gray-300 placeholder:text-gray-500 text-black rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+              />
+            </div>
+          )}
 
-          {/* Category Selection */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Category
-            </label>
-            <select
+          {/* Category Selection - Show for Posts and Reels */}
+          {(contentType === 'Post' || contentType === 'Reel') && (
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Category
+              </label>
+              <select
               value={sharedForm.category}
               onChange={(e) => {
                 setSharedForm({
@@ -1172,76 +1488,117 @@ const handleProductChange = (
                 />
               </div>
             )}
-          </div>
+            </div>
+          )}
 
+          {/* Show post-specific forms for Post and Reel content types */}
+          {(contentType === 'Post' || contentType === 'Reel') && (
+            <>
+              {postType === 'Regular' && (
+                <RegularPostForm
+                  formData={regularForm}
+                  onChange={handleRegularChange}
+                />
+              )}
+              {postType === 'Product' && (
+                <ProductDetailsForm
+                  formData={productForm}
+                  onChange={handleProductChange}
+                />
+              )}
+              {postType === 'Service' && (
+                <ServiceDetailsForm
+                  formData={serviceForm}
+                  onChange={handleServiceChange}
+                  categories={['Consulting', 'Repair', 'Education', 'Other']}
+                />
+              )}
+              {postType === 'Business' && (
+                <BusinessDetailsForm
+                  formData={businessForm.formData}
+                  onChange={handleBusinessChange}
+                />
+              )}
+            </>
+          )}
 
-          {postType === 'Regular' && (
-            <RegularPostForm
-              formData={regularForm}
-              onChange={handleRegularChange}
-            />
-          )}
-          {postType === 'Product' && (
-            <ProductDetailsForm
-              formData={productForm}
-              onChange={handleProductChange}
-            />
-          )}
-          {postType === 'Service' && (
-            <ServiceDetailsForm
-              formData={serviceForm}
-              onChange={handleServiceChange}
-              categories={['Consulting', 'Repair', 'Education', 'Other']}
-            />
-          )}
-          {postType === 'Business' && (
-            <BusinessDetailsForm
-              formData={businessForm.formData}
-              onChange={handleBusinessChange}
-            />
+          {/* Show simple description input for Story only */}
+          {contentType === 'Story' && (
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-black mb-2">
+                {contentType === 'Story' ? 'Story Caption' : 'Reel Caption'} (Optional)
+              </label>
+              <textarea
+                value={sharedForm.description}
+                onChange={(e) => setSharedForm({...sharedForm, description: e.target.value})}
+                placeholder={`Add a caption to your ${contentType.toLowerCase()}...`}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent resize-none text-black placeholder:text-gray-500"
+                rows={3}
+                maxLength={500}
+              />
+              <div className="text-right text-xs text-black mt-1">
+                {sharedForm.description.length}/500
+              </div>
+            </div>
           )}
 
           {/* Media Section */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-4">
               <span className="text-sm text-gray-600">Media</span>
-              <span className="text-sm text-gray-500">{sharedForm.image.length}/5</span>
+              <span className="text-sm text-gray-500">
+                {sharedForm.image.length}/{contentType === 'Post' ? '10' : '1'}
+              </span>
             </div>
             
             <div className={`border-2 border-dashed rounded-lg p-8 text-center ${
-              sharedForm.image.length >= 10 
+              (contentType === 'Post' ? sharedForm.image.length >= 10 : sharedForm.image.length >= 1)
                 ? 'border-gray-200 bg-gray-50' 
                 : 'border-gray-300'
             }`}>
               <Camera className={`mx-auto mb-4 ${
-                sharedForm.image.length >= 10 ? 'text-gray-300' : 'text-gray-400'
+                (contentType === 'Post' ? sharedForm.image.length >= 10 : sharedForm.image.length >= 1) ? 'text-gray-300' : 'text-gray-400'
               }`} size={48} />
               <h3 className={`text-lg font-medium mb-2 ${
-                sharedForm.image.length >= 10 ? 'text-gray-500' : 'text-gray-700'
-              }`}>Add Photos & Videos</h3>
-              <p className={`text-sm mb-4 ${
-                sharedForm.image.length >= 10 ? 'text-gray-400' : 'text-gray-500'
+                (contentType === 'Post' ? sharedForm.image.length >= 10 : sharedForm.image.length >= 1) ? 'text-gray-500' : 'text-gray-700'
               }`}>
-                Upload up to 10 images (JPG, PNG, GIF) or videos (MP4, MOV, WebM)
+                {contentType === 'Story' ? 'Add Story Media' : 
+                 contentType === 'Reel' ? 'Add Reel Video' : 
+                 'Add Photos & Videos'}
+              </h3>
+              <p className={`text-sm mb-4 ${
+                (contentType === 'Post' ? sharedForm.image.length >= 10 : sharedForm.image.length >= 1) ? 'text-gray-400' : 'text-gray-500'
+              }`}>
+                {contentType === 'Story' ? 'Upload images (JPG, PNG, GIF) or videos for your story' :
+                 contentType === 'Reel' ? 'Upload a video (MP4, MOV, WebM) - videos under 60 seconds work best for Reels' :
+                 'Upload up to 10 images (JPG, PNG, GIF) or videos (MP4, MOV, WebM)'}
               </p>
               <input
                 type="file"
-                multiple
+                multiple={contentType === 'Post'}
                 accept="image/*,video/mp4,video/quicktime,video/mov"
                 onChange={handleImageUpload}
                 className="hidden"
                 id="image-upload"
-                disabled={sharedForm.image.length >= 10}
+                disabled={contentType === 'Post' ? sharedForm.image.length >= 10 : sharedForm.image.length >= 1}
               />
               <label
                 htmlFor="image-upload"
                 className={`inline-flex items-center px-4 py-2 rounded-lg transition-colors ${
-                  sharedForm.image.length >= 10
+                  (contentType === 'Post' ? sharedForm.image.length >= 10 : sharedForm.image.length >= 1)
                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                     : 'bg-button-gradient text-black hover:bg-[#b8871f] cursor-pointer'
                 }`}
               >
-                📎 {sharedForm.image.length >= 10 ? 'Maximum Files Reached' : 'Add Images & Videos'}
+                📎 {
+                  (contentType === 'Post' ? sharedForm.image.length >= 10 : sharedForm.image.length >= 1) 
+                    ? 'Maximum Files Reached' 
+                    : contentType === 'Story' 
+                      ? 'Add Story Media' 
+                      : contentType === 'Reel' 
+                        ? 'Add Reel Video' 
+                        : 'Add Images & Videos'
+                }
               </label>
               <p className="text-xs text-gray-400 mt-2">
                 Tip: Large files are automatically optimized. Videos (MP4, MOV, WebM) under 1 minute are eligible for reels with the &quot;Reel Visibility&quot; option below.
@@ -1258,10 +1615,13 @@ const handleProductChange = (
             {sharedForm.image.length > 0 && (
               <div className="flex items-center justify-between text-sm text-gray-600 mt-4 mb-2">
                 <span className="font-medium">
-                  {sharedForm.image.length} of 10 files uploaded
+                  {sharedForm.image.length} of {contentType === 'Post' ? '10' : '1'} files uploaded
                 </span>
                 <span className="text-xs text-gray-500">
-                  {sharedForm.image.length >= 10 ? 'Maximum limit reached' : `${10 - sharedForm.image.length} more files allowed`}
+                  {contentType === 'Post' 
+                    ? (sharedForm.image.length >= 10 ? 'Maximum limit reached' : `${10 - sharedForm.image.length} more files allowed`)
+                    : (sharedForm.image.length >= 1 ? 'Maximum limit reached' : '1 file allowed')
+                  }
                 </span>
               </div>
             )}
@@ -1468,11 +1828,12 @@ const handleProductChange = (
             </div>
           )}
 
-          {/* Location Input with Suggestions */}
-          <div className="mb-6 relative">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <MapPin className="inline mr-2" size={16} />
-              Location {
+          {/* Location Input with Suggestions - Only show for Posts */}
+          {contentType === 'Post' && (
+            <div className="mb-6 relative">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <MapPin className="inline mr-2" size={16} />
+                Location {
                 (postType === 'Product' || postType === 'Service' || postType === 'Business') ? 
                   (
                     (postType === 'Product' && (productForm.product.deliveryOptions === 'offline' || productForm.product.deliveryOptions === 'both')) ||
@@ -1519,12 +1880,15 @@ const handleProductChange = (
                 ))}
               </div>
             )}
-          </div>
+            </div>
+          )}
 
-          {/* Hashtags Input */}
-          <div className="mb-6">
-            <TagInput tags={sharedForm.tags} setTags={(tags) => setSharedForm({...sharedForm, tags})} />
-          </div>
+          {/* Hashtags Input - Show for Posts and Reels */}
+          {(contentType === 'Post' || contentType === 'Reel') && (
+            <div className="mb-6">
+              <TagInput tags={sharedForm.tags} setTags={(tags) => setSharedForm({...sharedForm, tags})} />
+            </div>
+          )}
         </div>
 
         {/* Footer */}
