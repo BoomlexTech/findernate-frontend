@@ -67,23 +67,26 @@ export default function StoriesBar({ onCreateStory }: StoriesBarProps) {
 
   // Initialize from store immediately
   useEffect(() => {
-    if (user?.profileImageUrl) setMeAvatarUrl(user.profileImageUrl);
+    if (user?.profileImageUrl?.trim()) {
+      setMeAvatarUrl(user.profileImageUrl.trim());
+    }
   }, [user?.profileImageUrl]);
 
   // If logged-in user's avatar is missing in the store, hydrate it from API
   useEffect(() => {
-    if (!user || (user.profileImageUrl && user.profileImageUrl.trim() !== "")) return;
+    if (!user || (user.profileImageUrl?.trim() && user.profileImageUrl.trim() !== "")) return;
     (async () => {
       try {
         const data = await getUserProfile();
         const p = data?.userId || data;
-        if (p?.profileImageUrl) {
+        if (p?.profileImageUrl?.trim()) {
+          const trimmedUrl = p.profileImageUrl.trim();
           useUserStore.getState().updateUser({
-            profileImageUrl: p.profileImageUrl,
+            profileImageUrl: trimmedUrl,
             fullName: p.fullName,
             username: p.username,
           });
-          setMeAvatarUrl(p.profileImageUrl);
+          setMeAvatarUrl(trimmedUrl);
         }
       } catch (e) {
         console.warn("Failed to hydrate user avatar", e);
@@ -258,7 +261,23 @@ export default function StoriesBar({ onCreateStory }: StoriesBarProps) {
       <div className="flex overflow-x-auto space-x-3 sm:space-x-6 pb-0 sm:pb-2 px-2 md:mx-3 lg:mx-4 bg-white shadow-md rounded-lg subtle-scrollbar">
         {displayUsers.map((storyUser) => {
           const isMe = storyUser.isCurrentUser;
-          const avatarUrl = isMe ? (meAvatarUrl || user?.profileImageUrl || storyUser.profileImageUrl) : storyUser.profileImageUrl;
+          // Better avatar URL logic that handles empty strings
+          const avatarUrl = isMe 
+            ? (meAvatarUrl?.trim() || user?.profileImageUrl?.trim() || storyUser.profileImageUrl?.trim()) 
+            : storyUser.profileImageUrl?.trim();
+          
+          // Debug logging for current user
+          if (isMe && process.env.NODE_ENV === 'development') {
+            console.log('Current user story avatar debug:', {
+              meAvatarUrl,
+              userProfileImageUrl: user?.profileImageUrl,
+              storyUserProfileImageUrl: storyUser.profileImageUrl,
+              finalAvatarUrl: avatarUrl,
+              username: user?.username,
+              fullName: user?.fullName
+            });
+          }
+          
           const initials = getInitials(isMe ? (user?.username || user?.fullName || storyUser.username) : storyUser.username);
           return (
             <div key={storyUser._id} className="flex flex-col items-center mt-5 flex-shrink-0">
@@ -275,7 +294,7 @@ export default function StoriesBar({ onCreateStory }: StoriesBarProps) {
                 <div className={`w-full h-full rounded-full overflow-hidden ${
                   storyUser.hasNewStories && !areAllStoriesViewed(storyUser) ? 'bg-white p-[2px]' : ''
                 }`}>
-                  {avatarUrl ? (
+                  {avatarUrl && avatarUrl.length > 0 ? (
                     <Image
                       src={avatarUrl}
                       alt={storyUser.username}
