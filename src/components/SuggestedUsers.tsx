@@ -23,42 +23,7 @@ interface SuggestedUsersProps {
   users?: SuggestedUser[];
 }
 
-const defaultSuggestedUsers: SuggestedUser[] = [
-  {
-    _id: '1',
-    fullName: 'Alex Thompson',
-    username: 'alexthompson',
-    followersCount: 12500,
-    profileImageUrl: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150',
-    isFollowing: false,
-  },
-  {
-    _id: '2',
-    fullName: 'Jessica Wu',
-    username: 'jessicawu',
-    followersCount: 8900,
-    profileImageUrl: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150',
-    isFollowing: false,
-  },
-  {
-    _id: '3',
-    fullName: 'David Miller',
-    username: 'davidmiller',
-    followersCount: 15200,
-    profileImageUrl: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150',
-    isFollowing: false,
-  },
-  {
-    _id: '4',
-    fullName: 'Sophie Chen',
-    username: 'sophiechen',
-    followersCount: 6700,
-    profileImageUrl: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150',
-    isFollowing: false,
-  }
-];
-
-export default function SuggestedUsers({ users: initialUsers = defaultSuggestedUsers }: SuggestedUsersProps) {
+export default function SuggestedUsers({ users: initialUsers }: SuggestedUsersProps) {
   const [users, setUsers] = useState<SuggestedUser[]>(Array.isArray(initialUsers) ? initialUsers : []);
   const [userStates, setUserStates] = useState<{[key: string]: {isFollowing: boolean, followersCount: number, isLoading: boolean}}>(() => {
     return (Array.isArray(initialUsers) ? initialUsers : []).reduce((acc, user) => ({
@@ -94,15 +59,9 @@ export default function SuggestedUsers({ users: initialUsers = defaultSuggestedU
       } catch (err) {
         //console.log(err);
         setError('suggestions not found.');
-        setUsers(defaultSuggestedUsers);
-        setUserStates(defaultSuggestedUsers.reduce((acc, user) => ({
-          ...acc,
-          [user._id]: {
-            isFollowing: user.isFollowing || false,
-            followersCount: user.followersCount,
-            isLoading: false
-          }
-        }), {}));
+        // Don't set default users - let the component hide itself
+        setUsers([]);
+        setUserStates({});
       } finally {
         setLoading(false);
       }
@@ -193,6 +152,11 @@ export default function SuggestedUsers({ users: initialUsers = defaultSuggestedU
       }
     }
   };
+
+  // Don't render the component if there are no users to display and not loading
+  if (!loading && (!users || users.length === 0)) {
+    return null;
+  }
 
   return (
     <div className="  bg-white rounded-xl shadow-sm border border-gray-200 p-6">
