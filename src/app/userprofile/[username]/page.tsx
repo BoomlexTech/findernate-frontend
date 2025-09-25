@@ -84,8 +84,20 @@ const UserProfilePage = () => {
         
         //console.log("=== DEBUG: Fetching profile for username:", username);
         
-        // Fetch other user's profile
-        const profileResponse = await getOtherUserProfile(username);
+        // Fetch other user's profile with a single retry on transient/auth race
+        let profileResponse: any;
+        try {
+          profileResponse = await getOtherUserProfile(username);
+        } catch (err: any) {
+          const status = err?.response?.status;
+          // Retry once on 401/403/5xx or network errors
+          if (!profileResponse && (status === 401 || status === 403 || (status >= 500 && status < 600) || !status)) {
+            await new Promise((res) => setTimeout(res, 200));
+            profileResponse = await getOtherUserProfile(username);
+          } else {
+            throw err;
+          }
+        }
         //console.log("=== DEBUG: Other user profile API response:", profileResponse);
         //console.log("=== DEBUG: Profile response userId:", profileResponse.userId);
         

@@ -1,13 +1,15 @@
 
 import axios from 'axios';
 
-// Debug logging for environment variable
-console.log('🔧 API Base URL Environment Variable:', process.env.NEXT_PUBLIC_API_BASE_URL);
-const finalBaseURL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://eckss0cw0ggco0okoocc4wo4.194.164.151.15.sslip.io';
-console.log('🚀 Final API Base URL:', finalBaseURL);
+// Determine base URL: use relative path in browser/dev to leverage Next.js rewrites and avoid CORS
+const envBase = process.env.NEXT_PUBLIC_API_BASE_URL;
+const isBrowser = typeof window !== 'undefined';
+// If running in the browser and no explicit non-local base is provided, use relative path so Next rewrites apply
+const shouldUseRelative = isBrowser && (!envBase || envBase.startsWith('http://localhost') || envBase.startsWith('https://localhost'));
+const resolvedBase = shouldUseRelative ? '' : (envBase || 'https://eckss0cw0ggco0okoocc4wo4.194.164.151.15.sslip.io');
 
 const axiosInstance = axios.create({
-  baseURL: `${finalBaseURL}/api/v1`, // from .env with fallback
+  baseURL: `${resolvedBase}/api/v1`, // relative in dev/browser to hit Next rewrites, absolute otherwise
   headers: {
     'Content-Type': 'application/json',
   },
@@ -25,8 +27,13 @@ axiosInstance.interceptors.request.use(
         if (validToken) {
           config.headers.Authorization = `Bearer ${validToken}`;
         } else {
+          // Fallback if store hasn't hydrated yet
+          const lsToken = localStorage.getItem('token');
+          if (lsToken) {
+            config.headers.Authorization = `Bearer ${lsToken}`;
+          }
         }
-      } catch (error) {
+      } catch {
         const token = localStorage.getItem('token');
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;

@@ -10,12 +10,12 @@ import PlanSelectionModal from "./business/PlanSelectionModal";
 import BusinessDetailsModal from "./business/BusinessDetailsModal";
 import BusinessVerificationModal from "./business/BusinessVerificationModal";
 import SuccessToast from "@/components/SuccessToast"; // Update path as needed
-import { CreateBusinessRequest, UpdateBusinessRequest } from "@/types";
+// import { CreateBusinessRequest, UpdateBusinessRequest } from "@/types";
 import { useEffect } from "react";
-import { getUserProfile, updateAccountPrivacy } from "@/api/user";
+import { getUserProfile } from "@/api/user";
 import { HelpCenterModal } from "./HelpCenterModal";
 import PrivacySettings from "./PrivacySettings";
-import { toast } from "react-toastify";
+// import { toast } from "react-toastify";
 
 
 const SettingsModal = ({ onClose }: { onClose: () => void }) => {
@@ -135,7 +135,7 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
 
 
 
-  const handleBusinessDetailsSubmit = (data: CreateBusinessRequest) => {
+  const handleBusinessDetailsSubmit = () => {
     // API call will be handled inside the modal component
     setShowBusinessDetailsModal(false);
     setSuccessToast({ show: true, message: "Business details created successfully!" });
@@ -147,7 +147,7 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
     try { updateUser({ isBusinessProfile: true }); } catch {}
   };
 
-  const handleEditBusinessDetailsSubmit = (data: UpdateBusinessRequest) => {
+  const handleEditBusinessDetailsSubmit = () => {
     // API call will be handled inside the modal component  
     setShowEditBusinessDetails(false);
     setSuccessToast({ show: true, message: "Business details updated successfully!" });
@@ -226,9 +226,14 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
         <div className="px-4 py-6">
           <h2 className="text-gray-500 font-medium text-sm mb-4">Business Info</h2>
           <div className="space-y-0">
+            <SettingItem
+              icon={<Shield />}
+              title="Add Your Business Details"
+              onClick={() => setShowBusinessDetailsModal(true)}
+            />
             <SettingItem 
               icon={<Shield />} 
-              title="View Your Business Details" 
+              title="View/Edit Your Business Details" 
               onClick={requireBusiness(() => setShowEditBusinessDetails(true))}
             />
             <SettingItem 
@@ -236,16 +241,11 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
               title="Complete your KYC" 
               onClick={requireBusiness(() => setShowVerificationModal(true))}
             />
-            <SettingItem 
+            {/* <SettingItem 
               icon={<Shield />} 
               title="Promote Your Business" 
               onClick={requireBusiness()}
-            />
-            <SettingItem
-              icon={<Shield />}
-              title="Edit Your Business Details"
-              onClick={requireBusiness(() => setShowEditBusinessDetails(true))}
-            />
+            /> */}
             {/* TODO: Add back in when we have a way to hide the address and number */}
             {/* <SettingToggle
               icon={<MapPin />}
@@ -424,6 +424,8 @@ const SettingItem = ({
   </div>
 );
 
+// Unused component retained for future toggles
+/*
 const SettingToggle = ({
   icon,
   title,
@@ -436,7 +438,7 @@ const SettingToggle = ({
   enabled: boolean;
   onToggle: () => void;
   isLoading?: boolean;
-}) => (
+}): JSX.Element => (
   <div className="flex items-center justify-between py-4">
     <div className="flex items-center gap-3">
       <span className="text-gray-600">{icon}</span>
@@ -469,5 +471,6 @@ const SettingToggle = ({
     </label>
   </div>
 );
+*/
 
 export default SettingsModal;
