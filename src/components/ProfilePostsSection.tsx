@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Grid3X3, Play, Video, Heart, MessageCircle, Bookmark, ChevronLeft, ChevronRight, Eye, EyeOff } from 'lucide-react';
 import { FeedPost } from '@/types';
 import Image from 'next/image';
-import { likePost, unlikePost, toggleSavedPostPrivacy, togglePostPrivacy } from '@/api/post';
+import { likePost, unlikePost, toggleSavedPostPrivacy } from '@/api/post';
 import { useAuthGuard } from '@/hooks/useAuthGuard';
 import { AxiosError } from 'axios';
 import { toast } from 'react-toastify';
@@ -38,8 +38,6 @@ const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
   const [hoveredVideo, setHoveredVideo] = useState<string | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState<{[key: string]: number}>({});
   const [privacyToggles, setPrivacyToggles] = useState<{[key: string]: 'private' | 'public'}>({});
-  const [postPrivacyToggles, setPostPrivacyToggles] = useState<{[key: string]: 'private' | 'public'}>({});
-  const [isTogglingPostPrivacy, setIsTogglingPostPrivacy] = useState<{[key: string]: boolean}>({});
 
   // React to changes in isFullPrivate state
   useEffect(() => {
@@ -203,43 +201,6 @@ const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
     return privacyToggles[post._id] || (post as any).savedPostPrivacy || 'private';
   };
 
-  const handlePostPrivacyToggle = async (post: FeedPost, e: React.MouseEvent) => {
-    e.stopPropagation();
-    requireAuth(async () => {
-      const postId = post._id;
-      if (isTogglingPostPrivacy[postId]) return;
-
-      setIsTogglingPostPrivacy(prev => ({ ...prev, [postId]: true }));
-      const currentPrivacy = postPrivacyToggles[postId] || (post as any).privacy || 'public';
-      const newPrivacy = currentPrivacy === 'private' ? 'public' : 'private';
-
-      // Optimistic update
-      setPostPrivacyToggles(prev => ({ ...prev, [postId]: newPrivacy }));
-
-      try {
-        await togglePostPrivacy(postId, newPrivacy);
-        // Update the post object as well
-        (post as any).privacy = newPrivacy;
-        toast.success(`Post is now ${newPrivacy}!`, { autoClose: 2000 });
-      } catch (error) {
-        console.error('Error toggling post privacy:', error);
-        // Revert on error
-        setPostPrivacyToggles(prev => ({ ...prev, [postId]: currentPrivacy }));
-        toast.error('Failed to update post privacy. Please try again.');
-      } finally {
-        setIsTogglingPostPrivacy(prev => ({ ...prev, [postId]: false }));
-      }
-    });
-  };
-
-  const getRegularPostPrivacy = (post: FeedPost): 'private' | 'public' => {
-    // If total account privacy is enabled, all posts are private
-    if (isFullPrivate) {
-      return 'private';
-    }
-    // Otherwise use the individual post privacy setting
-    return postPrivacyToggles[post._id] || (post as any).privacy || 'public';
-  };
 
   return (
     <div className="w-full bg-white rounded-xl shadow-sm px-4 py-6">
@@ -677,28 +638,6 @@ const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
                           </button>
                         )}
 
-                        {/* Privacy Toggle Button - for user's own posts (posts, reels, videos tabs) */}
-                        {activeTab !== 'saved' && !isOtherUser && (
-                          <button
-                            onClick={(e) => handlePostPrivacyToggle(post, e)}
-                            disabled={isTogglingPostPrivacy[post._id]}
-                            className={`flex items-center space-x-1 p-1 rounded-lg transition-colors disabled:opacity-50 ${
-                              getRegularPostPrivacy(post) === 'public'
-                                ? 'text-green-600 hover:text-green-700'
-                                : 'text-gray-600 hover:text-gray-700'
-                            }`}
-                            title={`Currently ${getRegularPostPrivacy(post)} - click to toggle`}
-                          >
-                            {getRegularPostPrivacy(post) === 'public' ? (
-                              <Eye className="w-5 h-5" />
-                            ) : (
-                              <EyeOff className="w-5 h-5" />
-                            )}
-                            <span className="text-xs font-medium capitalize">
-                              {isTogglingPostPrivacy[post._id] ? 'Updating...' : getRegularPostPrivacy(post)}
-                            </span>
-                          </button>
-                        )}
                       </div>
 
                       {/* Caption Preview */}

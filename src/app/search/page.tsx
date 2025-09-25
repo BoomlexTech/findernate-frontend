@@ -490,6 +490,7 @@ function SearchContent() {
               <SearchBar
                 value={displayQuery}
                 placeholder="Search businesses, products, services..."
+                disabled={loading}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                   const value = e.target.value;
                   setDisplayQuery(value);
