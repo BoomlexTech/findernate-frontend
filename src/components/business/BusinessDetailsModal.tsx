@@ -439,7 +439,7 @@ const BusinessDetailsModal: React.FC<Props> = ({
 
   // Get modal title based on mode
   const getModalTitle = () => {
-    return isEdit ? 'Edit Business Details' : 'Add Business Details';
+    return isEdit ? 'View/Edit Business Details' : 'Add Business Details';
   };
 
   // Get submit button text based on mode

@@ -577,7 +577,26 @@ const Notifications = () => {
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <p className="text-gray-900 text-sm leading-relaxed">
-                            <span className="font-semibold text-gray-900 hover:text-yellow-600 transition-colors">
+                            <span
+                              className="font-semibold text-gray-900 hover:text-yellow-600 transition-colors cursor-pointer"
+                              role="button"
+                              tabIndex={0}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (notification.senderId?.username) {
+                                  router.push(`/userprofile/${notification.senderId.username}`);
+                                }
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  if (notification.senderId?.username) {
+                                    router.push(`/userprofile/${notification.senderId.username}`);
+                                  }
+                                }
+                              }}
+                            >
                               {notification.senderId?.username || 'Unknown user'}
                             </span>
                             <span className="text-gray-600">{" "+notification.message}</span>

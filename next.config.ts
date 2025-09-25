@@ -1,5 +1,7 @@
 import type { NextConfig } from "next";
 
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://eckss0cw0ggco0okoocc4wo4.194.164.151.15.sslip.io';
+
 const nextConfig: NextConfig = {
   images: {
     domains: ['findernate-media.b-cdn.net', 'res.cloudinary.com', 'example.com', 'images.pexels.com', 'ui-avatars.com', 'cdn.pixabay.com', 'picsum.photos',"randomuser.me","images.unsplash.com","media.istockphoto.com","localhost","www.pexels.com" ],
@@ -9,5 +11,15 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   }
 };
+
+// Use a dev-time proxy to avoid CORS in the browser by keeping same-origin requests
+export async function rewrites() {
+  return [
+    {
+      source: '/api/:path*',
+      destination: `${API_BASE}/api/:path*`,
+    },
+  ];
+}
 
 export default nextConfig; 
