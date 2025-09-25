@@ -11,13 +11,15 @@ interface PrivacySettingsProps {
   isFullPrivate?: boolean;
   onPrivacyUpdate?: (privacy: string) => void;
   onFullPrivacyUpdate?: (isFullPrivate: boolean) => void;
+  showFollowRequestContext?: boolean; // New prop to show Account Privacy toggle when follow requests are relevant
 }
 
 const PrivacySettings: React.FC<PrivacySettingsProps> = ({
   userPrivacy = 'public',
   isFullPrivate = false,
   onPrivacyUpdate,
-  onFullPrivacyUpdate
+  onFullPrivacyUpdate,
+  showFollowRequestContext = false
 }) => {
   const [privacy, setPrivacy] = useState(userPrivacy);
   const [fullPrivate, setFullPrivate] = useState(isFullPrivate);
@@ -35,6 +37,7 @@ const PrivacySettings: React.FC<PrivacySettingsProps> = ({
   }, [userPrivacy]);
 
   useEffect(() => {
+    console.log('PrivacySettings: isFullPrivate prop changed to:', isFullPrivate);
     setFullPrivate(isFullPrivate);
   }, [isFullPrivate]);
 
@@ -71,13 +74,17 @@ const PrivacySettings: React.FC<PrivacySettingsProps> = ({
       // Call the full privacy API which handles both profile and posts privacy
       const response = await toggleFullAccountPrivacy(newPrivacy);
 
+      const newFullPrivate = !fullPrivate;
+
       // Update local states
-      setFullPrivate(!fullPrivate);
+      setFullPrivate(newFullPrivate);
       setPrivacy(newPrivacy); // Also update the regular privacy state
 
       // Update parent components
-      onFullPrivacyUpdate?.(!fullPrivate);
+      onFullPrivacyUpdate?.(newFullPrivate);
       onPrivacyUpdate?.(newPrivacy);
+
+      console.log('Full privacy toggled:', { newFullPrivate, newPrivacy });
 
       // Update user store
       updateUser({ privacy: newPrivacy });
@@ -99,48 +106,51 @@ const PrivacySettings: React.FC<PrivacySettingsProps> = ({
   return (
     <div>
     <div className="space-y-4">
-        {/* Account Privacy */}
-        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-          <div className="flex items-center space-x-3">
-            {privacy === 'private' ? (
-              <Lock className="w-5 h-5 text-red-500" />
-            ) : (
-              <Unlock className="w-5 h-5 text-green-500" />
-            )}
-            <div>
-              <h4 className="font-medium text-gray-800">Account Privacy</h4>
-              <p className="text-sm text-gray-600">
-                {privacy === 'private'
-                  ? 'Your account is private. Only approved followers can see your posts.'
-                  : 'Your account is public. Anyone can see your posts.'
-                }
-              </p>
+        {/* Account Privacy - Show when privacy is 'private' or when showFollowRequestContext is true */}
+        {/*{(privacy === 'private' || showFollowRequestContext) && (
+          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+            <div className="flex items-center space-x-3">
+              {privacy === 'private' ? (
+                <Lock className="w-5 h-5 text-red-500" />
+              ) : (
+                <Unlock className="w-5 h-5 text-green-500" />
+              )}
+              <div>
+                <h4 className="font-medium text-gray-800">Account Privacy</h4>
+                <p className="text-sm text-gray-600">
+                  {privacy === 'private'
+                    ? 'Your account is private. Only approved followers can see your posts.'
+                    : 'Your account is public. Anyone can see your posts.'
+                  }
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center">
+              {loading.privacy ? (
+                <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin mr-3"></div>
+              ) : null}
+              <label className="flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={privacy === 'private'}
+                  onChange={handlePrivacyToggle}
+                  disabled={loading.privacy}
+                  className="sr-only"
+                />
+                <div className={`relative w-11 h-6 rounded-full transition-colors ${
+                  privacy === 'private' ? 'bg-red-500' : 'bg-green-500'
+                } ${loading.privacy ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                  <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
+                    privacy === 'private' ? 'translate-x-5' : 'translate-x-0'
+                  }`} />
+                </div>
+              </label>
             </div>
           </div>
-          <div className="flex items-center">
-            {loading.privacy ? (
-              <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin mr-3"></div>
-            ) : null}
-            <label className="flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={privacy === 'private'}
-                onChange={handlePrivacyToggle}
-                disabled={loading.privacy}
-                className="sr-only"
-              />
-              <div className={`relative w-11 h-6 rounded-full transition-colors ${
-                privacy === 'private' ? 'bg-red-500' : 'bg-green-500'
-              } ${loading.privacy ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
-                  privacy === 'private' ? 'translate-x-5' : 'translate-x-0'
-                }`} />
-              </div>
-            </label>
-          </div>
-        </div>
+        )}*/}
 
         {/* Total Account Privacy */}
+        {/* Toggle color logic: Red when privacy='private' OR fullPrivate=true (same condition that triggers follow request modal in PrivacyAwareProfile) */}
         <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
           <div className="flex items-center space-x-3">
             {fullPrivate ? (
@@ -171,7 +181,9 @@ const PrivacySettings: React.FC<PrivacySettingsProps> = ({
                 className="sr-only"
               />
               <div className={`relative w-11 h-6 rounded-full transition-colors ${
-                fullPrivate ? 'bg-red-500' : 'bg-green-500'
+                // Use the same logic as PrivacyAwareProfile: if privacy is 'private', show red toggle
+                // This means if someone visits this user's profile and it's private, they would see the follow request modal
+                (privacy === 'private' || fullPrivate) ? 'bg-red-500' : 'bg-gray-300'
               } ${loading.fullPrivacy ? 'opacity-50 cursor-not-allowed' : ''}`}>
                 <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
                   fullPrivate ? 'translate-x-5' : 'translate-x-0'

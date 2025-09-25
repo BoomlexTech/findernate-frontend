@@ -34,6 +34,7 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
   const [successToast, setSuccessToast] = useState({ show: false, message: "" });
   const [showPrivacySettings, setShowPrivacySettings] = useState(false);
   const [accountPrivacy, setAccountPrivacy] = useState<'public' | 'private'>('public');
+  const [isFullPrivate, setIsFullPrivate] = useState<boolean>(false);
   const router = useRouter();
   const { logout: logoutUser, user, updateUser } = useUserStore();
   const [isBusinessProfile, setIsBusinessProfile] = useState<boolean>(user?.isBusinessProfile === true);
@@ -53,6 +54,13 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
           }
           if (profile?.privacy) {
             setAccountPrivacy(profile.privacy);
+          }
+          // Set full private state based on privacy field or a dedicated fullPrivate field
+          if (typeof profile?.isFullPrivate === 'boolean') {
+            setIsFullPrivate(profile.isFullPrivate);
+          } else if (profile?.privacy === 'private') {
+            // If no specific fullPrivate field, assume full privacy when privacy is private
+            setIsFullPrivate(true);
           }
         }
       } catch {
@@ -378,7 +386,9 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
           <div className="p-6">
             <PrivacySettings
               userPrivacy={accountPrivacy}
+              isFullPrivate={isFullPrivate}
               onPrivacyUpdate={(privacy) => setAccountPrivacy(privacy as 'public' | 'private')}
+              onFullPrivacyUpdate={(fullPrivate) => setIsFullPrivate(fullPrivate)}
             />
           </div>
         </div>

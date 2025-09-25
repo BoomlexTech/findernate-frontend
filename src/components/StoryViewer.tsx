@@ -5,7 +5,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { StoryUser, Story } from "@/types/story";
 import { useStories } from "@/hooks/useStories";
-import { X, ChevronLeft, ChevronRight, Eye, Plus, MoreVertical, Flag, Bookmark } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, Eye, Plus, MoreVertical, Flag } from "lucide-react";
 import CreateStoryModal from "./CreateStoryModal";
 import { storyAPI } from "@/api/story";
 import { useUserStore } from "@/store/useUserStore";
@@ -39,8 +39,6 @@ export default function StoryViewer({
   const [shouldAdvance, setShouldAdvance] = useState(false);
   const [showMoreOptions, setShowMoreOptions] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
-  const [isStorySaved, setIsStorySaved] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
 
   const { user } = useUserStore();
   const router = useRouter();
@@ -56,7 +54,7 @@ export default function StoryViewer({
   
   const progressRef = useRef<NodeJS.Timeout | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const { markStoryAsSeen, uploadStory, saveStory, unsaveStory } = useStories();
+  const { markStoryAsSeen, uploadStory} = useStories();
 
   const currentUser = allStoryUsers[currentUserIndex];
   const currentStory = currentUser?.stories?.[currentStoryIndex];
@@ -258,29 +256,7 @@ export default function StoryViewer({
     startProgress();
   };
 
-  const handleToggleSaveStory = async () => {
-    if (!currentStory || isSaving) return;
-    
-    setIsSaving(true);
-    const previousSavedState = isStorySaved;
-    
-    try {
-      if (isStorySaved) {
-        await unsaveStory(currentStory._id);
-        setIsStorySaved(false);
-      } else {
-        await saveStory(currentStory._id);
-        setIsStorySaved(true);
-      }
-      setShowMoreOptions(false);
-    } catch (error) {
-      console.error('Error toggling save status:', error);
-      setIsStorySaved(previousSavedState); // Revert state on error
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
+  
   // Mark story as seen and fetch viewer count
   useEffect(() => {
     if (currentStory) {
@@ -412,7 +388,7 @@ export default function StoryViewer({
               </div>
             )}
             <div>
-              <p className="text-white font-semibold text-base hover:text-yellow-400 transition-colors">{currentUser.username}</p>
+              <p className="text-black font-semibold text-base hover:text-yellow-400 transition-colors">{currentUser.username}</p>
               <p className="text-gray-200 text-sm">
                 {formatTimeAgo(currentStory.createdAt)}
               </p>
@@ -451,21 +427,13 @@ export default function StoryViewer({
                     stopProgress();
                     setShowMoreOptions(!showMoreOptions);
                   }}
-                  className="flex items-center justify-center w-8 h-8 text-white hover:text-gray-300 transition-colors"
+                  className="flex items-center justify-center w-8 h-8 text-black hover:text-gray-600 transition-colors"
                 >
                   <MoreVertical size={16} />
                 </button>
 
                 {showMoreOptions && (
                   <div className="absolute right-0 top-full mt-1 bg-white border rounded-lg shadow-lg z-20 min-w-[120px]">
-                    <button
-                      onClick={handleToggleSaveStory}
-                      disabled={isSaving}
-                      className="w-full px-3 py-2 text-left text-sm text-gray-600 hover:bg-gray-50 flex items-center gap-2 disabled:opacity-50"
-                    >
-                      <Bookmark className="w-3 h-3" />
-                      {isStorySaved ? 'Remove from Saved' : 'Save Story'}
-                    </button>
                     <button
                       onClick={() => {
                         setShowReportModal(true);
@@ -484,7 +452,7 @@ export default function StoryViewer({
             {/* Close Button */}
             <button
               onClick={handleClose}
-              className="text-white hover:text-gray-300"
+              className="text-black hover:text-gray-600"
             >
               <X size={24} />
             </button>
