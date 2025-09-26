@@ -19,6 +19,7 @@ interface ProfilePostsSectionProps {
   loading?: boolean;
   onTabChange?: (tab: string) => void;
   isFullPrivate?: boolean;
+  isBusinessAccount?: boolean;
 }
 
 const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
@@ -30,7 +31,8 @@ const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
   isOtherUser = false,
   loading = false,
   onTabChange,
-  isFullPrivate = false
+  isFullPrivate = false,
+  isBusinessAccount = false
 }) => {
   const [activeTab, setActiveTab] = useState('posts');
   const [activeCategory, setActiveCategory] = useState<'personal' | 'business'>('personal');
@@ -225,37 +227,39 @@ const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
 
   return (
     <div className="w-full bg-white rounded-xl shadow-sm px-4 py-6">
-      {/* Category Tabs (Personal/Business) */}
-      <div className="flex justify-center border-b border-gray-200 mb-4">
-        <div className="flex gap-2 bg-gray-100 rounded-lg p-1">
-          <button
-            onClick={() => {
-              setActiveCategory('personal');
-              setActiveTab('posts'); // Reset to first tab when switching categories
-            }}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-              activeCategory === 'personal'
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            Personal
-          </button>
-          <button
-            onClick={() => {
-              setActiveCategory('business');
-              setActiveTab('service'); // Reset to first business tab
-            }}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-              activeCategory === 'business'
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            Business
-          </button>
+      {/* Category Tabs (Personal/Business) - Only show for business accounts */}
+      {isBusinessAccount && (
+        <div className="flex justify-center border-b border-gray-200 mb-4">
+          <div className="flex gap-2 bg-gray-100 rounded-lg p-1">
+            <button
+              onClick={() => {
+                setActiveCategory('personal');
+                setActiveTab('posts'); // Reset to first tab when switching categories
+              }}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                activeCategory === 'personal'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Personal
+            </button>
+            <button
+              onClick={() => {
+                setActiveCategory('business');
+                setActiveTab('service'); // Reset to first business tab
+              }}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                activeCategory === 'business'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Business
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Content Tabs Header */}
       <div className="flex justify-center border-b border-gray-200 mb-6">
