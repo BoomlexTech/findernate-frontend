@@ -118,6 +118,7 @@ const BusinessDetailsModal: React.FC<Props> = ({
   const [fetchingData, setFetchingData] = useState(false);
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [showSocialDropdowns, setShowSocialDropdowns] = useState<Record<number, boolean>>({});
+  const [showMoreDetails, setShowMoreDetails] = useState(false);
 
   // Fetch business details when in edit mode
   useEffect(() => {
@@ -479,12 +480,13 @@ const BusinessDetailsModal: React.FC<Props> = ({
             </div>
           ) : (
             <div className="space-y-8">
-            {/* Basic Information Section */}
+            {/* Main Business Information - Top Priority Fields */}
             <div className="space-y-6">
               <div className="border-l-4 border-yellow-600 pl-4">
-                <h3 className="text-xl font-semibold text-gray-800 mb-4">Basic Information</h3>
+                <h3 className="text-xl font-semibold text-gray-800 mb-4">Business Information</h3>
               </div>
               
+              {/* Business Name and Website in Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-gray-700">Business Name *</label>
@@ -496,63 +498,9 @@ const BusinessDetailsModal: React.FC<Props> = ({
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white text-gray-800 placeholder-gray-500" 
                     required 
                   />
-              {!form.businessName?.trim() && (
-                <p className="text-sm text-yellow-600">Business name is required.</p>
-              )}
-                </div>
-                
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">Business Type *</label>
-                  <input 
-                    name="businessType" 
-                    value={form.businessType} 
-                    onChange={handleChange} 
-                    placeholder="e.g., LLC, Corporation, Partnership" 
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white text-gray-800 placeholder-gray-500" 
-                    required 
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">Category *</label>
-                  <div className="relative">
-                    <button 
-                      type="button"
-                      onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white text-gray-800 text-left flex items-center justify-between"
-                    >
-                      <span className={form.category ? 'text-gray-800' : 'text-gray-500'}>
-                        {form.category || 'Select a category'}
-                      </span>
-                      <ChevronDown className={`w-4 h-4 transition-transform ${showCategoryDropdown ? 'rotate-180' : ''}`} />
-                    </button>
-                    
-                    {showCategoryDropdown && (
-                      <>
-                        {/* Backdrop */}
-                        <div 
-                          className="fixed inset-0 z-10" 
-                          onClick={() => setShowCategoryDropdown(false)}
-                        />
-                        
-                        {/* Dropdown */}
-                        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-20 max-h-60 overflow-y-auto">
-                          {businessCategories.map((category) => (
-                            <button
-                              key={category}
-                              type="button"
-                              onClick={() => handleCategorySelect(category)}
-                              className={`w-full text-left px-4 py-3 hover:bg-yellow-50 transition-colors border-b border-gray-100 last:border-b-0 ${
-                                form.category === category ? 'bg-yellow-100 text-yellow-800 font-medium' : 'text-gray-700'
-                              }`}
-                            >
-                              {category}
-                            </button>
-                          ))}
-                        </div>
-                      </>
-                    )}
-                  </div>
+                  {!form.businessName?.trim() && (
+                    <p className="text-sm text-yellow-600">Business name is required.</p>
+                  )}
                 </div>
                 
                 <div className="space-y-2">
@@ -565,111 +513,185 @@ const BusinessDetailsModal: React.FC<Props> = ({
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white text-gray-800 placeholder-gray-500" 
                   />
                 </div>
-                
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">GST Number</label>
-                  <input 
-                    name="gstNumber" 
-                    value={form.gstNumber} 
-                    onChange={handleGSTChange} 
-                    placeholder="GST registration number (15 chars max)" 
-                    maxLength={15}
-                    style={{ textTransform: 'uppercase' }}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white text-gray-800 placeholder-gray-500" 
-                  />
-                  <p className="text-xs text-gray-500">
-                    Only uppercase letters and numbers allowed ({form.gstNumber.length}/15)
-                  </p>
-                </div>
-                
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">Aadhaar Number</label>
-                  <input 
-                    name="aadhaarNumber" 
-                    value={form.aadhaarNumber} 
-                    onChange={handleAadhaarChange} 
-                    placeholder="XXXX XXXX XXXX (12 digits)" 
-                    maxLength={14} // 12 digits + 2 spaces
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white text-gray-800 placeholder-gray-500" 
-                  />
-                  <p className="text-xs text-gray-500">
-                    Only numbers allowed, auto-formatted ({form.aadhaarNumber.replace(/\s/g, '').length}/12 digits)
-                  </p>
+              </div>
+              
+              {/* Category Field */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">Category *</label>
+                <div className="relative">
+                  <button 
+                    type="button"
+                    onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white text-gray-800 text-left flex items-center justify-between"
+                  >
+                    <span className={form.category ? 'text-gray-800' : 'text-gray-500'}>
+                      {form.category || 'Select a category'}
+                    </span>
+                    <ChevronDown className={`w-4 h-4 transition-transform ${showCategoryDropdown ? 'rotate-180' : ''}`} />
+                  </button>
+                  
+                  {showCategoryDropdown && (
+                    <>
+                      {/* Backdrop */}
+                      <div 
+                        className="fixed inset-0 z-10" 
+                        onClick={() => setShowCategoryDropdown(false)}
+                      />
+                      
+                      {/* Dropdown */}
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-20 max-h-60 overflow-y-auto">
+                        {businessCategories.map((category) => (
+                          <button
+                            key={category}
+                            type="button"
+                            onClick={() => handleCategorySelect(category)}
+                            className={`w-full text-left px-4 py-3 hover:bg-yellow-50 transition-colors border-b border-gray-100 last:border-b-0 ${
+                              form.category === category ? 'bg-yellow-100 text-yellow-800 font-medium' : 'text-gray-700'
+                            }`}
+                          >
+                            {category}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
               
+              {/* Business Description */}
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">Description *</label>
+                <label className="block text-sm font-medium text-gray-700">Business Description *</label>
                 <textarea 
                   name="description" 
                   value={form.description} 
                   onChange={handleChange} 
-                  placeholder="Describe your business..." 
+                  placeholder="Describe your business, services, and what makes you unique..." 
                   rows={4}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white text-gray-800 placeholder-gray-500 resize-none" 
                   required 
                 />
               </div>
-
-              {/* Tags field - interactive tag system */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">Tags</label>
-                  
-                  {/* Display existing tags */}
-                  {form.tags && form.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mb-3">
-                      {form.tags.map((tag, index) => (
-                        <span
-                          key={index}
-                          className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800 border border-yellow-200"
-                        >
-                          {tag}
-                          <button
-                            type="button"
-                            onClick={() => removeTag(tag)}
-                            className="ml-2 text-yellow-600 hover:text-yellow-800 focus:outline-none"
-                          >
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                  
-                  {/* Tag input */}
-                  <div className="flex gap-2">
-                    <input 
-                      value={tagInput}
-                      onChange={(e) => setTagInput(e.target.value)}
-                      onKeyPress={handleTagKeyPress}
-                      placeholder="Type a tag and press Enter or comma" 
-                      className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white text-gray-800 placeholder-gray-500" 
-                    />
-                    <button
-                      type="button"
-                      onClick={addTag}
-                      disabled={!tagInput.trim()}
-                      className="px-4 py-2 text-sm font-medium text-black bg-button-gradient rounded-lg hover:bg-yellow-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all duration-200"
-                    >
-                      Add
-                    </button>
-                  </div>
-                  
-                  <p className="text-xs text-gray-500 mt-1">
-                    Press Enter or comma to add tags. Click × to remove tags.
-                  </p>
-                </div>
-              </div>
             </div>
 
-            {/* Contact Information Section */}
+            {/* Add More Details - Collapsible Section */}
             <div className="space-y-6">
-              <div className="border-l-4 border-yellow-600 pl-4">
-                <h3 className="text-xl font-semibold text-gray-800 mb-4">Contact Information</h3>
-              </div>
+              <button
+                type="button"
+                onClick={() => setShowMoreDetails(!showMoreDetails)}
+                className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 transition-all duration-200"
+              >
+                <div className="flex items-center gap-3">
+                  <h3 className="text-lg font-semibold text-gray-800">Add More Details</h3>
+                  <span className="text-sm text-gray-500">(Optional)</span>
+                </div>
+                <ChevronDown className={`w-5 h-5 text-gray-500 transition-transform ${showMoreDetails ? 'rotate-180' : ''}`} />
+              </button>
+
+              {showMoreDetails && (
+                <div className="space-y-8 pl-4 border-l-2 border-gray-200">
+                  {/* Business Type and Additional Info */}
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-gray-700">Business Type</label>
+                        <input 
+                          name="businessType" 
+                          value={form.businessType} 
+                          onChange={handleChange} 
+                          placeholder="e.g., LLC, Corporation, Partnership" 
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white text-gray-800 placeholder-gray-500" 
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-gray-700">GST Number</label>
+                        <input 
+                          name="gstNumber" 
+                          value={form.gstNumber} 
+                          onChange={handleGSTChange} 
+                          placeholder="GST registration number (15 chars max)" 
+                          maxLength={15}
+                          style={{ textTransform: 'uppercase' }}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white text-gray-800 placeholder-gray-500" 
+                        />
+                        <p className="text-xs text-gray-500">
+                          Only uppercase letters and numbers allowed ({form.gstNumber.length}/15)
+                        </p>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-gray-700">Aadhaar Number</label>
+                        <input 
+                          name="aadhaarNumber" 
+                          value={form.aadhaarNumber} 
+                          onChange={handleAadhaarChange} 
+                          placeholder="XXXX XXXX XXXX (12 digits)" 
+                          maxLength={14} // 12 digits + 2 spaces
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white text-gray-800 placeholder-gray-500" 
+                        />
+                        <p className="text-xs text-gray-500">
+                          Only numbers allowed, auto-formatted ({form.aadhaarNumber.replace(/\s/g, '').length}/12 digits)
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Tags field - interactive tag system */}
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium text-gray-700">Tags</label>
+                      
+                      {/* Display existing tags */}
+                      {form.tags && form.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mb-3">
+                          {form.tags.map((tag, index) => (
+                            <span
+                              key={index}
+                              className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800 border border-yellow-200"
+                            >
+                              {tag}
+                              <button
+                                type="button"
+                                onClick={() => removeTag(tag)}
+                                className="ml-2 text-yellow-600 hover:text-yellow-800 focus:outline-none"
+                              >
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      
+                      {/* Tag input */}
+                      <div className="flex gap-2">
+                        <input 
+                          value={tagInput}
+                          onChange={(e) => setTagInput(e.target.value)}
+                          onKeyPress={handleTagKeyPress}
+                          placeholder="Type a tag and press Enter or comma" 
+                          className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white text-gray-800 placeholder-gray-500" 
+                        />
+                        <button
+                          type="button"
+                          onClick={addTag}
+                          disabled={!tagInput.trim()}
+                          className="px-4 py-2 text-sm font-medium text-black bg-button-gradient rounded-lg hover:bg-yellow-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all duration-200"
+                        >
+                          Add
+                        </button>
+                      </div>
+                      
+                      <p className="text-xs text-gray-500 mt-1">
+                        Press Enter or comma to add tags. Click × to remove tags.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Contact Information Section */}
+                  <div className="space-y-6">
+                    <div className="border-l-4 border-yellow-600 pl-4">
+                      <h3 className="text-xl font-semibold text-gray-800 mb-4">Contact Information</h3>
+                    </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
@@ -842,6 +864,9 @@ const BusinessDetailsModal: React.FC<Props> = ({
                   />
                 </div>
               </div>
+            </div>
+                </div>
+              )}
             </div>
 
             {/* Submit Button */}

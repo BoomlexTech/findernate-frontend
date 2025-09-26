@@ -450,6 +450,7 @@ const Page = () => {
               savedPosts={savedPosts}
               isOtherUser={false}
               isFullPrivate={profileData?.isFullPrivate || false}
+              isBusinessAccount={profileData?.isBusinessProfile || false}
             />
           </div>
         </div>
