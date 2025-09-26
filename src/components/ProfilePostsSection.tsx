@@ -33,6 +33,7 @@ const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
   isFullPrivate = false
 }) => {
   const [activeTab, setActiveTab] = useState('posts');
+  const [activeCategory, setActiveCategory] = useState<'personal' | 'business'>('personal');
   const { requireAuth } = useAuthGuard();
   const [postLikes, setPostLikes] = useState<{[key: string]: {isLiked: boolean, count: number}}>({});
   const [hoveredVideo, setHoveredVideo] = useState<string | null>(null);
@@ -68,28 +69,48 @@ const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
     }
   }, [hoveredVideo, activeTab, currentImageIndex]);
 
-  // Show tabs for all users - saved tab shows public saved posts for other users
-  const tabs = [
+  // Define tabs based on active category
+  const personalTabs = [
     { id: 'posts', label: 'Posts', icon: Grid3X3, count: posts.length },
     { id: 'reels', label: 'Reels', icon: Play, count: reels.length },
     { id: 'videos', label: 'Videos', icon: Video, count: videos.length },
     { id: 'saved', label: 'Saved', icon: Bookmark, count: savedPosts.length }
   ];
 
+  const businessTabs = [
+    { id: 'service', label: 'Service', icon: Grid3X3, count: 0 }, // Placeholder count
+    { id: 'product', label: 'Product', icon: Play, count: 0 } // Placeholder count
+  ];
+
+  const tabs = activeCategory === 'personal' ? personalTabs : businessTabs;
+
   const formatCount = (count: number) => {
     return count > 99 ? '99+' : count.toString();
   };
 
   const getCurrentPosts = () => {
-    switch (activeTab) {
-      case 'reels':
-        return reels;
-      case 'videos':
-        return videos;
-      case 'saved':
-        return savedPosts;
-      default:
-        return posts;
+    if (activeCategory === 'business') {
+      // For business tabs, return empty array for now (will be populated with API data later)
+      switch (activeTab) {
+        case 'service':
+          return []; // Service posts will be fetched from API
+        case 'product':
+          return []; // Product posts will be fetched from API
+        default:
+          return [];
+      }
+    } else {
+      // Personal tabs work as before
+      switch (activeTab) {
+        case 'reels':
+          return reels;
+        case 'videos':
+          return videos;
+        case 'saved':
+          return savedPosts;
+        default:
+          return posts;
+      }
     }
   };
 
@@ -204,7 +225,39 @@ const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
 
   return (
     <div className="w-full bg-white rounded-xl shadow-sm px-4 py-6">
-      {/* Tabs Header */}
+      {/* Category Tabs (Personal/Business) */}
+      <div className="flex justify-center border-b border-gray-200 mb-4">
+        <div className="flex gap-2 bg-gray-100 rounded-lg p-1">
+          <button
+            onClick={() => {
+              setActiveCategory('personal');
+              setActiveTab('posts'); // Reset to first tab when switching categories
+            }}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              activeCategory === 'personal'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            Personal
+          </button>
+          <button
+            onClick={() => {
+              setActiveCategory('business');
+              setActiveTab('service'); // Reset to first business tab
+            }}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              activeCategory === 'business'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            Business
+          </button>
+        </div>
+      </div>
+
+      {/* Content Tabs Header */}
       <div className="flex justify-center border-b border-gray-200 mb-6">
         <div className="flex gap-4 sm:gap-100 md:gap-12 text-center">
           {tabs.map((tab) => {
@@ -255,6 +308,8 @@ const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
               {activeTab === 'reels' && <Play className="w-12 h-12 mx-auto" />}
               {activeTab === 'videos' && <Video className="w-12 h-12 mx-auto" />}
               {activeTab === 'saved' && <Bookmark className="w-12 h-12 mx-auto" />}
+              {activeTab === 'service' && <Grid3X3 className="w-12 h-12 mx-auto" />}
+              {activeTab === 'product' && <Play className="w-12 h-12 mx-auto" />}
             </div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">
               No {activeTab} yet
@@ -264,6 +319,8 @@ const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
               {activeTab === 'reels' && (isOtherUser ? "No reels shared yet" : "Create your first reel")}
               {activeTab === 'videos' && (isOtherUser ? "No videos shared yet" : "Upload your first video")}
               {activeTab === 'saved' && (isOtherUser ? "No public saved posts yet" : "No saved posts yet")}
+              {activeTab === 'service' && (isOtherUser ? "No service posts yet" : "Share your first service post")}
+              {activeTab === 'product' && (isOtherUser ? "No product posts yet" : "Share your first product post")}
             </p>
           </div>
         ) : (

@@ -9,3 +9,6 @@ static
 // hello
 .env.local
 tsconfig.tsbuildinfo
+
+# Git Bash crash dumps
+bash.exe.stackdump
