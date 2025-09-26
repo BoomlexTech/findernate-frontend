@@ -46,6 +46,8 @@ export default function AccountSettings() {
   const [isLoadingCategory, setIsLoadingCategory] = useState(true);
   const [showBusinessOptions, setShowBusinessOptions] = useState(false);
   const [isSwitching, setIsSwitching] = useState(false);
+  const [servicePostsAllowed, setServicePostsAllowed] = useState(false);
+  const [productPostsAllowed, setProductPostsAllowed] = useState(false);
   const { user, updateUser } = useUserStore();
 
   // Keep local flag in sync with store
@@ -216,7 +218,19 @@ export default function AccountSettings() {
 
   return (
     <div className="w-full mx-auto p-4 sm:p-6 bg-white">
-      <h1 className="text-2xl sm:text-3xl font-bold text-black mb-6 sm:mb-8">Account Settings</h1>
+      <div className="flex items-center justify-between mb-6 sm:mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold text-black">Account Settings</h1>
+        {isBusiness && showBusinessOptions && (
+          <button
+            onClick={() => setShowBusinessOptions(false)}
+            className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+            title="Collapse business options"
+          >
+            <ChevronDown className="w-4 h-4 rotate-180" />
+            <span className="hidden sm:inline">Collapse</span>
+          </button>
+        )}
+      </div>
       
       {/* Success Message */}
       {updateMessage && (
@@ -264,7 +278,7 @@ export default function AccountSettings() {
                   {isBusiness && showBusinessOptions ? 'Switch to Personal' : isBusiness ? 'Manage Business' : 'Switch to Business'}
                 </span>
                 {isBusiness && !showBusinessOptions && (
-                  <ChevronDown className={`w-4 h-4 transition-transform ${showBusinessOptions ? 'rotate-180' : ''}`} />
+                  <ChevronDown className="w-4 h-4 ml-2" />
                 )}
               </>
             )}
@@ -322,6 +336,109 @@ export default function AccountSettings() {
                 <p className={`text-xs sm:text-sm mt-1 ${updateMessage.includes('successfully') ? 'text-green-600' : 'text-red-600'}`}>
                   {updateMessage}
                 </p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Business Details Section */}
+        {isBusiness && showBusinessOptions && (
+          <div className="mb-6 sm:mb-8 p-4 sm:p-6 bg-yellow-50 rounded-lg border border-yellow-100">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900">Business Details</h3>
+                <button
+                  onClick={() => setShowBusinessDetailsModal(true)}
+                  className="px-4 sm:px-6 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-700 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base md:w-56 lg:w-56"
+                >
+                  <span className="hidden sm:inline">Add Business Details</span>
+                  <span className="sm:hidden">Add Details</span>
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                  </svg>
+                </button>
+              </div>
+              <p className="text-sm sm:text-base text-gray-700">
+                Add your business information, contact details, and other relevant information.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Posts Allowed Section - Service/Product Toggles */}
+        {isBusiness && showBusinessOptions && (
+          <div className="mb-6 sm:mb-8 p-4 sm:p-6 bg-purple-50 rounded-lg border border-purple-100">
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900">Posts Allowed</h3>
+              </div>
+              
+              <div className="space-y-4">
+                {/* Service Toggle */}
+                <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                      <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M6 6V5a3 3 0 013-3h2a3 3 0 013 3v1h2a2 2 0 012 2v3.57A22.952 22.952 0 0110 13a22.95 22.95 0 01-8-1.43V8a2 2 0 012-2h2zm2-1a1 1 0 011-1h2a1 1 0 011 1v1H8V5zm1 5a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1z" clipRule="evenodd" />
+                        <path d="M2 13.692V16a2 2 0 002 2h12a2 2 0 002-2v-2.308A24.974 24.974 0 0110 15c-2.796 0-5.487-.46-8-1.308z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-gray-900">Service</h4>
+                      <p className="text-sm text-gray-500">Allow service-related posts</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setServicePostsAllowed(!servicePostsAllowed)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 ${
+                      servicePostsAllowed ? 'bg-purple-600' : 'bg-gray-200'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        servicePostsAllowed ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {/* Product Toggle */}
+                <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                      <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 4a1 1 0 011-1h12a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1V8z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-gray-900">Product</h4>
+                      <p className="text-sm text-gray-500">Allow product-related posts</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setProductPostsAllowed(!productPostsAllowed)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 ${
+                      productPostsAllowed ? 'bg-purple-600' : 'bg-gray-200'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        productPostsAllowed ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+              
+              {(servicePostsAllowed || productPostsAllowed) && (
+                <div className="mt-4 p-3 bg-purple-100 rounded-lg">
+                  <p className="text-sm text-purple-700">
+                    <span className="font-semibold">Enabled:</span>
+                    {servicePostsAllowed && <span className="ml-1">Service posts</span>}
+                    {servicePostsAllowed && productPostsAllowed && <span className="mx-1">•</span>}
+                    {productPostsAllowed && <span className="ml-1">Product posts</span>}
+                  </p>
+                </div>
               )}
             </div>
           </div>
