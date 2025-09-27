@@ -34,8 +34,9 @@ const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
   isFullPrivate = false,
   isBusinessAccount = false
 }) => {
-  const [activeTab, setActiveTab] = useState('posts');
-  const [activeCategory, setActiveCategory] = useState<'personal' | 'business'>('personal');
+  // For business accounts visiting other users, default to business category and business tab
+  const [activeTab, setActiveTab] = useState(isBusinessAccount && isOtherUser ? 'business' : 'posts');
+  const [activeCategory, setActiveCategory] = useState<'personal' | 'business'>(isBusinessAccount && isOtherUser ? 'business' : 'personal');
   const { requireAuth } = useAuthGuard();
   const [postLikes, setPostLikes] = useState<{[key: string]: {isLiked: boolean, count: number}}>({});
   const [hoveredVideo, setHoveredVideo] = useState<string | null>(null);
@@ -48,6 +49,20 @@ const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
     // because getRegularPostPrivacy handles the logic
     // This effect is mainly for any future side effects we might need
   }, [isFullPrivate]);
+
+  // Update default category and tab when visiting business accounts
+  useEffect(() => {
+    if (isBusinessAccount && isOtherUser) {
+      // When visiting a business account, default to business category and business tab
+      setActiveCategory('business');
+      setActiveTab('business');
+    } else if (!isBusinessAccount && isOtherUser) {
+      // When visiting a personal account, default to personal category and posts tab
+      setActiveCategory('personal');
+      setActiveTab('posts');
+    }
+    // For own profile (isOtherUser = false), keep user's current selection
+  }, [isBusinessAccount, isOtherUser]);
 
   // Handle video playback based on hover state
   useEffect(() => {
@@ -71,17 +86,57 @@ const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
     }
   }, [hoveredVideo, activeTab, currentImageIndex]);
 
+  // Filter posts by type
+  const getFilteredPosts = () => {
+    // Filter regular posts (only 'normal' contentType for Personal->Posts)
+    const regularPosts = posts.filter(post =>
+      post.contentType === 'normal' ||
+      (!post.contentType && !post.postType) // Fallback for posts without explicit type
+    );
+
+    // Filter business posts (any contentType other than 'normal')
+    const businessPosts = posts.filter(post =>
+      post.contentType && post.contentType !== 'normal'
+    );
+
+    // Filter service posts
+    const servicePosts = businessPosts.filter(post =>
+      post.contentType === 'service'
+    );
+
+    // Filter product posts
+    const productPosts = businessPosts.filter(post =>
+      post.contentType === 'product'
+    );
+
+    // Filter other business posts (not service or product)
+    const otherBusinessPosts = businessPosts.filter(post =>
+      post.contentType !== 'service' && post.contentType !== 'product'
+    );
+
+    return {
+      regular: regularPosts,
+      business: otherBusinessPosts,
+      service: servicePosts,
+      product: productPosts
+    };
+  };
+
+  const filteredPosts = getFilteredPosts();
+
   // Define tabs based on active category
   const personalTabs = [
-    { id: 'posts', label: 'Posts', icon: Grid3X3, count: posts.length },
+    { id: 'posts', label: 'Posts', icon: Grid3X3, count: filteredPosts.regular.length },
     { id: 'reels', label: 'Reels', icon: Play, count: reels.length },
     { id: 'videos', label: 'Videos', icon: Video, count: videos.length },
-    { id: 'saved', label: 'Saved', icon: Bookmark, count: savedPosts.length }
+    // Only show saved tab for own profile or if there are public saved posts
+    ...((!isOtherUser || savedPosts.length > 0) ? [{ id: 'saved', label: 'Saved', icon: Bookmark, count: savedPosts.length }] : [])
   ];
 
   const businessTabs = [
-    { id: 'service', label: 'Service', icon: Grid3X3, count: 0 }, // Placeholder count
-    { id: 'product', label: 'Product', icon: Play, count: 0 } // Placeholder count
+    { id: 'business', label: 'Business', icon: Grid3X3, count: filteredPosts.business.length },
+    { id: 'service', label: 'Service', icon: Grid3X3, count: filteredPosts.service.length },
+    { id: 'product', label: 'Product', icon: Play, count: filteredPosts.product.length }
   ];
 
   const tabs = activeCategory === 'personal' ? personalTabs : businessTabs;
@@ -92,18 +147,22 @@ const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
 
   const getCurrentPosts = () => {
     if (activeCategory === 'business') {
-      // For business tabs, return empty array for now (will be populated with API data later)
+      // Business tabs return filtered posts by type
       switch (activeTab) {
+        case 'business':
+          return filteredPosts.business;
         case 'service':
-          return []; // Service posts will be fetched from API
+          return filteredPosts.service;
         case 'product':
-          return []; // Product posts will be fetched from API
+          return filteredPosts.product;
         default:
           return [];
       }
     } else {
-      // Personal tabs work as before
+      // Personal tabs
       switch (activeTab) {
+        case 'posts':
+          return filteredPosts.regular; // Only regular posts in Personal->Posts
         case 'reels':
           return reels;
         case 'videos':
@@ -111,7 +170,7 @@ const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
         case 'saved':
           return savedPosts;
         default:
-          return posts;
+          return filteredPosts.regular;
       }
     }
   };
@@ -227,7 +286,7 @@ const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
 
   return (
     <div className="w-full bg-white rounded-xl shadow-sm px-4 py-6">
-      {/* Category Tabs (Personal/Business) - Only show for business accounts */}
+      {/* Category Tabs (Personal/Business) - Show for business accounts */}
       {isBusinessAccount && (
         <div className="flex justify-center border-b border-gray-200 mb-4">
           <div className="flex gap-2 bg-gray-100 rounded-lg p-1">
@@ -247,7 +306,7 @@ const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
             <button
               onClick={() => {
                 setActiveCategory('business');
-                setActiveTab('service'); // Reset to first business tab
+                setActiveTab('business'); // Reset to first business tab
               }}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                 activeCategory === 'business'
@@ -312,6 +371,7 @@ const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
               {activeTab === 'reels' && <Play className="w-12 h-12 mx-auto" />}
               {activeTab === 'videos' && <Video className="w-12 h-12 mx-auto" />}
               {activeTab === 'saved' && <Bookmark className="w-12 h-12 mx-auto" />}
+              {activeTab === 'business' && <Grid3X3 className="w-12 h-12 mx-auto" />}
               {activeTab === 'service' && <Grid3X3 className="w-12 h-12 mx-auto" />}
               {activeTab === 'product' && <Play className="w-12 h-12 mx-auto" />}
             </div>
@@ -319,10 +379,11 @@ const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
               No {activeTab} yet
             </h3>
             <p className="text-gray-500">
-              {activeTab === 'posts' && (isOtherUser ? "No posts shared yet" : "Share your first post to get started")}
+              {activeTab === 'posts' && (isOtherUser ? "No regular posts shared yet" : "Share your first regular post to get started")}
               {activeTab === 'reels' && (isOtherUser ? "No reels shared yet" : "Create your first reel")}
               {activeTab === 'videos' && (isOtherUser ? "No videos shared yet" : "Upload your first video")}
               {activeTab === 'saved' && (isOtherUser ? "No public saved posts yet" : "No saved posts yet")}
+              {activeTab === 'business' && (isOtherUser ? "No business posts yet" : "Share your first business post")}
               {activeTab === 'service' && (isOtherUser ? "No service posts yet" : "Share your first service post")}
               {activeTab === 'product' && (isOtherUser ? "No product posts yet" : "Share your first product post")}
             </p>
