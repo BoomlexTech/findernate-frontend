@@ -319,6 +319,7 @@ const UserProfilePage = () => {
             loading={postsLoading}
             onTabChange={handleTabChange}
             isFullPrivate={profileData?.isFullPrivate || false}
+            isBusinessAccount={profileData?.isBusinessProfile || false}
           />
         </div>
       </div>
