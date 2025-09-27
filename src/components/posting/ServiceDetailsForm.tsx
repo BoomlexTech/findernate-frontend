@@ -62,7 +62,8 @@ const ServiceDetailsForm: React.FC<ServiceDetailsFormProps> = ({
             type="number"
             name="price"
             min="0"
-            value={formData.service.price}
+            placeholder="Enter price"
+            value={formData.service.price === 0 ? '' : formData.service.price}
             onChange={onChange}
             className="w-full p-3 text-black border border-gray-300 rounded-lg placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-yellow-500"
             required

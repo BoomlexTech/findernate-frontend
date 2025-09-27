@@ -31,7 +31,8 @@ const ProductDetailsForm: React.FC<ProductDetailsFormProps> = ({
             type="number"
             name="price"
             min="0"
-            value={formData.product.price}
+            placeholder="Enter price"
+            value={formData.product.price === 0 ? '' : formData.product.price}
             onChange={onChange}
             className="w-full p-3 border text-gray-900 border-gray-300 rounded-lg placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-yellow-500"
           />

@@ -336,17 +336,6 @@ const BusinessDetailsModal: React.FC<Props> = ({
       return false;
     }
 
-    if (!form.businessType?.trim()) {
-      toast.error('Business type is required', {
-        position: "top-right",
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-      });
-      return false;
-    }
 
     if (!form.category?.trim()) {
       toast.error('Business category is required', {
@@ -396,8 +385,39 @@ const BusinessDetailsModal: React.FC<Props> = ({
         // Edit mode: PATCH API
         response = await UpdateBusinessDetails(formDataToSubmit);
       } else {
-        // Create mode: POST API
-        response = await AddBusinessDetails(formDataToSubmit);
+        // Create mode: Try POST API first, fallback to PATCH if business exists
+        try {
+          response = await AddBusinessDetails(formDataToSubmit);
+        } catch (createError: any) {
+          // Check if the error indicates business already exists
+          const errorMessage = createError?.response?.data?.message || createError?.message || '';
+          const isBusinessExistsError = errorMessage.toLowerCase().includes('business') && 
+              (errorMessage.toLowerCase().includes('already exists') || 
+               errorMessage.toLowerCase().includes('already present') ||
+               errorMessage.toLowerCase().includes('duplicate') ||
+               errorMessage.toLowerCase().includes('profile already exists'));
+          
+          if (isBusinessExistsError) {
+            
+            console.log('🔄 Business already exists, falling back to update API...');
+            
+            // Show info toast about fallback
+            toast.info('Business profile already exists. Updating existing details...', {
+              position: "top-right",
+              autoClose: 2000,
+              hideProgressBar: false,
+              closeOnClick: true,
+              pauseOnHover: true,
+              draggable: true,
+            });
+            
+            // Fallback to update API
+            await UpdateBusinessDetails(formDataToSubmit);
+          } else {
+            // Re-throw the original error if it's not a "business exists" error
+            throw createError;
+          }
+        }
       }
       
       //console.log('Success:', response);
@@ -593,7 +613,7 @@ const BusinessDetailsModal: React.FC<Props> = ({
                   <div className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
-                        <label className="block text-sm font-medium text-gray-700">Business Type</label>
+                        <label className="block text-sm font-medium text-gray-700">Business Type <span className="text-gray-500 text-sm">(Optional)</span></label>
                         <input 
                           name="businessType" 
                           value={form.businessType} 
