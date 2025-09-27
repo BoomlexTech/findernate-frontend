@@ -19,6 +19,9 @@ import { followUser, unfollowUser } from '@/api/user'
 import { Heart, MoreVertical, Bookmark, BookmarkCheck } from 'lucide-react'
 import { useAuthGuard } from '@/hooks/useAuthGuard';
 import { AuthDialog } from '@/components/AuthDialog';
+import { useOptimizedComments } from '@/hooks/useOptimizedComments';
+import { useIntersectionPreloader } from '@/hooks/useIntersectionPreloader';
+import { commentCacheManager } from '@/utils/commentCache';
 
 // Timeout utility for API calls
 const createTimeoutPromise = (timeout: number) => {
@@ -530,44 +533,50 @@ const Page = () => {
 
   // This useEffect is now redundant - removed to avoid conflicts
 
-  // Update counts and fetch comments when reel changes
+  // Optimized comment fetching with caching
+  const {
+    comments: optimizedComments,
+    totalCount: optimizedCommentsCount,
+    isLoading: commentsLoading,
+    fetchComments: fetchOptimizedComments,
+    preloadComments,
+    getCacheStats
+  } = useOptimizedComments({ maxVisible: 4, enablePreloading: true });
+
+  // Intersection Observer for predictive loading
+  const { registerReel, preloadComments: intersectionPreload } = useIntersectionPreloader(
+    reelsData,
+    {
+      rootMargin: '100px',
+      threshold: 0.1,
+      preloadDistance: 2,
+      onReelVisible: (reelId, index) => {
+        // Fetch comments for visible reel
+        fetchOptimizedComments(reelId);
+      },
+      onReelPreload: (reelId, index) => {
+        // Preload comments for upcoming reels
+        preloadComments(reelId);
+      }
+    }
+  );
+
+  // Update counts when reel changes (HIGHLY OPTIMIZED)
   useEffect(() => {
-    // //console.log('useEffect triggered - reelsData.length:', reelsData.length, 'currentReelIndex:', currentReelIndex);
-    
     if (reelsData.length > 0) {
       const currentData = getCurrentModalData();
-      // //console.log('Current reel data for state update:', {
-      //   id: currentData._id,
-      //   likes: currentData.engagement?.likes,
-      //   isLikedBy: currentData.isLikedBy,
-      //   comments: currentData.engagement?.comments
-      // });
-      
-      setCommentsCount(currentData.engagement?.comments || 0);
+
+      // Update UI state immediately from existing data
       setLikesCount(currentData.engagement?.likes || 0);
       setIsLiked(Boolean(currentData.isLikedBy));
-      
-      // Debug follow state initialization
-      // //console.log('=== FOLLOW STATE INIT ===');
-      // //console.log('currentData.isFollowed:', currentData.isFollowed);
-      // //console.log('Boolean(currentData.isFollowed):', Boolean(currentData.isFollowed));
-      // //console.log('Setting isFollowed to:', Boolean(currentData.isFollowed));
-      // //console.log('=== END FOLLOW STATE INIT ===');
-      
       setIsFollowed(Boolean(currentData.isFollowed));
-      
-      // Check saved status for current reel using localStorage first
+
+      // Check saved status using localStorage
       const checkSavedStatus = () => {
         try {
           if (currentData._id?.length === 24) {
-            // Check localStorage first for immediate response
             const savedReels = getSavedReelsFromStorage();
             const isLocallyMarkedSaved = savedReels.has(currentData._id);
-            
-            // //console.log('Checking saved status for reel:', currentData._id);
-            // //console.log('localStorage saved reels:', [...savedReels]);
-            // //console.log('Is locally saved:', isLocallyMarkedSaved);
-            
             setIsSaved(isLocallyMarkedSaved);
           } else {
             setIsSaved(false);
@@ -577,47 +586,43 @@ const Page = () => {
           setIsSaved(false);
         }
       };
-      
+
       checkSavedStatus();
-      
-      // Check if we have cached comment count first
-      const cachedCommentCounts = getCommentCountsFromStorage();
-      const cachedCount = cachedCommentCounts.get(currentData._id);
-      
-      if (cachedCount !== undefined) {
-        // Use cached count immediately for faster display
-        setCommentsCount(cachedCount);
+
+      // Use optimized comment fetching with caching
+      if (currentData._id) {
+        // Check cache first for instant display
+        const cached = commentCacheManager.getCachedComments(currentData._id);
+        if (cached) {
+          setCommentsCount(cached.totalCount);
+          setComments(cached.comments);
+        } else {
+          // Set loading state and fetch
+          setCommentsCount(currentData.engagement?.comments || 0);
+          fetchOptimizedComments(currentData._id);
+        }
       }
-      
-      // Fetch top 4 comments for the current reel and update comment count
-      getCommentsByPost(currentData._id, 1, 4)
-        .then((data) => {
-          setComments(Array.isArray(data.comments) ? data.comments : []);
-          // Update comment count with actual total from API
-          const actualCommentCount = data.totalComments || 0;
-          setCommentsCount(actualCommentCount);
-          // Cache the comment count for faster future loads
-          saveCommentCountToStorage(currentData._id, actualCommentCount);
-          // Update the reel data to reflect the correct count
-          updateReelInState(currentData._id, {
-            engagement: {
-              ...currentData.engagement,
-              comments: actualCommentCount
-            }
-          });
-        })
-        .catch(() => setComments([]));
     } else {
       // Fallback to static data if no API data available
       const staticData = staticModalData[currentReelIndex % staticModalData.length];
       setCommentsCount(staticData.engagement?.comments || 0);
       setLikesCount(staticData.engagement?.likes || 0);
       setIsLiked(Boolean(staticData.isLikedBy));
-      setIsFollowed(false); // Static data doesn't have follow status
+      setIsFollowed(false);
       setIsSaved(false);
     }
-  }, [currentReelIndex, reelsData]);
-  // Removed redundant useEffect to avoid conflicts
+  }, [currentReelIndex, reelsData, fetchOptimizedComments]);
+
+  // Sync optimized comments with local state
+  useEffect(() => {
+    if (optimizedCommentsCount > 0) {
+      setCommentsCount(optimizedCommentsCount);
+    }
+    if (optimizedComments.length > 0) {
+      setComments(optimizedComments);
+    }
+  }, [optimizedCommentsCount, optimizedComments]);
+
   // Use current modal data for comment operations
   const currentModalData = getCurrentModalData();
 

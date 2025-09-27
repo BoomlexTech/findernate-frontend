@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, memo, useCallback } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Heart, MessageCircle, MoreHorizontal, Edit, Trash2, Flag } from 'lucide-react';
@@ -20,7 +20,7 @@ interface CommentItemProps {
   isReply?: boolean;
 }
 
-const CommentItem = ({ comment, onUpdate, onDelete, onReplyAdded, isReply = false }: CommentItemProps) => {
+const CommentItem = memo(({ comment, onUpdate, onDelete, onReplyAdded, isReply = false }: CommentItemProps) => {
   const { user } = useUserStore();
   const router = useRouter();
   const [isLiked, setIsLiked] = useState(comment.isLikedByUser || false);
@@ -363,6 +363,16 @@ const CommentItem = ({ comment, onUpdate, onDelete, onReplyAdded, isReply = fals
       />
     </div>
   );
-};
+}, (prevProps, nextProps) => {
+  // Only re-render if comment data has actually changed
+  return prevProps.comment._id === nextProps.comment._id &&
+         prevProps.comment.content === nextProps.comment.content &&
+         prevProps.comment.likesCount === nextProps.comment.likesCount &&
+         prevProps.comment.isLikedByUser === nextProps.comment.isLikedByUser &&
+         prevProps.comment.replies?.length === nextProps.comment.replies?.length &&
+         prevProps.isReply === nextProps.isReply;
+});
+
+CommentItem.displayName = 'CommentItem';
 
 export default CommentItem;
