@@ -1,5 +1,5 @@
 "use client"
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, memo } from 'react';
 import Image from 'next/image';
 import { Play, Volume2, VolumeX, ChevronUp, ChevronDown, Heart, MessageCircle, MoreVertical } from 'lucide-react';
 import { getReels } from '@/api/reels';
@@ -31,10 +31,11 @@ interface ReelsComponentProps {
   description?: string;
   hashtags?: string[];
   profileImageUrl?: string;
+  currentIndex?: number;
 }
 
-const ReelsComponent: React.FC<ReelsComponentProps> = ({ 
-  onReelChange, 
+const ReelsComponent: React.FC<ReelsComponentProps> = memo(({
+  onReelChange,
   apiReelsData,
   onLikeToggle,
   onCommentClick,
@@ -393,7 +394,9 @@ const ReelsComponent: React.FC<ReelsComponentProps> = ({
         {reels.map((reel, index) => (
           <div
             key={reel.id}
-              className="relative h-full w-full snap-start flex-shrink-0"
+            className="relative h-full w-full snap-start flex-shrink-0"
+            data-reel-id={apiReelsData?.[index]?._id || reel.id}
+            data-reel-index={index}
           >
             {/* Video */}
             <video
@@ -596,6 +599,17 @@ const ReelsComponent: React.FC<ReelsComponentProps> = ({
       `}</style>
     </div>
   );
-};
+}, (prevProps, nextProps) => {
+  // Only re-render if essential props change
+  return prevProps.currentIndex === nextProps.currentIndex &&
+         prevProps.isLiked === nextProps.isLiked &&
+         prevProps.isSaved === nextProps.isSaved &&
+         prevProps.likesCount === nextProps.likesCount &&
+         prevProps.commentsCount === nextProps.commentsCount &&
+         prevProps.apiReelsData?.length === nextProps.apiReelsData?.length &&
+         prevProps.isMobile === nextProps.isMobile;
+});
+
+ReelsComponent.displayName = 'ReelsComponent';
 
 export default ReelsComponent;
