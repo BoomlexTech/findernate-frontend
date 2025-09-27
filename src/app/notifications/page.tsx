@@ -377,7 +377,7 @@ const Notifications = () => {
     };
 
     // Set up interval to refresh every 1.5 seconds
-    const interval = setInterval(autoRefreshNotifications, 1500);
+    const interval = setInterval(autoRefreshNotifications, 30000);
 
     return () => {
       clearInterval(interval);
