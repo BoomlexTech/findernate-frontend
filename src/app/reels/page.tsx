@@ -15,13 +15,14 @@ import { useRouter } from 'next/navigation'
 import { createComment, getCommentsByPost, Comment as CommentType } from '@/api/comment'
 import { getReels, likeReel, unlikeReel } from '@/api/reels'
 import { savePost, unsavePost } from '@/api/post'
-import { followUser, unfollowUser } from '@/api/user'
+import { followUser, unfollowUser, blockUser } from '@/api/user'
 import { Heart, MoreVertical, Bookmark, BookmarkCheck } from 'lucide-react'
 import { useAuthGuard } from '@/hooks/useAuthGuard';
 import { AuthDialog } from '@/components/AuthDialog';
 import { useOptimizedComments } from '@/hooks/useOptimizedComments';
 import { useIntersectionPreloader } from '@/hooks/useIntersectionPreloader';
 import { commentCacheManager } from '@/utils/commentCache';
+import ReportModal from '@/components/ReportModal';
 
 // Timeout utility for API calls
 const createTimeoutPromise = (timeout: number) => {
@@ -379,6 +380,10 @@ const Page = () => {
   const [showComments, setShowComments] = useState(false); // New state for mobile comments drawer
   const [showShareModal, setShowShareModal] = useState(false); // New state for share modal
   const [showMoreModal, setShowMoreModal] = useState(false); // New state for more options modal
+  const [showReportModal, setShowReportModal] = useState(false); // New state for report modal
+  const [reportType, setReportType] = useState<'post' | 'user'>('post'); // Type of content to report
+  const [reportContentId, setReportContentId] = useState<string>(''); // ID of content to report
+  const [showBlockModal, setShowBlockModal] = useState(false); // New state for block confirmation modal
 
   const showToastMessage = (message: string) => {
     setToastMessage(message);
@@ -912,6 +917,56 @@ const Page = () => {
     }
   };
 
+  const handleOpenReportModal = (type: 'post' | 'user') => {
+    const currentData = getCurrentModalData();
+
+    if (type === 'post') {
+      if (!currentData._id || currentData._id.length !== 24) {
+        showToastMessage('Cannot report demo content');
+        return;
+      }
+      setReportContentId(currentData._id);
+    } else {
+      const userId = currentData.userId?._id || currentData.userId;
+      if (!userId) {
+        showToastMessage('Unable to report: Invalid user data');
+        return;
+      }
+      setReportContentId(userId);
+    }
+
+    setReportType(type);
+    setShowReportModal(true);
+  };
+
+  const handleBlockUser = async () => {
+    const currentData = getCurrentModalData();
+
+    try {
+      // Get the user ID from current reel data
+      const userId = currentData.userId?._id || currentData.userId;
+
+      if (!userId) {
+        showToastMessage('Unable to block: Invalid user data');
+        return;
+      }
+
+      await blockUser(userId, 'Blocked from reels');
+      showToastMessage(`User @${currentData.username} has been blocked`);
+      setShowBlockModal(false);
+
+      // Optionally refresh the reels to remove blocked user's content
+      // refreshCurrentReel();
+    } catch (error: any) {
+      console.error('Error blocking user:', error);
+      if (error.response?.status === 400 && error.response?.data?.message?.includes('already blocked')) {
+        showToastMessage('User is already blocked');
+      } else {
+        showToastMessage('Failed to block user. Please try again.');
+      }
+    }
+  };
+
   const formatNumber = (num: number) => {
     if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
     if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
@@ -1085,11 +1140,11 @@ const Page = () => {
         {/* Mobile More Options Dropdown */}
         {showMoreModal && (
           <div className="fixed inset-0 z-[70]" onClick={() => setShowMoreModal(false)}>
-            <div className="absolute right-16 bottom-20 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-50 min-w-[120px]">
+            <div className="absolute right-16 bottom-20 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-50 min-w-[140px]">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  showToastMessage('Report submitted');
+                  handleOpenReportModal('post');
                   setShowMoreModal(false);
                 }}
                 className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
@@ -1097,12 +1152,13 @@ const Page = () => {
                 <svg className="w-3.5 h-3.5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
                 </svg>
-                <span>Report</span>
+                <span>Report Post</span>
               </button>
+              {/* 'Report User' option removed per design decision */}
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  showToastMessage('User blocked');
+                  setShowBlockModal(true);
                   setShowMoreModal(false);
                 }}
                 className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
@@ -1112,6 +1168,48 @@ const Page = () => {
                 </svg>
                 <span>Block User</span>
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* Report Modal */}
+        <ReportModal
+          isOpen={showReportModal}
+          onClose={() => setShowReportModal(false)}
+          contentType={reportType}
+          contentId={reportContentId}
+        />
+
+        {/* Mobile Block Confirmation Modal */}
+        {showBlockModal && (
+          <div className="fixed inset-0 bg-black/50 z-[80] flex items-center justify-center p-4">
+            <div className="bg-white w-full max-w-sm rounded-2xl p-6">
+              <div className="text-center mb-6">
+                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728L18.364 5.636M5.636 18.364l12.728-12.728" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Block User</h3>
+                <p className="text-sm text-gray-600">
+                  Are you sure you want to block @{getCurrentModalData().username}? They won't be able to see your profile or interact with your content.
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <button
+                  onClick={handleBlockUser}
+                  className="w-full bg-red-600 hover:bg-red-700 text-white py-3 px-4 rounded-lg font-medium transition-colors"
+                >
+                  Block User
+                </button>
+                <button
+                  onClick={() => setShowBlockModal(false)}
+                  className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 py-3 px-4 rounded-lg font-medium transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -1231,10 +1329,25 @@ const Page = () => {
               {/* Dropdown Menu */}
               {showDropdown && (
                 <div className="absolute right-0 top-10 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-50 min-w-[120px] max-w-[200px] transform -translate-x-0 sm:right-0 sm:left-auto left-0">
-                  <button className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50">
-                    Report
+                  <button
+                    className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleOpenReportModal('post');
+                      setShowDropdown(false);
+                    }}
+                  >
+                    Report Post
                   </button>
-                  <button className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50">
+                  {/* 'Report User' option removed from desktop dropdown */}
+                  <button
+                    className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowBlockModal(true);
+                      setShowDropdown(false);
+                    }}
+                  >
                     Block User
                   </button>
                 </div>
@@ -1335,6 +1448,48 @@ const Page = () => {
         </div>
         </div>
       </div>
+
+      {/* Report Modal */}
+      <ReportModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        contentType={reportType}
+        contentId={reportContentId}
+      />
+
+      {/* Desktop Block Confirmation Modal */}
+      {showBlockModal && (
+        <div className="fixed inset-0 bg-black/50 z-[80] flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-sm rounded-2xl p-6">
+            <div className="text-center mb-6">
+              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728L18.364 5.636M5.636 18.364l12.728-12.728" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Block User</h3>
+              <p className="text-sm text-gray-600">
+                Are you sure you want to block @{getCurrentModalData().username}? They won't be able to see your profile or interact with your content.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <button
+                onClick={handleBlockUser}
+                className="w-full bg-red-600 hover:bg-red-700 text-white py-3 px-4 rounded-lg font-medium transition-colors"
+              >
+                Block User
+              </button>
+              <button
+                onClick={() => setShowBlockModal(false)}
+                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 py-3 px-4 rounded-lg font-medium transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

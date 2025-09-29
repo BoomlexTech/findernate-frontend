@@ -2,7 +2,7 @@ import axios from './base';
 
 // Toggle account privacy (private/public)
 export const toggleAccountPrivacy = async () => {
-  const response = await axios.put('/users/privacy/account');
+  const response = await axios.put('/users/privacy/account', {});
   return response.data;
 };
 
@@ -68,6 +68,6 @@ export const getFollowing = async (userId: string) => {
 
 // Toggle full account privacy
 export const toggleFullAccountPrivacy = async (privacy: 'private' | 'public') => {
-  const response = await axios.put('/users/privacy/full-private', { privacy });
+  const response = await axios.put('/users/privacy/account', { privacy });
   return response.data;
 };
