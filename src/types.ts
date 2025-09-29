@@ -308,10 +308,12 @@ export interface SearchUser {
   fullName: string;
   profileImageUrl?: string;
   bio?: string;
-  location?: string;
-  isFollowing?: boolean;
-  followersCount?: number;
-  followingCount?: number;
+    // Allow for Mongoose-style _doc property
+    _doc?: Partial<SearchUser>;
+    location?: string;
+    isFollowing?: boolean;
+    followersCount?: number;
+    followingCount?: number;
 }
 
 export interface SearchResult {

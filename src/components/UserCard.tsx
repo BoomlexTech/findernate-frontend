@@ -17,7 +17,11 @@ interface UserCardProps {
 }
 
 const UserCard: React.FC<UserCardProps> = ({ user, onFollow }) => {
-  const [isFollowing, setIsFollowing] = useState(user.isFollowing || false);
+  console.log('[UserCard] Rendering user:', user);
+
+  // Prefer _doc fields if present (Mongoose-style object)
+  const userData = user._doc ? { ...user, ...user._doc } : user;
+  const [isFollowing, setIsFollowing] = useState(userData.isFollowing || false);
   const [isLoading, setIsLoading] = useState(false);
   const [creatingChat, setCreatingChat] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -25,38 +29,27 @@ const UserCard: React.FC<UserCardProps> = ({ user, onFollow }) => {
   const router = useRouter();
   const { requireAuth, showAuthDialog, closeAuthDialog } = useAuthGuard();
   const currentUser = useUserStore(state => state.user);
-  const isCurrentUser = currentUser?._id === user._id;
+  const isCurrentUser = currentUser?._id === userData._id;
 
   // Update local state when user prop changes
   useEffect(() => {
-    setIsFollowing(user.isFollowing || false);
-    //console.log('UserCard: Setting follow state for user', user._id, 'to', user.isFollowing || false);
-  }, [user.isFollowing, user._id]);
+    setIsFollowing(userData.isFollowing || false);
+    //console.log('UserCard: Setting follow state for user', userData._id, 'to', userData.isFollowing || false);
+  }, [userData.isFollowing, userData._id]);
 
   const handleFollowClick = async () => {
     requireAuth(async () => {
       if (isLoading) return;
-      
-      // Debug check - same as UserProfile
-      //console.log('Attempting to follow/unfollow user:', {
-      //  targetUserId: user._id,
-      //  currentlyFollowing: isFollowing,
-      //  token: typeof window !== 'undefined' ? !!localStorage.getItem('token') : false
-      // });
-      
       setIsLoading(true);
       try {
         if (isFollowing) {
-          await unfollowUser(user._id);
+          await unfollowUser(userData._id);
           setIsFollowing(false);
         } else {
-          await followUser(user._id);
+          await followUser(userData._id);
           setIsFollowing(true);
         }
-        
-        // Call the optional callback if provided (for parent component updates)
-        onFollow?.(user._id);
-        
+        onFollow?.(userData._id);
       } catch (error: any) {
         console.error('Error toggling follow status:', error);
         
@@ -113,19 +106,13 @@ const UserCard: React.FC<UserCardProps> = ({ user, onFollow }) => {
       try {
         // Get current user from store
         const currentUser = useUserStore.getState().user;
-        
         if (!currentUser) {
           alert('Please log in to send messages');
           return;
         }
-        
         // Create a direct chat with both users (current user + target user)
-        const participants = [currentUser._id, user._id];
-        //console.log('Creating chat with participants:', participants);
-        
+        const participants = [currentUser._id, userData._id];
         const chat = await messageAPI.createChat(participants, 'direct');
-        
-        // Navigate to the chat page with the created chat selected
         router.push(`/chats?chatId=${chat._id}`);
       } catch (error) {
         const axiosError = error as AxiosError;
@@ -183,7 +170,7 @@ const UserCard: React.FC<UserCardProps> = ({ user, onFollow }) => {
                 // Navigate to dedicated self profile route if available
                 router.push('/profile');
               } else {
-                router.push(`/userprofile/${user.username}`);
+                router.push(`/userprofile/${userData.username}`);
               }
             });
           }}
@@ -193,18 +180,18 @@ const UserCard: React.FC<UserCardProps> = ({ user, onFollow }) => {
           <div className="flex items-start gap-3">
             {/* Profile Image or Avatar */}
             <div className="flex-shrink-0">
-              {user.profileImageUrl ? (
+              {userData.profileImageUrl ? (
                 <Image
                   width={56}
                   height={56}
-                  src={user.profileImageUrl}
-                  alt={user.username || user.fullName || "User"}
+                  src={userData.profileImageUrl}
+                  alt={userData.username || userData.fullName || "User"}
                   className="w-14 h-14 rounded-full object-cover border-2 border-gray-100"
                 />
               ) : (
                 <div className="w-14 h-14 rounded-full bg-button-gradient flex items-center justify-center text-black font-semibold text-lg border-2 border-gray-100">
-                  {user.fullName ? getInitials(user.fullName) : 
-                   user.username ? getInitials(user.username) : 
+                  {userData.fullName ? getInitials(userData.fullName) : 
+                   userData.username ? getInitials(userData.username) : 
                    <User size={24} />}
                 </div>
               )}
@@ -215,18 +202,18 @@ const UserCard: React.FC<UserCardProps> = ({ user, onFollow }) => {
                 <div className="flex-1 min-w-0">
                   {/* Name */}
                   <h3 className="font-semibold text-gray-900 text-base leading-tight">
-                    {user.fullName || user.username || "Unknown User"}
+                    {userData.fullName || userData.username || "Unknown User"}
                   </h3>
                   {/* Username (if different from display name) */}
-                  {user.username && user.fullName && user.username !== user.fullName && (
+                  {userData.username && userData.fullName && userData.username !== userData.fullName && (
                     <p className="text-sm text-gray-500 mt-0.5">
-                      @{user.username}
+                      @{userData.username}
                     </p>
                   )}
                   {/* Professional Title/Description */}
-                  {user.bio && (
+                  {userData.bio && (
                     <p className="text-sm text-gray-600 mt-1 leading-relaxed">
-                      {truncateText(user.bio, 80)}
+                      {truncateText(userData.bio, 80)}
                     </p>
                   )}
                   {/* Location */}
@@ -274,7 +261,7 @@ const UserCard: React.FC<UserCardProps> = ({ user, onFollow }) => {
         isOpen={showReportModal}
         onClose={() => setShowReportModal(false)}
         contentType="user"
-        contentId={user._id}
+  contentId={userData._id}
       />
     </>
   );
