@@ -36,17 +36,30 @@ export const GetBusinessCategory = async () => {
 }
 
 export const switchToBusiness = async () => {
+    const response = await axios.post("/business/switch-to-business");
+    return response.data;
+}
+
+export const switchToPersonal = async () => {
+    const response = await axios.post("/business/switch-to-personal");
+    return response.data;
+}
+
+// Toggle allowed post types for business accounts
+export const toggleServicePosts = async () => {
     try {
-        const response = await axios.post("/business/switch-to-business");
+        // Using full URL as provided
+        const response = await axios.post("/business//toggle-service-posts");
         return response.data;
     } catch (error: any) {
         throw error;
     }
 }
 
-export const switchToPersonal = async () => {
+export const toggleProductPosts = async () => {
     try {
-        const response = await axios.post("/business/switch-to-personal");
+        // Using full URL as provided
+        const response = await axios.post("/business//toggle-product-posts");
         return response.data;
     } catch (error: any) {
         throw error;
@@ -54,19 +67,11 @@ export const switchToPersonal = async () => {
 }
 
 export const getBusinessRatingSummary = async (businessId: string) => {
-    try {
-        const response = await axios.get(`/business/${businessId}/rating-summary`);
-        return response.data;
-    } catch (error: any) {
-        throw error;
-    }
+    const response = await axios.get(`/business/${businessId}/rating-summary`);
+    return response.data;
 }
 
 export const rateBusiness = async (businessId: string, rating: number) => {
-    try {
-        const response = await axios.post(`/business/${businessId}/rate`, { rating });
-        return response.data;
-    } catch (error: any) {
-        throw error;
-    }
+    const response = await axios.post(`/business/${businessId}/rate`, { rating });
+    return response.data;
 }
