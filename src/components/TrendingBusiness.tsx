@@ -115,7 +115,7 @@ export default function TrendingBusiness() {
           businessOwners.map((business: Business) => (
             <Link
               key={business._id}
-              href={`/business/${business.businessName?.toLowerCase().replace(/\s+/g, '-') || 'unknown'}`}
+              href={`/userprofile/${business.businessName?.toLowerCase().replace(/\s+/g, '-') || 'unknown'}`}
               className="flex items-center justify-start gap-6 p-2 rounded-lg hover:bg-gray-300 transition-colors cursor-pointer"
             >
               <Image

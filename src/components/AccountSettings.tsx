@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import type { AxiosError } from 'axios';
 import PlanSelectionModal from './business/PlanSelectionModal';
 import BusinessDetailsModal from './business/BusinessDetailsModal';
 import BusinessVerificationModal from './business/BusinessVerificationModal';
 import { PaymentMethodsModal } from './business/PaymentMethodModal';
 import FollowRequestManager from './FollowRequestManager';
 import { ChevronDown } from 'lucide-react';
-import { UpdateBusinessCategory, GetBusinessCategory, switchToBusiness, switchToPersonal } from '@/api/business';
+import { UpdateBusinessCategory, GetBusinessCategory, switchToBusiness, switchToPersonal, toggleProductPosts, toggleServicePosts } from '@/api/business';
 import { useUserStore } from '@/store/useUserStore';
 import { getUserProfile } from '@/api/user';
 
@@ -48,6 +49,8 @@ export default function AccountSettings() {
   const [isSwitching, setIsSwitching] = useState(false);
   const [servicePostsAllowed, setServicePostsAllowed] = useState(false);
   const [productPostsAllowed, setProductPostsAllowed] = useState(false);
+  const [togglingService, setTogglingService] = useState(false);
+  const [togglingProduct, setTogglingProduct] = useState(false);
   const { user, updateUser } = useUserStore();
 
   // Keep local flag in sync with store
@@ -66,6 +69,13 @@ export default function AccountSettings() {
         if (isMounted) {
           setIsBusiness(flag);
           updateUser({ isBusinessProfile: flag });
+          // Initialize toggles from profile fields if available
+          if (typeof profile?.serviceEnabled !== 'undefined') {
+            setServicePostsAllowed(Boolean(profile.serviceEnabled));
+          }
+          if (typeof profile?.productEnabled !== 'undefined') {
+            setProductPostsAllowed(Boolean(profile.productEnabled));
+          }
         }
       } catch {
         // ignore; fallback to store value
@@ -105,18 +115,19 @@ export default function AccountSettings() {
       setCurrentCategory(category);
       setUpdateMessage('Category updated successfully!');
       setTimeout(() => setUpdateMessage(''), 3000);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to update category:', error);
       
       // Check if it's a 404 error (business profile not found)
-      if (error.response?.status === 404) {
+      const axiosError = error as AxiosError<{ message?: string }>;
+      if (axiosError.response?.status === 404) {
         setUpdateMessage('Business profile not found. Please add your business details first.');
         setTimeout(() => {
           setUpdateMessage('');
           setShowBusinessDetailsModal(true); // Open the business details modal
         }, 1000);
       } else {
-        setUpdateMessage(error.response?.data?.message || 'Failed to update category');
+        setUpdateMessage(axiosError.response?.data?.message || 'Failed to update category');
         setTimeout(() => setUpdateMessage(''), 5000);
       }
     } finally {
@@ -150,7 +161,7 @@ export default function AccountSettings() {
     try {
       const response = await GetBusinessCategory();
       setCurrentCategory(response.data?.category || '');
-    } catch (error) {
+    } catch {
       //console.log('Note: Business category not set yet, but profile created successfully');
     }
     
@@ -160,10 +171,10 @@ export default function AccountSettings() {
   // Switch to business account
   const handleSwitchToBusiness = async () => {
     if (!isBusiness) {
-      try {
+    try {
         setIsSwitching(true);
         setUpdateMessage('Switching to business account...');
-        const response = await switchToBusiness();
+      await switchToBusiness();
         
         // Update local state
         setIsBusiness(true);
@@ -175,9 +186,11 @@ export default function AccountSettings() {
         setTimeout(() => setUpdateMessage(''), 3000);
         
         //console.log('Switch to business response:', response);
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('Failed to switch to business:', error);
-        setUpdateMessage(error.response?.data?.message || 'Failed to switch to business account');
+        const axiosError = error as AxiosError<{ message?: string }>;
+        const errMsg = axiosError.response?.data?.message || 'Failed to switch to business account';
+        setUpdateMessage(errMsg);
         setTimeout(() => setUpdateMessage(''), 5000);
       } finally {
         setIsSwitching(false);
@@ -188,10 +201,10 @@ export default function AccountSettings() {
   // Switch to personal account
   const handleSwitchToPersonal = async () => {
     if (isBusiness) {
-      try {
+    try {
         setIsSwitching(true);
         setUpdateMessage('Switching to personal account...');
-        const response = await switchToPersonal();
+        await switchToPersonal();
         
         // Update local state
         setIsBusiness(false);
@@ -206,13 +219,61 @@ export default function AccountSettings() {
         setShowBusinessOptions(false);
         
         //console.log('Switch to personal response:', response);
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('Failed to switch to personal:', error);
-        setUpdateMessage(error.response?.data?.message || 'Failed to switch to personal account');
+        const axiosError = error as AxiosError<{ message?: string }>;
+        const errMsg = axiosError.response?.data?.message || 'Failed to switch to personal account';
+        setUpdateMessage(errMsg);
         setTimeout(() => setUpdateMessage(''), 5000);
       } finally {
         setIsSwitching(false);
       }
+    }
+  };
+
+  // Posts allowed toggles
+  const handleToggleServicePosts = async () => {
+    if (!isBusiness || togglingService) return;
+    const previous = servicePostsAllowed;
+    try {
+      setTogglingService(true);
+      setServicePostsAllowed(!previous);
+      const response = await toggleServicePosts();
+      // If backend returns a canonical value, try to honor it
+      const backendValue = Boolean(response?.data?.servicePostsAllowed ?? response?.servicePostsAllowed);
+      if (response && ("servicePostsAllowed" in response || response?.data?.servicePostsAllowed !== undefined)) {
+        setServicePostsAllowed(backendValue);
+      }
+    } catch (error: unknown) {
+      setServicePostsAllowed(previous);
+      const axiosError = error as AxiosError<{ message?: string }>;
+      const errMsg = axiosError.response?.data?.message || 'Failed to toggle service posts';
+      setUpdateMessage(errMsg);
+      setTimeout(() => setUpdateMessage(''), 4000);
+    } finally {
+      setTogglingService(false);
+    }
+  };
+
+  const handleToggleProductPosts = async () => {
+    if (!isBusiness || togglingProduct) return;
+    const previous = productPostsAllowed;
+    try {
+      setTogglingProduct(true);
+      setProductPostsAllowed(!previous);
+      const response = await toggleProductPosts();
+      const backendValue = Boolean(response?.data?.productPostsAllowed ?? response?.productPostsAllowed);
+      if (response && ("productPostsAllowed" in response || response?.data?.productPostsAllowed !== undefined)) {
+        setProductPostsAllowed(backendValue);
+      }
+    } catch (error: unknown) {
+      setProductPostsAllowed(previous);
+      const axiosError = error as AxiosError<{ message?: string }>;
+      const errMsg = axiosError.response?.data?.message || 'Failed to toggle product posts';
+      setUpdateMessage(errMsg);
+      setTimeout(() => setUpdateMessage(''), 4000);
+    } finally {
+      setTogglingProduct(false);
     }
   };
 
@@ -244,22 +305,28 @@ export default function AccountSettings() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-1">{isBusiness ? 'Business Account' : 'Personal Account'}</h2>
-            <p className="text-sm sm:text-base text-gray-600">
-              {isBusiness 
-                ? (showBusinessOptions ? 'Manage your business settings' : 'Switch to personal account')
-                : 'Switch to business account'
-              }
-            </p>
+            {isBusiness ? (
+              <div className="flex items-center gap-2 text-gray-700">
+                <button
+                  type="button"
+                  onClick={() => setShowBusinessOptions(!showBusinessOptions)}
+                  className="inline-flex items-center gap-1 text-sm sm:text-base hover:text-gray-900"
+                >
+                  <span>Manage Business</span>
+                  <ChevronDown className={`w-4 h-4 transition-transform ${showBusinessOptions ? 'rotate-180' : ''}`} />
+                </button>
+              </div>
+            ) : (
+              <p className="text-sm sm:text-base text-gray-600">Switch to business account</p>
+            )}
           </div>
           <button
             className={`px-4 sm:px-6 py-2 md:mr-4 lg:mr-6 cursor-pointer rounded-lg transition-colors bg-yellow-600 text-white hover:bg-yellow-700 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base md:w-56 lg:w-56`}
             onClick={() => {
               if (!isBusiness) {
                 handleSwitchToBusiness();
-              } else if (showBusinessOptions) {
-                handleSwitchToPersonal();
               } else {
-                setShowBusinessOptions(!showBusinessOptions);
+                handleSwitchToPersonal();
               }
             }}
             disabled={isSwitching}
@@ -267,19 +334,12 @@ export default function AccountSettings() {
             {isSwitching ? (
               <>
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                <span className="hidden sm:inline">{isBusiness ? 'Switching...' : 'Switching...'}</span>
+                <span className="hidden sm:inline">Switching...</span>
               </>
             ) : (
               <>
-                <span className="hidden sm:inline">
-                  {isBusiness && showBusinessOptions ? 'Switch to Personal' : isBusiness ? 'Manage Business' : 'Switch to Business'}
-                </span>
-                <span className="sm:hidden">
-                  {isBusiness && showBusinessOptions ? 'Switch to Personal' : isBusiness ? 'Manage Business' : 'Switch to Business'}
-                </span>
-                {isBusiness && !showBusinessOptions && (
-                  <ChevronDown className="w-4 h-4 ml-2" />
-                )}
+                <span className="hidden sm:inline">{isBusiness ? 'Switch to Personal' : 'Switch to Business'}</span>
+                <span className="sm:hidden">{isBusiness ? 'Switch to Personal' : 'Switch to Business'}</span>
               </>
             )}
           </button>
@@ -389,10 +449,11 @@ export default function AccountSettings() {
                     </div>
                   </div>
                   <button
-                    onClick={() => setServicePostsAllowed(!servicePostsAllowed)}
+                    onClick={handleToggleServicePosts}
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 ${
                       servicePostsAllowed ? 'bg-purple-600' : 'bg-gray-200'
-                    }`}
+                    } ${togglingService ? 'opacity-60 cursor-not-allowed' : ''}`}
+                    disabled={togglingService}
                   >
                     <span
                       className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
@@ -416,10 +477,11 @@ export default function AccountSettings() {
                     </div>
                   </div>
                   <button
-                    onClick={() => setProductPostsAllowed(!productPostsAllowed)}
+                    onClick={handleToggleProductPosts}
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 ${
                       productPostsAllowed ? 'bg-purple-600' : 'bg-gray-200'
-                    }`}
+                    } ${togglingProduct ? 'opacity-60 cursor-not-allowed' : ''}`}
+                    disabled={togglingProduct}
                   >
                     <span
                       className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
