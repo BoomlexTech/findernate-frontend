@@ -66,13 +66,19 @@ export default function AccountSettings() {
         const data = await getUserProfile();
         const profile = data?.userId ?? data;
         const flag = Boolean(profile?.isBusinessProfile);
+        const privacy = (profile?.privacy || 'public') as 'public' | 'private';
+
         if (isMounted) {
           setIsBusiness(flag);
-          updateUser({ 
+          
+          // Update user store with all relevant fields including privacy and toggle flags
+          updateUser({
             isBusinessProfile: flag,
+            privacy: privacy,
             productEnabled: typeof profile?.productEnabled !== 'undefined' ? Boolean(profile.productEnabled) : undefined,
             serviceEnabled: typeof profile?.serviceEnabled !== 'undefined' ? Boolean(profile.serviceEnabled) : undefined,
           });
+          
           // Initialize toggles from profile fields if available
           if (typeof profile?.serviceEnabled !== 'undefined') {
             setServicePostsAllowed(Boolean(profile.serviceEnabled));
@@ -99,7 +105,7 @@ export default function AccountSettings() {
       try {
         const response = await GetBusinessCategory();
         setCurrentCategory(response.data?.category || '');
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('Failed to fetch business category:', error);
         setCurrentCategory('');
       } finally {
@@ -152,8 +158,6 @@ export default function AccountSettings() {
     setShowPaymentModal(false);
     setSelectedPlan(null);
   };
-
-
 
   const handleBusinessDetailsSubmit = async () => {
     setShowBusinessDetailsModal(false);
@@ -559,7 +563,6 @@ export default function AccountSettings() {
             </div>
          </div>
        )}
-
 
        {/* Follow Requests Section - Only show if account is private */}
        {user?.privacy === 'private' && (
