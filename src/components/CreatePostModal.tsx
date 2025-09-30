@@ -67,7 +67,7 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
   const [sharedForm, setSharedForm] = useState({
   description: '',
   image: [] as File [], // array of File objects or URLs
-  location: {name:''},
+  location: {name: ''},
   tags: [] as string [],
   category: 'Personal', // Default to Personal
   customCategory: '', // For when user selects "Other"
@@ -97,7 +97,7 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
     setSharedForm({
       description: '',
       image: [],
-      location: {name:''},
+      location: {name: ''},
       tags: [],
       category: 'Personal',
       customCategory: '',
@@ -251,6 +251,37 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
       setPostType('Regular');
     }
   }, [allowProduct, allowService, postType]);
+
+  // Initialize and update location when user's location changes in store
+  useEffect(() => {
+    if (user?.location && user.location !== sharedForm.location.name) {
+      setSharedForm(prev => ({
+        ...prev,
+        location: { name: user.location || '' }
+      }));
+    }
+  }, [user?.location, sharedForm.location.name]);
+
+  // Initialize location when user data becomes available
+  useEffect(() => {
+    if (user?.location && !sharedForm.location.name) {
+      setSharedForm(prev => ({
+        ...prev,
+        location: { name: user.location || '' }
+      }));
+    }
+  }, [user?.location]);
+
+  // Initialize location on component mount if user has location
+  useEffect(() => {
+    if (user?.location && sharedForm.location.name === '') {
+      const userLocation = user.location;
+      setSharedForm(prev => ({
+        ...prev,
+        location: { name: userLocation }
+      }));
+    }
+  }, [user?.location, sharedForm.location.name]);
 
   // Location search functionality
   const searchLocationSuggestions = async (query: string) => {
