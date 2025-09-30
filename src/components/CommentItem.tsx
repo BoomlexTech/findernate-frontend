@@ -161,7 +161,10 @@ const CommentItem = memo(({ comment, onUpdate, onDelete, onReplyAdded, isReply =
   };
 
   return (
-    <div className={`flex gap-3 ${isReply ? 'ml-8 pt-3' : ''}`}>
+    <div 
+      id={`comment-${comment._id}`}
+      className={`flex gap-3 ${isReply ? 'ml-8 pt-3' : ''}`}
+    >
       {/* Profile Image */}
       <div className="flex-shrink-0">
         <button 

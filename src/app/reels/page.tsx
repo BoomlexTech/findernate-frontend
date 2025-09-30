@@ -895,8 +895,10 @@ const Page = () => {
     try {
       if (newIsSaved) {
         await savePost(currentData._id); // Use post API since reels are posts
+        showToastMessage('Reel saved successfully!');
       } else {
         await unsavePost(currentData._id); // Use post API since reels are posts
+        showToastMessage('Reel removed from saved!');
       }
     } catch (error: any) {
       // Revert optimistic update on error (including localStorage)
@@ -1402,6 +1404,7 @@ const Page = () => {
             <button 
               onClick={handleSaveToggle}
               className="flex items-center p-2 rounded-lg transition-colors text-gray-600 hover:text-yellow-600 hover:bg-gray-100"
+              title={isSaved ? "Unsave" : "Save"}
             >
               {isSaved ? (
                 <BookmarkCheck className="w-6 h-6 text-yellow-600" />
