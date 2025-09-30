@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from 'react';
 import SuggestedUsers from '@/components/SuggestedUsers';
 import TrendingBusiness from '@/components/TrendingBusiness';
 import { useUserStore } from '@/store/useUserStore';
@@ -7,11 +8,19 @@ import Link from 'next/link';
 
 export default function RightSidebar() {
   const { user } = useUserStore();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  // Only show login component after client hydration and when no user
+  const shouldShowLoginPrompt = isClient && !user;
 
   return (
     <div className="p-6 h-full space-y-6">
-      {/* Login/Signup buttons for non-authenticated users */}
-      {!user && (
+      {/* Login/Signup buttons - only show after hydration and when no user */}
+      {shouldShowLoginPrompt && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4">
           <h3 className="text-lg font-semibold text-gray-900 mb-3">Join Findernate</h3>
           <div className="flex gap-2">

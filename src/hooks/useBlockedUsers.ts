@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { getBlockedUsers } from '@/api/user';
 
 interface BlockedUser {
@@ -38,9 +38,9 @@ export const useBlockedUsers = () => {
     }
   };
 
-  const isUserBlocked = (userId: string) => {
+  const isUserBlocked = useCallback((userId: string) => {
     return blockedUserIds.has(userId);
-  };
+  }, [blockedUserIds]);
 
   const addBlockedUser = (userId: string, userDetails?: Partial<BlockedUser>) => {
     setBlockedUserIds(prev => new Set([...prev, userId]));

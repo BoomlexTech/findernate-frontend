@@ -167,7 +167,7 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
         onClick={onClose}
       >
           <div 
-            className="bg-white w-full max-w-md h-[90vh] rounded-xl shadow-lg overflow-y-scroll hide-scrollbar"
+            className="bg-white w-full max-w-md max-h-[90vh] rounded-xl shadow-lg overflow-y-auto hide-scrollbar"
           onClick={(e) => e.stopPropagation()}
         >
         {/* Header */}
@@ -264,7 +264,7 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
 
         <div className="h-px bg-gray-200 mx-4"></div>
 
-        <div className="px-4 py-2">
+        <div className="px-4 pb-4">
           <button 
             onClick={handleLogoutClick}
             disabled={isLoggingOut}

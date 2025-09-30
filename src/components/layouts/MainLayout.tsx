@@ -6,6 +6,7 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Menu, X } from 'lucide-react';
 import LeftSidebar from "@/components/LeftSidebar";
+import LeftSidebarSkeleton from "@/components/skeletons/LeftSidebarSkeleton";
 import CreatePostModal from "@/components/CreatePostModal";
 import PushNotificationProvider from "@/components/providers/PushNotificationProvider";
 import { GlobalCallProvider } from "@/components/providers/GlobalCallProvider";
@@ -20,9 +21,19 @@ const MainLayout = ({children}:{children:React.ReactNode}) => {
   const [postToggle, setPostToggle] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
 
   // Initialize comment notifications
   useCommentNotifications();
+
+  // Handle initial loading state
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsInitialLoading(false);
+    }, 1500); // Match the timing with home page skeleton
+
+    return () => clearTimeout(timer);
+  }, []);
 
   // Check screen size
   useEffect(() => {
@@ -101,16 +112,20 @@ const MainLayout = ({children}:{children:React.ReactNode}) => {
             }
             w-64
           `}>
-            <LeftSidebar togglePost={handlePostOpen} onItemClick={() => {
-              if (isMobile) {
-                setSidebarOpen(false);
-                // Dispatch event when sidebar closes
-                try {
-                  const evt = new Event('close-mobile-sidebar');
-                  window.dispatchEvent(evt);
-                } catch {}
-              }
-            }} />
+            {isInitialLoading && (pathname === '/' || pathname === '/search') ? (
+              <LeftSidebarSkeleton />
+            ) : (
+              <LeftSidebar togglePost={handlePostOpen} onItemClick={() => {
+                if (isMobile) {
+                  setSidebarOpen(false);
+                  // Dispatch event when sidebar closes
+                  try {
+                    const evt = new Event('close-mobile-sidebar');
+                    window.dispatchEvent(evt);
+                  } catch {}
+                }
+              }} />
+            )}
           </div>
         )}
 

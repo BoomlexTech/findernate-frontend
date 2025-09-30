@@ -1,14 +1,31 @@
 "use client";
 
-// import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import MainContent from "@/components/MainContent";
 import RightSidebar from "@/components/RightSidebar";
 import StoriesBar from "@/components/StoriesBar";
-// import { useUserStore } from "@/store/useUserStore";
-
+import HomeFeedSkeleton from "@/components/skeletons/HomeFeedSkeleton";
+import { useUserStore } from "@/store/useUserStore";
 
 export default function Home() {
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const { user } = useUserStore();
+
+  useEffect(() => {
+    // Show skeleton for a reasonable time to let all components initialize
+    // This ensures all skeletons show/hide together for better UX
+    const timer = setTimeout(() => {
+      setIsInitialLoading(false);
+    }, 1500); // Increased time to ensure components load together
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Show skeleton during initial loading
+  if (isInitialLoading) {
+    return <HomeFeedSkeleton />;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -30,12 +47,12 @@ export default function Home() {
 
           {/* Stories Bar - Sticky on desktop, scrollable on mobile/medium */}
           <div className="lg:top-0 lg:z-20 bg-gray-50 px-0">
-            <StoriesBar />
+            <StoriesBar showIndividualSkeleton={false} />
           </div>
 
           {/* Posts - Scrollable */}
           <div className="overflow-y-auto">
-            <MainContent />
+            <MainContent showIndividualSkeleton={false} />
           </div>
         </div>
 

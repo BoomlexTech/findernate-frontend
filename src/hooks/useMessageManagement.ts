@@ -50,14 +50,25 @@ export const useMessageManagement = ({ selectedChat, user, setChats, messageRequ
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isTypingRef = useRef(false);
 
-  // Scroll to bottom when new messages arrive
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  // Track if chat just opened
+  const [justOpenedChat, setJustOpenedChat] = useState(true);
+
+  // Scroll to bottom, optionally instant
+  const scrollToBottom = (instant = false) => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: instant ? "auto" : "smooth" });
+    }
   };
 
+  // When selectedChat changes, mark as just opened
   useEffect(() => {
-    scrollToBottom();
-    
+    setJustOpenedChat(true);
+  }, [selectedChat]);
+
+  // Scroll to bottom on messages change
+  useEffect(() => {
+    scrollToBottom(justOpenedChat);
+    if (justOpenedChat) setJustOpenedChat(false);
     if (messages.length > 0) {
       const latestMessages = messages.slice(-5);
       markUnreadMessagesAsSeen(latestMessages);

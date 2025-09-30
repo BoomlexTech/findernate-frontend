@@ -1,6 +1,6 @@
 // components/BusinessPostCard.jsx
 
-import { Building2, Megaphone } from 'lucide-react';
+import { Building2, Megaphone, ArrowRight } from 'lucide-react';
 import { useState } from 'react';
 import ProductServiceDetails from '../ProductServiceDetails';
 import { FeedPost } from '@/types';
@@ -20,57 +20,45 @@ const BusinessPostCard = ({ post }: BusinessPostCardProps) => {
   const businessCategory = businessData?.category || 'Business';
   
   return (
-    // Main card container
-    <div className="w-full rounded-2xl border border-violet-500 bg-violet-200/70 p-2 shadow-md font-sans">
-      
-      {/* Header section: Business Name */}
-      <div className="flex items-center justify-between px-1 py-2">
-        <div className="flex items-center gap-2">
-          <Building2 size={20} className="text-gray-700" />
-          <h1 className="font-bold text-gray-800">{businessName}</h1>
+    <div className="w-full rounded-xl bg-white p-4 shadow-lg border border-gray-100 hover:shadow-2xl transition-shadow ring-0 hover:ring-1 hover:ring-yellow-50">
+      {/* Compact header */}
+      <div className="flex items-center gap-3 mb-3">
+        <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-indigo-50">
+          <Building2 size={18} className="text-indigo-600" />
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <h3 className="text-md font-semibold text-gray-900 truncate">{businessName}</h3>
+          <p className="text-xs text-gray-500 mt-1">{businessType}</p>
+        </div>
+
+        <div className="text-right">
+          <div className="text-sm font-semibold text-gray-900">{businessCategory}</div>
         </div>
       </div>
 
-      {/* Business Type Section - removed from UI */}
-      {false && (
-        <div className="rounded-lg border border-amber-400 bg-amber-100 p-3">
-          <div className="flex items-center gap-2">
-            <Megaphone size={16} className="text-amber-600" />
-            <span className="text-xs font-bold uppercase text-amber-600">
-              {businessType}
-            </span>
-          </div>
-          <p className="mt-1 font-semibold text-orange-800">
-            {businessCategory}
-          </p>
-        </div>
-      )}
-      
-      {/* Description Section */}
-      <div className="mt-3 rounded-lg border border-red-300 bg-red-50/70 p-3">
-        <div>
-          <p className="mt-1 text-sm text-gray-600">{businessDescription}</p>
-          
-          {/* View Details Button */}
-          <div className="mt-3 flex justify-end">
-            <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowDetails(true);
-              }}
-              className="rounded-lg bg-gradient-to-r from-violet-500 to-purple-600 px-4 py-2 text-sm font-bold text-white shadow-md hover:opacity-90 transition-opacity"
-            >
-              VIEW DETAILS
-            </button>
-          </div>
-        </div>
+      {/* Description */}
+      <div className="mb-4 text-sm text-gray-600">{businessDescription}</div>
+
+      {/* CTA */}
+      <div className="flex justify-end">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowDetails(true);
+          }}
+          className="rounded-full border border-yellow-100 px-4 py-2 text-sm font-semibold text-yellow-700 hover:bg-yellow-50 transition-colors flex items-center gap-2"
+        >
+          <span>View details</span>
+          <ArrowRight size={14} className="text-yellow-600" />
+        </button>
       </div>
-      
-      {/* Business Details Modal */}
+
       {showDetails && post && (
-        <ProductServiceDetails 
-          post={post} 
-          onClose={() => setShowDetails(false)} 
+        <ProductServiceDetails
+          post={post}
+          onClose={() => setShowDetails(false)}
+          showMedia={false}
         />
       )}
     </div>

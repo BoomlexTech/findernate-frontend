@@ -26,7 +26,11 @@ interface AxiosResponse {
   statusText: string;
 }
 
-export default function TrendingBusiness() {
+interface TrendingBusinessProps {
+  onInitialLoadComplete?: () => void;
+}
+
+export default function TrendingBusiness({ onInitialLoadComplete }: TrendingBusinessProps) {
   const [businessOwners, setBusinessOwners] = useState<Business[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -59,6 +63,9 @@ export default function TrendingBusiness() {
         setBusinessOwners([]);
       } finally {
         setLoading(false);
+        try {
+          onInitialLoadComplete?.();
+        } catch {}
       }
     };
     

@@ -209,10 +209,27 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
           return acc;
         }, {} as { [index: number]: number });
         
-        setLoadedImageHeights(heightsMap);
+        setLoadedImageHeights(prev => {
+          // Only update if the heights have actually changed
+          const prevKeys = Object.keys(prev);
+          const newKeys = Object.keys(heightsMap);
+          
+          if (prevKeys.length !== newKeys.length) {
+            return heightsMap;
+          }
+          
+          for (const key of newKeys) {
+            if (prev[parseInt(key)] !== heightsMap[parseInt(key)]) {
+              return heightsMap;
+            }
+          }
+          
+          // Return previous state if nothing changed
+          return prev;
+        });
       });
     }
-  }, [post.media, post._id]);
+  }, [post.media.length, post._id]);
 
   // Calculate smallest height when image heights are loaded
   useEffect(() => {
@@ -756,7 +773,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
   }
 
   return (
-    <div className="relative">
+    <div className="relative mt-4 mb-4">
       <div 
         className={`w-full bg-white ${showCommentDrawer ? 'rounded-t-3xl shadow-none border-b-0' : 'rounded-none sm:rounded-3xl shadow-sm'} border border-gray-200 overflow-hidden hover:shadow-md transition-all duration-200 relative ${
           pathname.includes('/post/') ? 'cursor-default' : 'cursor-pointer'
@@ -1017,7 +1034,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
           )}
 
           {/* Business/Service/Product Details - Mobile Only (Before Media) */}
-          <div className="md:hidden mb-2">
+          <div className="md:hidden mt-3 mb-4">
             {post.contentType === 'service' && <ServiceCard post={post} />}
             {post.contentType === 'product' && <ProductCard post={post} />}
             {post.contentType === 'business' && <BusinessPostCard post={post} />}
@@ -1399,9 +1416,11 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
             )}
 
             {/* Desktop: Business/Service/Product Details */}
-            {post.contentType === 'service' && <ServiceCard post={post} />}
-            {post.contentType === 'product' && <ProductCard post={post} />}
-            {post.contentType === 'business' && <BusinessPostCard post={post} />}
+            <div className="mt-3 mb-4">
+              {post.contentType === 'service' && <ServiceCard post={post} />}
+              {post.contentType === 'product' && <ProductCard post={post} />}
+              {post.contentType === 'business' && <BusinessPostCard post={post} />}
+            </div>
 
             {/* Desktop: Hashtags */}
             <div className="px-1 pb-2">

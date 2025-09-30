@@ -12,9 +12,11 @@ import StoryAnalytics from "./StoryAnalytics";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
 import { AuthDialog } from "./AuthDialog";
 import { getUserProfile } from "@/api/user";
+import StoriesBarSkeleton from "./skeletons/StoriesBarSkeleton";
 
 interface StoriesBarProps {
   onCreateStory?: () => void;
+  showIndividualSkeleton?: boolean;
 }
 
 const VIEWED_STORIES_KEY = 'findernate_viewed_stories';
@@ -46,7 +48,7 @@ const saveViewedStoriesToStorage = (viewedStories: Set<string>) => {
   }
 };
 
-export default function StoriesBar({ onCreateStory }: StoriesBarProps) {
+export default function StoriesBar({ onCreateStory, showIndividualSkeleton = true }: StoriesBarProps) {
   const [selectedUser, setSelectedUser] = useState<StoryUser | null>(null);
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
   const [showCreateModal, setShowCreateModal] = useState(() => {
@@ -254,7 +256,10 @@ export default function StoriesBar({ onCreateStory }: StoriesBarProps) {
     displayUsers.unshift(currentUserStory); // Add current user at the beginning
   }
 
-  // Remove loading state for now - we'll show user immediately
+  // Show skeleton while loading stories (only if individual skeleton is enabled)
+  if (loading && showIndividualSkeleton) {
+    return <StoriesBarSkeleton />;
+  }
 
   return (
     <>

@@ -7,7 +7,8 @@ import AccountSettings from '@/components/AccountSettings';
 //import FloatingHeader from '@/components/FloatingHeader';
 import PostCard from '@/components/PostCard';
 import ProfilePostsSection from '@/components/ProfilePostsSection';
-import UserProfile from '@/components/UserProfile'
+import UserProfile from '@/components/UserProfile';
+import ProfilePageSkeleton from '@/components/skeletons/ProfilePageSkeleton';
 import { useUserStore } from '@/store/useUserStore';
 import { useAuthGuard } from '@/hooks/useAuthGuard';
 import { usePostRefresh } from '@/hooks/usePostRefresh';
@@ -290,33 +291,19 @@ const Page = () => {
 
   // Show loading state while checking authentication
   if (isLoading) {
-    return (
-      <div className="bg-gray-50 max-w-6xl mx-auto p-4 min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-yellow-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
+    return <ProfilePageSkeleton />;
   }
 
-  // Show loading spinner while fetching profile data
+  // Show loading skeleton while fetching profile data
   if (loading && isAuthenticated) {
-    return (
-      <div className="bg-gray-50 max-w-6xl mx-auto p-4 min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-yellow-500 mx-auto mb-4 text-black"></div>
-          <p>Loading profile data...</p>
-        </div>
-      </div>
-    );
+    return <ProfilePageSkeleton />;
   }
 
   // Show login prompt for unauthenticated users
   if (!isAuthenticated) {
     return (
       <>
-        <div className="bg-gray-50 max-w-6xl mx-auto p-4 min-h-screen">
+        <div className="bg-gray-50 max-w-[1216px] mx-auto p-4 min-h-screen">
           {/* <FloatingHeader
             paragraph="Sign in to access your profile"
             heading="Profile"
@@ -357,7 +344,7 @@ const Page = () => {
   // Show error state
   if (error) {
     return (
-      <div className="bg-gray-50 max-w-6xl mx-auto p-4 min-h-screen flex items-center justify-center">
+      <div className="bg-gray-50 max-w-[1216px] mx-auto p-4 min-h-screen flex items-center justify-center">
         <div className="text-center text-red-500 bg-white rounded-2xl shadow-lg p-8 max-w-md w-full mx-4">
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <User className="w-8 h-8 text-red-600" />
@@ -378,7 +365,7 @@ const Page = () => {
   // Show "no profile data" state (fallback)
   if (!profileData) {
     return (
-      <div className="bg-gray-50 max-w-6xl mx-auto p-4 min-h-screen flex items-center justify-center">
+      <div className="bg-gray-50 max-w-[1216px] mx-auto p-4 min-h-screen flex items-center justify-center">
         <div className="text-center bg-white rounded-2xl shadow-lg p-8 max-w-md w-full mx-4">
           <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <User className="w-8 h-8 text-gray-500" />
@@ -399,7 +386,7 @@ const Page = () => {
   // Show authenticated profile page
   return (
     <>
-      <div className='bg-gray-50 max-w-6xl mx-auto'>
+      <div className='bg-gray-50 max-w-[1216px] mx-auto'>
         {/* <FloatingHeader
           paragraph="Manage your account and business settings"
           heading="Profile"

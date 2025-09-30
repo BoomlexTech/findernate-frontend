@@ -24,6 +24,7 @@ import { searchAllContent, searchUsers } from "@/api/search";
 import { FeedPost, SearchUser } from "@/types";
 import UserCard from "@/components/UserCard";
 import TrendingTopics from "@/components/TrendingTopics";
+import SearchPageSkeleton from "@/components/skeletons/SearchPageSkeleton";
 import TrendingBusiness from "@/components/TrendingBusiness";
 import PostCard from "@/components/PostCard";
 // import { Button } from "@/components/ui/button";
@@ -60,6 +61,9 @@ function SearchContent() {
   const [showImageModal, setShowImageModal] = useState(false);
   const [selectedPost, setSelectedPost] = useState<FeedPost | null>(null);
   const [followingList, setFollowingList] = useState<string[]>([]);
+  const [followingLoaded, setFollowingLoaded] = useState(false);
+  const [trendingSearchesLoaded, setTrendingSearchesLoaded] = useState(false);
+  const [trendingBusinessLoaded, setTrendingBusinessLoaded] = useState(false);
 
   const tabs = [
     { id: "All", label: "All", icon: Search },
@@ -114,7 +118,14 @@ function SearchContent() {
   // Fetch current user's following list on mount
   useEffect(() => {
     const fetchFollowingList = async () => {
-      if (currentUser?._id) {
+      // If there's no logged-in user, mark as loaded immediately so skeleton gating doesn't hang
+      if (!currentUser?._id) {
+        setFollowingList([]);
+        setFollowingLoaded(true);
+        return;
+      }
+
+      if (currentUser._id) {
         try {
           const followingData = await getFollowing(currentUser._id);
           // Extract user IDs from following data
@@ -124,6 +135,8 @@ function SearchContent() {
         } catch (error) {
           console.error('Failed to fetch following list:', error);
           setFollowingList([]);
+        } finally {
+          setFollowingLoaded(true);
         }
       }
     };
@@ -429,7 +442,10 @@ function SearchContent() {
 
   // Handler for trending search click
   const handleTrendingClick = (term: string) => {
+    // Populate the visible input and trigger a search
+    setDisplayQuery(term);
     setSearchQuery(term);
+    setIsDefaultSearch(false);
   };
 
   const handlePostClick = (post: FeedPost) => {
@@ -470,6 +486,14 @@ function SearchContent() {
       //console.log(`Updated user ${userId} follow status to: ${newIsFollowing}`);
     }
   };
+
+  // Show skeleton while the page is in its default/initial state until all initial API calls complete
+  if (
+    isDefaultSearch &&
+    (!followingLoaded || !trendingSearchesLoaded || !trendingBusinessLoaded)
+  ) {
+    return <SearchPageSkeleton />;
+  }
 
   return (
     <>
@@ -813,9 +837,13 @@ function SearchContent() {
 
         <div className="hidden xl:block w-[23rem] fixed p-5 right-0 top-0 h-full bg-white border-l border-gray-200 overflow-y-auto">
           <div className="mb-5">
-            <TrendingTopics isSearchPage={true} onTrendingClick={handleTrendingClick} />
+            <TrendingTopics
+              isSearchPage={true}
+              onTrendingClick={handleTrendingClick}
+              onInitialLoadComplete={() => setTrendingSearchesLoaded(true)}
+            />
           </div>
-          <TrendingBusiness />
+          <TrendingBusiness onInitialLoadComplete={() => setTrendingBusinessLoaded(true)} />
         </div>
       </div>
 

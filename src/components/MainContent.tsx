@@ -6,6 +6,11 @@ import { getHomeFeed } from "@/api/homeFeed";
 import { FeedPost, MediaItem } from "@/types";
 import { useBlockedUsers } from "@/hooks/useBlockedUsers";
 import { usePostRefresh } from "@/hooks/usePostRefresh";
+import MainContentSkeleton from "@/components/skeletons/MainContentSkeleton";
+
+interface MainContentProps {
+  showIndividualSkeleton?: boolean;
+}
 
 type RawFeedItem = {
   _id: string;
@@ -102,19 +107,40 @@ type RawFeedItem = {
 
 type RawComment = { replies?: unknown[] };
 
-export default function MainContent() {
+export default function MainContent({ showIndividualSkeleton = true }: MainContentProps) {
   const [feed, setFeed] = useState<FeedPost[]>([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(false);
   const [initialLoad, setInitialLoad] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const loaderRef = useRef<HTMLDivElement>(null);
+  const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { isUserBlocked } = useBlockedUsers();
 
   const fetchPosts = useCallback(async (pageNum: number) => {
     try {
-      setLoading(true);
+      if (pageNum > 1) {
+        setIsLoadingMore(true);
+        
+        // Set timeout to show "end of feed" if loading takes too long
+        loadingTimeoutRef.current = setTimeout(() => {
+          setIsLoadingMore(false);
+          setLoading(false);
+          setHasMore(false);
+        }, 1500);
+      } else {
+        setLoading(true);
+      }
+      
       const res = await getHomeFeed({ page: pageNum, limit: 10 });
+      
+      // Clear the timeout since we got a response
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+        loadingTimeoutRef.current = null;
+      }
+      
       // Logs removed per request
       const incoming: FeedPost[] = res.data.feed
         // Filter out posts from blocked users
@@ -170,8 +196,14 @@ export default function MainContent() {
         };
       });
 
+      // Check for pagination info from the API response
+      const pagination = res.data.pagination;
+      const totalPages = pagination?.totalPages || 0;
+      const currentPage = pagination?.currentPage || pageNum;
+      
       // Deduplicate and append using functional update to avoid stale deps
       let addedCount = 0;
+      
       setFeed(prev => {
         if (pageNum === 1) {
           // Replace on first page
@@ -184,27 +216,40 @@ export default function MainContent() {
         return [...prev, ...deduped];
       });
 
-      // Update hasMore based on incoming page size and whether anything was added
-      setHasMore(incoming.length >= 10 && addedCount > 0);
+      // Update hasMore based on pagination info or fallback to original logic
+      if (pagination && totalPages > 0) {
+        // Use pagination info if available
+        setHasMore(currentPage < totalPages);
+      } else {
+        // Fallback: consider we have more if we got a full page and added new items
+        setHasMore(incoming.length >= 10 && addedCount > 0);
+      }
     } catch (err) {
       console.error("Error fetching posts:", err);
+      // Clear timeout on error and show end of feed
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+        loadingTimeoutRef.current = null;
+      }
+      setHasMore(false);
     } finally {
       setLoading(false);
+      setIsLoadingMore(false);
       if (initialLoad) setInitialLoad(false);
     }
-  }, [initialLoad]);
+  }, [initialLoad, isUserBlocked]);
 
   const handleObserver = useCallback((entries: IntersectionObserverEntry[]) => {
     const [target] = entries;
-    if (target.isIntersecting && hasMore && !loading) {
+    if (target.isIntersecting && hasMore && !loading && !isLoadingMore) {
       setPage(prev => prev + 1);
     }
-  }, [hasMore, loading]);
+  }, [hasMore, loading, isLoadingMore]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(handleObserver, {
       root: null,
-      rootMargin: "20px",
+      rootMargin: "300px", // Increased for even earlier loading
       threshold: 0.1
     });
 
@@ -220,6 +265,15 @@ export default function MainContent() {
     };
   }, [handleObserver]);
 
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+      }
+    };
+  }, []);
+
   useEffect(() => {
     fetchPosts(page);
   }, [page, fetchPosts]);
@@ -234,16 +288,17 @@ export default function MainContent() {
 
   usePostRefresh(refreshFeed);
 
+  // While the initial fetch is in progress we should not show the
+  // "No Posts Available" fallback. If this component is responsible for
+  // its own skeletons, render it. Otherwise return null so a page-level
+  // skeleton (e.g. HomeFeedSkeleton) can control the loading UI.
+  if (initialLoad) {
+    return showIndividualSkeleton ? <MainContentSkeleton /> : null;
+  }
+
   return (
-    <div className="max-w-3xl mx-auto py-4 px-0 sm:px-4">
-      {initialLoad ? (
-        <div className="flex flex-col items-center justify-center min-h-[60vh]">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-[#FCD45C] border-t-transparent mb-4"></div>
-          {/* <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            Loading Posts...
-          </h2> */}
-        </div>
-      ) : feed.length === 0 ? (
+  <div className="max-w-3xl mx-auto py-4 px-0 sm:px-4">
+      {feed.length === 0 ? (
         <div className="text-center py-12">
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
             No Posts Available
@@ -257,21 +312,23 @@ export default function MainContent() {
           <div className="space-y-0 sm:space-y-6 mt-0 sm:mt-6">
             {feed
             .filter(post => !!post && !!post._id)
-            .map((post) => (
-              <PostCard key={post._id} post={post} />
+            .map((post, index) => (
+              <div key={`${post._id}-${index}`} className="will-change-transform">
+                <PostCard post={post} />
+              </div>
             ))}
           </div>
 
           <div ref={loaderRef} className="h-10">
-            {loading && (
-              <div className="text-center py-8">
-                <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#FCD45C]"></div>
+            {(loading || isLoadingMore) && hasMore && (
+              <div className="text-center py-2">
+                <div className="inline-block animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-[#FCD45C] opacity-60"></div>
               </div>
             )}
           </div>
 
-          {!hasMore && !loading && (
-            <div className="text-center py-8 text-gray-500">
+          {!hasMore && feed.length > 0 && (
+            <div className="text-center py-6 text-gray-400 text-sm">
               You&apos;ve reached the end of the feed
             </div>
           )}
