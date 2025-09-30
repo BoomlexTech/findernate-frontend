@@ -68,7 +68,11 @@ export default function AccountSettings() {
         const flag = Boolean(profile?.isBusinessProfile);
         if (isMounted) {
           setIsBusiness(flag);
-          updateUser({ isBusinessProfile: flag });
+          updateUser({ 
+            isBusinessProfile: flag,
+            productEnabled: typeof profile?.productEnabled !== 'undefined' ? Boolean(profile.productEnabled) : undefined,
+            serviceEnabled: typeof profile?.serviceEnabled !== 'undefined' ? Boolean(profile.serviceEnabled) : undefined,
+          });
           // Initialize toggles from profile fields if available
           if (typeof profile?.serviceEnabled !== 'undefined') {
             setServicePostsAllowed(Boolean(profile.serviceEnabled));
@@ -240,10 +244,9 @@ export default function AccountSettings() {
       setServicePostsAllowed(!previous);
       const response = await toggleServicePosts();
       // If backend returns a canonical value, try to honor it
-      const backendValue = Boolean(response?.data?.servicePostsAllowed ?? response?.servicePostsAllowed);
-      if (response && ("servicePostsAllowed" in response || response?.data?.servicePostsAllowed !== undefined)) {
-        setServicePostsAllowed(backendValue);
-      }
+      const backendValue = Boolean(response?.data?.servicePostsAllowed ?? response?.servicePostsAllowed ?? !previous);
+      setServicePostsAllowed(backendValue);
+      try { updateUser({ serviceEnabled: backendValue }); } catch {}
     } catch (error: unknown) {
       setServicePostsAllowed(previous);
       const axiosError = error as AxiosError<{ message?: string }>;
@@ -262,10 +265,9 @@ export default function AccountSettings() {
       setTogglingProduct(true);
       setProductPostsAllowed(!previous);
       const response = await toggleProductPosts();
-      const backendValue = Boolean(response?.data?.productPostsAllowed ?? response?.productPostsAllowed);
-      if (response && ("productPostsAllowed" in response || response?.data?.productPostsAllowed !== undefined)) {
-        setProductPostsAllowed(backendValue);
-      }
+      const backendValue = Boolean(response?.data?.productPostsAllowed ?? response?.productPostsAllowed ?? !previous);
+      setProductPostsAllowed(backendValue);
+      try { updateUser({ productEnabled: backendValue }); } catch {}
     } catch (error: unknown) {
       setProductPostsAllowed(previous);
       const axiosError = error as AxiosError<{ message?: string }>;

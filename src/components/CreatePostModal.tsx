@@ -11,6 +11,7 @@ import { createProductPost, createRegularPost, createServicePost, createBusiness
 import { ProductDetailsFormProps, RegularPostPayload, ServiceDetailsFormProps, BusinessPostFormProps } from '@/types';
 import RegularPostForm from './posting/RegularDetailsForm';
 import { useUserStore } from '@/store/useUserStore';
+// import { getUserProfile } from '@/api/user';
 import TagInput from './TagInput';
 import { toast } from 'react-toastify';
 import { searchLocations, LocationSuggestion } from '@/api/location';
@@ -60,6 +61,8 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
   const [postType, setPostType] = useState('Regular');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const allowProduct = user?.productEnabled ?? true;
+  const allowService = user?.serviceEnabled ?? true;
 
   const [sharedForm, setSharedForm] = useState({
   description: '',
@@ -236,6 +239,18 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
     }
     setPreviousContentType(contentType);
   }, [contentType]);
+
+  // Flags come from global store: no fetch here for instant updates
+
+  // Ensure selected postType remains valid if flags change
+  useEffect(() => {
+    if (postType === 'Product' && !allowProduct) {
+      setPostType('Regular');
+    }
+    if (postType === 'Service' && !allowService) {
+      setPostType('Regular');
+    }
+  }, [allowProduct, allowService, postType]);
 
   // Location search functionality
   const searchLocationSuggestions = async (query: string) => {
@@ -1403,6 +1418,7 @@ const handleProductChange = (
             </Button>
 
             {/* Business Post Types - Available for all users */}
+            {allowProduct && (
             <Button
               variant='custom'
               onClick={() => setPostType('Product')}
@@ -1414,6 +1430,8 @@ const handleProductChange = (
             >
               <ShoppingBag className='mr-2' size={16} /> Product
             </Button>
+            )}
+            {allowService && (
             <Button
               variant='custom'
               onClick={() => setPostType('Service')}
@@ -1425,6 +1443,7 @@ const handleProductChange = (
             >
               <BriefcaseBusiness className='mr-2' size={16} /> Service
             </Button>
+            )}
             <Button
               variant='custom'
               onClick={() => setPostType('Business')}
