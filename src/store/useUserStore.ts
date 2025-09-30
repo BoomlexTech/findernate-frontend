@@ -52,6 +52,8 @@ type User = {
   privacy?: 'public' | 'private';
   isPhoneNumberHidden?: boolean;
   isAddressHidden?: boolean;
+  productEnabled?: boolean;
+  serviceEnabled?: boolean;
   // Add other fields as needed
 };
 
