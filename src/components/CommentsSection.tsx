@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { MessageCircle, Heart, ChevronDown, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from './ui/button';
 import CommentItem from './CommentItem';
@@ -14,11 +14,12 @@ interface CommentsSectionProps {
   onCommentCountChange?: (count: number) => void;
   initialCommentCount?: number;
   shouldFocusComment?: boolean;
+  commentId?: string | null;
 }
 
 type SortOption = 'latest' | 'likes';
 
-const CommentsSection = ({ postId, postOwnerId, onCommentCountChange, initialCommentCount = 0, shouldFocusComment = false }: CommentsSectionProps) => {
+const CommentsSection = ({ postId, postOwnerId, onCommentCountChange, initialCommentCount = 0, shouldFocusComment = false, commentId }: CommentsSectionProps) => {
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState<SortOption>('latest');
@@ -37,6 +38,34 @@ const CommentsSection = ({ postId, postOwnerId, onCommentCountChange, initialCom
   useEffect(() => {
     fetchComments();
   }, [postId, currentPage]);
+
+  // Handle scrolling to specific comment
+  const scrollToComment = useCallback((targetCommentId: string) => {
+    setTimeout(() => {
+      const commentElement = document.getElementById(`comment-${targetCommentId}`);
+      if (commentElement) {
+        commentElement.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'center' 
+        });
+        
+        // Add pulse animation class temporarily
+        commentElement.classList.add('comment-pulse');
+        
+        // Remove animation class after animation completes
+        setTimeout(() => {
+          commentElement.classList.remove('comment-pulse');
+        }, 1500); // 1.5 seconds for a complete pulse animation
+      }
+    }, 500); // Small delay to ensure comments are rendered
+  }, []);
+
+  // Auto-scroll to comment when commentId is provided
+  useEffect(() => {
+    if (commentId && !loading && comments.length > 0) {
+      scrollToComment(commentId);
+    }
+  }, [commentId, loading, comments.length, scrollToComment]);
 
   // Close sort dropdown when clicking outside
   useEffect(() => {
@@ -236,6 +265,13 @@ const CommentsSection = ({ postId, postOwnerId, onCommentCountChange, initialCom
   };
 
   const sortedComments = Array.isArray(comments) ? [...comments].sort((a, b) => {
+    // Priority: If commentId is specified, push the target comment to the top
+    if (commentId) {
+      if (a._id === commentId) return -1; // Target comment goes first
+      if (b._id === commentId) return 1;  // Target comment goes first
+    }
+    
+    // Normal sorting logic
     if (sortBy === 'likes') {
       const aLikes = a.likesCount || a.likes?.length || 0;
       const bLikes = b.likesCount || b.likes?.length || 0;

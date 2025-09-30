@@ -183,8 +183,14 @@ const Notifications = () => {
       if (notification.type === 'follow' && notification.senderId) {
         // Navigate to the user's profile
         router.push(`/userprofile/${notification.senderId.username}`);
-      } else if ((notification.type === 'like' || notification.type === 'comment') && notification.postId) {
-        // Navigate to the specific post for likes and comments
+      } else if (notification.type === 'comment' && notification.postId) {
+        // Navigate to the specific post for comments with commentId for auto-focus
+        const url = notification.commentId 
+          ? `/post/${notification.postId}?commentId=${notification.commentId}`
+          : `/post/${notification.postId}`;
+        router.push(url);
+      } else if (notification.type === 'like' && notification.postId) {
+        // Navigate to the specific post for likes
         router.push(`/post/${notification.postId}`);
       } else if (notification.type === 'post' && notification.postId) {
         // Navigate to the post for general post notifications

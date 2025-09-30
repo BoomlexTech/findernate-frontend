@@ -19,6 +19,7 @@ const PostPage = () => {
   const searchParams = useSearchParams();
   const postId = params.postId as string;
   const shouldFocusComment = searchParams.get('focus') === 'comment';
+  const commentId = searchParams.get('commentId');
 
   const handleCommentCountChange = useCallback((newCount: number) => {
     setCommentCount(newCount);
@@ -67,30 +68,38 @@ const PostPage = () => {
         if (postData.userId) {
           try {
             //console.log('Fetching user with ID:', postData.userId);
-            const userData = await getUserById(postData.userId);
-            //console.log('User data received:', userData);
-            //console.log('Available user fields:', Object.keys(userData));
-            //console.log('userData.userId:', userData.userId);
-            //console.log('userData.userId.username:', userData.userId?.username);
-            //console.log('userData.userId.fullName:', userData.userId?.fullName);
-            //console.log('userData.userId.location:', userData.userId?.location);
-            //console.log('userData.location:', userData.location);
+            const userIdString = typeof postData.userId === 'object' ? postData.userId?._id : postData.userId;
+            
+            if (userIdString) {
+              const userData = await getUserById(userIdString);
+              //console.log('User data received:', userData);
+              //console.log('Available user fields:', Object.keys(userData));
+              //console.log('userData.userId:', userData.userId);
+              //console.log('userData.userId.username:', userData.userId?.username);
+              //console.log('userData.userId.fullName:', userData.userId?.fullName);
+              //console.log('userData.userId.location:', userData.userId?.location);
+              //console.log('userData.location:', userData.location);
 
-            // Add username and profile image to post data, fallback to original values
-            postData.username = userData.userId?.username || userData.userId?.fullName || originalUsername;
-            postData.profileImageUrl = userData.userId?.profileImageUrl || originalProfileImage;
+              // Add username and profile image to post data, fallback to original values
+              postData.username = userData.userId?.username || userData.userId?.fullName || originalUsername;
+              postData.profileImageUrl = userData.userId?.profileImageUrl || originalProfileImage;
 
-            // Check for location in multiple possible places
-            const userLocation = userData.userId?.location || userData.location || null;
-            //console.log('Found user location:', userLocation);
+              // Check for location in multiple possible places
+              const userLocation = userData.userId?.location || userData.location || null;
+              //console.log('Found user location:', userLocation);
 
-            // Ensure location data is properly structured
-            if (userLocation && !postData.location) {
-              postData.location = userLocation;
+              // Ensure location data is properly structured
+              if (userLocation && !postData.location) {
+                postData.location = userLocation;
+              }
+
+              //console.log('Final username set to:', postData.username);
+              //console.log('Final location set to:', postData.location);
+            } else {
+              // No valid user ID, use original values
+              postData.username = originalUsername;
+              postData.profileImageUrl = originalProfileImage;
             }
-
-            //console.log('Final username set to:', postData.username);
-            //console.log('Final location set to:', postData.location);
           } catch (userError: any) {
             console.error('Failed to fetch user data:', userError);
             // Use original username and profile image instead of generic fallback
@@ -259,6 +268,7 @@ const PostPage = () => {
             onCommentCountChange={handleCommentCountChange}
             initialCommentCount={post.engagement?.comments || 0}
             shouldFocusComment={shouldFocusComment}
+            commentId={commentId}
           />
         </div>
       </div>

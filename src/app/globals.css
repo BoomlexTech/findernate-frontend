@@ -107,3 +107,43 @@ body {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/* Marquee animation */
+@keyframes marquee {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+.animate-marquee {
+  animation: marquee 8s linear infinite;
+}
+
+.animate-marquee.paused {
+  animation-play-state: paused;
+}
+
+/* Comment pulse animation for auto-focus */
+@keyframes commentPulse {
+  0% {
+    border-left: 4px solid rgba(255, 214, 92, 0.8);
+    padding-left: 12px;
+  }
+  50% {
+    border-left: 6px solid rgba(255, 214, 92, 1);
+    padding-left: 10px;
+  }
+  100% {
+    border-left: 0px solid rgba(255, 214, 92, 0);
+    padding-left: 0px;
+  }
+}
+
+.comment-pulse {
+  animation: commentPulse 1.5s ease-out;
+  border-radius: 8px;
+  transition: border-left 0.3s ease, padding-left 0.3s ease;
+}
