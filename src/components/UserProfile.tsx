@@ -183,15 +183,6 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
 
   // Update internal state if userData prop changes
   useEffect(() => {
-    // //console.log("UserProfile useEffect - userData:", {
-    //   username: userData.username,
-    //   isFollowing: userData.isFollowing,
-    //   isFollowingType: typeof userData.isFollowing,
-    //   followersCount: userData.followersCount,
-    //   isBusinessProfile: userData.isBusinessProfile,
-    //   businessId: userData.businessId
-    // });
-    
     setProfile(userData);
     setIsFollowing(userData.isFollowing || false);
     setFollowersCount(userData.followersCount);
@@ -204,6 +195,15 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
       profileImageUrl: userData.profileImageUrl,
     });
     setUserPrivacy(userData.privacy || 'public');
+
+    // Sync location to global store if this is the current user
+    if (isCurrentUser && userData.location) {
+      try {
+        useUserStore.getState().updateUser({
+          location: userData.location,
+        });
+      } catch {}
+    }
 
     // Fetch stories for other users when component loads
     if (!isCurrentUser && userData._id) {
@@ -591,6 +591,7 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
           fullName: updatedProfile.fullName,
           username: updatedProfile.username,
           profileImageUrl: updatedProfile.profileImageUrl,
+          location: updatedProfile.location,
         });
       } catch {}
       

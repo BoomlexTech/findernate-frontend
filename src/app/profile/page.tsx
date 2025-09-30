@@ -25,8 +25,17 @@ const Page = () => {
   const [profileData, setProfileData] = useState<UserProfileType | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { user } = useUserStore();
+  const { user, updateUser } = useUserStore();
   const { isAuthenticated, isLoading } = useAuthGuard();
+
+  // Sync location to global store when profileData is loaded
+  useEffect(() => {
+    if (profileData?.location && user?._id === profileData._id) {
+      updateUser({
+        location: profileData.location,
+      });
+    }
+  }, [profileData?.location, user?._id, updateUser]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -42,7 +51,6 @@ const Page = () => {
         
         // Fetch user profile
         const profileResponse = await getUserProfile();
-        //  console.log(profileResponse)
         
         // Updated to match actual API response structure
         if (profileResponse?.userId) {

@@ -54,6 +54,7 @@ type User = {
   isAddressHidden?: boolean;
   productEnabled?: boolean;
   serviceEnabled?: boolean;
+  location?: string;
   // Add other fields as needed
 };
 
