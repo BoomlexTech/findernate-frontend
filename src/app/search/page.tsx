@@ -752,8 +752,8 @@ function SearchContent() {
             {/* User Cards Section - Hide if default search */}
             {!isDefaultSearch && (activeTab === "Users" || activeTab === "All") ? (
               <>
-                {displayedUsers.map((user) => (
-                  <div key={user._id} className="w-full max-w-2xl">
+                {displayedUsers.map((user, idx) => (
+                  <div key={user._id ?? user.username ?? `user-${idx}`} className="w-full max-w-2xl">
                     <UserCard user={user} onFollow={handleFollowUpdate} />
                   </div>
                 ))}

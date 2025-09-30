@@ -58,6 +58,7 @@ export default function AccountSettings() {
     setIsBusiness(Boolean(user?.isBusinessProfile));
   }, [user?.isBusinessProfile]);
 
+
   // Hydrate from backend to avoid stale store values
   useEffect(() => {
     let isMounted = true;
@@ -71,14 +72,13 @@ export default function AccountSettings() {
         if (isMounted) {
           setIsBusiness(flag);
           
-          // Update user store with all relevant fields including privacy and toggle flags
-          updateUser({
-            isBusinessProfile: flag,
-            privacy: privacy,
-            productEnabled: typeof profile?.productEnabled !== 'undefined' ? Boolean(profile.productEnabled) : undefined,
-            serviceEnabled: typeof profile?.serviceEnabled !== 'undefined' ? Boolean(profile.serviceEnabled) : undefined,
-          });
-          
+// Update user store with all relevant fields including privacy and toggle flags
+updateUser({
+  isBusinessProfile: flag,
+  privacy: privacy,
+  productEnabled: typeof profile?.productEnabled !== 'undefined' ? Boolean(profile.productEnabled) : undefined,
+  serviceEnabled: typeof profile?.serviceEnabled !== 'undefined' ? Boolean(profile.serviceEnabled) : undefined,
+});
           // Initialize toggles from profile fields if available
           if (typeof profile?.serviceEnabled !== 'undefined') {
             setServicePostsAllowed(Boolean(profile.serviceEnabled));
