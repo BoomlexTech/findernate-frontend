@@ -165,7 +165,7 @@ export const useAgora = () => {
             // Connection failed - end the call properly
             console.log('❌ Call connection failed, ending call');
             callAPI.endCall(callStateRef.current.call._id, { 
-              endReason: 'connection_failed' 
+              endReason: 'failed' 
             }).catch(console.error);
           }
         }
@@ -205,7 +205,7 @@ export const useAgora = () => {
     if (error.message.includes('INVALID_TOKEN') || error.message.includes('NETWORK_ERROR')) {
       setTimeout(() => {
         if (callStateRef.current.call) {
-          endCallLocally('error');
+          endCallLocally('failed');
         }
       }, 2000);
     }
@@ -518,12 +518,7 @@ export const useAgora = () => {
       return;
     }
 
-    // Check if call is still in a valid state for acceptance
-    if (incomingCall.status && !['ringing', 'initiated'].includes(incomingCall.status)) {
-      console.log('⚠️ Call is not in a valid state for acceptance:', incomingCall.status);
-      setIncomingCall(null);
-      return;
-    }
+    // Note: IncomingCall doesn't have status property - validation handled by backend
 
     // Store the call ID to prevent race conditions
     const callIdToAccept = incomingCall.callId;
@@ -629,12 +624,7 @@ export const useAgora = () => {
       return;
     }
 
-    // Check if call is still in a valid state for decline
-    if (incomingCall.status && !['ringing', 'initiated'].includes(incomingCall.status)) {
-      console.log('⚠️ Call is not in a valid state for decline:', incomingCall.status);
-      setIncomingCall(null);
-      return;
-    }
+    // Note: IncomingCall doesn't have status property - validation handled by backend
 
     try {
       setIsLoading(true);

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { IncomingCall } from '@/hooks/useWebRTC';
+import { IncomingCall } from '@/hooks/useAgora';
 import { Phone, PhoneOff, Video, Mic } from 'lucide-react';
 import Image from 'next/image';
 
