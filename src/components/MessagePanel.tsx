@@ -3,7 +3,7 @@ import React, { useRef } from "react";
 import { useUserStore } from "@/store/useUserStore";
 import { messageAPI, Chat } from "@/api/message";
 import { EmojiClickData } from 'emoji-picker-react';
-import { useGlobalCall } from '@/components/providers/GlobalCallProvider';
+import { useAgoraGlobalCall } from '@/components/providers/AgoraGlobalCallProvider';
 
 // Custom hooks
 import { useChatManagement } from '@/hooks/useChatManagement';
@@ -20,7 +20,6 @@ import { ContextMenu } from './message/ContextMenu';
 import { NewChatModal } from './message/NewChatModal';
 import { GroupChatModal } from './message/GroupChatModal';
 import { GroupDetailsModal } from './message/GroupDetailsModal';
-import { CallModal } from './call/CallModal';
 
 export default function MessagePanel() {
   const user = useUserStore((state) => state.user);
@@ -57,7 +56,6 @@ export default function MessagePanel() {
     isIncomingRequest,
     viewedRequests,
     markRequestAsViewed,
-    clearViewedRequest,
     refreshChatsWithAccurateUnreadCounts
   } = useChatManagement({ user });
 
@@ -103,15 +101,8 @@ export default function MessagePanel() {
 
   // Global call functionality
   const { 
-    callState, 
-    incomingCall, 
-    initiateCall, 
-    acceptCall, 
-    declineCall, 
-    endCall,
-    toggleAudio,
-    toggleVideo
-  } = useGlobalCall();
+    initiateCall
+  } = useAgoraGlobalCall();
 
   // Call handlers
   const handleVoiceCall = async (chat: Chat) => {
@@ -329,16 +320,6 @@ export default function MessagePanel() {
         user={user}
       />
 
-      {/* Call Modals */}
-      {callState.isInCall && (
-        <CallModal
-          callState={callState}
-          currentUser={user}
-          onEndCall={() => endCall()}
-          onToggleAudio={toggleAudio}
-          onToggleVideo={toggleVideo}
-        />
-      )}
 
     </div>
   );
