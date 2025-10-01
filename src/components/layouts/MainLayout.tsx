@@ -8,8 +8,7 @@ import { Menu, X } from 'lucide-react';
 import LeftSidebar from "@/components/LeftSidebar";
 import CreatePostModal from "@/components/CreatePostModal";
 import PushNotificationProvider from "@/components/providers/PushNotificationProvider";
-import { GlobalCallProvider } from "@/components/providers/GlobalCallProvider";
-import { CallManager } from "@/components/call/CallManager";
+import { AgoraGlobalCallProvider } from "@/components/providers/AgoraGlobalCallProvider";
 import { useCommentNotifications } from "@/hooks/useCommentNotifications";
 
 const MainLayout = ({children}:{children:React.ReactNode}) => {
@@ -69,9 +68,7 @@ const MainLayout = ({children}:{children:React.ReactNode}) => {
 
   return (
     <PushNotificationProvider>
-      <GlobalCallProvider>
-        {/* Global Call Manager - handles call states automatically */}
-        <CallManager />
+      <AgoraGlobalCallProvider>
         
         {/* Hamburger Menu for mobile and medium screens (hidden on reels page) */}
         {!isNoSidebar && isMobile && !pathname.startsWith('/reels') && (
@@ -132,7 +129,7 @@ const MainLayout = ({children}:{children:React.ReactNode}) => {
             zIndex: 20000
           }}
         />
-      </GlobalCallProvider>
+      </AgoraGlobalCallProvider>
     </PushNotificationProvider>
   )
 }
