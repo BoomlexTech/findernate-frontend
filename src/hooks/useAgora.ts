@@ -531,29 +531,23 @@ export const useAgora = () => {
       // Stop incoming call ringtone
       ringtoneManager.stopRingtone();
 
-      // Accept call on backend
-      console.log('🔄 Attempting to accept call:', callIdToAccept);
-      const call = await callAPI.acceptCall(callIdToAccept);
-      console.log('✅ Call accepted successfully on backend:', call);
-
-      // Check if this is still the call we want to accept (prevent race conditions)
-      if (!incomingCall || incomingCall.callId !== callIdToAccept) {
-        console.log('⚠️ Call changed during acceptance, aborting');
-        return;
-      }
-
-      // Get Agora channel details and token
+      // Get Agora channel details and token FIRST (before accepting call)
       console.log('🔑 Requesting Agora credentials for incoming call:', callIdToAccept);
       const agoraChannelDetails = await getAgoraChannelDetails(callIdToAccept);
       const agoraToken = await getAgoraToken(callIdToAccept);
       console.log('✅ Agora credentials obtained successfully for incoming call');
-      // Note: Backend provides both rtcToken and rtmToken, but we only use rtcToken since we use Socket.IO for messaging
 
-      // Double-check call is still valid
+      // Check if this is still the call we want to accept (prevent race conditions)
       if (!incomingCall || incomingCall.callId !== callIdToAccept) {
         console.log('⚠️ Call changed during credential fetch, aborting');
         return;
       }
+
+      // Accept call on backend (after getting credentials)
+      console.log('🔄 Attempting to accept call:', callIdToAccept);
+      const call = await callAPI.acceptCall(callIdToAccept);
+      console.log('✅ Call accepted successfully on backend:', call);
+      // Note: Backend provides both rtcToken and rtmToken, but we only use rtcToken since we use Socket.IO for messaging
 
       updateCallState({
         call,
@@ -606,6 +600,14 @@ export const useAgora = () => {
       
       if (error?.response?.data?.message === 'Call cannot be accepted in current status') {
         console.error('❌ Call status issue - the call may have expired or been cancelled');
+        setIncomingCall(null);
+        updateCallState({ error: 'Call is no longer available' });
+      } else if (error?.response?.data?.message === 'Call is not active') {
+        console.error('❌ Call is not active - token generation failed. This may be due to call timing or backend state.');
+        setIncomingCall(null);
+        updateCallState({ error: 'Call is no longer available' });
+      } else if (error?.response?.status === 400 && error?.response?.data?.message?.includes('not active')) {
+        console.error('❌ Call token generation failed - call may have expired or been cancelled');
         setIncomingCall(null);
         updateCallState({ error: 'Call is no longer available' });
       } else {
