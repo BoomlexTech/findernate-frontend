@@ -156,15 +156,16 @@ export const useAgora = () => {
         console.log('🔄 Agora: Connection state changed', curState, revState, reason);
         setCallState(prev => ({ ...prev, connectionState: curState }));
         
-        // Update call status based on connection state
+        // Handle connection state changes
         if (callStateRef.current.call) {
           if (curState === 'CONNECTED') {
-            callAPI.updateCallStatus(callStateRef.current.call._id, { 
-              status: 'active' 
-            }).catch(console.error);
+            // Call is now active - backend should handle this via accept endpoint
+            console.log('✅ Call connected successfully');
           } else if (curState === 'DISCONNECTED' && reason !== 'LEAVE') {
-            callAPI.updateCallStatus(callStateRef.current.call._id, { 
-              status: 'failed' 
+            // Connection failed - end the call properly
+            console.log('❌ Call connection failed, ending call');
+            callAPI.endCall(callStateRef.current.call._id, { 
+              endReason: 'connection_failed' 
             }).catch(console.error);
           }
         }
@@ -186,7 +187,28 @@ export const useAgora = () => {
   // Error handler
   const handleError = useCallback((error: Error) => {
     console.error('Agora Error:', error);
-    updateCallState({ error: error.message });
+    
+    // Handle specific Agora errors
+    if (error.message.includes('INVALID_TOKEN')) {
+      updateCallState({ error: 'Call token expired. Please try again.' });
+    } else if (error.message.includes('TOO_MANY_REQUESTS')) {
+      updateCallState({ error: 'Too many requests. Please wait a moment.' });
+    } else if (error.message.includes('PERMISSION_DENIED')) {
+      updateCallState({ error: 'Microphone or camera access denied.' });
+    } else if (error.message.includes('NETWORK_ERROR')) {
+      updateCallState({ error: 'Network error. Please check your connection.' });
+    } else {
+      updateCallState({ error: error.message });
+    }
+    
+    // Auto-cleanup on critical errors
+    if (error.message.includes('INVALID_TOKEN') || error.message.includes('NETWORK_ERROR')) {
+      setTimeout(() => {
+        if (callStateRef.current.call) {
+          endCallLocally('error');
+        }
+      }, 2000);
+    }
   }, [updateCallState]);
 
   // Get Agora channel details from API
@@ -496,6 +518,13 @@ export const useAgora = () => {
       return;
     }
 
+    // Check if call is still in a valid state for acceptance
+    if (incomingCall.status && !['ringing', 'initiated'].includes(incomingCall.status)) {
+      console.log('⚠️ Call is not in a valid state for acceptance:', incomingCall.status);
+      setIncomingCall(null);
+      return;
+    }
+
     // Store the call ID to prevent race conditions
     const callIdToAccept = incomingCall.callId;
     
@@ -600,6 +629,13 @@ export const useAgora = () => {
       return;
     }
 
+    // Check if call is still in a valid state for decline
+    if (incomingCall.status && !['ringing', 'initiated'].includes(incomingCall.status)) {
+      console.log('⚠️ Call is not in a valid state for decline:', incomingCall.status);
+      setIncomingCall(null);
+      return;
+    }
+
     try {
       setIsLoading(true);
       
@@ -635,6 +671,14 @@ export const useAgora = () => {
   const endCall = useCallback(async (endReason: string = 'normal') => {
     if (!callState.call) {
       console.log('No active call to end');
+      return;
+    }
+
+    // Check if call is in a valid state for ending
+    if (!['active', 'connecting', 'ringing'].includes(callState.call.status)) {
+      console.log('⚠️ Call is not in a valid state for ending:', callState.call.status);
+      // Still try to end it locally for cleanup
+      await endCallLocally(endReason);
       return;
     }
 
