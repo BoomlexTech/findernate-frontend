@@ -339,7 +339,13 @@ export const useAgora = () => {
     // Handle call status updates
     socketManager.on('call_status_update', (data) => {
       console.log('Call status updated via socket:', data);
-      if (callStateRef.current.call && callStateRef.current.call._id === data.callId) {
+      
+      // Only update status if we have a matching call and it's not already in the same status
+      if (callStateRef.current.call && 
+          callStateRef.current.call._id === data.callId &&
+          callStateRef.current.call.status !== data.status) {
+        
+        console.log(`📞 Call status changed from ${callStateRef.current.call.status} to ${data.status}`);
         updateCallState({
           call: { ...callStateRef.current.call, status: data.status }
         });
@@ -490,6 +496,9 @@ export const useAgora = () => {
       return;
     }
 
+    // Store the call ID to prevent race conditions
+    const callIdToAccept = incomingCall.callId;
+    
     try {
       setIsLoading(true);
       updateCallState({ error: null });
@@ -498,15 +507,27 @@ export const useAgora = () => {
       ringtoneManager.stopRingtone();
 
       // Accept call on backend
-      console.log('🔄 Attempting to accept call:', incomingCall.callId);
-      const call = await callAPI.acceptCall(incomingCall.callId);
+      console.log('🔄 Attempting to accept call:', callIdToAccept);
+      const call = await callAPI.acceptCall(callIdToAccept);
       console.log('✅ Call accepted successfully on backend:', call);
 
+      // Check if this is still the call we want to accept (prevent race conditions)
+      if (!incomingCall || incomingCall.callId !== callIdToAccept) {
+        console.log('⚠️ Call changed during acceptance, aborting');
+        return;
+      }
+
       // Get Agora channel details and token
-      console.log('🔑 Requesting Agora credentials for incoming call:', incomingCall.callId);
-      const agoraChannelDetails = await getAgoraChannelDetails(incomingCall.callId);
-      const agoraToken = await getAgoraToken(incomingCall.callId);
+      console.log('🔑 Requesting Agora credentials for incoming call:', callIdToAccept);
+      const agoraChannelDetails = await getAgoraChannelDetails(callIdToAccept);
+      const agoraToken = await getAgoraToken(callIdToAccept);
       console.log('✅ Agora credentials obtained successfully for incoming call');
+
+      // Double-check call is still valid
+      if (!incomingCall || incomingCall.callId !== callIdToAccept) {
+        console.log('⚠️ Call changed during credential fetch, aborting');
+        return;
+      }
 
       updateCallState({
         call,
@@ -573,23 +594,42 @@ export const useAgora = () => {
   const declineCall = useCallback(async () => {
     if (!incomingCall) return;
 
+    // Prevent multiple decline attempts
+    if (isLoading) {
+      console.log('⚠️ Call operation already in progress, ignoring decline request');
+      return;
+    }
+
     try {
+      setIsLoading(true);
+      
       // Stop incoming call ringtone
       ringtoneManager.stopRingtone();
 
       // Decline call on backend
+      console.log('🔄 Declining call:', incomingCall.callId);
       await callAPI.declineCall(incomingCall.callId);
+      console.log('✅ Call declined successfully');
 
       // Emit call decline via socket
       socketManager.declineCall(incomingCall.callId, incomingCall.caller._id);
 
       setIncomingCall(null);
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error declining call:', error);
-      handleError(error as Error);
+      
+      // Handle specific decline errors
+      if (error?.response?.data?.message === 'Call cannot be declined in current status') {
+        console.log('⚠️ Call cannot be declined - it may already be accepted or ended');
+        setIncomingCall(null);
+      } else {
+        handleError(error as Error);
+      }
+    } finally {
+      setIsLoading(false);
     }
-  }, [incomingCall, handleError]);
+  }, [incomingCall, handleError, isLoading]);
 
   // End the current call (initiator - notifies others)
   const endCall = useCallback(async (endReason: string = 'normal') => {
