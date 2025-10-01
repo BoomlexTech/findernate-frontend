@@ -408,7 +408,7 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
     setLocationSuggestions([]);
   };
 
-  const joinedDate = getJoinedDate(profile?.createdAt);
+  const joinedDate = getJoinedDate(profile?.createdAt || '');
 
   const getInitials = (name: string) => {
     return name
@@ -434,7 +434,7 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
   };
 
   const fetchAndShowStories = async () => {
-    if (storiesLoading) return;
+    if (storiesLoading || !profile) return;
     
     setStoriesLoading(true);
     try {
@@ -637,7 +637,7 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
       useUserStore.getState().updateUser({ privacy: newPrivacy });
 
       // Update profile state
-      setProfile(prev => ({ ...prev, privacy: newPrivacy }));
+      setProfile(prev => prev ? { ...prev, privacy: newPrivacy } : null);
     } catch (error: any) {
       console.error('Error toggling privacy:', error);
       const errorMessage = error?.response?.data?.message || 'Failed to update privacy settings';
@@ -648,6 +648,8 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
   };
 
   const handleCancel = () => {
+    if (!profile) return;
+    
     // Reset form data to original profile data
     setFormData({
       fullName: profile.fullName,
@@ -663,7 +665,7 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
   };
 
   const handleFollowToggle = async () => {
-    if (isFollowLoading) return;
+    if (isFollowLoading || !profile) return;
     
     // Debug check
     // //console.log('Attempting to follow/unfollow user:', {
@@ -731,7 +733,7 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
   };
 
   const handleMessageClick = async () => {
-    if (creatingChat) return;
+    if (creatingChat || !profile) return;
     
     // Prevent messaging blocked users
     if (isBlocked) {
@@ -802,6 +804,8 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
   };
 
   const handleBlock = async () => {
+    if (!profile) return;
+    
     try {
       setIsBlocking(true);
       await blockUser(profile._id);
@@ -833,7 +837,7 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
   };
 
   const handleUnblock = async () => {
-    if (isBlocking) return;
+    if (isBlocking || !profile) return;
 
     try {
       setIsBlocking(true);
@@ -852,6 +856,8 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
 
   // Handle followers/following click
   const handleFollowersClick = (tab: 'followers' | 'following') => {
+    if (!profile) return;
+    
     setFollowersModalTab(tab);
     setShowFollowersModal(true);
   };
