@@ -1,4 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+  import { callAPI, Call } from '@/api/call';
+import { socketManager } from '@/utils/socket';
+import { useUserStore } from '@/store/useUserStore';
+import { ringtoneManager } from '@/utils/ringtone';
 
 // Dynamic import for Agora SDK to avoid SSR issues
 let AgoraRTC: any = null;
@@ -19,10 +23,6 @@ const initializeAgoraSDK = async () => {
   }
   return true;
 };
-import { callAPI, Call } from '@/api/call';
-import { socketManager } from '@/utils/socket';
-import { useUserStore } from '@/store/useUserStore';
-import { ringtoneManager } from '@/utils/ringtone';
 
 // Agora API interfaces
 export interface AgoraChannelDetails {

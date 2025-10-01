@@ -6,13 +6,15 @@ import { CallControls } from './CallControls';
 import { CallStatus } from './CallStatus';
 import { X, Minimize2 } from 'lucide-react';
 import Image from 'next/image';
-import { IAgoraRTCRemoteUser, ICameraVideoTrack, IMicrophoneAudioTrack } from 'agora-rtc-sdk-ng';
+// Import Agora types dynamically to avoid SSR issues
+type IAgoraRTCRemoteUser = any; // eslint-disable-line @typescript-eslint/no-explicit-any
+type ICameraVideoTrack = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 interface AgoraCallModalProps {
   callState: AgoraCallState;
-  incomingCall?: any | null;
+  incomingCall?: any | null; // eslint-disable-line @typescript-eslint/no-explicit-any
   isLoading?: boolean;
-  currentUser?: any;
+  currentUser?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
   onEndCall: () => void;
   onToggleAudio: () => void;
   onToggleVideo: () => void;
@@ -20,7 +22,6 @@ interface AgoraCallModalProps {
   isMinimized?: boolean;
   remoteUsers: IAgoraRTCRemoteUser[];
   localVideoTrack: ICameraVideoTrack | null;
-  localAudioTrack: IMicrophoneAudioTrack | null;
 }
 
 export const AgoraCallModal: React.FC<AgoraCallModalProps> = ({
@@ -34,8 +35,7 @@ export const AgoraCallModal: React.FC<AgoraCallModalProps> = ({
   onMinimize,
   isMinimized = false,
   remoteUsers,
-  localVideoTrack,
-  localAudioTrack
+  localVideoTrack
 }) => {
   const localVideoRef = useRef<HTMLDivElement>(null);
   const remoteVideoRef = useRef<HTMLDivElement>(null);
@@ -76,7 +76,6 @@ export const AgoraCallModal: React.FC<AgoraCallModalProps> = ({
   if (!callState.isInCall && !incomingCall) return null;
 
   const isVideoCall = callState.call?.callType === 'video' || incomingCall?.callType === 'video';
-  const isConnected = callState.connectionState === 'CONNECTED';
   
   // Get the other participant (not the current user)
   const otherParticipant = callState.call?.participants.find(
@@ -106,7 +105,7 @@ export const AgoraCallModal: React.FC<AgoraCallModalProps> = ({
                   connectionState={callState.connectionState}
                   quality={callState.networkQuality?.quality ? 
                     (callState.networkQuality.quality >= 4 ? 'excellent' : 
-                     callState.networkQuality.quality >= 2 ? 'good' : 'poor') : null}
+                     callState.networkQuality.quality >= 2 ? 'good' : 'poor') : undefined}
                 />
               </div>
             </div>
@@ -259,7 +258,7 @@ export const AgoraCallModal: React.FC<AgoraCallModalProps> = ({
                 connectionState={callState.connectionState}
                 quality={callState.networkQuality?.quality ? 
                   (callState.networkQuality.quality >= 4 ? 'excellent' : 
-                   callState.networkQuality.quality >= 2 ? 'good' : 'poor') : null}
+                   callState.networkQuality.quality >= 2 ? 'good' : 'poor') : undefined}
               />
               
               {callState.error && (

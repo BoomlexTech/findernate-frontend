@@ -26,9 +26,9 @@ interface AgoraGlobalCallContextType {
   cleanupExistingCalls: () => Promise<boolean>;
   
   // Direct access to streams
-  localVideoTrack: import('agora-rtc-sdk-ng').ICameraVideoTrack | null;
-  localAudioTrack: import('agora-rtc-sdk-ng').IMicrophoneAudioTrack | null;
-  remoteUsers: import('agora-rtc-sdk-ng').IAgoraRTCRemoteUser[];
+  localVideoTrack: any | null;
+  localAudioTrack: any | null;
+  remoteUsers: any[];
 }
 
 const AgoraGlobalCallContext = createContext<AgoraGlobalCallContextType | null>(null);
@@ -119,7 +119,6 @@ export const AgoraGlobalCallProvider: React.FC<{ children: React.ReactNode }> = 
           isMinimized={isMinimized}
           remoteUsers={remoteUsers}
           localVideoTrack={localVideoTrack}
-          localAudioTrack={localAudioTrack}
         />
       )}
     </AgoraGlobalCallContext.Provider>
