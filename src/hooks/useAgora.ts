@@ -414,6 +414,7 @@ export const useAgora = () => {
       const agoraChannelDetails = await getAgoraChannelDetails(call._id);
       const agoraToken = await getAgoraToken(call._id);
       console.log('✅ Agora credentials obtained successfully');
+      // Note: Backend provides both rtcToken and rtmToken, but we only use rtcToken since we use Socket.IO for messaging
 
       updateCallState({
         call,
@@ -443,9 +444,9 @@ export const useAgora = () => {
         localVideoTrack
       });
 
-      // Join the channel
+      // Join the channel using only RTC token (RTM not needed since we use Socket.IO for messaging)
       await client.join(agoraToken.appId, agoraToken.channelName, agoraToken.rtcToken, agoraToken.uid);
-      console.log('Joined Agora channel successfully');
+      console.log('Joined Agora RTC channel successfully');
 
       // Publish local tracks
       if (localVideoTrack) {
@@ -546,6 +547,7 @@ export const useAgora = () => {
       const agoraChannelDetails = await getAgoraChannelDetails(callIdToAccept);
       const agoraToken = await getAgoraToken(callIdToAccept);
       console.log('✅ Agora credentials obtained successfully for incoming call');
+      // Note: Backend provides both rtcToken and rtmToken, but we only use rtcToken since we use Socket.IO for messaging
 
       // Double-check call is still valid
       if (!incomingCall || incomingCall.callId !== callIdToAccept) {
@@ -581,9 +583,9 @@ export const useAgora = () => {
         localVideoTrack
       });
 
-      // Join the channel
+      // Join the channel using only RTC token (RTM not needed since we use Socket.IO for messaging)
       await client.join(agoraToken.appId, agoraToken.channelName, agoraToken.rtcToken, agoraToken.uid);
-      console.log('Joined Agora channel successfully');
+      console.log('Joined Agora RTC channel successfully');
 
       // Publish local tracks
       if (localVideoTrack) {
