@@ -117,15 +117,7 @@ export const callAPI = {
     }
   },
 
-  // Update call status
-  updateCallStatus: async (callId: string, data: UpdateCallStatusRequest): Promise<Call> => {
-    try {
-      const response = await apiClient.patch<{ success: boolean; data: Call; message: string }>(`/calls/${callId}/status`, data);
-      return response.data.data;
-    } catch (error: any) {
-      throw error;
-    }
-  },
+  // Note: updateCallStatus removed - use accept/decline/end endpoints instead
 
   // Get call history
   getCallHistory: async (page = 1, limit = 20): Promise<CallHistoryResponse> => {
