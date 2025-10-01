@@ -28,7 +28,7 @@ import { getBusinessRatingSummary, rateBusiness } from '@/api/business';
 import PrivacySettings from './PrivacySettings';
 
 interface UserProfileProps {
-  userData: UserProfileType;
+  userData: UserProfileType | null;
   isCurrentUser?: boolean;
   onProfileUpdate?: (updatedData: Partial<UserProfileType>) => void;
 }
@@ -39,9 +39,9 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
   const [isEditing, setIsEditing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [showSettings, setShowSettings] = useState(false);
-  const [profile, setProfile] = useState<UserProfileType>(userData);
-  const [isFollowing, setIsFollowing] = useState(userData.isFollowing || false);
-  const [followersCount, setFollowersCount] = useState(userData.followersCount);
+  const [profile, setProfile] = useState<UserProfileType | null>(userData);
+  const [isFollowing, setIsFollowing] = useState(userData?.isFollowing || false);
+  const [followersCount, setFollowersCount] = useState(userData?.followersCount || 0);
   const [isFollowLoading, setIsFollowLoading] = useState(false);
   const [userStories, setUserStories] = useState<Story[]>([]);
   const [showStoryViewer, setShowStoryViewer] = useState(false);
@@ -49,12 +49,12 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
   const [creatingChat, setCreatingChat] = useState(false);
   const router = useRouter();
   const [formData, setFormData] = useState({
-    fullName: userData.fullName,
-    username: userData.username,
-    location: userData.location,
-    link: userData.link,
-    bio: userData.bio,
-    profileImageUrl: userData.profileImageUrl,
+    fullName: userData?.fullName || '',
+    username: userData?.username || '',
+    location: userData?.location || '',
+    link: userData?.link || '',
+    bio: userData?.bio || '',
+    profileImageUrl: userData?.profileImageUrl || '',
   });
   const [showCropper, setShowCropper] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -77,8 +77,8 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
   const [businessId, setBusinessId] = useState<string | null>(null);
   const [showShareModal, setShowShareModal] = useState(false);
   const [userPrivacy, setUserPrivacy] = useState<'public' | 'private'>(() => {
-    console.log('UserProfile: Initial userData.privacy:', userData.privacy);
-    return userData.privacy || 'public';
+    console.log('UserProfile: Initial userData.privacy:', userData?.privacy);
+    return userData?.privacy || 'public';
   });
   const [isToggling, setIsToggling] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
@@ -129,7 +129,7 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
     } finally {
       setRatingLoading(false);
     }
-  }, [isCurrentUser, userData._id, userData.username, userData.isBusinessProfile, currentUser?._id]);
+  }, [isCurrentUser, userData?._id, userData?.username, userData?.isBusinessProfile, currentUser?._id]);
 
   const fetchBusinessByUserId = useCallback(async (userId: string) => {
     try {
@@ -167,7 +167,7 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
 
   // Helper function to check if all stories have been viewed by current user
   const areAllStoriesViewed = () => {
-    if (!currentUser || !userStories.length) return false;
+    if (!currentUser || !currentUser._id || !userStories.length) return false;
     
     const allViewed = userStories.every(story => {
       // Safety check: ensure viewers array exists
@@ -183,6 +183,8 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
 
   // Update internal state if userData prop changes
   useEffect(() => {
+    if (!userData) return;
+    
     setProfile(userData);
     setIsFollowing(userData.isFollowing || false);
     setFollowersCount(userData.followersCount);
@@ -206,12 +208,12 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
     }
 
     // Fetch stories for other users when component loads
-    if (!isCurrentUser && userData._id) {
+    if (!isCurrentUser && userData?._id) {
       fetchUserStories(userData._id);
       checkBlockStatus(userData._id);
       
       // Fetch business rating if this is a business profile
-      if (userData.isBusinessProfile) {
+      if (userData?.isBusinessProfile) {
         if (userData.businessId) {
           // Has proper businessId - use it directly
           console.log('✅ BUSINESS WITH ID: Using businessId:', userData.businessId);
@@ -406,7 +408,7 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
     setLocationSuggestions([]);
   };
 
-  const joinedDate = getJoinedDate(profile?.createdAt);
+  const joinedDate = getJoinedDate(profile?.createdAt || '');
 
   const getInitials = (name: string) => {
     return name
@@ -432,7 +434,7 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
   };
 
   const fetchAndShowStories = async () => {
-    if (storiesLoading) return;
+    if (storiesLoading || !profile) return;
     
     setStoriesLoading(true);
     try {
@@ -635,7 +637,7 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
       useUserStore.getState().updateUser({ privacy: newPrivacy });
 
       // Update profile state
-      setProfile(prev => ({ ...prev, privacy: newPrivacy }));
+      setProfile(prev => prev ? { ...prev, privacy: newPrivacy } : null);
     } catch (error: any) {
       console.error('Error toggling privacy:', error);
       const errorMessage = error?.response?.data?.message || 'Failed to update privacy settings';
@@ -646,6 +648,8 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
   };
 
   const handleCancel = () => {
+    if (!profile) return;
+    
     // Reset form data to original profile data
     setFormData({
       fullName: profile.fullName,
@@ -661,7 +665,7 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
   };
 
   const handleFollowToggle = async () => {
-    if (isFollowLoading) return;
+    if (isFollowLoading || !profile) return;
     
     // Debug check
     // //console.log('Attempting to follow/unfollow user:', {
@@ -720,8 +724,8 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
         alert(errorMessage || 'Failed to update follow status');
         
         // Reset state on other errors to initial userData values
-        setIsFollowing(userData.isFollowing || false);
-        setFollowersCount(userData.followersCount);
+        setIsFollowing(userData?.isFollowing || false);
+        setFollowersCount(userData?.followersCount || 0);
       }
     } finally {
       setIsFollowLoading(false);
@@ -729,7 +733,7 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
   };
 
   const handleMessageClick = async () => {
-    if (creatingChat) return;
+    if (creatingChat || !profile) return;
     
     // Prevent messaging blocked users
     if (isBlocked) {
@@ -742,7 +746,7 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
       // Get current user from store
       const currentUser = useUserStore.getState().user;
       
-      if (!currentUser) {
+      if (!currentUser || !currentUser._id) {
         alert('Please log in to send messages');
         return;
       }
@@ -800,6 +804,8 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
   };
 
   const handleBlock = async () => {
+    if (!profile) return;
+    
     try {
       setIsBlocking(true);
       await blockUser(profile._id);
@@ -831,7 +837,7 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
   };
 
   const handleUnblock = async () => {
-    if (isBlocking) return;
+    if (isBlocking || !profile) return;
 
     try {
       setIsBlocking(true);
@@ -850,9 +856,23 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
 
   // Handle followers/following click
   const handleFollowersClick = (tab: 'followers' | 'following') => {
+    if (!profile) return;
+    
     setFollowersModalTab(tab);
     setShowFollowersModal(true);
   };
+
+  // Early return if userData is null or undefined
+  if (!userData || !profile) {
+    return (
+      <div className="bg-white rounded-xl overflow-hidden shadow-sm w-full p-8">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-yellow-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-xl overflow-hidden shadow-sm w-full">
@@ -1410,7 +1430,7 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
       <ShareModal
         isOpen={showShareModal}
         onClose={() => setShowShareModal(false)}
-        userData={profile}
+        userData={profile!}
       />
 
       {/* Rating Modal */}
