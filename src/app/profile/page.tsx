@@ -1,7 +1,7 @@
 'use client'
 import { getPostsByUserid, getUserReels, getUserVideos } from '@/api/homeFeed';
 import { getUserProfile } from '@/api/user';
-import { getSavedPost, getPrivateSavedPosts, getPublicSavedPosts, toggleSavedPostPrivacy } from '@/api/post';
+import { getPrivateSavedPosts, getPublicSavedPosts } from '@/api/post';
 //import { getCommentsByPost, Comment } from '@/api/comment';
 import AccountSettings from '@/components/AccountSettings';
 //import FloatingHeader from '@/components/FloatingHeader';
@@ -35,7 +35,7 @@ const Page = () => {
         location: profileData.location,
       });
     }
-  }, [profileData?.location, user?._id, updateUser]);
+  }, [profileData?.location, profileData?._id, user?._id, updateUser]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -53,8 +53,8 @@ const Page = () => {
         const profileResponse = await getUserProfile();
         
         // Updated to match actual API response structure
-        if (profileResponse?.userId) {
-          setProfileData(profileResponse.userId);
+        if (profileResponse?.user) {
+          setProfileData(profileResponse.user);
         } else {
           throw new Error("Profile data not found in response");
         }
