@@ -1,0 +1,65 @@
+import type { Metadata } from "next";
+import { Geist, Geist_Mono } from "next/font/google";
+import "./globals.css";
+import MainLayout from "@/components/layouts/MainLayout";
+
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
+export const metadata: Metadata = {
+  title: "FinderNate",
+  description: "Findernate - Social Network for All",
+   icons: {
+    icon: [
+      {
+        url: "/Findernate.ico",
+        sizes: "12x12",
+        type: "image/ico",
+      },
+      {
+        url: "/Findernate.ico",
+        sizes: "16x16",
+        type: "image/ico",
+      },
+    ],
+    shortcut: "/Findernate.ico",
+    apple: "/Findernate.ico",
+  },
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>){
+
+
+  return (
+    <html lang="en">
+       <head>
+        <link rel="icon" href="/Findernate.ico" type="image/ico" sizes="32x32" />
+        <link rel="shortcut icon" href="/Findernate.ico" />
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#f59e0b" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="FinderNate" />
+      </head>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased relative`}
+        suppressHydrationWarning={true}
+      >
+        <MainLayout>
+        {children}
+        </MainLayout>
+      </body>
+    </html>
+  );
+}

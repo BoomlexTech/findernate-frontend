@@ -1,0 +1,25 @@
+import type { NextConfig } from "next";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.findernate.com';
+
+const nextConfig: NextConfig = {
+  images: {
+    domains: ['findernate-media.b-cdn.net', 'res.cloudinary.com', 'example.com', 'images.pexels.com', 'ui-avatars.com', 'cdn.pixabay.com', 'picsum.photos',"randomuser.me","images.unsplash.com","media.istockphoto.com","localhost","www.pexels.com" ],
+
+  },
+  eslint:{
+    ignoreDuringBuilds: true,
+  }
+};
+
+// Use a dev-time proxy to avoid CORS in the browser by keeping same-origin requests
+export async function rewrites() {
+  return [
+    {
+      source: '/api/:path*',
+      destination: `${API_BASE}/api/:path*`,
+    },
+  ];
+}
+
+export default nextConfig; 
