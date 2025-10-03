@@ -79,7 +79,7 @@ const Page = () => {
           ]);
           
           // Helper function to process saved posts
-          const processSavedPosts = (savedPostsData: any[], privacy: 'private' | 'public') => {
+          const processSavedPosts = (savedPostsData: any[], privacy: 'private' | 'public'): (FeedPost & { savedPostPrivacy: 'private' | 'public' } | null)[] => {
             return savedPostsData
               ?.filter((savedPost: any) => savedPost.postId !== null && savedPost.postId !== undefined)
               ?.map((savedPost: any) => {
@@ -208,7 +208,7 @@ const Page = () => {
         ]);
         
         // Helper function to process saved posts
-        const processSavedPosts = (savedPostsData: any[], privacy: 'private' | 'public') => {
+        const processSavedPosts = (savedPostsData: any[], privacy: 'private' | 'public'): (FeedPost & { savedPostPrivacy: 'private' | 'public' } | null)[] => {
           return savedPostsData
             ?.filter((savedPost: any) => savedPost.postId !== null && savedPost.postId !== undefined)
             ?.map((savedPost: any) => {
