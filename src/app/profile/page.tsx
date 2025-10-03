@@ -81,10 +81,13 @@ const Page = () => {
           // Helper function to process saved posts
           const processSavedPosts = (savedPostsData: any[], privacy: 'private' | 'public') => {
             return savedPostsData
-              ?.filter((savedPost: any) => savedPost.postId !== null)
+              ?.filter((savedPost: any) => savedPost.postId !== null && savedPost.postId !== undefined)
               ?.map((savedPost: any) => {
                 const item = savedPost.postId; // Raw post data from API (same as MainContent's 'item')
-                
+
+                // Skip if item is invalid
+                if (!item || !item._id) return null;
+
                 // Calculate actual comment count from comments array (EXACT MainContent logic)
                 let actualCommentCount = 0;
                 if (item.comments && Array.isArray(item.comments)) {
@@ -94,9 +97,11 @@ const Page = () => {
                     return total + 1 + repliesCount; // 1 for the comment itself + replies
                   }, 0);
                 }
-                
-                const safeUsername = item.userId?.username || 'Deleted User';
-                const safeProfileImageUrl = item.userId?.profileImageUrl || '/placeholderimg.png';
+
+                // Handle userId being either object or string
+                const userIdObj = typeof item.userId === 'object' ? item.userId : null;
+                const safeUsername = userIdObj?.username || item.username || 'Deleted User';
+                const safeProfileImageUrl = userIdObj?.profileImageUrl || item.profileImageUrl || '/placeholderimg.png';
 
                 // Map to FeedPost structure EXACTLY like MainContent does
                 return {
@@ -136,11 +141,11 @@ const Page = () => {
               }) || [];
           };
           
-          const privatePosts = processSavedPosts(privatePostsResponse.data?.savedPosts || [], 'private');
-          const publicPosts = processSavedPosts(publicPostsResponse.data?.savedPosts || [], 'public');
-          
+          const privatePosts = processSavedPosts(privatePostsResponse.data?.savedPosts || [], 'private').filter(Boolean);
+          const publicPosts = processSavedPosts(publicPostsResponse.data?.savedPosts || [], 'public').filter(Boolean);
+
           // Combine both private and public posts and sort by creation date
-          const allSavedPosts = [...privatePosts, ...publicPosts].sort((a, b) => 
+          const allSavedPosts = [...privatePosts, ...publicPosts].sort((a, b) =>
             new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
           );
           
@@ -205,10 +210,13 @@ const Page = () => {
         // Helper function to process saved posts
         const processSavedPosts = (savedPostsData: any[], privacy: 'private' | 'public') => {
           return savedPostsData
-            ?.filter((savedPost: any) => savedPost.postId !== null)
+            ?.filter((savedPost: any) => savedPost.postId !== null && savedPost.postId !== undefined)
             ?.map((savedPost: any) => {
               const item = savedPost.postId; // Raw post data from API (same as MainContent's 'item')
-              
+
+              // Skip if item is invalid
+              if (!item || !item._id) return null;
+
               // Calculate actual comment count from comments array (EXACT MainContent logic)
               let actualCommentCount = 0;
               if (item.comments && Array.isArray(item.comments)) {
@@ -218,9 +226,11 @@ const Page = () => {
                   return total + 1 + repliesCount; // 1 for the comment itself + replies
                 }, 0);
               }
-              
-              const safeUsername = item.userId?.username || 'Deleted User';
-              const safeProfileImageUrl = item.userId?.profileImageUrl || '/placeholderimg.png';
+
+              // Handle userId being either object or string
+              const userIdObj = typeof item.userId === 'object' ? item.userId : null;
+              const safeUsername = userIdObj?.username || item.username || 'Deleted User';
+              const safeProfileImageUrl = userIdObj?.profileImageUrl || item.profileImageUrl || '/placeholderimg.png';
 
               // Map to FeedPost structure EXACTLY like MainContent does
               return {
@@ -260,11 +270,11 @@ const Page = () => {
             }) || [];
         };
         
-        const privatePosts = processSavedPosts(privatePostsResponse.data?.savedPosts || [], 'private');
-        const publicPosts = processSavedPosts(publicPostsResponse.data?.savedPosts || [], 'public');
-        
+        const privatePosts = processSavedPosts(privatePostsResponse.data?.savedPosts || [], 'private').filter(Boolean);
+        const publicPosts = processSavedPosts(publicPostsResponse.data?.savedPosts || [], 'public').filter(Boolean);
+
         // Combine both private and public posts and sort by creation date
-        const allSavedPosts = [...privatePosts, ...publicPosts].sort((a, b) => 
+        const allSavedPosts = [...privatePosts, ...publicPosts].sort((a, b) =>
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
         
