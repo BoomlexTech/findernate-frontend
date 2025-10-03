@@ -425,36 +425,45 @@ const Page = () => {
           <div className='w-full'>
             <ProfilePostsSection
               PostCard={PostCard}
-              posts={posts.map((post) => ({
-                ...post,
-                username: post.userId?.username || '',
-                profileImageUrl: post.userId?.profileImageUrl || '',
-                tags: post.customization?.normal?.tags || 
-                      post.customization?.business?.tags || 
-                      post.customization?.service?.tags || 
-                      post.customization?.product?.tags || 
-                      post.tags || [],
-              }))}
-              reels={reels.map((post) => ({
-                ...post,
-                username: post.userId?.username || '',
-                profileImageUrl: post.userId?.profileImageUrl || '',
-                tags: post.customization?.normal?.tags || 
-                      post.customization?.business?.tags || 
-                      post.customization?.service?.tags || 
-                      post.customization?.product?.tags || 
-                      post.tags || [],
-              }))}
-              videos={videos.map((post) => ({
-                ...post,
-                username: post.userId?.username || '',
-                profileImageUrl: post.userId?.profileImageUrl || '',
-                tags: post.customization?.normal?.tags || 
-                      post.customization?.business?.tags || 
-                      post.customization?.service?.tags || 
-                      post.customization?.product?.tags || 
-                      post.tags || [],
-              }))}
+              posts={posts.map((post) => {
+                const userId = typeof post.userId === 'object' ? post.userId : null;
+                return {
+                  ...post,
+                  username: userId?.username || post.username || '',
+                  profileImageUrl: userId?.profileImageUrl || post.profileImageUrl || '',
+                  tags: post.customization?.normal?.tags ||
+                        post.customization?.business?.tags ||
+                        post.customization?.service?.tags ||
+                        post.customization?.product?.tags ||
+                        post.tags || [],
+                };
+              })}
+              reels={reels.map((post) => {
+                const userId = typeof post.userId === 'object' ? post.userId : null;
+                return {
+                  ...post,
+                  username: userId?.username || post.username || '',
+                  profileImageUrl: userId?.profileImageUrl || post.profileImageUrl || '',
+                  tags: post.customization?.normal?.tags ||
+                        post.customization?.business?.tags ||
+                        post.customization?.service?.tags ||
+                        post.customization?.product?.tags ||
+                        post.tags || [],
+                };
+              })}
+              videos={videos.map((post) => {
+                const userId = typeof post.userId === 'object' ? post.userId : null;
+                return {
+                  ...post,
+                  username: userId?.username || post.username || '',
+                  profileImageUrl: userId?.profileImageUrl || post.profileImageUrl || '',
+                  tags: post.customization?.normal?.tags ||
+                        post.customization?.business?.tags ||
+                        post.customization?.service?.tags ||
+                        post.customization?.product?.tags ||
+                        post.tags || [],
+                };
+              })}
               savedPosts={savedPosts}
               isOtherUser={false}
               isFullPrivate={profileData?.isFullPrivate || false}
