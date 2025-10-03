@@ -52,13 +52,17 @@ const FollowRequestManager: React.FC<FollowRequestManagerProps> = ({ className =
         getSentFollowRequests()
       ]);
 
-      setPendingRequests(pendingRes.data.requests || []);
-      setSentRequests(sentRes.data.requests || []);
+      setPendingRequests(pendingRes?.data?.requests || []);
+      setSentRequests(sentRes?.data?.requests || []);
     } catch (error: any) {
+      console.error('Error fetching follow requests:', error);
       toast.error('Failed to load follow requests', {
         position: "top-right",
         autoClose: 3000,
       });
+      // Set empty arrays to prevent undefined errors
+      setPendingRequests([]);
+      setSentRequests([]);
     } finally {
       setLoading(false);
     }
