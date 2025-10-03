@@ -141,8 +141,8 @@ const Page = () => {
               }) || [];
           };
           
-          const privatePosts = processSavedPosts(privatePostsResponse.data?.savedPosts || [], 'private').filter(Boolean);
-          const publicPosts = processSavedPosts(publicPostsResponse.data?.savedPosts || [], 'public').filter(Boolean);
+          const privatePosts = processSavedPosts(privatePostsResponse.data?.savedPosts || [], 'private').filter((post): post is FeedPost & { savedPostPrivacy: 'private' | 'public' } => post !== null);
+          const publicPosts = processSavedPosts(publicPostsResponse.data?.savedPosts || [], 'public').filter((post): post is FeedPost & { savedPostPrivacy: 'private' | 'public' } => post !== null);
 
           // Combine both private and public posts and sort by creation date
           const allSavedPosts = [...privatePosts, ...publicPosts].sort((a, b) =>
@@ -270,8 +270,8 @@ const Page = () => {
             }) || [];
         };
         
-        const privatePosts = processSavedPosts(privatePostsResponse.data?.savedPosts || [], 'private').filter(Boolean);
-        const publicPosts = processSavedPosts(publicPostsResponse.data?.savedPosts || [], 'public').filter(Boolean);
+        const privatePosts = processSavedPosts(privatePostsResponse.data?.savedPosts || [], 'private').filter((post): post is FeedPost & { savedPostPrivacy: 'private' | 'public' } => post !== null);
+        const publicPosts = processSavedPosts(publicPostsResponse.data?.savedPosts || [], 'public').filter((post): post is FeedPost & { savedPostPrivacy: 'private' | 'public' } => post !== null);
 
         // Combine both private and public posts and sort by creation date
         const allSavedPosts = [...privatePosts, ...publicPosts].sort((a, b) =>
