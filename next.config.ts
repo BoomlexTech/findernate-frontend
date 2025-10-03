@@ -1,6 +1,6 @@
 import type { NextConfig } from "next";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.findernate.com';
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
 const nextConfig: NextConfig = {
   images: {
