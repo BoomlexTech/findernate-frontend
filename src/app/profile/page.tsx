@@ -53,9 +53,9 @@ const Page = () => {
         const profileResponse = await getUserProfile();
 
         // Updated to match actual API response structure
-        // getUserProfile already returns response.data.data, so profileResponse.userId is the user data
-        if (profileResponse?.userId) {
-          setProfileData(profileResponse.userId);
+        // getUserProfile returns response.data.data which is the user profile object directly
+        if (profileResponse) {
+          setProfileData(profileResponse);
         } else {
           throw new Error("Profile data not found in response");
         }
