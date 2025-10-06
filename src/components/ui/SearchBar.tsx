@@ -1,5 +1,6 @@
 'use client';
 import { Search } from 'lucide-react';
+import { forwardRef } from 'react';
 
 interface searchBarProps {
   onChange: React.ChangeEventHandler<HTMLElement>;
@@ -9,19 +10,20 @@ interface searchBarProps {
   disabled?: boolean;
 }
 
-export default function SearchBar({
+const SearchBar = forwardRef<HTMLInputElement, searchBarProps>(({
   onChange,
   placeholder,
   className,
   value,
   disabled = false
-}: searchBarProps) {
+}, ref) => {
   return (
     <div className="relative w-full max-w-[54rem]">
       <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 flex items-center justify-center w-8 h-8 rounded-full bg-yellow-100 text-yellow-600">
         <Search className="w-4 h-4" />
       </div>
       <input
+        ref={ref}
         type="text"
         onChange={onChange}
         value={value}
@@ -31,4 +33,8 @@ export default function SearchBar({
       />
     </div>
   );
-}
+});
+
+SearchBar.displayName = 'SearchBar';
+
+export default SearchBar;

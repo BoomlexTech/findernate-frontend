@@ -166,7 +166,7 @@ export const unblockUser = async (blockedUserId: string) => {
 export const getBlockedUsers = async () => {
     try {
         const response = await axios.get('/users/blocked-users');
-        return response.data.data?.blockedUsers || [];
+        return response.data?.blockedUsers || [];
     } catch (error: any) {
         throw error;
     }
@@ -175,7 +175,7 @@ export const getBlockedUsers = async () => {
 export const checkIfUserBlocked = async (userId: string) => {
     try {
         const response = await axios.get(`/users/check-block/${userId}`);
-        return response.data.data?.isBlocked || false;
+        return response.data?.isBlocked || false;
     } catch (error: any) {
         throw error;
     }

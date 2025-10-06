@@ -2,7 +2,7 @@
 
 import SearchBar from "@/components/ui/SearchBar";
 import LocationInput from "@/components/ui/LocationInput";
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, Suspense, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   Search,
@@ -38,6 +38,7 @@ import { useUserStore } from "@/store/useUserStore";
 function SearchContent() {
   const searchParams = useSearchParams();
   const { user: currentUser } = useUserStore();
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [displayQuery, setDisplayQuery] = useState("");
   const [isDefaultSearch, setIsDefaultSearch] = useState(false);
@@ -130,6 +131,13 @@ function SearchContent() {
 
     fetchFollowingList();
   }, [currentUser?._id]);
+
+  // Focus search input on component mount
+  useEffect(() => {
+    if (searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, []);
 
   // Helper function to enrich users with correct isFollowing state
   const enrichUsersWithFollowingState = (users: SearchUser[]): SearchUser[] => {
@@ -350,6 +358,10 @@ function SearchContent() {
       setUsers([]);
     } finally {
       setLoading(false);
+      // Maintain focus on search input after search completes
+      if (searchInputRef.current) {
+        searchInputRef.current.focus();
+      }
     }
   };
 
@@ -376,6 +388,10 @@ function SearchContent() {
       setUsers([]);
     } finally {
       setLoading(false);
+      // Maintain focus on search input after search completes
+      if (searchInputRef.current) {
+        searchInputRef.current.focus();
+      }
     }
   };
 
@@ -408,7 +424,7 @@ function SearchContent() {
         setResults([]);
         setUsers([]);
       }
-    }, 300);
+    }, 500); // Increased debounce delay to 500ms
 
     return () => clearTimeout(timer);
   }, [
@@ -488,9 +504,9 @@ function SearchContent() {
 
             <div className="w-full relative [&>*]:!max-w-full [&>*]:xl:!max-w-[54rem] mt-5">
               <SearchBar
+                ref={searchInputRef}
                 value={displayQuery}
                 placeholder="Search businesses, products, services..."
-                disabled={loading}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                   const value = e.target.value;
                   setDisplayQuery(value);
@@ -498,6 +514,12 @@ function SearchContent() {
                   setIsDefaultSearch(false);
                 }}
               />
+              {/* Loading indicator that doesn't block input */}
+              {loading && (
+                <div className="absolute right-12 top-1/2 -translate-y-1/2">
+                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-yellow-500 border-t-transparent"></div>
+                </div>
+              )}
               {/* <Button
                 variant="custom"
                 onClick={activeTab === "Users" ? handleUserSearch : handleSearch}
