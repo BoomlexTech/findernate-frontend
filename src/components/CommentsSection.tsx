@@ -204,7 +204,14 @@ const CommentsSection = ({ postId, postOwnerId, onCommentCountChange, initialCom
           }
         });
         
-        setComments(processedComments);
+        // Ensure newest comments render on top regardless of API order
+        const sortedByLatest = [...processedComments].sort((a, b) => {
+          const aTime = new Date(a.createdAt).getTime();
+          const bTime = new Date(b.createdAt).getTime();
+          return bTime - aTime;
+        });
+
+        setComments(sortedByLatest);
       } else {
         setComments([]);
         setTotalCommentCount(0);
