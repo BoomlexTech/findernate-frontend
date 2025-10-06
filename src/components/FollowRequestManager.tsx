@@ -79,7 +79,7 @@ const FollowRequestManager: React.FC<FollowRequestManagerProps> = ({ className =
     setProcessingIds(prev => new Set(prev).add(requesterId));
     try {
       await approveFollowRequest(requesterId);
-      setPendingRequests(prev => prev.filter(req => req.requesterId._id !== requesterId));
+      setPendingRequests(prev => prev.filter(req => req.requesterId?._id !== requesterId));
       toast.success('Follow request approved!', {
         position: "top-right",
         autoClose: 3000,
@@ -102,7 +102,7 @@ const FollowRequestManager: React.FC<FollowRequestManagerProps> = ({ className =
     setProcessingIds(prev => new Set(prev).add(requesterId));
     try {
       await rejectFollowRequest(requesterId);
-      setPendingRequests(prev => prev.filter(req => req.requesterId._id !== requesterId));
+      setPendingRequests(prev => prev.filter(req => req.requesterId?._id !== requesterId));
       toast.success('Follow request rejected', {
         position: "top-right",
         autoClose: 3000,
