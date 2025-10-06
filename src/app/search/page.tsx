@@ -202,12 +202,15 @@ function SearchContent() {
         ? selectedLocation.split(',')[0].toLowerCase().trim() // Extract city name and lowercase it
         : undefined;
 
+      // Map UI post type to API-accepted value (image -> photo)
+      const apiPostType = selectedPostType === 'image' ? 'photo' : selectedPostType || undefined;
+
       const response = await searchAllContent(
         searchQuery,
         locationParam,
         10,
         selectedContentType === "all" ? undefined : selectedContentType || undefined,
-        selectedPostType || undefined,
+        apiPostType,
         startDate ? startDate.toISOString().split('T')[0] : undefined,
         endDate ? endDate.toISOString().split('T')[0] : undefined,
         useCurrentLocation && currentCoordinates ? searchRadius : undefined,
