@@ -829,6 +829,8 @@ const handleProductChange = (
 
   const handleImageUpload = async (e:React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
+    // Clear the input value immediately so selecting the same file again will trigger onChange
+    try { (e.target as HTMLInputElement).value = ''; } catch {}
     
     // Check file limits based on content type
     const maxFiles = contentType === 'Post' ? 10 : 1;

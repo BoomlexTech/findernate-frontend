@@ -166,7 +166,7 @@ export const savePost = async (postId: string, privacy: 'private' | 'public' = '
 
 export const getPrivateSavedPosts = async (page: number = 1, limit: number = 10) => {
   try {
-    const response = await axios.get(`/posts/saved/private?page=${page}&limit=${limit}`)
+    const response = await axios.get(`/posts/saved/?page=${page}&limit=${limit}`)
     return response.data;
   } catch (error) {
     throw error;
