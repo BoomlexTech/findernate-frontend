@@ -9,6 +9,7 @@ import { ChevronDown } from 'lucide-react';
 import { UpdateBusinessCategory, GetBusinessCategory, switchToBusiness, switchToPersonal, toggleProductPosts, toggleServicePosts } from '@/api/business';
 import { useUserStore } from '@/store/useUserStore';
 import { getUserProfile } from '@/api/user';
+import { toast } from 'react-toastify';
 
 const businessCategories = [
   'Technology & Software',
@@ -191,6 +192,7 @@ export default function AccountSettings() {
         updateUser({ isBusinessProfile: true });
         
         setUpdateMessage('Successfully switched to business account!');
+        try { toast.success('Switched to business account'); } catch {}
         setTimeout(() => setUpdateMessage(''), 3000);
         
         //console.log('Switch to business response:', response);
@@ -199,6 +201,7 @@ export default function AccountSettings() {
         const axiosError = error as AxiosError<{ message?: string }>;
         const errMsg = axiosError.response?.data?.message || 'Failed to switch to business account';
         setUpdateMessage(errMsg);
+        try { toast.error(errMsg); } catch {}
         setTimeout(() => setUpdateMessage(''), 5000);
       } finally {
         setIsSwitching(false);
@@ -221,6 +224,7 @@ export default function AccountSettings() {
         updateUser({ isBusinessProfile: false });
         
         setUpdateMessage('Successfully switched to personal account!');
+        try { toast.success('Switched to personal account'); } catch {}
         setTimeout(() => setUpdateMessage(''), 3000);
         
         // Hide business options when switching to personal
@@ -232,6 +236,7 @@ export default function AccountSettings() {
         const axiosError = error as AxiosError<{ message?: string }>;
         const errMsg = axiosError.response?.data?.message || 'Failed to switch to personal account';
         setUpdateMessage(errMsg);
+        try { toast.error(errMsg); } catch {}
         setTimeout(() => setUpdateMessage(''), 5000);
       } finally {
         setIsSwitching(false);
