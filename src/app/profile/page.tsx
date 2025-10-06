@@ -1,7 +1,7 @@
 'use client'
 import { getPostsByUserid, getUserReels, getUserVideos } from '@/api/homeFeed';
 import { getUserProfile } from '@/api/user';
-import { getSavedPost, getPrivateSavedPosts, getPublicSavedPosts, toggleSavedPostPrivacy } from '@/api/post';
+import { getPrivateSavedPosts } from '@/api/post';
 //import { getCommentsByPost, Comment } from '@/api/comment';
 import AccountSettings from '@/components/AccountSettings';
 //import FloatingHeader from '@/components/FloatingHeader';
@@ -71,43 +71,34 @@ const Page = () => {
         setReels(reelsResponse.data?.posts || []);
         setVideos(videosResponse.data?.posts || []);
         
-        // Fetch saved posts separately to prevent blocking other data
+        // Fetch saved posts (single endpoint) separately to prevent blocking other data
         try {
-          // Fetch both private and public saved posts
-          const [privatePostsResponse, publicPostsResponse] = await Promise.all([
-            getPrivateSavedPosts(1, 100),
-            getPublicSavedPosts(1, 100)
-          ]);
-          
-          // Helper function to process saved posts
-          const processSavedPosts = (savedPostsData: any[], privacy: 'private' | 'public'): (FeedPost & { savedPostPrivacy: 'private' | 'public' } | null)[] => {
+          const savedResponse = await getPrivateSavedPosts(1, 100); // unified /posts/saved
+          // Helper function to process saved posts (privacy may come from API or default to 'private')
+          const processSavedPosts = (savedPostsData: any[]): (FeedPost & { savedPostPrivacy: 'private' | 'public' } | null)[] => {
             return savedPostsData
               ?.filter((savedPost: any) => savedPost.postId !== null && savedPost.postId !== undefined)
               ?.map((savedPost: any) => {
-                const item = savedPost.postId; // Raw post data from API (same as MainContent's 'item')
-
-                // Skip if item is invalid
+                const item = savedPost.postId;
                 if (!item || !item._id) return null;
 
-                // Calculate actual comment count from comments array (EXACT MainContent logic)
                 let actualCommentCount = 0;
                 if (item.comments && Array.isArray(item.comments)) {
-                  // Count top-level comments + replies
                   actualCommentCount = item.comments.reduce((total: number, comment: any) => {
                     const repliesCount = Array.isArray(comment.replies) ? comment.replies.length : 0;
-                    return total + 1 + repliesCount; // 1 for the comment itself + replies
+                    return total + 1 + repliesCount;
                   }, 0);
                 }
 
-                // Handle userId being either object or string
                 const userIdObj = typeof item.userId === 'object' ? item.userId : null;
                 const safeUsername = userIdObj?.username || item.username || 'Deleted User';
                 const safeProfileImageUrl = userIdObj?.profileImageUrl || item.profileImageUrl || '/placeholderimg.png';
 
-                // Map to FeedPost structure EXACTLY like MainContent does
+                const privacy = (savedPost.privacy === 'public' || savedPost.privacy === 'private') ? savedPost.privacy : 'private';
+
                 return {
                   _id: item._id,
-                  userId: item.userId, // Add missing userId field
+                  userId: item.userId,
                   username: safeUsername,
                   profileImageUrl: safeProfileImageUrl,
                   description: item.description,
@@ -121,7 +112,7 @@ const Page = () => {
                   customization: item.customization,
                   engagement: {
                     ...(item.engagement || {}),
-                    comments: actualCommentCount, // Use calculated count
+                    comments: actualCommentCount,
                     impressions: item.engagement?.impressions || 0,
                     likes: item.engagement?.likes || 0,
                     reach: item.engagement?.reach || 0,
@@ -136,34 +127,16 @@ const Page = () => {
                     item.customization?.business?.location ||
                     null,
                   tags: item.customization?.normal?.tags || [],
-                  // Add privacy field to track visibility
-                  savedPostPrivacy: privacy
+                  savedPostPrivacy: privacy,
                 } as FeedPost & { savedPostPrivacy: 'private' | 'public' };
               }) || [];
           };
-          
-          const privatePosts = processSavedPosts(privatePostsResponse.data?.savedPosts || [], 'private').filter((post): post is FeedPost & { savedPostPrivacy: 'private' | 'public' } => post !== null);
-          const publicPosts = processSavedPosts(publicPostsResponse.data?.savedPosts || [], 'public').filter((post): post is FeedPost & { savedPostPrivacy: 'private' | 'public' } => post !== null);
 
-          // Combine both private and public posts and sort by creation date
-          const allSavedPosts = [...privatePosts, ...publicPosts].sort((a, b) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-          );
-          
+          const allSavedPosts = processSavedPosts(savedResponse.data?.savedPosts || [])
+            .filter((post): post is FeedPost & { savedPostPrivacy: 'private' | 'public' } => post !== null)
+            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
           setSavedPosts(allSavedPosts);
-          //console.log("Private Posts Response:", privatePostsResponse.data?.savedPosts?.length);
-          //console.log("Public Posts Response:", publicPostsResponse.data?.savedPosts?.length);
-          
-          // Debug first saved post structure
-          if (allSavedPosts.length > 0) {
-            //console.log("First saved post structure:", {
-            //  _id: allSavedPosts[0]._id,
-            //  isLikedBy: allSavedPosts[0].isLikedBy,
-            //  engagement: allSavedPosts[0].engagement,
-            //  userId: allSavedPosts[0].userId,
-            //  savedPostPrivacy: (allSavedPosts[0] as any).savedPostPrivacy
-            // });
-          }
         } catch (savedPostsError) {
           console.error('Error fetching saved posts:', savedPostsError);
           // Set empty array for saved posts if API fails
@@ -202,41 +175,31 @@ const Page = () => {
       
       // Fetch saved posts separately to prevent blocking other data
       try {
-        // Fetch both private and public saved posts
-        const [privatePostsResponse, publicPostsResponse] = await Promise.all([
-          getPrivateSavedPosts(1, 100),
-          getPublicSavedPosts(1, 100)
-        ]);
-        
-        // Helper function to process saved posts
-        const processSavedPosts = (savedPostsData: any[], privacy: 'private' | 'public'): (FeedPost & { savedPostPrivacy: 'private' | 'public' } | null)[] => {
+        const savedResponse = await getPrivateSavedPosts(1, 100); // unified /posts/saved
+        const processSavedPosts = (savedPostsData: any[]): (FeedPost & { savedPostPrivacy: 'private' | 'public' } | null)[] => {
           return savedPostsData
             ?.filter((savedPost: any) => savedPost.postId !== null && savedPost.postId !== undefined)
             ?.map((savedPost: any) => {
-              const item = savedPost.postId; // Raw post data from API (same as MainContent's 'item')
-
-              // Skip if item is invalid
+              const item = savedPost.postId;
               if (!item || !item._id) return null;
 
-              // Calculate actual comment count from comments array (EXACT MainContent logic)
               let actualCommentCount = 0;
               if (item.comments && Array.isArray(item.comments)) {
-                // Count top-level comments + replies
                 actualCommentCount = item.comments.reduce((total: number, comment: any) => {
                   const repliesCount = Array.isArray(comment.replies) ? comment.replies.length : 0;
-                  return total + 1 + repliesCount; // 1 for the comment itself + replies
+                  return total + 1 + repliesCount;
                 }, 0);
               }
 
-              // Handle userId being either object or string
               const userIdObj = typeof item.userId === 'object' ? item.userId : null;
               const safeUsername = userIdObj?.username || item.username || 'Deleted User';
               const safeProfileImageUrl = userIdObj?.profileImageUrl || item.profileImageUrl || '/placeholderimg.png';
 
-              // Map to FeedPost structure EXACTLY like MainContent does
+              const privacy = (savedPost.privacy === 'public' || savedPost.privacy === 'private') ? savedPost.privacy : 'private';
+
               return {
                 _id: item._id,
-                userId: item.userId, // Add missing userId field
+                userId: item.userId,
                 username: safeUsername,
                 profileImageUrl: safeProfileImageUrl,
                 description: item.description,
@@ -250,7 +213,7 @@ const Page = () => {
                 customization: item.customization,
                 engagement: {
                   ...(item.engagement || {}),
-                  comments: actualCommentCount, // Use calculated count
+                  comments: actualCommentCount,
                   impressions: item.engagement?.impressions || 0,
                   likes: item.engagement?.likes || 0,
                   reach: item.engagement?.reach || 0,
@@ -265,20 +228,15 @@ const Page = () => {
                   item.customization?.business?.location ||
                   null,
                 tags: item.customization?.normal?.tags || [],
-                // Add privacy field to track visibility
-                savedPostPrivacy: privacy
+                savedPostPrivacy: privacy,
               } as FeedPost & { savedPostPrivacy: 'private' | 'public' };
             }) || [];
         };
-        
-        const privatePosts = processSavedPosts(privatePostsResponse.data?.savedPosts || [], 'private').filter((post): post is FeedPost & { savedPostPrivacy: 'private' | 'public' } => post !== null);
-        const publicPosts = processSavedPosts(publicPostsResponse.data?.savedPosts || [], 'public').filter((post): post is FeedPost & { savedPostPrivacy: 'private' | 'public' } => post !== null);
 
-        // Combine both private and public posts and sort by creation date
-        const allSavedPosts = [...privatePosts, ...publicPosts].sort((a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        );
-        
+        const allSavedPosts = processSavedPosts(savedResponse.data?.savedPosts || [])
+          .filter((post): post is FeedPost & { savedPostPrivacy: 'private' | 'public' } => post !== null)
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
         setSavedPosts(allSavedPosts);
       } catch (savedPostsError) {
         console.error('Error refreshing saved posts:', savedPostsError);

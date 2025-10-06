@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import type { AxiosError } from 'axios';
 import PlanSelectionModal from './business/PlanSelectionModal';
 import BusinessDetailsModal from './business/BusinessDetailsModal';
@@ -53,6 +53,7 @@ export default function AccountSettings() {
   const [togglingService, setTogglingService] = useState(false);
   const [togglingProduct, setTogglingProduct] = useState(false);
   const { user, updateUser } = useUserStore();
+  const categoryDropdownRef = useRef<HTMLDivElement | null>(null);
 
   // Keep local flag in sync with store
   useEffect(() => {
@@ -116,6 +117,20 @@ export default function AccountSettings() {
 
     fetchBusinessCategory();
   }, [isBusiness]);
+
+  // Close category dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (!showCategoryDropdown) return;
+      const target = event.target as Node;
+      if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(target)) {
+        setShowCategoryDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showCategoryDropdown]);
 
   const handleCategoryUpdate = async (category: string) => {
     try {
@@ -363,7 +378,7 @@ export default function AccountSettings() {
             <div>
                              <div className="flex items-center justify-between mb-2">
                 <h3 className="text-base sm:text-lg font-semibold text-gray-900">Business Category</h3>
-                <div className="relative">
+                <div className="relative" ref={categoryDropdownRef}>
                   <button 
                     onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
                     disabled={isUpdatingCategory}
