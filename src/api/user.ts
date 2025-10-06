@@ -22,7 +22,7 @@ export const getOtherUserProfile = async (username: string) => {
             },
         });
         
-        
+        console.log(response)
         return response.data.data;
     } catch (error: any) {
         throw error;

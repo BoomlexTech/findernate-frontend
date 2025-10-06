@@ -5,7 +5,6 @@ import { getUserPosts, getUserReels, getUserVideos } from '@/api/homeFeed';
 import { getUserPublicSavedPosts } from '@/api/post';
 
 import { getCommentsByPost } from '@/api/comment';
-import FloatingHeader from '@/components/FloatingHeader';
 import PostCard from '@/components/PostCard';
 import ProfilePostsSection from '@/components/ProfilePostsSection';
 import UserProfile from '@/components/UserProfile';
@@ -20,7 +19,6 @@ const UserProfilePage = () => {
   const [savedPosts, setSavedPosts] = useState<FeedPost[]>([]);
   const [profileData, setProfileData] = useState<UserProfileType | null>(null);
   const [loading, setLoading] = useState(true);
-  const [postsLoading, setPostsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const params = useParams();
   const username = params.username as string; // Assuming dynamic route is [username]
@@ -98,47 +96,49 @@ const UserProfilePage = () => {
             throw err;
           }
         }
-        //console.log("=== DEBUG: Other user profile API response:", profileResponse);
-        //console.log("=== DEBUG: Profile response userId:", profileResponse.userId);
-        
-        if (profileResponse.userId) {
+        if (profileResponse?.userId) {
           // Transform the backend response to include isFollowing
           // Handle both string and boolean values for isFollowedBy
           const isFollowing = profileResponse.isFollowedBy === true || 
                              profileResponse.isFollowedBy === "True" || 
                              profileResponse.isFollowedBy === "true";
           
-          //console.log("Follow state debug:", {
-          //  isFollowedBy: profileResponse.isFollowedBy,
-          //  isFollowedByType: typeof profileResponse.isFollowedBy,
-          //  calculatedIsFollowing: isFollowing
-          // });
-          
           const userProfileData = {
             ...profileResponse.userId,
             isFollowing: isFollowing
           };
           
-          //console.log("=== DEBUG: Processed userProfileData:", userProfileData);
-          //console.log("=== DEBUG: userProfileData username:", userProfileData.username);
-          //console.log("=== DEBUG: userProfileData _id:", userProfileData._id);
-          
           setProfileData(userProfileData);
           
           // Fetch user posts, reels, and videos on initial load
           if (profileResponse.userId._id) {
-            // Fetch posts, reels, videos, and public saved posts in parallel
-            const [postsResponse, reelsResponse, videosResponse, savedPostsResponse] = await Promise.all([
-              getUserPosts(profileResponse.userId._id),
-              getUserReels(profileResponse.userId._id),
-              getUserVideos(profileResponse.userId._id),
-              getUserPublicSavedPosts(profileResponse.userId._id, 1, 100)
-            ]);
+            try {
+              // Initialize with empty arrays first
+              setPosts([]);
+              setReels([]);
+              setVideos([]);
+              setSavedPosts([]);
+              
+              // Fetch posts, reels, videos in parallel
+              const [postsResponse, reelsResponse, videosResponse] = await Promise.all([
+                getUserPosts(profileResponse.userId._id),
+                getUserReels(profileResponse.userId._id),
+                getUserVideos(profileResponse.userId._id)
+              ]);
+              
+              // Fetch saved posts separately to handle 404 gracefully
+              let savedPostsResponse = { data: { savedPosts: [] } };
+              try {
+                savedPostsResponse = await getUserPublicSavedPosts(profileResponse.userId._id, 1, 100);
+              } catch (savedPostsError: any) {
+                // Handle 404 or other errors for saved posts gracefully
+                if (savedPostsError?.response?.status === 404) {
+                  console.log('No public saved posts found for user');
+                } else {
+                  console.error('Error fetching saved posts:', savedPostsError);
+                }
+              }
             
-            //console.log('User posts API response:', postsResponse);
-            //console.log('User reels API response:', reelsResponse);
-            //console.log('User videos API response:', videosResponse);
-            //console.log('User public saved posts API response:', savedPostsResponse);
             
             // Helper function to process any type of post data
             const processPostData = (response: any, type: string) => {
@@ -220,15 +220,19 @@ const UserProfilePage = () => {
               fetchCommentCounts(savedPostsWithUserInfo)
             ]);
             
-            //console.log('Posts with updated comment counts:', postsWithCommentCounts.length);
-            //console.log('Reels with updated comment counts:', reelsWithCommentCounts.length);
-            //console.log('Videos with updated comment counts:', videosWithCommentCounts.length);
-            //console.log('Saved posts with updated comment counts:', savedPostsWithCommentCounts.length);
             
             setPosts(postsWithCommentCounts);
             setReels(reelsWithCommentCounts);
             setVideos(videosWithCommentCounts);
             setSavedPosts(savedPostsWithCommentCounts);
+            } catch (postsError) {
+              console.error('Error fetching posts data:', postsError);
+              // Continue without posts data - profile can still load
+              setPosts([]);
+              setReels([]);
+              setVideos([]);
+              setSavedPosts([]);
+            }
           }
         } else {
           throw new Error("Profile data not found in response");
@@ -247,12 +251,11 @@ const UserProfilePage = () => {
     }
   }, [username]);
 
-  const handleTabChange = async (tab: string) => {
+  const handleTabChange = async () => {
     if (!profileData?._id) return;
     
     // Since we now load all data on initial mount, we don't need to fetch anything here
     // This function now just handles the tab switching without API calls
-    //console.log(`Switching to ${tab} tab`);
     
     // Optional: Add refresh logic in the future if needed
     // For now, all data is already loaded on mount
@@ -316,7 +319,7 @@ const UserProfilePage = () => {
             videos={videos}
             savedPosts={savedPosts}
             isOtherUser={true}
-            loading={postsLoading}
+            loading={false}
             onTabChange={handleTabChange}
             isFullPrivate={profileData?.isFullPrivate || false}
             isBusinessAccount={profileData?.isBusinessProfile || false}
