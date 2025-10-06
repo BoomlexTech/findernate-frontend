@@ -13,19 +13,26 @@ import Image from 'next/image';
 
 interface FollowRequest {
   _id: string;
-  requesterId: {
+  requesterId?: {
     _id: string;
     username: string;
     fullName: string;
     profileImageUrl?: string;
   };
-  recipientId: {
+  recipientId?: {
+    _id: string;
+    username: string;
+    fullName: string;
+    profileImageUrl?: string;
+  };
+  recipient?: {
     _id: string;
     username: string;
     fullName: string;
     profileImageUrl?: string;
   };
   createdAt: string;
+  timestamp?: string;
   status: 'pending' | 'approved' | 'rejected';
 }
 
@@ -134,7 +141,12 @@ const FollowRequestManager: React.FC<FollowRequestManagerProps> = ({ className =
   };
 
   const RequestCard: React.FC<{ request: FollowRequest; type: 'received' | 'sent' }> = ({ request, type }) => {
-    const user = type === 'received' ? request.requesterId : request.recipientId;
+    const user = type === 'received'
+      ? request.requesterId
+      : (request.recipient || request.recipientId);
+
+    if (!user) return null;
+
     const isProcessing = processingIds.has(user._id);
 
     return (
@@ -159,7 +171,7 @@ const FollowRequestManager: React.FC<FollowRequestManagerProps> = ({ className =
             <p className="text-sm text-gray-500">@{user.username}</p>
             <p className="text-xs text-gray-400 flex items-center mt-1">
               <Clock className="w-3 h-3 mr-1" />
-              {formatTimeAgo(request.createdAt)}
+              {formatTimeAgo(request.timestamp || request.createdAt)}
             </p>
           </div>
         </div>
