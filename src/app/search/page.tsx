@@ -2,7 +2,7 @@
 
 import SearchBar from "@/components/ui/SearchBar";
 import LocationInput from "@/components/ui/LocationInput";
-import { useEffect, useState, Suspense, useRef } from "react";
+import { useEffect, useState, Suspense, useRef, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   Search,
@@ -118,14 +118,19 @@ function SearchContent() {
       if (currentUser?._id) {
         try {
           const followingData = await getFollowing(currentUser._id);
+          console.log('📥 Raw API response from getFollowing:', followingData);
           // Extract user IDs from following data
           const followingIds = followingData.map((user: any) => user._id || user);
+          console.log('📥 Extracted following IDs:', followingIds);
           setFollowingList(followingIds);
-          //console.log('Following list loaded:', followingIds.length, 'users');
         } catch (error) {
           console.error('Failed to fetch following list:', error);
           setFollowingList([]);
         }
+      } else {
+        // If no current user, set empty list to unblock searches
+        console.log('📥 No current user, setting empty followingList');
+        setFollowingList([]);
       }
     };
 
@@ -141,12 +146,19 @@ function SearchContent() {
 
   // Helper function to enrich users with correct isFollowing state
   const enrichUsersWithFollowingState = (users: SearchUser[]): SearchUser[] => {
-    return users.map(user => ({
-      ...user,
-      isFollowing: followingList.includes(user._id)
-    }));
+    return users.map((user, idx) => {
+      console.log(`🔧 Enriching user ${idx}:`, {
+        _id: user._id,
+        username: user.username,
+        fullName: user.fullName,
+        entireUserObject: user
+      });
+      return {
+        ...user,
+        isFollowing: followingList.includes(user._id)
+      };
+    });
   };
-
 
   const handleContentTypeSelect = (type: string) => {
     if (type === "all") {
@@ -226,10 +238,27 @@ function SearchContent() {
       //  radius: searchRadius
       // });
       
-      //console.log("API response:", response);
+      console.log("🌐 API response from searchAllContent:", {
+        resultsCount: response.data.results?.length,
+        usersCount: response.data.users?.length,
+        users: response.data.users
+      });
 
       let filteredResults = response.data.results || [];
       let filteredUsers = response.data.users || [];
+      
+      console.log('🌐 filteredUsers from API (before normalization):', filteredUsers);
+      
+      // Normalize Mongoose documents to plain objects (extract from _doc if present)
+      filteredUsers = filteredUsers.map((user: any) => {
+        if (user._doc) {
+          // Mongoose document structure - extract actual data from _doc
+          return { ...user._doc };
+        }
+        return user;
+      });
+      
+      console.log('🌐 filteredUsers after normalization:', filteredUsers);
 
       // Client-side location filtering for posts if not using current location
       if (!useCurrentLocation && selectedLocation !== "") {
@@ -347,10 +376,19 @@ function SearchContent() {
       setResults(postsWithComments);
       // Don't set users if this is the default search
       if (!isDefaultSearch) {
-        // Enrich users with correct isFollowing state
-        const enrichedUsers = enrichUsersWithFollowingState(filteredUsers);
-        setUsers(enrichedUsers);
+        // Set raw users - enrichment will happen in useMemo
+        console.log('🔍 handleSearch: Setting raw users for ALL tab. Count:', filteredUsers.length);
+        filteredUsers.forEach((u, i) => {
+          console.log(`  User ${i}:`, {
+            _id: u._id,
+            username: u.username,
+            fullName: u.fullName,
+            isFollowing: u.isFollowing
+          });
+        });
+        setUsers(filteredUsers);
       } else {
+        console.log('🔍 handleSearch: Default search - clearing users');
         setUsers([]);
       }
       setShowAllUsers(false);
@@ -380,9 +418,17 @@ function SearchContent() {
       
       const response = await searchUsers(searchQuery);
       const rawUsers = response.data.users || response.data || [];
-      // Enrich users with correct isFollowing state
-      const enrichedUsers = enrichUsersWithFollowingState(rawUsers);
-      setUsers(enrichedUsers);
+      // Set raw users - enrichment will happen in useMemo
+      console.log('👥 handleUserSearch: Setting raw users for USERS tab. Count:', rawUsers.length);
+      rawUsers.forEach((u: any, i: number) => {
+        console.log(`  User ${i}:`, {
+          _id: u._id,
+          username: u.username,
+          fullName: u.fullName,
+          isFollowing: u.isFollowing
+        });
+      });
+      setUsers(rawUsers);
       setResults([]);
       setShowAllUsers(false);
     } catch (err) {
@@ -443,7 +489,23 @@ function SearchContent() {
     searchRadius
   ]);
 
-  const displayedUsers = showAllUsers ? users : users.slice(0, 2);
+  // Always enrich users with latest following state before displaying
+  const enrichedUsersForDisplay = useMemo(() => {
+    console.log('🔄 MEMO START: FollowingList:', followingList);
+    console.log('🔄 MEMO START: Users array length:', users.length);
+    users.forEach((u, i) => console.log(`  Raw user ${i}:`, u));
+    
+    const enriched = enrichUsersWithFollowingState(users);
+    
+    console.log('🔄 MEMO END: Enriched users:', enriched);
+    enriched.forEach(u => {
+      console.log(`  ✅ User ${u.username} (${u._id}): isFollowing=${u.isFollowing}`);
+    });
+    return enriched;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [users, followingList]);
+
+  const displayedUsers = showAllUsers ? enrichedUsersForDisplay : enrichedUsersForDisplay.slice(0, 2);
   const hasMoreUsers = users.length > 2;
 
   // Handler for trending search click
@@ -456,38 +518,40 @@ function SearchContent() {
     setShowImageModal(true);
   };
 
-  // Handler for updating local state when follow status changes
+  // Handler for syncing followingList after UserCard performs follow action
   const handleFollowUpdate = (userId: string) => {
-    // Update the local users state to reflect the change
-    const userIndex = users.findIndex(user => user._id === userId);
-    if (userIndex !== -1) {
-      const updatedUsers = [...users];
-      const currentUser = updatedUsers[userIndex];
-
-      // Toggle the follow status and update follower count
-      const newIsFollowing = !currentUser.isFollowing;
-      updatedUsers[userIndex] = {
-        ...currentUser,
-        isFollowing: newIsFollowing,
-        followersCount: newIsFollowing
-          ? (currentUser.followersCount || 0) + 1
-          : Math.max((currentUser.followersCount || 0) - 1, 0) // Don't go below 0
-      };
-      setUsers(updatedUsers);
-
-      // Also update the following list to keep it in sync
-      setFollowingList(prev => {
-        if (newIsFollowing) {
-          // Add to following list if not already there
-          return prev.includes(userId) ? prev : [...prev, userId];
-        } else {
-          // Remove from following list
-          return prev.filter(id => id !== userId);
-        }
+    console.log('📍 FOLLOW UPDATE called for userId:', userId);
+    
+    // Optimistically update followingList immediately for instant UI response
+    setFollowingList(prev => {
+      const isCurrentlyFollowing = prev.includes(userId);
+      const updated = isCurrentlyFollowing 
+        ? prev.filter(id => id !== userId)  // Remove if unfollowing
+        : [...prev, userId];                 // Add if following
+      
+      console.log('📍 Optimistic followingList update:', {
+        userId,
+        wasFollowing: isCurrentlyFollowing,
+        nowFollowing: !isCurrentlyFollowing,
+        updatedList: updated
       });
-
-      //console.log(`Updated user ${userId} follow status to: ${newIsFollowing}`);
-    }
+      
+      return updated;
+    });
+    
+    // Then refresh from API in background to confirm (in case of conflicts)
+    setTimeout(async () => {
+      if (currentUser?._id) {
+        try {
+          const followingData = await getFollowing(currentUser._id);
+          const followingIds = followingData.map((user: any) => user._id || user);
+          console.log('📍 Confirmed followingList from API:', followingIds);
+          setFollowingList(followingIds);
+        } catch (error) {
+          console.error('Failed to refresh following list:', error);
+        }
+      }
+    }, 500); // Small delay to let the API update complete
   };
 
   return (

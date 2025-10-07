@@ -18,9 +18,10 @@ interface CommentItemProps {
   onDelete: (commentId: string) => void;
   onReplyAdded?: (reply: Comment) => void;
   isReply?: boolean;
+  parentCommentId?: string; // For nested replies - track the root comment ID
 }
 
-const CommentItem = memo(({ comment, onUpdate, onDelete, onReplyAdded, isReply = false }: CommentItemProps) => {
+const CommentItem = memo(({ comment, onUpdate, onDelete, onReplyAdded, isReply = false, parentCommentId }: CommentItemProps) => {
   const { user } = useUserStore();
   const router = useRouter();
 
