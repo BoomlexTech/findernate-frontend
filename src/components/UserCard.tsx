@@ -17,8 +17,6 @@ interface UserCardProps {
 }
 
 const UserCard: React.FC<UserCardProps> = ({ user, onFollow }) => {
-  console.log('[UserCard] Rendering user:', user);
-
   // Prefer _doc fields if present (Mongoose-style object)
   const userData = user._doc ? { ...user, ...user._doc } : user;
   const [isFollowing, setIsFollowing] = useState(userData.isFollowing || false);
@@ -31,10 +29,17 @@ const UserCard: React.FC<UserCardProps> = ({ user, onFollow }) => {
   const currentUser = useUserStore(state => state.user);
   const isCurrentUser = currentUser?._id === userData._id;
 
+  console.log('🎴 UserCard Render:', {
+    username: userData.username,
+    userId: userData._id,
+    propIsFollowing: userData.isFollowing,
+    stateIsFollowing: isFollowing
+  });
+
   // Update local state when user prop changes
   useEffect(() => {
+    console.log('🎴 UserCard useEffect: Updating isFollowing for', userData.username, 'from', isFollowing, 'to', userData.isFollowing);
     setIsFollowing(userData.isFollowing || false);
-    //console.log('UserCard: Setting follow state for user', userData._id, 'to', userData.isFollowing || false);
   }, [userData.isFollowing, userData._id]);
 
   const handleFollowClick = async () => {
