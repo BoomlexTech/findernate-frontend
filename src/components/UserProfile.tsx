@@ -42,6 +42,24 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
   const [profile, setProfile] = useState<UserProfileType | null>(userData);
   const [isFollowing, setIsFollowing] = useState(userData?.isFollowing || false);
   const [followersCount, setFollowersCount] = useState(userData?.followersCount || 0);
+
+  // Sync profile with userData when it changes (for real-time updates)
+  useEffect(() => {
+    if (userData) {
+      setProfile(userData);
+    }
+  }, [userData]);
+
+  // Sync business profile status from user store for current user
+  useEffect(() => {
+    if (isCurrentUser && currentUser?.isBusinessProfile !== undefined && profile) {
+      // Update profile state when user store's isBusinessProfile changes
+      if (profile.isBusinessProfile !== currentUser.isBusinessProfile) {
+        setProfile(prev => prev ? { ...prev, isBusinessProfile: currentUser.isBusinessProfile } : null);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isCurrentUser, currentUser?.isBusinessProfile]);
   const [isFollowLoading, setIsFollowLoading] = useState(false);
   const [userStories, setUserStories] = useState<Story[]>([]);
   const [showStoryViewer, setShowStoryViewer] = useState(false);

@@ -68,17 +68,21 @@ const AddComment = ({
       const newComment = await createComment(commentData);
       
       // Add user info to the comment for immediate display
-      const commentWithUser = {
+      // Backend returns: { _id, postId, userId (string), content, parentCommentId, likes: [], isEdited, isDeleted, createdAt, updatedAt, __v }
+      // We need to transform it to match our Comment type with user data populated
+      const commentWithUser: Comment = {
         ...newComment,
-        userId: user?._id || '',
+        userId: user?._id || newComment.userId || '',
         user: {
           _id: user?._id || '',
           username: user?.username || '',
           fullName: user?.fullName || '',
           profileImageUrl: user?.profileImageUrl || ''
         },
-        likesCount: 0,
-        isLikedByUser: false
+        likes: newComment.likes || [],
+        likesCount: Array.isArray(newComment.likes) ? newComment.likes.length : 0,
+        isLikedBy: false,
+        replies: [] // New comments have no replies initially
       };
 
       onCommentAdded(commentWithUser);

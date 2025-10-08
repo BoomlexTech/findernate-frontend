@@ -6,7 +6,7 @@ import BusinessVerificationModal from './business/BusinessVerificationModal';
 import { PaymentMethodsModal } from './business/PaymentMethodModal';
 import FollowRequestManager from './FollowRequestManager';
 import { ChevronDown } from 'lucide-react';
-import { UpdateBusinessCategory, GetBusinessCategory, switchToBusiness, switchToPersonal, toggleProductPosts, toggleServicePosts } from '@/api/business';
+import { UpdateBusinessCategory, GetBusinessCategory, switchToBusiness, switchToPersonal, toggleProductPosts, toggleServicePosts, getMyBusinessId } from '@/api/business';
 import { useUserStore } from '@/store/useUserStore';
 import { getUserProfile } from '@/api/user';
 import { toast } from 'react-toastify';
@@ -52,6 +52,7 @@ export default function AccountSettings() {
   const [productPostsAllowed, setProductPostsAllowed] = useState(false);
   const [togglingService, setTogglingService] = useState(false);
   const [togglingProduct, setTogglingProduct] = useState(false);
+  const [businessId, setBusinessId] = useState<string | null>(null);
   const { user, updateUser } = useUserStore();
   const categoryDropdownRef = useRef<HTMLDivElement | null>(null);
 
@@ -73,6 +74,22 @@ export default function AccountSettings() {
 
         if (isMounted) {
           setIsBusiness(flag);
+          
+          // Extract businessId from profile if available
+          const profileBusinessId = profile?.businessId || profile?.business?._id || profile?.business?.id;
+          if (profileBusinessId) {
+            setBusinessId(profileBusinessId);
+            // Also store in localStorage as backup
+            localStorage.setItem('businessId', profileBusinessId);
+            console.log('Business ID from user profile:', profileBusinessId);
+          } else if (flag) {
+            // If business account but no businessId in profile, try localStorage
+            const storedBusinessId = localStorage.getItem('businessId');
+            if (storedBusinessId) {
+              setBusinessId(storedBusinessId);
+              console.log('Business ID restored from localStorage:', storedBusinessId);
+            }
+          }
           
           // Update user store with all relevant fields including privacy and toggle flags
           updateUser({
@@ -96,27 +113,41 @@ export default function AccountSettings() {
     return () => { isMounted = false; };
   }, [updateUser]);
 
-  // Fetch current business category on component mount
+  // Fetch current business category and businessId on component mount
   useEffect(() => {
-    const fetchBusinessCategory = async () => {
+    const fetchBusinessData = async () => {
       if (!isBusiness) {
         setIsLoadingCategory(false);
         return;
       }
 
       try {
-        const response = await GetBusinessCategory();
-        setCurrentCategory(response.data?.category || '');
+        // Fetch business category
+        const categoryResponse = await GetBusinessCategory();
+        setCurrentCategory(categoryResponse.data?.category || '');
+        
+        // Try to fetch business ID if not already set from user profile
+        if (!businessId) {
+          try {
+            const id = await getMyBusinessId();
+            if (id) {
+              setBusinessId(id);
+              console.log('Business ID fetched from business API:', id);
+            }
+          } catch {
+            console.warn('Could not fetch business ID from business API, will use from user profile');
+          }
+        }
       } catch (error: unknown) {
-        console.error('Failed to fetch business category:', error);
+        console.error('Failed to fetch business data:', error);
         setCurrentCategory('');
       } finally {
         setIsLoadingCategory(false);
       }
     };
 
-    fetchBusinessCategory();
-  }, [isBusiness]);
+    fetchBusinessData();
+  }, [isBusiness, businessId]);
 
   // Close category dropdown on outside click
   useEffect(() => {
@@ -198,19 +229,31 @@ export default function AccountSettings() {
     try {
         setIsSwitching(true);
         setUpdateMessage('Switching to business account...');
-      await switchToBusiness();
+        const response = await switchToBusiness();
+        
+        // Extract and store businessId from response
+        const businessIdFromResponse = response?.data?.businessId || response?.businessId;
+        if (businessIdFromResponse) {
+          setBusinessId(businessIdFromResponse);
+          // Also store in localStorage as backup
+          localStorage.setItem('businessId', businessIdFromResponse);
+          console.log('Business ID stored after switching:', businessIdFromResponse);
+        } else {
+          console.warn('No businessId in switch response, will fetch from profile');
+        }
         
         // Update local state
         setIsBusiness(true);
         
-        // Update user store
+        // Update user store - this will trigger real-time UI updates
         updateUser({ isBusinessProfile: true });
+        
+        // Force a small delay to ensure state propagation
+        await new Promise(resolve => setTimeout(resolve, 100));
         
         setUpdateMessage('Successfully switched to business account!');
         try { toast.success('Switched to business account'); } catch {}
         setTimeout(() => setUpdateMessage(''), 3000);
-        
-        //console.log('Switch to business response:', response);
       } catch (error: unknown) {
         console.error('Failed to switch to business:', error);
         const axiosError = error as AxiosError<{ message?: string }>;
@@ -232,11 +275,19 @@ export default function AccountSettings() {
         setUpdateMessage('Switching to personal account...');
         await switchToPersonal();
         
+        // Clear businessId when switching to personal
+        setBusinessId(null);
+        localStorage.removeItem('businessId');
+        console.log('Business ID cleared after switching to personal');
+        
         // Update local state
         setIsBusiness(false);
         
-        // Update user store
+        // Update user store - this will trigger real-time UI updates
         updateUser({ isBusinessProfile: false });
+        
+        // Force a small delay to ensure state propagation
+        await new Promise(resolve => setTimeout(resolve, 100));
         
         setUpdateMessage('Successfully switched to personal account!');
         try { toast.success('Switched to personal account'); } catch {}
@@ -244,8 +295,6 @@ export default function AccountSettings() {
         
         // Hide business options when switching to personal
         setShowBusinessOptions(false);
-        
-        //console.log('Switch to personal response:', response);
       } catch (error: unknown) {
         console.error('Failed to switch to personal:', error);
         const axiosError = error as AxiosError<{ message?: string }>;
@@ -262,11 +311,18 @@ export default function AccountSettings() {
   // Posts allowed toggles
   const handleToggleServicePosts = async () => {
     if (!isBusiness || togglingService) return;
+    
+    // Check if we have businessId
+    if (!businessId) {
+      try { toast.error('Business ID not found. Please try again.'); } catch {}
+      return;
+    }
+    
     const previous = servicePostsAllowed;
     try {
       setTogglingService(true);
       setServicePostsAllowed(!previous);
-      const response = await toggleServicePosts();
+      const response = await toggleServicePosts(businessId);
       // If backend returns a canonical value, try to honor it
       const backendValue = Boolean(response?.data?.servicePostsAllowed ?? response?.servicePostsAllowed ?? !previous);
       setServicePostsAllowed(backendValue);
@@ -275,8 +331,7 @@ export default function AccountSettings() {
       setServicePostsAllowed(previous);
       const axiosError = error as AxiosError<{ message?: string }>;
       const errMsg = axiosError.response?.data?.message || 'Failed to toggle service posts';
-      setUpdateMessage(errMsg);
-      setTimeout(() => setUpdateMessage(''), 4000);
+      try { toast.error(errMsg); } catch {}
     } finally {
       setTogglingService(false);
     }
@@ -284,11 +339,18 @@ export default function AccountSettings() {
 
   const handleToggleProductPosts = async () => {
     if (!isBusiness || togglingProduct) return;
+    
+    // Check if we have businessId
+    if (!businessId) {
+      try { toast.error('Business ID not found. Please try again.'); } catch {}
+      return;
+    }
+    
     const previous = productPostsAllowed;
     try {
       setTogglingProduct(true);
       setProductPostsAllowed(!previous);
-      const response = await toggleProductPosts();
+      const response = await toggleProductPosts(businessId);
       const backendValue = Boolean(response?.data?.productPostsAllowed ?? response?.productPostsAllowed ?? !previous);
       setProductPostsAllowed(backendValue);
       try { updateUser({ productEnabled: backendValue }); } catch {}
@@ -296,8 +358,7 @@ export default function AccountSettings() {
       setProductPostsAllowed(previous);
       const axiosError = error as AxiosError<{ message?: string }>;
       const errMsg = axiosError.response?.data?.message || 'Failed to toggle product posts';
-      setUpdateMessage(errMsg);
-      setTimeout(() => setUpdateMessage(''), 4000);
+      try { toast.error(errMsg); } catch {}
     } finally {
       setTogglingProduct(false);
     }
@@ -332,16 +393,14 @@ export default function AccountSettings() {
           <div>
             <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-1">{isBusiness ? 'Business Account' : 'Personal Account'}</h2>
             {isBusiness ? (
-              <div className="flex items-center gap-2 text-gray-700">
-                <button
-                  type="button"
-                  onClick={() => setShowBusinessOptions(!showBusinessOptions)}
-                  className="inline-flex items-center gap-1 text-sm sm:text-base hover:text-gray-900"
-                >
-                  <span>Manage Business</span>
-                  <ChevronDown className={`w-4 h-4 transition-transform ${showBusinessOptions ? 'rotate-180' : ''}`} />
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => setShowBusinessOptions(!showBusinessOptions)}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-all shadow-sm text-sm sm:text-base font-medium"
+              >
+                <span>Manage Business</span>
+                <ChevronDown className={`w-4 h-4 transition-transform ${showBusinessOptions ? 'rotate-180' : ''}`} />
+              </button>
             ) : (
               <p className="text-sm sm:text-base text-gray-600">Switch to business account</p>
             )}
@@ -616,7 +675,17 @@ export default function AccountSettings() {
       <BusinessVerificationModal
         isOpen={showVerificationModal}
         onClose={() => setShowVerificationModal(false)}
-        onSubmit={() => setShowVerificationModal(false)}
+        onSubmit={() => {
+          // Modal will auto-close after 3 seconds
+          // Show success toast after modal closes
+          setTimeout(() => {
+            try { 
+              toast.success('Verification documents submitted successfully! We will review and get back to you soon.', {
+                autoClose: 5000
+              }); 
+            } catch {}
+          }, 3100); // Slightly after modal closes (3000ms)
+        }}
       />
     </div>
   );

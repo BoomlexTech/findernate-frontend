@@ -7,15 +7,26 @@ export const AddBusinessDetails = async (business: CreateBusinessRequest) => {
 };  
 
 export const GetBusinessDetails = async () => {
-    const response = await axios.get("/business/profile")
-    return response.data
+    const response = await axios.get("/business/profile");
+    return response.data;
+}
+
+// Get business ID for the current user
+export const getMyBusinessId = async () => {
+    try {
+        const response = await axios.get("/business/profile");
+        return response.data?.data?._id || response.data?._id || null;
+    } catch (error: unknown) {
+        console.error('Error fetching business ID:', error);
+        throw error;
+    }
 }
 
 export const getBusinessProfileDetails = async (userId: string) => {
     try {
         const response = await axios.get(`/business/profile?userId=${userId}`);
         return response.data;
-    } catch (error: any) {
+    } catch (error: unknown) {
         throw error;
     }
 }
@@ -46,22 +57,24 @@ export const switchToPersonal = async () => {
 }
 
 // Toggle allowed post types for business accounts
-export const toggleServicePosts = async () => {
+export const toggleServicePosts = async (businessId: string) => {
     try {
-        // Using full URL as provided
-        const response = await axios.post("/business//toggle-service-posts");
+        const response = await axios.post("/business/toggle-service-posts", {
+            businessId
+        });
         return response.data;
-    } catch (error: any) {
+    } catch (error: unknown) {
         throw error;
     }
 }
 
-export const toggleProductPosts = async () => {
+export const toggleProductPosts = async (businessId: string) => {
     try {
-        // Using full URL as provided
-        const response = await axios.post("/business//toggle-product-posts");
+        const response = await axios.post("/business/toggle-product-posts", {
+            businessId
+        });
         return response.data;
-    } catch (error: any) {
+    } catch (error: unknown) {
         throw error;
     }
 }

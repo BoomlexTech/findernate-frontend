@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { MessageCircle, Heart, ChevronDown, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
+import { MessageCircle, ChevronDown, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from './ui/button';
 import CommentItem from './CommentItem';
 import AddComment from './AddComment';
@@ -34,10 +34,6 @@ const CommentsSection = ({ postId, postOwnerId, onCommentCountChange, initialCom
   
   // Store user-created comments that should persist across refreshes
   const userCommentsRef = useRef<{ [commentId: string]: Comment }>({});
-
-  useEffect(() => {
-    fetchComments();
-  }, [postId, currentPage]);
 
   // Handle scrolling to specific comment
   const scrollToComment = useCallback((targetCommentId: string) => {
@@ -89,25 +85,39 @@ const CommentsSection = ({ postId, postOwnerId, onCommentCountChange, initialCom
       // Emit event for cross-tab/component communication
       postEvents.emit(postId, 'commentCountChange', totalCommentCount);
     }
-  }, [totalCommentCount, postId]); // Removed onCommentCountChange from deps to prevent infinite loop
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [totalCommentCount, postId]); // Removed onCommentCountChange and initialCommentCount from deps to prevent infinite loop
 
-  const fetchComments = async (page: number = currentPage) => {
+  const fetchComments = useCallback(async (page: number = currentPage) => {
     try {
+      // Validate postId before making request
+      if (!postId || typeof postId !== 'string' || postId.trim() === '') {
+        console.error('Invalid postId provided to CommentsSection:', postId);
+        // Silently fail - show "No comments yet" instead of error UI
+        setComments([]);
+        setTotalCommentCount(0);
+        setTotalPages(1);
+        return;
+      }
+
       if (page === 1) {
         setLoading(true);
       } else {
         setPaginationLoading(true);
       }
       
-      //console.log(`Fetching comments for post: ${postId}, page: ${page}`);
+      console.log(`[CommentsSection] Fetching comments for post: ${postId}, page: ${page}`);
       const commentsData = await getCommentsByPost(postId, page, commentsPerPage);
-      //console.log('Comments data received:', commentsData);
+      console.log(`[CommentsSection] Comments data received for post ${postId}:`, commentsData);
       
       // Log individual comment structure to debug user data
       if (commentsData?.comments && commentsData.comments.length > 0) {
-        //console.log('First comment structure:', commentsData.comments[0]);
-        //console.log('First comment userId type:', typeof commentsData.comments[0].userId);
-        //console.log('First comment userId value:', commentsData.comments[0].userId);
+        console.log(`[CommentsSection] First comment structure for post ${postId}:`, commentsData.comments[0]);
+        console.log(`[CommentsSection] First comment userId type:`, typeof commentsData.comments[0].userId);
+        console.log(`[CommentsSection] First comment userId value:`, commentsData.comments[0].userId);
+        console.log(`[CommentsSection] Total comments received:`, commentsData.comments.length);
+      } else {
+        console.log(`[CommentsSection] No comments in response for post ${postId}`);
       }
       
       // Handle pagination response
@@ -127,16 +137,31 @@ const CommentsSection = ({ postId, postOwnerId, onCommentCountChange, initialCom
       
       // Process comments using simpler approach (like ReelCommentsSection)
       const processedComments = rawComments
-        .filter(comment => !comment.parentCommentId) // Only show top-level comments
-        .map((comment) => {
+        .filter(comment => {
+          const isTopLevel = !comment.parentCommentId;
+          if (!isTopLevel) {
+            console.log(`[CommentsSection] Filtering out reply comment:`, comment._id);
+          }
+          return isTopLevel;
+        }) // Only show top-level comments
+        .map((comment, index) => {
+          console.log(`[CommentsSection] Processing comment ${index + 1}/${rawComments.length}:`, {
+            commentId: comment._id,
+            hasUser: !!comment.user,
+            userIdType: typeof comment.userId,
+            userId: comment.userId
+          });
+          
           // Check if we already have user data for this comment in cache
           const cachedComment = userCommentsRef.current[comment._id];
           if (cachedComment && cachedComment.user) {
+            console.log(`[CommentsSection] Using cached user data for comment ${comment._id}`);
             return { ...comment, user: cachedComment.user };
           }
           
           // Simple user data extraction - if userId is an object, use it directly as user
           if (comment.user) {
+            console.log(`[CommentsSection] Comment ${comment._id} already has user data:`, comment.user);
             // Already has user data - ensure profileImageUrl exists
             return {
               ...comment,
@@ -147,12 +172,12 @@ const CommentsSection = ({ postId, postOwnerId, onCommentCountChange, initialCom
             };
           } else if (typeof comment.userId === 'object' && comment.userId !== null) {
             // userId is populated user object, use it as user
-            const userObj = comment.userId as any;
-            //console.log('Processing comment user object:', userObj);
+            const userObj = comment.userId as { _id?: string; username?: string; fullName?: string; profileImageUrl?: string };
+            console.log(`[CommentsSection] Comment ${comment._id} has populated userId object:`, userObj);
             const commentWithUser = {
               ...comment,
               user: {
-                _id: userObj._id,
+                _id: userObj._id || '',
                 username: userObj.username || 'User',
                 fullName: userObj.fullName || userObj.username || 'User',
                 profileImageUrl: userObj.profileImageUrl || ''
@@ -161,15 +186,15 @@ const CommentsSection = ({ postId, postOwnerId, onCommentCountChange, initialCom
             
             // Process replies
             const commentReplies = rawComments
-              .filter(reply => reply.parentCommentId === comment._id)
-              .map(reply => {
-                if (reply.user) return reply;
-                if (typeof reply.userId === 'object' && reply.userId !== null) {
-                  const replyUserObj = reply.userId as any;
+              .filter(r => r.parentCommentId === comment._id)
+              .map(r => {
+                if (r.user) return r;
+                if (typeof r.userId === 'object' && r.userId !== null) {
+                  const replyUserObj = r.userId as { _id?: string; username?: string; fullName?: string; profileImageUrl?: string };
                   return {
-                    ...reply,
+                    ...r,
                     user: {
-                      _id: replyUserObj._id,
+                      _id: replyUserObj._id || '',
                       username: replyUserObj.username || 'User',
                       fullName: replyUserObj.fullName || replyUserObj.username || 'User',
                       profileImageUrl: replyUserObj.profileImageUrl || ''
@@ -177,9 +202,9 @@ const CommentsSection = ({ postId, postOwnerId, onCommentCountChange, initialCom
                   };
                 }
                 return {
-                  ...reply,
+                  ...r,
                   user: {
-                    _id: typeof reply.userId === 'string' ? reply.userId : '',
+                    _id: typeof r.userId === 'string' ? r.userId : '',
                     username: 'User',
                     fullName: 'User',
                     profileImageUrl: ''
@@ -187,10 +212,11 @@ const CommentsSection = ({ postId, postOwnerId, onCommentCountChange, initialCom
                 };
               });
             
+            console.log(`[CommentsSection] Comment ${comment._id} processed with ${commentReplies.length} replies`);
             return { ...commentWithUser, replies: commentReplies };
           } else {
             // userId is string, no user data available
-            console.warn('Comment userId is string (no user data populated):', comment);
+            console.warn(`[CommentsSection] Comment ${comment._id} has string userId (no user data populated):`, comment);
             return {
               ...comment,
               user: {
@@ -211,15 +237,43 @@ const CommentsSection = ({ postId, postOwnerId, onCommentCountChange, initialCom
           return bTime - aTime;
         });
 
+        console.log(`[CommentsSection] Processed ${processedComments.length} top-level comments for post ${postId}`);
+        console.log(`[CommentsSection] Final comments to display:`, sortedByLatest);
         setComments(sortedByLatest);
       } else {
+        console.log(`[CommentsSection] No commentsData received for post ${postId}, setting empty state`);
         setComments([]);
         setTotalCommentCount(0);
         setTotalPages(1);
       }
-    } catch (error) {
-      console.error('Error fetching comments:', error);
-      // If we can't fetch comments, start with empty array but don't fail
+    } catch (error: unknown) {
+      console.error(`[CommentsSection] Error fetching comments for post ${postId}:`, error);
+      
+      // Type guard for axios error
+      const axiosError = error as { response?: { status?: number; statusText?: string; data?: unknown } };
+      
+      // Log detailed error information for debugging (silent to user)
+      if (axiosError?.response) {
+        console.error('Error response details:', {
+          status: axiosError.response.status,
+          statusText: axiosError.response.statusText,
+          data: axiosError.response.data,
+          postId: postId,
+          page: page,
+          limit: commentsPerPage
+        });
+        
+        // Log specific error messages for debugging
+        if (axiosError.response.status === 500) {
+          console.error('Server error while loading comments. This might be a temporary issue with the post data.');
+        } else if (axiosError.response.status === 404) {
+          console.error('Post not found. Comments may have been removed.');
+        } else if (axiosError.response.status === 403) {
+          console.error('You do not have permission to view these comments.');
+        }
+      }
+      
+      // Silently fail - show "No comments yet" instead of error UI
       setComments([]);
       setTotalCommentCount(0);
       setTotalPages(1);
@@ -227,7 +281,12 @@ const CommentsSection = ({ postId, postOwnerId, onCommentCountChange, initialCom
       setLoading(false);
       setPaginationLoading(false);
     }
-  };
+  }, [postId, currentPage, commentsPerPage]);
+
+  // Fetch comments on mount and when dependencies change
+  useEffect(() => {
+    fetchComments();
+  }, [fetchComments]);
 
   const handleNewComment = (newComment: Comment) => {
     // Store this comment with full user data in our ref
@@ -244,6 +303,7 @@ const CommentsSection = ({ postId, postOwnerId, onCommentCountChange, initialCom
     }
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleReplyAdded = (reply: Comment) => {
     // For replies, we don't need to update the main comments list
     // The CommentItem component handles its own replies
