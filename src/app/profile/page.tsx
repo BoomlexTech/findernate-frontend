@@ -28,14 +28,16 @@ const Page = () => {
   const { user, updateUser } = useUserStore();
   const { isAuthenticated, isLoading } = useAuthGuard();
 
-  // Sync location to global store when profileData is loaded
+  // Sync profile data to global store when loaded
   useEffect(() => {
-    if (profileData?.location && user?._id === profileData._id) {
+    if (profileData && user?._id === profileData._id) {
       updateUser({
         location: profileData.location,
+        isBusinessProfile: profileData.isBusinessProfile,
       });
     }
-  }, [profileData?.location, user?._id, updateUser]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profileData?.location, profileData?.isBusinessProfile, user?._id]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -252,8 +254,13 @@ const Page = () => {
   const handleProfileUpdate = async (updatedData: Partial<UserProfileType>) => {
     try {
       if (profileData) {
-        setProfileData({ ...profileData, ...updatedData });
-        // Here you would typically call an API to update the profile
+        const newProfileData = { ...profileData, ...updatedData };
+        setProfileData(newProfileData);
+        
+        // Update the global user store with the new business status
+        if (updatedData.isBusinessProfile !== undefined) {
+          updateUser({ isBusinessProfile: updatedData.isBusinessProfile });
+        }
       }
     } catch (error) {
       console.error('Error updating profile:', error);
