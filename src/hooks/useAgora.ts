@@ -536,7 +536,7 @@ export const useAgora = () => {
       }
       console.log('Published local tracks');
 
-      // Emit call initiation via socket
+      // Emit call initiation via socket AFTER everything is ready
       console.log('Emitting call initiation via socket');
       socketManager.initiateCall(receiverId, chatId, callType, call._id);
 
@@ -611,11 +611,48 @@ export const useAgora = () => {
 
       // Stop incoming call ringtone
       ringtoneManager.stopRingtone();
+      
+      // Small delay to ensure backend has fully processed the incoming call
+      await new Promise(resolve => setTimeout(resolve, 200));
 
       // Accept call on backend FIRST (this activates the call and allows token generation)
       console.log('🔄 Attempting to accept call:', callIdToAccept);
-      const call = await callAPI.acceptCall(callIdToAccept);
-      console.log('✅ Call accepted successfully on backend:', call);
+      
+      // Retry logic for race conditions with backend
+      let call;
+      let retryCount = 0;
+      const maxRetries = 3;
+      
+      while (retryCount < maxRetries) {
+        try {
+          call = await callAPI.acceptCall(callIdToAccept);
+          console.log('✅ Call accepted successfully on backend:', call);
+          break; // Success - exit retry loop
+        } catch (acceptError: any) {
+          retryCount++;
+          const errorMsg = acceptError?.response?.data?.message || '';
+          
+          console.log(`⚠️ Accept attempt ${retryCount}/${maxRetries} failed:`, errorMsg);
+          
+          // If it's a timing issue, wait a bit and retry
+          if (retryCount < maxRetries && (
+            errorMsg.includes('not found') || 
+            errorMsg.includes('not in correct state') ||
+            errorMsg.includes('Call cannot be accepted')
+          )) {
+            console.log(`⏳ Waiting 500ms before retry ${retryCount + 1}...`);
+            await new Promise(resolve => setTimeout(resolve, 500));
+            continue;
+          }
+          
+          // If it's a different error or we've exhausted retries, throw it
+          throw acceptError;
+        }
+      }
+      
+      if (!call) {
+        throw new Error('Failed to accept call after multiple attempts');
+      }
 
       // Check if this is still the call we want to accept (prevent race conditions)
       if (!incomingCall || incomingCall.callId !== callIdToAccept) {
@@ -678,19 +715,43 @@ export const useAgora = () => {
 
     } catch (error: any) {
       console.error('❌ Error accepting call:', error);
+      console.error('❌ Error response:', error?.response);
+      console.error('❌ Error response data:', error?.response?.data);
+      console.error('❌ Error response status:', error?.response?.status);
+      console.error('❌ Error message:', error?.response?.data?.message);
       
-      if (error?.response?.data?.message === 'Call cannot be accepted in current status') {
+      const errorMessage = error?.response?.data?.message || '';
+      const errorStatus = error?.response?.status;
+      
+      // Handle specific backend errors
+      if (errorMessage === 'Call cannot be accepted in current status') {
         console.error('❌ Call status issue - the call may have expired or been cancelled');
         setIncomingCall(null);
         updateCallState({ error: 'Call is no longer available' });
-      } else if (error?.response?.data?.message === 'Call is not active') {
+      } else if (errorMessage === 'Call is not active') {
         console.error('❌ Call is not active - token generation failed. This may be due to call timing or backend state.');
         setIncomingCall(null);
         updateCallState({ error: 'Call is no longer available' });
-      } else if (error?.response?.status === 400 && error?.response?.data?.message?.includes('not active')) {
-        console.error('❌ Call token generation failed - call may have expired or been cancelled');
-        setIncomingCall(null);
-        updateCallState({ error: 'Call is no longer available' });
+      } else if (errorStatus === 400) {
+        // Log the specific 400 error for debugging
+        console.error('❌ 400 Bad Request - Full error details:', {
+          message: errorMessage,
+          data: error?.response?.data,
+          callId: callIdToAccept
+        });
+        
+        // Check for common 400 errors
+        if (errorMessage.includes('not active') || errorMessage.includes('expired') || errorMessage.includes('cancelled')) {
+          setIncomingCall(null);
+          updateCallState({ error: 'Call is no longer available' });
+        } else if (errorMessage.includes('already accepted') || errorMessage.includes('already in progress')) {
+          console.log('⚠️ Call already accepted - continuing anyway');
+          // Don't clear incoming call, let the normal flow continue
+        } else {
+          // Unknown 400 error - show it to user
+          setIncomingCall(null);
+          updateCallState({ error: errorMessage || 'Failed to accept call. Please try again.' });
+        }
       } else {
         handleError(error as Error);
       }
