@@ -362,7 +362,10 @@ const Notifications = () => {
     };
   }, [loadSeenNotifications]);
 
-  // Auto-refresh notifications every 1.5 seconds when on notifications page
+  // Auto-refresh notifications when on notifications page
+  // NOTE: Reduced polling frequency to prevent browser resource exhaustion
+  // The useUnreadCounts hook already fetches notifications every 5 minutes
+  // This is just a backup for when user is actively viewing notifications page
   useEffect(() => {
     if (!isAuthenticated || !user?._id) return;
 
@@ -370,7 +373,7 @@ const Notifications = () => {
       try {
         const response = await getNotifications();
         const rawNotifications = response.data?.notifications || response.data || [];
-        const validNotifications = rawNotifications.filter((notification: Notification) => 
+        const validNotifications = rawNotifications.filter((notification: Notification) =>
           notification && notification.senderId && notification.senderId._id
         );
         const seen = loadSeenNotifications();
@@ -382,8 +385,8 @@ const Notifications = () => {
       }
     };
 
-    // Set up interval to refresh every 1.5 seconds
-    const interval = setInterval(autoRefreshNotifications, 30000);
+    // Set up interval to refresh every 5 minutes (reduced from 30s to prevent resource exhaustion)
+    const interval = setInterval(autoRefreshNotifications, 300000); // 5 minutes
 
     return () => {
       clearInterval(interval);
