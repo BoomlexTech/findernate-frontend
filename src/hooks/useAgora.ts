@@ -186,30 +186,40 @@ export const useAgora = () => {
         console.log('🔄 Agora: Connection state changed', curState, revState, reason);
         setCallState(prev => ({ ...prev, connectionState: curState }));
         
-        // Handle connection state changes
-        if (callStateRef.current.call) {
+        // Handle connection state changes - but ONLY for established calls
+        if (callStateRef.current.call && callStateRef.current.call.status === 'active') {
           if (curState === 'CONNECTED') {
             // Call is now active - backend should handle this via accept endpoint
             console.log('✅ Call connected successfully');
           } else if (curState === 'DISCONNECTED' && reason !== 'LEAVE') {
-            // Connection failed - end the call properly
-            console.log('❌ Call connection failed, ending call');
-            callAPI.endCall(callStateRef.current.call._id, { 
-              endReason: 'failed' 
-            }).catch(console.error);
-            // Clean up local tracks immediately
-            endCallLocally('failed');
-          } else if (curState === 'FAILED') {
-            // Connection completely failed
-            console.log('❌ Call connection completely failed');
-            if (callStateRef.current.call) {
+            // Only end if call was previously connected (not during initial connection)
+            if (revState === 'CONNECTED' || revState === 'RECONNECTING') {
+              console.log('❌ Active call disconnected unexpectedly, ending call');
               callAPI.endCall(callStateRef.current.call._id, { 
-                endReason: 'network_error' 
+                endReason: 'failed' 
               }).catch(console.error);
+              // Clean up local tracks immediately
+              endCallLocally('failed');
+            } else {
+              console.log('⚠️ Disconnected during connection attempt, not ending call yet');
             }
-            // Clean up local tracks immediately
-            endCallLocally('network_error');
+          } else if (curState === 'FAILED') {
+            // Connection completely failed - but only if was previously connected
+            if (revState === 'CONNECTED' || revState === 'RECONNECTING') {
+              console.log('❌ Call connection completely failed');
+              if (callStateRef.current.call) {
+                callAPI.endCall(callStateRef.current.call._id, { 
+                  endReason: 'network_error' 
+                }).catch(console.error);
+              }
+              // Clean up local tracks immediately
+              endCallLocally('network_error');
+            } else {
+              console.log('⚠️ Connection FAILED during setup - not ending call yet, may recover');
+            }
           }
+        } else {
+          console.log('ℹ️ Connection state change during call setup/ending - ignoring');
         }
       });
 
@@ -544,7 +554,13 @@ export const useAgora = () => {
       ringtoneManager.startRingtone('outgoing');
 
     } catch (error: any) {
-      console.error('Error initiating call:', error);
+      console.error('❌ Error initiating call:', error);
+      console.error('❌ Initiating call error details:', {
+        message: error?.message,
+        response: error?.response?.data,
+        status: error?.response?.status,
+        stack: error?.stack
+      });
       
       // Handle 409 conflict (user already in call)
       if (error?.response?.status === 409 || error?.status === 409) {
@@ -611,9 +627,6 @@ export const useAgora = () => {
 
       // Stop incoming call ringtone
       ringtoneManager.stopRingtone();
-      
-      // Small delay to ensure backend has fully processed the incoming call
-      await new Promise(resolve => setTimeout(resolve, 200));
 
       // Accept call on backend FIRST (this activates the call and allows token generation)
       console.log('🔄 Attempting to accept call:', callIdToAccept);
@@ -813,6 +826,17 @@ export const useAgora = () => {
       return;
     }
 
+    // Log who's ending the call and why - for debugging
+    console.log('🔴 END CALL TRIGGERED:', {
+      callId: callState.call._id,
+      endReason,
+      callStatus: callState.call.status,
+      isInitiator: callState.isInitiator,
+      callDuration: callState.call.duration,
+      timestamp: new Date().toISOString(),
+      stackTrace: new Error().stack
+    });
+
     // Check if call is in a valid state for ending
     // Include 'initiated' to allow caller to cancel before receiver accepts
     if (!['initiated', 'active', 'connecting', 'ringing'].includes(callState.call.status)) {
@@ -876,15 +900,27 @@ export const useAgora = () => {
       // Check for active call on backend
       const activeCall = await callAPI.getActiveCall().catch(() => null);
       if (activeCall) {
-        console.log('🧹 Found active call, ending it:', activeCall._id);
-        await callAPI.endCall(activeCall._id, { endReason: 'cancelled' });
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        console.log('🧹 Found active call on backend:', activeCall._id, 'status:', activeCall.status);
+        
+        // Only end it if it's truly active and not the one we're about to create
+        if (['active', 'connecting'].includes(activeCall.status)) {
+          console.log('🧹 Ending active backend call:', activeCall._id);
+          await callAPI.endCall(activeCall._id, { endReason: 'cancelled' });
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        } else {
+          console.log('⚠️ Found call but status is:', activeCall.status, '- not ending it');
+        }
+      } else {
+        console.log('✅ No active calls found on backend');
       }
       
-      // Clean up local state
+      // Clean up local state ONLY if different from backend
       if (callStateRef.current.call || callStateRef.current.isInCall) {
         console.log('🧹 Cleaning up local call state');
         await endCallLocally('cancelled');
+        await new Promise(resolve => setTimeout(resolve, 500));
+      } else {
+        console.log('✅ No local call state to clean');
       }
       
       console.log('✅ Call cleanup completed');
