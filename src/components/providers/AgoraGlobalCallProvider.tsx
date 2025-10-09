@@ -96,17 +96,18 @@ export const AgoraGlobalCallProvider: React.FC<{ children: React.ReactNode }> = 
     <AgoraGlobalCallContext.Provider value={contextValue}>
       {children}
       
-      {/* Global incoming call modal */}
-      {incomingCall && (
+      {/* Global incoming call modal - ONLY show to receiver before accepting */}
+      {incomingCall && !callState.isInCall && !isLoading && (
         <IncomingCallModal
           incomingCall={incomingCall}
           onAccept={acceptCall}
           onDecline={declineCall}
+          isLoading={isLoading}
         />
       )}
       
-      {/* Global call modal */}
-      {(callState.isInCall || incomingCall) && (
+      {/* Global call modal - ONLY show during active call or when caller is waiting */}
+      {callState.isInCall && (
         <AgoraCallModal
           callState={callState}
           incomingCall={incomingCall}

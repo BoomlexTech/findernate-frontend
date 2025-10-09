@@ -42,7 +42,7 @@ export const IncomingCallModal: React.FC<IncomingCallModalProps> = ({
   return (
     <div 
       className={`
-        fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm
+        fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm
         transition-all duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'}
       `}
     >
