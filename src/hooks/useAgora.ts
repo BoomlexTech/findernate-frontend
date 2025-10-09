@@ -96,9 +96,13 @@ export const useAgora = () => {
   // Agora client instance
   const agoraClientRef = useRef<any>(null);
   
-  // Refs to avoid stale closures
+  // Refs to avoid stale closures and race conditions
   const callStateRef = useRef(callState);
   callStateRef.current = callState;
+  const isAcceptingRef = useRef(false);
+  const isDecliningRef = useRef(false);
+  const tokenExpiryRef = useRef<number>(0);
+  const tokenRefreshTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Initialize Agora SDK on mount
   useEffect(() => {
@@ -129,6 +133,20 @@ export const useAgora = () => {
         // Subscribe to the remote user
         await agoraClientRef.current?.subscribe(user, mediaType);
         
+        // Update remote users state
+        setCallState(prev => {
+          const existingUserIndex = prev.remoteUsers.findIndex(u => u.uid === user.uid);
+          if (existingUserIndex === -1) {
+            // New user - add to array
+            return { ...prev, remoteUsers: [...prev.remoteUsers, user] };
+          } else {
+            // Existing user - update their tracks
+            const updatedUsers = [...prev.remoteUsers];
+            updatedUsers[existingUserIndex] = user;
+            return { ...prev, remoteUsers: updatedUsers };
+          }
+        });
+        
         if (mediaType === 'video') {
           console.log('📹 Agora: Remote video track received');
         }
@@ -142,6 +160,18 @@ export const useAgora = () => {
 
       agoraClientRef.current.on('user-unpublished', (user, mediaType) => {
         console.log('🔇 Agora: User unpublished', user.uid, mediaType);
+        
+        // Update remote users state to reflect unpublished tracks
+        setCallState(prev => {
+          const updatedUsers = prev.remoteUsers.map(u => {
+            if (u.uid === user.uid) {
+              // User unpublished a track - update their state
+              return user;
+            }
+            return u;
+          });
+          return { ...prev, remoteUsers: updatedUsers };
+        });
       });
 
       agoraClientRef.current.on('user-left', (user) => {
@@ -167,6 +197,18 @@ export const useAgora = () => {
             callAPI.endCall(callStateRef.current.call._id, { 
               endReason: 'failed' 
             }).catch(console.error);
+            // Clean up local tracks immediately
+            endCallLocally('failed');
+          } else if (curState === 'FAILED') {
+            // Connection completely failed
+            console.log('❌ Call connection completely failed');
+            if (callStateRef.current.call) {
+              callAPI.endCall(callStateRef.current.call._id, { 
+                endReason: 'network_error' 
+              }).catch(console.error);
+            }
+            // Clean up local tracks immediately
+            endCallLocally('network_error');
           }
         }
       });
@@ -230,12 +272,41 @@ export const useAgora = () => {
       console.log('🔑 Getting Agora token for call:', callId);
       const agoraToken = await callAPI.getAgoraToken(callId, 'publisher');
       console.log('✅ Agora token received:', agoraToken);
+      
+      // Set token expiry time (Agora tokens typically expire after 24 hours)
+      // We'll refresh after 23 hours to be safe
+      tokenExpiryRef.current = Date.now() + (23 * 60 * 60 * 1000);
+      
       return agoraToken;
     } catch (error) {
       console.error('❌ Error getting Agora token:', error);
       throw error;
     }
   }, []);
+
+  // Refresh Agora token
+  const refreshAgoraToken = useCallback(async () => {
+    if (!callStateRef.current.call || !agoraClientRef.current) {
+      console.log('⚠️ Cannot refresh token - no active call or client');
+      return;
+    }
+
+    try {
+      console.log('🔄 Refreshing Agora token for call:', callStateRef.current.call._id);
+      const agoraToken = await getAgoraToken(callStateRef.current.call._id);
+      
+      // Renew the token in the Agora client
+      await agoraClientRef.current.renewToken(agoraToken.rtcToken);
+      console.log('✅ Agora token refreshed successfully');
+      
+      // Update expiry time
+      tokenExpiryRef.current = Date.now() + (23 * 60 * 60 * 1000);
+    } catch (error) {
+      console.error('❌ Error refreshing Agora token:', error);
+      // If token refresh fails, the call will likely disconnect
+      // The connection state handler will handle cleanup
+    }
+  }, [getAgoraToken]);
 
   // End call locally (cleanup without emitting to others)
   const endCallLocally = useCallback(async (endReason: string = 'normal') => {
@@ -249,6 +320,13 @@ export const useAgora = () => {
       
       // Stop any playing ringtones
       ringtoneManager.stopRingtone();
+      
+      // Clear token refresh timer
+      if (tokenRefreshTimerRef.current) {
+        clearInterval(tokenRefreshTimerRef.current);
+        tokenRefreshTimerRef.current = null;
+      }
+      tokenExpiryRef.current = 0;
       
       // Stop and release local tracks
       if (callStateRef.current.localAudioTrack) {
@@ -513,11 +591,12 @@ export const useAgora = () => {
       throw new Error('Agora SDK is not ready yet. Please wait a moment and try again.');
     }
     
-    // Prevent multiple acceptance attempts
-    if (isLoading) {
+    // Prevent multiple acceptance attempts with ref for immediate check
+    if (isAcceptingRef.current) {
       console.log('⚠️ Call acceptance already in progress, ignoring duplicate request');
       return;
     }
+    isAcceptingRef.current = true;
 
     // Note: IncomingCall doesn't have status property - validation handled by backend
 
@@ -615,18 +694,20 @@ export const useAgora = () => {
       }
     } finally {
       setIsLoading(false);
+      isAcceptingRef.current = false;
     }
-  }, [incomingCall, isSDKReady, updateCallState, handleError, getAgoraChannelDetails, getAgoraToken, initializeAgoraClient, isLoading]);
+  }, [incomingCall, isSDKReady, updateCallState, handleError, getAgoraChannelDetails, getAgoraToken, initializeAgoraClient]);
 
   // Decline an incoming call
   const declineCall = useCallback(async () => {
     if (!incomingCall) return;
 
-    // Prevent multiple decline attempts
-    if (isLoading) {
+    // Prevent multiple decline attempts with ref for immediate check
+    if (isDecliningRef.current) {
       console.log('⚠️ Call operation already in progress, ignoring decline request');
       return;
     }
+    isDecliningRef.current = true;
 
     // Note: IncomingCall doesn't have status property - validation handled by backend
 
@@ -658,8 +739,9 @@ export const useAgora = () => {
       }
     } finally {
       setIsLoading(false);
+      isDecliningRef.current = false;
     }
-  }, [incomingCall, handleError, isLoading]);
+  }, [incomingCall, handleError]);
 
   // End the current call (initiator - notifies others)
   const endCall = useCallback(async (endReason: string = 'normal') => {
@@ -761,17 +843,46 @@ export const useAgora = () => {
     return 'failed';
   }, [callState.networkQuality]);
 
+  // Token refresh timer - check every minute if token needs refresh
+  useEffect(() => {
+    if (callState.isInCall && tokenExpiryRef.current > 0) {
+      // Start timer to check token expiry every minute
+      tokenRefreshTimerRef.current = setInterval(() => {
+        const timeUntilExpiry = tokenExpiryRef.current - Date.now();
+        
+        // Refresh token if less than 5 minutes remaining
+        if (timeUntilExpiry < 5 * 60 * 1000 && timeUntilExpiry > 0) {
+          console.log('⏰ Token expiring soon, refreshing...');
+          refreshAgoraToken();
+        }
+      }, 60000); // Check every minute
+      
+      return () => {
+        if (tokenRefreshTimerRef.current) {
+          clearInterval(tokenRefreshTimerRef.current);
+          tokenRefreshTimerRef.current = null;
+        }
+      };
+    }
+  }, [callState.isInCall, refreshAgoraToken]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       // Stop any playing ringtones on unmount
       ringtoneManager.stopRingtone();
       
-      if (callState.isInCall) {
+      // Clear token refresh timer
+      if (tokenRefreshTimerRef.current) {
+        clearInterval(tokenRefreshTimerRef.current);
+        tokenRefreshTimerRef.current = null;
+      }
+      
+      if (callStateRef.current.isInCall) {
         endCall('cancelled');
       }
     };
-  }, [callState.isInCall, endCall]); // Only run on unmount
+  }, [endCall]); // Empty dependency to only run on mount/unmount
 
   return {
     // State
