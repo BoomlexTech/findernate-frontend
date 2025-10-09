@@ -531,22 +531,22 @@ export const useAgora = () => {
       // Stop incoming call ringtone
       ringtoneManager.stopRingtone();
 
-      // Get Agora channel details and token FIRST (before accepting call)
-      console.log('🔑 Requesting Agora credentials for incoming call:', callIdToAccept);
-      const agoraChannelDetails = await getAgoraChannelDetails(callIdToAccept);
-      const agoraToken = await getAgoraToken(callIdToAccept);
-      console.log('✅ Agora credentials obtained successfully for incoming call');
-
-      // Check if this is still the call we want to accept (prevent race conditions)
-      if (!incomingCall || incomingCall.callId !== callIdToAccept) {
-        console.log('⚠️ Call changed during credential fetch, aborting');
-        return;
-      }
-
-      // Accept call on backend (after getting credentials)
+      // Accept call on backend FIRST (this activates the call and allows token generation)
       console.log('🔄 Attempting to accept call:', callIdToAccept);
       const call = await callAPI.acceptCall(callIdToAccept);
       console.log('✅ Call accepted successfully on backend:', call);
+
+      // Check if this is still the call we want to accept (prevent race conditions)
+      if (!incomingCall || incomingCall.callId !== callIdToAccept) {
+        console.log('⚠️ Call changed during acceptance, aborting');
+        return;
+      }
+
+      // Now get Agora channel details and token (AFTER accepting call)
+      console.log('🔑 Requesting Agora credentials for accepted call:', callIdToAccept);
+      const agoraChannelDetails = await getAgoraChannelDetails(callIdToAccept);
+      const agoraToken = await getAgoraToken(callIdToAccept);
+      console.log('✅ Agora credentials obtained successfully for accepted call');
       // Note: Backend provides both rtcToken and rtmToken, but we only use rtcToken since we use Socket.IO for messaging
 
       updateCallState({
