@@ -66,8 +66,9 @@ export const useUnreadCounts = () => {
 
     fetchCounts();
 
-    // Set up an interval to refresh counts every 30 seconds (reduced from 3 seconds to prevent rate limiting)
-    const interval = setInterval(fetchCounts, 30000);
+    // Set up an interval to refresh counts every 5 minutes (reduced from 30s to prevent resource exhaustion)
+    // Socket.IO events handle real-time updates, polling is just a backup
+    const interval = setInterval(fetchCounts, 300000); // 5 minutes
 
     // Listen for custom events to refresh counts
     const handleRefreshCounts = () => {
