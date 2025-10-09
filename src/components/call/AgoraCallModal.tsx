@@ -73,9 +73,9 @@ export const AgoraCallModal: React.FC<AgoraCallModalProps> = ({
   }, [remoteUsers]);
 
   // Don't render if no call is active
-  if (!callState.isInCall && !incomingCall) return null;
+  if (!callState.isInCall) return null;
 
-  const isVideoCall = callState.call?.callType === 'video' || incomingCall?.callType === 'video';
+  const isVideoCall = callState.call?.callType === 'video';
   
   // Get the other participant (not the current user)
   const otherParticipant = callState.call?.participants.find(
