@@ -22,12 +22,16 @@ export const IncomingCallModal: React.FC<IncomingCallModalProps> = ({
 
   // No animation delay - modal shows immediately for incoming calls
 
-  // Auto-decline after 30 seconds ONLY if user hasn't accepted/declined
+  // Auto-decline after 30 seconds ONLY if user hasn't accepted/declined AND page is visible
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (!isLoading && !hasInteracted) {
+      // Only auto-decline if page is visible and user hasn't interacted
+      const isPageVisible = !document.hidden;
+      if (!isLoading && !hasInteracted && isPageVisible) {
         console.log('⏰ Auto-declining call after 30 seconds of no response');
         onDecline();
+      } else if (!isPageVisible) {
+        console.log('⚠️ Page is hidden, not auto-declining (user may have switched tabs)');
       }
     }, 30000);
 
