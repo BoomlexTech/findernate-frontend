@@ -751,7 +751,8 @@ export const useAgora = () => {
     }
 
     // Check if call is in a valid state for ending
-    if (!['active', 'connecting', 'ringing'].includes(callState.call.status)) {
+    // Include 'initiated' to allow caller to cancel before receiver accepts
+    if (!['initiated', 'active', 'connecting', 'ringing'].includes(callState.call.status)) {
       console.log('⚠️ Call is not in a valid state for ending:', callState.call.status);
       // Still try to end it locally for cleanup
       await endCallLocally(endReason);
