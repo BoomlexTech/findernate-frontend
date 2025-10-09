@@ -39,7 +39,8 @@ const BusinessProfilePage = () => {
   const [error, setError] = useState<string | null>(null);
   const [isFollowLoading, setIsFollowLoading] = useState(false);
   const params = useParams();
-  const businessName = params.businessId as string;
+  // Decode the business name from URL (handles spaces and special characters)
+  const businessName = decodeURIComponent(params.businessId as string);
   const { requireAuth, showAuthDialog, closeAuthDialog } = useAuthGuard();
 
   useEffect(() => {
