@@ -373,11 +373,13 @@ export const useAgora = () => {
 
     // Handle incoming call
     socketManager.on('incoming_call', (data: IncomingCall) => {
-      console.log('Incoming call received:', data);
-      setIncomingCall(data);
+      console.log('📞 Incoming call received:', data);
       
-      // Start incoming call ringtone
+      // Start incoming call ringtone IMMEDIATELY
       ringtoneManager.startRingtone('incoming');
+      
+      // Set incoming call state IMMEDIATELY for instant UI render
+      setIncomingCall(data);
       
       // Set a preliminary call state
       updateCallState({

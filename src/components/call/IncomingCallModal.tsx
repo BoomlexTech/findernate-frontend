@@ -18,41 +18,36 @@ export const IncomingCallModal: React.FC<IncomingCallModalProps> = ({
   onDecline,
   isLoading = false
 }) => {
-  const [isVisible, setIsVisible] = useState(false);
+  const [hasInteracted, setHasInteracted] = useState(false);
 
-  // Animate entrance
-  useEffect(() => {
-    const timer = setTimeout(() => setIsVisible(true), 100);
-    return () => clearTimeout(timer);
-  }, []);
+  // No animation delay - modal shows immediately for incoming calls
 
-  // Auto-decline after 30 seconds (optional)
+  // Auto-decline after 30 seconds ONLY if user hasn't accepted/declined
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (!isLoading) {
+      if (!isLoading && !hasInteracted) {
+        console.log('⏰ Auto-declining call after 30 seconds of no response');
         onDecline();
       }
     }, 30000);
 
     return () => clearTimeout(timer);
-  }, [onDecline, isLoading]);
+  }, [onDecline, isLoading, hasInteracted]);
 
   const isVideoCall = incomingCall.callType === 'video';
 
   return (
     <div 
-      className={`
+      className="
         fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm
-        transition-all duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'}
-      `}
+        animate-in fade-in duration-150
+      "
     >
       <div 
-        className={`
+        className="
           bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 overflow-hidden
-          transform transition-all duration-300 ${
-            isVisible ? 'scale-100 translate-y-0' : 'scale-95 translate-y-4'
-          }
-        `}
+          animate-in zoom-in-95 slide-in-from-bottom-4 duration-150
+        "
       >
         {/* Header */}
         <div className="bg-gradient-to-br from-blue-500 to-purple-600 px-6 py-8 text-center text-white">
@@ -120,7 +115,10 @@ export const IncomingCallModal: React.FC<IncomingCallModalProps> = ({
           <div className="flex gap-4 justify-center">
             {/* Decline Button */}
             <button
-              onClick={onDecline}
+              onClick={() => {
+                setHasInteracted(true);
+                onDecline();
+              }}
               disabled={isLoading}
               className="
                 w-16 h-16 bg-red-500 hover:bg-red-600 text-white rounded-full
@@ -135,7 +133,10 @@ export const IncomingCallModal: React.FC<IncomingCallModalProps> = ({
 
             {/* Accept Button */}
             <button
-              onClick={onAccept}
+              onClick={() => {
+                setHasInteracted(true);
+                onAccept();
+              }}
               disabled={isLoading}
               className="
                 w-16 h-16 bg-green-500 hover:bg-green-600 text-white rounded-full

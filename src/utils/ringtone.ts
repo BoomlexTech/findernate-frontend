@@ -7,12 +7,16 @@ class RingtoneManager {
       this.audio = new Audio('/audio/ringtone.mp3');
       this.audio.loop = true;
       this.audio.volume = 0.7;
+      this.audio.preload = 'auto'; // Preload audio for instant playback
       
       // Handle audio loading errors gracefully
       this.audio.onerror = () => {
         console.warn('Ringtone audio file not found. Using browser beep as fallback.');
         this.audio = null;
       };
+      
+      // Preload the audio file immediately
+      this.audio.load();
     }
   }
 

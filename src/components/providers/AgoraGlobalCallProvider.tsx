@@ -97,7 +97,7 @@ export const AgoraGlobalCallProvider: React.FC<{ children: React.ReactNode }> = 
       {children}
       
       {/* Global incoming call modal - ONLY show to receiver before accepting */}
-      {incomingCall && !callState.isInCall && !isLoading && (
+      {incomingCall && !callState.isInCall && (
         <IncomingCallModal
           incomingCall={incomingCall}
           onAccept={acceptCall}
