@@ -48,7 +48,10 @@ export const NewChatModal: React.FC<NewChatModalProps> = ({
               {followingUsers.filter(followingUser => followingUser && followingUser._id).map((followingUser) => (
                 <div
                   key={followingUser._id}
-                  onClick={() => onCreateChat(followingUser)}
+                  onClick={() => {
+                    onCreateChat(followingUser);
+                    onClose(); // Close modal after creating chat
+                  }}
                   className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
                 >
                   <Image

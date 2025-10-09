@@ -396,10 +396,13 @@ export default function AccountSettings() {
               <button
                 type="button"
                 onClick={() => setShowBusinessOptions(!showBusinessOptions)}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-all shadow-sm text-sm sm:text-base font-medium"
+                className="group inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 font-semibold text-sm sm:text-base"
               >
-                <span>Manage Business</span>
-                <ChevronDown className={`w-4 h-4 transition-transform ${showBusinessOptions ? 'rotate-180' : ''}`} />
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-white rounded-full"></div>
+                  <span>Manage Business</span>
+                </div>
+                <ChevronDown className={`w-5 h-5 transition-transform duration-300 group-hover:scale-110 ${showBusinessOptions ? 'rotate-180' : ''}`} />
               </button>
             ) : (
               <p className="text-sm sm:text-base text-gray-600">Switch to business account</p>

@@ -34,13 +34,13 @@ export default function Home() {
           </div>
 
           {/* Posts - Scrollable */}
-          <div className="overflow-y-auto">
+          <div className="overflow-y-auto h-[calc(100vh-12rem)] subtle-scrollbar">
             <MainContent />
           </div>
         </div>
 
         {/* Right Sidebar - Hidden on mobile and medium screens, Fixed on large desktop */}
-        <div className="hidden lg:block w-[23rem] fixed right-0 top-0 h-full bg-white border-l border-gray-200 overflow-y-auto">
+        <div className="hidden lg:block w-[23rem] fixed right-0 top-0 h-full bg-white border-l border-gray-200 overflow-y-auto subtle-scrollbar">
           <RightSidebar />
         </div>
       </div>
