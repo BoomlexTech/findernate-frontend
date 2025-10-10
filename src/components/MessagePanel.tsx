@@ -217,6 +217,12 @@ export default function MessagePanel() {
     loadFollowingUsers();
   };
 
+  // Handle creating chat with user and closing modal
+  const handleCreateChatWithUser = async (selectedUser: any) => {
+    await createChatWithUser(selectedUser);
+    setShowNewChatModal(false);
+  };
+
   return (
     <div className="flex w-full h-screen">
       <LeftPanel
@@ -296,7 +302,7 @@ export default function MessagePanel() {
         onClose={() => setShowNewChatModal(false)}
         followingUsers={followingUsers}
         loadingFollowing={loadingFollowing}
-        onCreateChat={createChatWithUser}
+        onCreateChat={handleCreateChatWithUser}
       />
 
       <GroupChatModal

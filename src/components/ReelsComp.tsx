@@ -1,7 +1,7 @@
 "use client"
 import React, { useState, useEffect, useRef, useCallback, memo } from 'react';
 import Image from 'next/image';
-import { Play, Volume2, VolumeX, ChevronUp, ChevronDown, Heart, MessageCircle, MoreVertical } from 'lucide-react';
+import { Play, Volume2, VolumeX, Heart, MessageCircle, MoreVertical } from 'lucide-react';
 import { getReels } from '@/api/reels';
 
 interface Reel {
@@ -341,40 +341,6 @@ const ReelsComponent: React.FC<ReelsComponentProps> = memo(({
     <div className={containerClasses}>
       {/* Video container with overflow hidden */}
       <div className={shellClasses}>
-        
-        {/* Up/Down Scroll Buttons - Hide on small screens */}
-        {!isMobile && (
-          <>
-            <button
-              className="absolute right-4 top-1/3 z-[9999] bg-black/30 hover:bg-black/50 rounded-full p-3 shadow-lg transition-colors disabled:opacity-40"
-              style={{ transform: 'translateY(-50%)' }}
-              onClick={() => {
-                if (currentIndex > 0) {
-                  setCurrentIndex(currentIndex - 1);
-                  scrollToReel(currentIndex - 1);
-                }
-              }}
-              disabled={currentIndex === 0}
-              aria-label="Scroll Up"
-            >
-              <ChevronUp size={28} className="text-white opacity-90 drop-shadow-lg" />
-            </button>
-            <button
-              className="absolute right-4 bottom-1/3 z-[9999] bg-black/30 hover:bg-black/50 rounded-full p-3 shadow-lg transition-colors disabled:opacity-40"
-              style={{ transform: 'translateY(50%)' }}
-              onClick={() => {
-                if (currentIndex < reels.length - 1) {
-                  setCurrentIndex(currentIndex + 1);
-                  scrollToReel(currentIndex + 1);
-                }
-              }}
-              disabled={currentIndex === reels.length - 1}
-              aria-label="Scroll Down"
-            >
-              <ChevronDown size={28} className="text-white opacity-100 " />
-            </button>
-          </>
-        )}
 
       {loading && reels.length === 0 && (
         <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-60 z-30">

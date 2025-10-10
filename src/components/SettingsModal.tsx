@@ -163,11 +163,11 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
     <>
       {!showVerificationModal && (
       <div 
-        className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center"
+        className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4"
         onClick={onClose}
       >
           <div 
-            className="bg-white w-full max-w-md h-[90vh] rounded-xl shadow-lg overflow-y-scroll hide-scrollbar"
+            className="bg-white w-full max-w-md max-h-[90vh] rounded-xl shadow-lg overflow-y-auto hide-scrollbar"
           onClick={(e) => e.stopPropagation()}
         >
         {/* Header */}
