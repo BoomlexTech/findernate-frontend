@@ -550,13 +550,21 @@ export const useAgora = () => {
       });
       console.log('Call created on backend:', call._id);
 
-      // Get Agora channel details and token
-      console.log('🔑 Requesting Agora credentials for call:', call._id);
-      const agoraChannelDetails = await getAgoraChannelDetails(call._id);
+      // Get Agora token only (channel details already in call object)
+      console.log('🔑 Requesting Agora token for call:', call._id);
       const agoraToken = await getAgoraToken(call._id);
-      console.log('✅ Agora credentials obtained successfully');
-      // Note: Backend provides both rtcToken and rtmToken, but we only use rtcToken since we use Socket.IO for messaging
+      console.log('✅ Agora token received');
 
+      const agoraChannelDetails: AgoraChannelDetails = {
+        channelName: agoraToken.channelName,
+        appId: agoraToken.appId,
+        rtcToken: agoraToken.rtcToken,
+        rtmToken: agoraToken.rtmToken,
+        uid: agoraToken.uid,
+        userRole: 'publisher'
+      };
+
+      // Update state IMMEDIATELY for instant UI render
       updateCallState({
         call,
         isInCall: true,
@@ -565,29 +573,28 @@ export const useAgora = () => {
         agoraChannelDetails: agoraChannelDetails
       });
 
-      // Initialize Agora client
+      // Initialize Agora client (should already exist from pre-init)
       const client = initializeAgoraClient();
 
-      // Create local tracks
-      let localAudioTrack: any = null;
-      let localVideoTrack: any = null;
+      // Start joining channel and creating tracks in PARALLEL for speed
+      console.log('⚡ Starting parallel: join channel + create media tracks');
+      const [, localAudioTrack, localVideoTrack] = await Promise.all([
+        client.join(agoraToken.appId, agoraToken.channelName, agoraToken.rtcToken, agoraToken.uid),
+        AgoraRTC.createMicrophoneAudioTrack(),
+        callType === 'video' ? AgoraRTC.createCameraVideoTrack() : Promise.resolve(null)
+      ]);
+      console.log('✅ Parallel operations completed - joined channel + tracks created');
 
-      if (callType === 'video') {
-        localVideoTrack = await AgoraRTC.createCameraVideoTrack();
+      // Enable tracks
+      localAudioTrack.setEnabled(true);
+      if (localVideoTrack) {
         localVideoTrack.setEnabled(true);
       }
-
-      localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-      localAudioTrack.setEnabled(true);
 
       updateCallState({
         localAudioTrack,
         localVideoTrack
       });
-
-      // Join the channel using only RTC token (RTM not needed since we use Socket.IO for messaging)
-      await client.join(agoraToken.appId, agoraToken.channelName, agoraToken.rtcToken, agoraToken.uid);
-      console.log('Joined Agora RTC channel successfully');
 
       // Publish local tracks
       if (localVideoTrack) {
@@ -720,14 +727,14 @@ export const useAgora = () => {
             }
           }
 
-          // If it's a timing issue and we have retries left, wait with exponential backoff
+          // If it's a timing issue and we have retries left, wait with SHORT backoff for speed
           if (attempts < maxAttempts && (
             errorMsg.includes('not found') ||
             errorMsg.includes('not in correct state') ||
             errorMsg.includes('Call cannot be accepted')
           )) {
-            // Exponential backoff: 500ms, 1000ms, 2000ms
-            const backoffDelay = 500 * Math.pow(2, attempts - 1);
+            // SHORT backoff for speed: 200ms, 400ms, 800ms
+            const backoffDelay = 200 * Math.pow(2, attempts - 1);
             console.log(`⏳ Waiting ${backoffDelay}ms before retry ${attempts + 1}...`);
             await new Promise(resolve => setTimeout(resolve, backoffDelay));
             continue;
@@ -748,13 +755,18 @@ export const useAgora = () => {
         return;
       }
 
-      // Now get Agora channel details and token (AFTER accepting call)
-      console.log('🔑 Requesting Agora credentials for accepted call:', callIdToAccept);
-      const agoraChannelDetails = await getAgoraChannelDetails(callIdToAccept);
-      const agoraToken = await getAgoraToken(callIdToAccept);
-      console.log('✅ Agora credentials obtained successfully for accepted call');
-      // Note: Backend provides both rtcToken and rtmToken, but we only use rtcToken since we use Socket.IO for messaging
+      // Get Agora credentials from accept call response (already includes tokens!)
+      console.log('✅ Call accepted, extracting Agora credentials from response');
+      const agoraChannelDetails: AgoraChannelDetails = {
+        channelName: call.channelName || call.agoraChannel?.channelName,
+        appId: call.agoraChannel?.appId || '',
+        rtcToken: call.rtcToken || '',
+        rtmToken: call.rtmToken || '',
+        uid: call.uid || 0,
+        userRole: call.userRole || 'publisher'
+      };
 
+      // Update state IMMEDIATELY for instant UI render
       updateCallState({
         call,
         isInCall: true,
@@ -763,29 +775,28 @@ export const useAgora = () => {
         agoraChannelDetails: agoraChannelDetails
       });
 
-      // Initialize Agora client
+      // Initialize Agora client (should already exist from pre-init)
       const client = initializeAgoraClient();
 
-      // Create local tracks
-      let localAudioTrack: any = null;
-      let localVideoTrack: any = null;
+      // Start joining channel and creating tracks in PARALLEL for speed
+      console.log('⚡ Starting parallel: join channel + create media tracks');
+      const [, localAudioTrack, localVideoTrack] = await Promise.all([
+        client.join(agoraChannelDetails.appId, agoraChannelDetails.channelName, agoraChannelDetails.rtcToken, agoraChannelDetails.uid),
+        AgoraRTC.createMicrophoneAudioTrack(),
+        incomingCall.callType === 'video' ? AgoraRTC.createCameraVideoTrack() : Promise.resolve(null)
+      ]);
+      console.log('✅ Parallel operations completed - joined channel + tracks created');
 
-      if (incomingCall.callType === 'video') {
-        localVideoTrack = await AgoraRTC.createCameraVideoTrack();
+      // Enable tracks
+      localAudioTrack.setEnabled(true);
+      if (localVideoTrack) {
         localVideoTrack.setEnabled(true);
       }
-
-      localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-      localAudioTrack.setEnabled(true);
 
       updateCallState({
         localAudioTrack,
         localVideoTrack
       });
-
-      // Join the channel using only RTC token (RTM not needed since we use Socket.IO for messaging)
-      await client.join(agoraToken.appId, agoraToken.channelName, agoraToken.rtcToken, agoraToken.uid);
-      console.log('Joined Agora RTC channel successfully');
 
       // Publish local tracks
       if (localVideoTrack) {
