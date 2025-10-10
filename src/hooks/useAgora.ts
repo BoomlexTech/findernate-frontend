@@ -330,41 +330,69 @@ export const useAgora = () => {
 
   // End call locally (cleanup without emitting to others)
   const endCallLocally = useCallback(async (endReason: string = 'normal') => {
-    if (!callStateRef.current.call) {
-      console.log('No active call to end locally');
-      return;
-    }
+    console.log('🔴 endCallLocally called with reason:', endReason);
 
     try {
-      console.log('Ending Agora call locally:', callStateRef.current.call._id, 'with reason:', endReason);
-      
       // Stop any playing ringtones
       ringtoneManager.stopRingtone();
-      
+
       // Clear token refresh timer
       if (tokenRefreshTimerRef.current) {
         clearInterval(tokenRefreshTimerRef.current);
         tokenRefreshTimerRef.current = null;
       }
       tokenExpiryRef.current = 0;
-      
+
       // Stop and release local tracks
       if (callStateRef.current.localAudioTrack) {
-        callStateRef.current.localAudioTrack.stop();
-        callStateRef.current.localAudioTrack.close();
+        console.log('🎤 Stopping and closing local audio track');
+        try {
+          callStateRef.current.localAudioTrack.stop();
+          callStateRef.current.localAudioTrack.close();
+        } catch (err) {
+          console.warn('Error stopping audio track:', err);
+        }
       }
-      
+
       if (callStateRef.current.localVideoTrack) {
-        callStateRef.current.localVideoTrack.stop();
-        callStateRef.current.localVideoTrack.close();
+        console.log('📹 Stopping and closing local video track');
+        try {
+          callStateRef.current.localVideoTrack.stop();
+          callStateRef.current.localVideoTrack.close();
+        } catch (err) {
+          console.warn('Error stopping video track:', err);
+        }
       }
-      
-      // Leave the channel
+
+      // Leave the channel and RESET the client
       if (agoraClientRef.current) {
-        await agoraClientRef.current.leave();
+        console.log('📡 Leaving Agora channel...');
+        try {
+          // Check if client is actually connected before leaving
+          const connectionState = agoraClientRef.current.connectionState;
+          console.log('Current Agora connection state:', connectionState);
+
+          if (connectionState === 'CONNECTED' || connectionState === 'CONNECTING') {
+            await agoraClientRef.current.leave();
+            console.log('✅ Left Agora channel successfully');
+          } else {
+            console.log('⚠️ Agora client not connected, skipping leave()');
+          }
+
+          // CRITICAL: Remove all event listeners to prevent memory leaks
+          agoraClientRef.current.removeAllListeners();
+
+          // CRITICAL: Set client to null so a fresh one is created next time
+          agoraClientRef.current = null;
+          console.log('✅ Agora client destroyed and set to null');
+        } catch (err) {
+          console.error('Error leaving Agora channel:', err);
+          // Force reset even if leave fails
+          agoraClientRef.current = null;
+        }
       }
-      
-      console.log('Agora call ended locally');
+
+      console.log('✅ Agora call ended locally');
 
       // Reset call state
       updateCallState({
@@ -379,13 +407,26 @@ export const useAgora = () => {
         error: null,
         agoraChannelDetails: null,
       });
-      console.log('Call state reset locally');
+      console.log('✅ Call state reset locally');
 
     } catch (error) {
-      console.error('Error ending call locally:', error);
-      handleError(error as Error);
+      console.error('❌ Error ending call locally:', error);
+      // Force reset even on error
+      agoraClientRef.current = null;
+      updateCallState({
+        call: null,
+        localVideoTrack: null,
+        localAudioTrack: null,
+        remoteUsers: [],
+        isInCall: false,
+        isInitiator: false,
+        connectionState: null,
+        networkQuality: null,
+        error: null,
+        agoraChannelDetails: null,
+      });
     }
-  }, [updateCallState, handleError]);
+  }, [updateCallState]);
 
   // Setup socket event handlers
   useEffect(() => {
