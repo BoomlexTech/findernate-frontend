@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { IncomingCall } from '@/hooks/useAgora';
 import { Phone, PhoneOff, Video, Mic } from 'lucide-react';
 import Image from 'next/image';
@@ -19,24 +19,40 @@ export const IncomingCallModal: React.FC<IncomingCallModalProps> = ({
   isLoading = false
 }) => {
   const [hasInteracted, setHasInteracted] = useState(false);
+  const onDeclineRef = useRef(onDecline);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // No animation delay - modal shows immediately for incoming calls
+  // Keep ref updated
+  useEffect(() => {
+    onDeclineRef.current = onDecline;
+  }, [onDecline]);
 
   // Auto-decline after 30 seconds ONLY if user hasn't accepted/declined AND page is visible
+  // This effect runs ONLY ONCE when modal mounts
   useEffect(() => {
-    const timer = setTimeout(() => {
+    console.log('🔔 Incoming call modal mounted, setting 30-second auto-decline timer');
+
+    timerRef.current = setTimeout(() => {
       // Only auto-decline if page is visible and user hasn't interacted
       const isPageVisible = !document.hidden;
-      if (!isLoading && !hasInteracted && isPageVisible) {
+      if (!hasInteracted && isPageVisible) {
         console.log('⏰ Auto-declining call after 30 seconds of no response');
-        onDecline();
+        onDeclineRef.current();
       } else if (!isPageVisible) {
         console.log('⚠️ Page is hidden, not auto-declining (user may have switched tabs)');
+      } else if (hasInteracted) {
+        console.log('⚠️ User already interacted, not auto-declining');
       }
-    }, 30000);
+    }, 90000);
 
-    return () => clearTimeout(timer);
-  }, [onDecline, isLoading, hasInteracted]);
+    return () => {
+      if (timerRef.current) {
+        console.log('🧹 Clearing auto-decline timer (modal unmounted or user interacted)');
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, [incomingCall.callId]); // Only re-run if we get a NEW call (different callId)
 
   const isVideoCall = incomingCall.callType === 'video';
 
@@ -120,7 +136,13 @@ export const IncomingCallModal: React.FC<IncomingCallModalProps> = ({
             {/* Decline Button */}
             <button
               onClick={() => {
+                console.log('📞 User clicked Decline button');
                 setHasInteracted(true);
+                // Clear timer immediately when user declines
+                if (timerRef.current) {
+                  clearTimeout(timerRef.current);
+                  timerRef.current = null;
+                }
                 onDecline();
               }}
               disabled={isLoading}
@@ -138,7 +160,13 @@ export const IncomingCallModal: React.FC<IncomingCallModalProps> = ({
             {/* Accept Button */}
             <button
               onClick={() => {
+                console.log('📞 User clicked Accept button');
                 setHasInteracted(true);
+                // Clear timer immediately when user accepts
+                if (timerRef.current) {
+                  clearTimeout(timerRef.current);
+                  timerRef.current = null;
+                }
                 onAccept();
               }}
               disabled={isLoading}

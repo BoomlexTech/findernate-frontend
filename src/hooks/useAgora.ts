@@ -825,7 +825,10 @@ export const useAgora = () => {
 
   // Decline an incoming call
   const declineCall = useCallback(async () => {
-    if (!incomingCall) return;
+    if (!incomingCall) {
+      console.warn('⚠️ declineCall called but no incoming call exists');
+      return;
+    }
 
     // Prevent multiple decline attempts with ref for immediate check
     if (isDecliningRef.current) {
@@ -834,18 +837,26 @@ export const useAgora = () => {
     }
     isDecliningRef.current = true;
 
+    // Debug: Log who called decline and when
+    console.log('🔴 DECLINE CALL TRIGGERED:', {
+      callId: incomingCall.callId,
+      caller: incomingCall.caller.username,
+      timestamp: new Date().toISOString(),
+      stackTrace: new Error().stack?.split('\n').slice(1, 4).join('\n') // First 3 stack frames
+    });
+
     // Note: IncomingCall doesn't have status property - validation handled by backend
 
     try {
       setIsLoading(true);
-      
+
       // Stop incoming call ringtone
       ringtoneManager.stopRingtone();
 
       // Decline call on backend
-      console.log('🔄 Declining call:', incomingCall.callId);
+      console.log('🔄 Declining call on backend:', incomingCall.callId);
       await callAPI.declineCall(incomingCall.callId);
-      console.log('✅ Call declined successfully');
+      console.log('✅ Call declined successfully on backend');
 
       // Emit call decline via socket
       socketManager.declineCall(incomingCall.callId, incomingCall.caller._id);
