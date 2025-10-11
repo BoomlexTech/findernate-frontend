@@ -70,7 +70,8 @@ export const useSocket = ({
     return () => {
       socketManager.off('auth_failure_permanent', handleAuthFailure);
       socketManager.off('connection_failed_permanent', handleConnectionFailure);
-      socketManager.disconnect();
+      // DO NOT disconnect socket on cleanup - it should persist across component remounts
+      // Socket will be disconnected when user logs out via logout() function
     };
   }, [router]);
 

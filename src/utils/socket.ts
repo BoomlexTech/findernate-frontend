@@ -225,7 +225,9 @@ class SocketManager {
     
     // Call management events
     this.socket.on('incoming_call', (data) => {
+      console.log('📞 [SocketManager] Received incoming_call event from backend:', data);
       this.emit('incoming_call', data);
+      console.log('✅ [SocketManager] incoming_call event emitted to app listeners');
     });
 
     this.socket.on('call_accepted', (data) => {
@@ -394,8 +396,13 @@ class SocketManager {
   
   // Call management
   initiateCall(receiverId: string, chatId: string, callType: string, callId: string) {
+    console.log('📤 [SocketManager] initiateCall called:', { receiverId, chatId, callType, callId, connected: this.socket?.connected });
+
     if (this.socket?.connected) {
       this.socket.emit('call_initiate', { receiverId, chatId, callType, callId });
+      console.log('✅ [SocketManager] call_initiate event emitted to backend');
+    } else {
+      console.error('❌ [SocketManager] Cannot initiate call - socket not connected');
     }
   }
 

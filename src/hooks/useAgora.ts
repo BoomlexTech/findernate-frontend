@@ -74,6 +74,9 @@ export interface IncomingCall {
 
 export const useAgora = () => {
   const user = useUserStore((state) => state.user);
+
+  // Debug: Log user state on every render - VERY VISIBLE
+  console.warn('🔥🔥🔥 [useAgora] Hook rendered. User:', user?._id || 'NO USER', '🔥🔥🔥');
   
   const [callState, setCallState] = useState<AgoraCallState>({
     call: null,
@@ -110,136 +113,163 @@ export const useAgora = () => {
     const initSDK = async () => {
       const success = await initializeAgoraSDK();
       setIsSDKReady(success);
-
-      // Pre-initialize Agora client after SDK loads (reduces call acceptance time)
-      if (success && AgoraRTC) {
-        console.log('📡 Pre-initializing Agora client for faster call handling...');
-        // This will create the client and set up event listeners
-        initializeAgoraClient();
-      }
     };
 
     initSDK();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Initialize Agora client
+  // Pre-initialize Agora client after SDK is ready (runs after isSDKReady state updates)
+  useEffect(() => {
+    if (isSDKReady && AgoraRTC && !agoraClientRef.current) {
+      console.log('📡 Pre-initializing Agora client for faster call handling...');
+      try {
+        // Create client directly without the callback check to avoid timing issue
+        agoraClientRef.current = AgoraRTC.createClient({
+          mode: 'rtc',
+          codec: 'vp8'
+        });
+        console.log('✅ Agora RTC client pre-initialized successfully');
+
+        // Set up event listeners immediately
+        setupAgoraEventListeners();
+      } catch (error) {
+        console.error('❌ Error pre-initializing Agora client:', error);
+        agoraClientRef.current = null;
+      }
+    }
+  }, [isSDKReady]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Setup Agora event listeners (extracted as separate function)
+  const setupAgoraEventListeners = useCallback(() => {
+    if (!agoraClientRef.current) return;
+
+    // Set up event listeners
+    agoraClientRef.current.on('user-published', async (user, mediaType) => {
+      console.log('🔊 Agora: User published', user.uid, mediaType);
+
+      // Subscribe to the remote user
+      await agoraClientRef.current?.subscribe(user, mediaType);
+
+      // Update remote users state
+      setCallState(prev => {
+        const existingUserIndex = prev.remoteUsers.findIndex(u => u.uid === user.uid);
+        if (existingUserIndex === -1) {
+          // New user - add to array
+          return { ...prev, remoteUsers: [...prev.remoteUsers, user] };
+        } else {
+          // Existing user - update their tracks
+          const updatedUsers = [...prev.remoteUsers];
+          updatedUsers[existingUserIndex] = user;
+          return { ...prev, remoteUsers: updatedUsers };
+        }
+      });
+
+      if (mediaType === 'video') {
+        console.log('📹 Agora: Remote video track received');
+      }
+
+      if (mediaType === 'audio') {
+        console.log('🔊 Agora: Remote audio track received');
+        // Play remote audio
+        user.audioTrack?.play();
+      }
+    });
+
+    agoraClientRef.current.on('user-unpublished', (user, mediaType) => {
+      console.log('🔇 Agora: User unpublished', user.uid, mediaType);
+
+      // Update remote users state to reflect unpublished tracks
+      setCallState(prev => {
+        const updatedUsers = prev.remoteUsers.map(u => {
+          if (u.uid === user.uid) {
+            // User unpublished a track - update their state
+            return user;
+          }
+          return u;
+        });
+        return { ...prev, remoteUsers: updatedUsers };
+      });
+    });
+
+    agoraClientRef.current.on('user-left', (user) => {
+      console.log('👋 Agora: User left', user.uid);
+      setCallState(prev => ({
+        ...prev,
+        remoteUsers: prev.remoteUsers.filter(u => u.uid !== user.uid)
+      }));
+    });
+
+    agoraClientRef.current.on('connection-state-change', (curState, revState, reason) => {
+      console.log('🔄 Agora: Connection state changed', curState, revState, reason);
+      setCallState(prev => ({ ...prev, connectionState: curState }));
+
+      // Handle connection state changes - but ONLY for established calls
+      if (callStateRef.current.call && callStateRef.current.call.status === 'active') {
+        if (curState === 'CONNECTED') {
+          // Call is now active - backend should handle this via accept endpoint
+          console.log('✅ Call connected successfully');
+        } else if (curState === 'DISCONNECTED' && reason !== 'LEAVE') {
+          // Only end if call was previously connected (not during initial connection)
+          if (revState === 'CONNECTED' || revState === 'RECONNECTING') {
+            console.log('❌ Active call disconnected unexpectedly, ending call');
+            callAPI.endCall(callStateRef.current.call._id, {
+              endReason: 'failed'
+            }).catch(console.error);
+            // Clean up local tracks immediately
+            endCallLocally('failed');
+          } else {
+            console.log('⚠️ Disconnected during connection attempt, not ending call yet');
+          }
+        } else if (curState === 'FAILED') {
+          // Connection completely failed - but only if was previously connected
+          if (revState === 'CONNECTED' || revState === 'RECONNECTING') {
+            console.log('❌ Call connection completely failed');
+            if (callStateRef.current.call) {
+              callAPI.endCall(callStateRef.current.call._id, {
+                endReason: 'network_error'
+              }).catch(console.error);
+            }
+            // Clean up local tracks immediately
+            endCallLocally('network_error');
+          } else {
+            console.log('⚠️ Connection FAILED during setup - not ending call yet, may recover');
+          }
+        }
+      } else {
+        console.log('ℹ️ Connection state change during call setup/ending - ignoring');
+      }
+    });
+
+    agoraClientRef.current.on('network-quality', (stats) => {
+      setCallState(prev => ({ ...prev, networkQuality: stats }));
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Initialize Agora client (returns existing or creates new with listeners)
   const initializeAgoraClient = useCallback(() => {
     if (!isSDKReady || !AgoraRTC) {
-      throw new Error('Agora SDK is not ready');
+      console.warn('⚠️ Agora SDK not ready, but client may have been pre-initialized');
     }
 
-    if (!agoraClientRef.current) {
-      console.log('🎬 Creating new Agora RTC client...');
-      agoraClientRef.current = AgoraRTC.createClient({
-        mode: 'rtc',
-        codec: 'vp8'
-      });
-      console.log('✅ Agora RTC client created successfully');
-
-      // Set up event listeners
-      agoraClientRef.current.on('user-published', async (user, mediaType) => {
-        console.log('🔊 Agora: User published', user.uid, mediaType);
-        
-        // Subscribe to the remote user
-        await agoraClientRef.current?.subscribe(user, mediaType);
-        
-        // Update remote users state
-        setCallState(prev => {
-          const existingUserIndex = prev.remoteUsers.findIndex(u => u.uid === user.uid);
-          if (existingUserIndex === -1) {
-            // New user - add to array
-            return { ...prev, remoteUsers: [...prev.remoteUsers, user] };
-          } else {
-            // Existing user - update their tracks
-            const updatedUsers = [...prev.remoteUsers];
-            updatedUsers[existingUserIndex] = user;
-            return { ...prev, remoteUsers: updatedUsers };
-          }
-        });
-        
-        if (mediaType === 'video') {
-          console.log('📹 Agora: Remote video track received');
-        }
-        
-        if (mediaType === 'audio') {
-          console.log('🔊 Agora: Remote audio track received');
-          // Play remote audio
-          user.audioTrack?.play();
-        }
-      });
-
-      agoraClientRef.current.on('user-unpublished', (user, mediaType) => {
-        console.log('🔇 Agora: User unpublished', user.uid, mediaType);
-        
-        // Update remote users state to reflect unpublished tracks
-        setCallState(prev => {
-          const updatedUsers = prev.remoteUsers.map(u => {
-            if (u.uid === user.uid) {
-              // User unpublished a track - update their state
-              return user;
-            }
-            return u;
-          });
-          return { ...prev, remoteUsers: updatedUsers };
-        });
-      });
-
-      agoraClientRef.current.on('user-left', (user) => {
-        console.log('👋 Agora: User left', user.uid);
-        setCallState(prev => ({
-          ...prev,
-          remoteUsers: prev.remoteUsers.filter(u => u.uid !== user.uid)
-        }));
-      });
-
-      agoraClientRef.current.on('connection-state-change', (curState, revState, reason) => {
-        console.log('🔄 Agora: Connection state changed', curState, revState, reason);
-        setCallState(prev => ({ ...prev, connectionState: curState }));
-        
-        // Handle connection state changes - but ONLY for established calls
-        if (callStateRef.current.call && callStateRef.current.call.status === 'active') {
-          if (curState === 'CONNECTED') {
-            // Call is now active - backend should handle this via accept endpoint
-            console.log('✅ Call connected successfully');
-          } else if (curState === 'DISCONNECTED' && reason !== 'LEAVE') {
-            // Only end if call was previously connected (not during initial connection)
-            if (revState === 'CONNECTED' || revState === 'RECONNECTING') {
-              console.log('❌ Active call disconnected unexpectedly, ending call');
-              callAPI.endCall(callStateRef.current.call._id, { 
-                endReason: 'failed' 
-              }).catch(console.error);
-              // Clean up local tracks immediately
-              endCallLocally('failed');
-            } else {
-              console.log('⚠️ Disconnected during connection attempt, not ending call yet');
-            }
-          } else if (curState === 'FAILED') {
-            // Connection completely failed - but only if was previously connected
-            if (revState === 'CONNECTED' || revState === 'RECONNECTING') {
-              console.log('❌ Call connection completely failed');
-              if (callStateRef.current.call) {
-                callAPI.endCall(callStateRef.current.call._id, { 
-                  endReason: 'network_error' 
-                }).catch(console.error);
-              }
-              // Clean up local tracks immediately
-              endCallLocally('network_error');
-            } else {
-              console.log('⚠️ Connection FAILED during setup - not ending call yet, may recover');
-            }
-          }
-        } else {
-          console.log('ℹ️ Connection state change during call setup/ending - ignoring');
-        }
-      });
-
-      agoraClientRef.current.on('network-quality', (stats) => {
-        setCallState(prev => ({ ...prev, networkQuality: stats }));
-      });
+    // If client already exists (from pre-init), return it
+    if (agoraClientRef.current) {
+      console.log('✅ Using existing Agora RTC client');
+      return agoraClientRef.current;
     }
-    
+
+    // Otherwise create a new one and set up listeners
+    console.log('🎬 Creating new Agora RTC client...');
+    agoraClientRef.current = AgoraRTC.createClient({
+      mode: 'rtc',
+      codec: 'vp8'
+    });
+    console.log('✅ Agora RTC client created successfully');
+
+    // Set up event listeners using the extracted function
+    setupAgoraEventListeners();
+
     return agoraClientRef.current;
-  }, [isSDKReady]);
+  }, [isSDKReady, setupAgoraEventListeners]);
 
   // Update call state helper
   const updateCallState = useCallback((updates: Partial<AgoraCallState>) => {
@@ -380,7 +410,9 @@ export const useAgora = () => {
           }
 
           // CRITICAL: Remove all event listeners to prevent memory leaks
-          agoraClientRef.current.removeAllListeners();
+          if (agoraClientRef.current && typeof agoraClientRef.current.removeAllListeners === 'function') {
+            agoraClientRef.current.removeAllListeners();
+          }
 
           // CRITICAL: Set client to null so a fresh one is created next time
           agoraClientRef.current = null;
@@ -430,11 +462,16 @@ export const useAgora = () => {
 
   // Setup socket event handlers
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      console.log('⚠️ [useAgora] Not setting up socket listeners - no user. Will retry when user becomes available.');
+      return;
+    }
+
+    console.log('✅ [useAgora] Setting up socket event listeners for user:', user._id);
 
     // Handle incoming call
     socketManager.on('incoming_call', (data: IncomingCall) => {
-      console.log('📞 Incoming call received:', data);
+      console.log('📞 [useAgora] Incoming call received in useAgora hook:', data);
       
       // Start incoming call ringtone IMMEDIATELY
       ringtoneManager.startRingtone('incoming');
@@ -477,24 +514,35 @@ export const useAgora = () => {
 
     // Handle call declined
     socketManager.on('call_declined', (data) => {
-      console.log('Call declined:', data);
-      
+      console.log('📞 [useAgora] Call declined event received:', {
+        callId: data.callId,
+        currentCallId: callStateRef.current.call?._id,
+        willEnd: callStateRef.current.call?._id === data.callId
+      });
+
       // Stop ringtones when call is declined
       ringtoneManager.stopRingtone();
-      
+
       if (callStateRef.current.call && callStateRef.current.call._id === data.callId) {
+        console.log('🔴 [useAgora] Ending call locally due to call_declined event');
         endCallLocally('declined');
       }
     });
 
     // Handle call ended
     socketManager.on('call_ended', (data) => {
-      console.log('Call ended by remote user:', data);
-      
+      console.log('📞 [useAgora] Call ended event received:', {
+        callId: data.callId,
+        endReason: data.endReason,
+        currentCallId: callStateRef.current.call?._id,
+        willEnd: callStateRef.current.call?._id === data.callId
+      });
+
       // Stop ringtones when call is ended
       ringtoneManager.stopRingtone();
-      
+
       if (callStateRef.current.call && callStateRef.current.call._id === data.callId) {
+        console.log('🔴 [useAgora] Ending call locally due to call_ended event');
         endCallLocally(data.endReason || 'normal');
       }
     });
@@ -623,35 +671,55 @@ export const useAgora = () => {
       // Handle 409 conflict (user already in call)
       if (error?.response?.status === 409 || error?.status === 409) {
         console.log('🔄 Call conflict detected - user is already in a call');
-        
+        toast.info('Cleaning up previous call...');
+
         try {
-          // First, try to get and end any active call
+          // Force aggressive cleanup
+          console.log('🧹 Starting aggressive cleanup for 409 conflict');
+          await endCallLocally('cancelled');
+
+          // Get and end any active call on backend
           const activeCall = await callAPI.getActiveCall().catch(() => null);
           if (activeCall) {
-            console.log('🧹 Found active call, ending it:', activeCall._id);
+            console.log('🧹 Found active call on backend:', activeCall._id, 'status:', activeCall.status);
             await callAPI.endCall(activeCall._id, { endReason: 'cancelled' });
-            
-            // Wait a moment for cleanup
-            await new Promise(resolve => setTimeout(resolve, 1500));
-            
-            // Now try to initiate the new call
-            console.log('🔄 Retrying call initiation...');
-            await initiateCall(receiverId, chatId, callType);
-            return;
-          } else {
-            // No active call found, but still getting 409 - show user-friendly message
-            updateCallState({ 
-              error: 'Unable to start call. Please wait a moment and try again.' 
-            });
+            console.log('✅ Backend call ended');
           }
+
+          // Wait for backend to fully process the cleanup
+          console.log('⏳ Waiting 2 seconds for backend cleanup...');
+          await new Promise(resolve => setTimeout(resolve, 2000));
+
+          // Now try to initiate the new call
+          console.log('🔄 Retrying call initiation after cleanup...');
+          toast.success('Retrying call...');
+          await initiateCall(receiverId, chatId, callType);
+          return;
         } catch (cleanupError) {
-          console.error('❌ Error during cleanup:', cleanupError);
-          updateCallState({ 
-            error: 'Call conflict detected. Please wait a moment and try again.' 
-          });
+          console.error('❌ Error during 409 cleanup:', cleanupError);
+          const errorMsg = 'Unable to start call. Please try again in a moment.';
+          updateCallState({ error: errorMsg });
+          toast.error(errorMsg);
         }
       } else {
-        // Handle other errors
+        // Handle other errors with detailed logging
+        console.error('❌ Non-409 error - Full error details:', {
+          message: error?.message,
+          responseData: error?.response?.data,
+          responseStatus: error?.response?.status,
+          errorName: error?.name,
+          errorCode: error?.code,
+          stack: error?.stack
+        });
+
+        // Extract user-friendly error message
+        const errorMsg = error?.response?.data?.message ||
+                        error?.response?.data?.error ||
+                        error?.message ||
+                        'Failed to initiate call. Please check your connection and try again.';
+
+        toast.error(errorMsg);
+        updateCallState({ error: errorMsg });
         handleError(error as Error);
       }
     } finally {

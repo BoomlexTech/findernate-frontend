@@ -44,7 +44,10 @@ export const useAgoraGlobalCall = () => {
 export const AgoraGlobalCallProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const user = useUserStore((state) => state.user);
   const [isMinimized, setIsMinimized] = useState(false);
+
+  console.warn('🔥🔥🔥 [AgoraGlobalCallProvider] Rendering. User:', user?._id || 'NO USER', '🔥🔥🔥');
   
+  console.log('[AgoraGlobalCallProvider] Calling useAgora hook...');
   const {
     callState,
     incomingCall,
@@ -62,6 +65,7 @@ export const AgoraGlobalCallProvider: React.FC<{ children: React.ReactNode }> = 
     localAudioTrack,
     remoteUsers,
   } = useAgora();
+  console.log('[AgoraGlobalCallProvider] useAgora returned. IncomingCall:', incomingCall?.callId || 'NONE');
 
   const handleMinimize = useCallback(() => {
     setIsMinimized(!isMinimized);
