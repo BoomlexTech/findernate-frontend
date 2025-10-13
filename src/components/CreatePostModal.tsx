@@ -59,6 +59,7 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
   
   // Set default post type to Regular for normal users, allow business types only for business accounts
   const [postType, setPostType] = useState('Regular');
+  const [previousPostType, setPreviousPostType] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
@@ -96,6 +97,135 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
   useEffect(() => {
   }, [showBusinessProfileModal]);
 
+  // Function to clear specific post type form data
+  const clearPostTypeForm = (type: string) => {
+    switch (type) {
+      case 'Regular':
+        setRegularForm({
+          postType: 'photo',
+          mood: 'Content',
+          activity: 'Chilling',
+          mentions: [],
+          settings: {
+            visibility: 'public',
+            allowComments: true,
+            allowLikes: true,
+          }, 
+          status: 'scheduled',
+        });
+        break;
+      case 'Product':
+        setProductForm({
+          postType: 'photo',
+          mentions: [],
+          mood: 'testing',
+          activity: 'testing',
+          settings: {
+            visibility: 'public',
+            allowComments: true,
+            allowLikes: true,
+          }, 
+          product: {
+            name: '',
+            price: 0,
+            currency: '',
+            link:'',
+            inStock: true,
+            deliveryOptions: 'online',
+          },
+          status: 'scheduled',
+        });
+        break;
+      case 'Service':
+        setServiceForm({
+          postType: 'photo',
+          mentions: [],
+          settings: {
+            visibility: 'public',
+            allowComments: true,
+            allowLikes: true,
+          },
+          status: 'scheduled',
+          service: {
+            name: '',
+            description: '',
+            price: 0,
+            currency: 'INR',
+            category: '',
+            subcategory: '',
+            duration: 0,
+            serviceType: '',
+            availability: {
+              schedule: [],
+              timezone: '',
+              bookingAdvance: '',
+              maxBookingsPerDay: '',
+            },
+            location: {
+              type: '',
+              address: '',
+              city: '',
+              state: '',
+              country: '',
+              coordinates: undefined,
+            },
+            requirements: [],
+            deliverables: [],
+            tags: [],
+            link:'',
+            deliveryOptions: 'online',
+          }
+        });
+        break;
+      case 'Business':
+        setBusinessForm({
+          formData: {
+            postType: 'photo',
+            caption: '',
+            description: '',
+            image: [],
+            mentions: [],
+            settings: {
+              visibility: 'public',
+              allowComments: true,
+              allowLikes: true,
+            },
+            status: 'scheduled',
+            business: {
+              businessName: '',
+              businessType: '',
+              description: '',
+              category: '',
+              subcategory: '',
+              contact: {
+                phone: '',
+                email: '',
+                website: '',
+                socialMedia: [],
+              },
+              location: {
+                address: '',
+                city: '',
+                state: '',
+                country: '',
+                postalCode: '',
+              },
+              hours: [],
+              features: [],
+              priceRange: '',
+              rating: 0,
+              tags: [],
+              announcement: '',
+              promotions: [],
+              link: '',
+              deliveryOptions: 'online',
+            }
+          }
+        });
+        break;
+    }
+  };
+
   // Reset form data when content type changes
   const resetFormData = () => {
     setSharedForm({
@@ -108,124 +238,10 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
     });
     
     // Reset all post type forms
-    setRegularForm({
-      postType: 'photo',
-      mood: 'Content',
-      activity: 'Chilling',
-      mentions: [],
-      settings: {
-        visibility: 'public',
-        allowComments: true,
-        allowLikes: true,
-      }, 
-      status: 'scheduled',
-    });
-    
-    setProductForm({
-      postType: 'photo',
-      mentions: [],
-      mood: 'testing',
-      activity: 'testing',
-      settings: {
-        visibility: 'public',
-        allowComments: true,
-        allowLikes: true,
-      }, 
-      product: {
-        name: '',
-        price: 0,
-        currency: '',
-        link:'',
-        inStock: true,
-        deliveryOptions: 'online',
-      },
-      status: 'scheduled',
-    });
-    
-    setServiceForm({
-      postType: 'photo',
-      mentions: [],
-      settings: {
-        visibility: 'public',
-        allowComments: true,
-        allowLikes: true,
-      },
-      status: 'scheduled',
-      service: {
-        name: '',
-        description: '',
-        price: 0,
-        currency: 'INR',
-        category: '',
-        subcategory: '',
-        duration: 0,
-        serviceType: '',
-        availability: {
-          schedule: [],
-          timezone: '',
-          bookingAdvance: '',
-          maxBookingsPerDay: '',
-        },
-        location: {
-          type: '',
-          address: '',
-          city: '',
-          state: '',
-          country: '',
-          coordinates: undefined,
-        },
-        requirements: [],
-        deliverables: [],
-        tags: [],
-        link:'',
-        deliveryOptions: 'online',
-      }
-    });
-    
-    setBusinessForm({
-      formData: {
-        postType: 'photo',
-        caption: '',
-        description: '',
-        image: [],
-        mentions: [],
-        settings: {
-          visibility: 'public',
-          allowComments: true,
-          allowLikes: true,
-        },
-        status: 'scheduled',
-        business: {
-          businessName: '',
-          businessType: '',
-          description: '',
-          category: '',
-          subcategory: '',
-          contact: {
-            phone: '',
-            email: '',
-            website: '',
-            socialMedia: [],
-          },
-          location: {
-            address: '',
-            city: '',
-            state: '',
-            country: '',
-            postalCode: '',
-          },
-          hours: [],
-          features: [],
-          priceRange: '',
-          rating: 0,
-          tags: [],
-          announcement: '',
-          promotions: [],
-          link: '',
-          deliveryOptions: 'online',
-        }
-      }
-    });
+    clearPostTypeForm('Regular');
+    clearPostTypeForm('Product');
+    clearPostTypeForm('Service');
+    clearPostTypeForm('Business');
     
     setPostType('Regular');
     setVideoDuration(null);
@@ -244,25 +260,61 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
     setPreviousContentType(contentType);
   }, [contentType]);
 
+  // Watch for post type changes and clear form data when switching
+  useEffect(() => {
+    if (postType !== previousPostType && previousPostType !== '') {
+      // Clear the form data for the post type being switched away from
+      clearPostTypeForm(previousPostType);
+      
+      // Also clear the common description field when switching between post types
+      setSharedForm(prev => ({
+        ...prev,
+        description: ''
+      }));
+    }
+    setPreviousPostType(postType);
+  }, [postType]);
+
   // Flags come from global store: no fetch here for instant updates
 
   // Ensure selected postType remains valid if business profile status changes
   useEffect(() => {
     if (!isBusinessProfile) {
-      // If user is not a business profile, reset to Regular
+      // If user is not a business profile, reset to Regular and clear business forms
       if (postType === 'Product' || postType === 'Service' || postType === 'Business') {
+        clearPostTypeForm(postType); // Clear the current business form
         setPostType('Regular');
+        // Clear description when switching from business to personal account
+        setSharedForm(prev => ({
+          ...prev,
+          description: ''
+        }));
       }
     } else {
       // If user is a business profile, reset invalid post types
       if (postType === 'Product' && !allowProduct) {
+        clearPostTypeForm('Product');
         setPostType('Regular');
+        setSharedForm(prev => ({
+          ...prev,
+          description: ''
+        }));
       }
       if (postType === 'Service' && !allowService) {
+        clearPostTypeForm('Service');
         setPostType('Regular');
+        setSharedForm(prev => ({
+          ...prev,
+          description: ''
+        }));
       }
       if (postType === 'Business' && !allowBusiness) {
+        clearPostTypeForm('Business');
         setPostType('Regular');
+        setSharedForm(prev => ({
+          ...prev,
+          description: ''
+        }));
       }
     }
   }, [isBusinessProfile, allowProduct, allowService, allowBusiness, postType]);
