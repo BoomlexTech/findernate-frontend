@@ -396,7 +396,7 @@ export default function AccountSettings() {
               <button
                 type="button"
                 onClick={() => setShowBusinessOptions(!showBusinessOptions)}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-all shadow-sm text-sm sm:text-base font-medium"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg hover:from-purple-700 hover:to-purple-800 transition-all shadow-md hover:shadow-lg text-sm sm:text-base font-medium"
               >
                 <span>Manage Business</span>
                 <ChevronDown className={`w-4 h-4 transition-transform ${showBusinessOptions ? 'rotate-180' : ''}`} />

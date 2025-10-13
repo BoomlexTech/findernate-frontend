@@ -57,12 +57,16 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
   const [contentType, setContentType] = useState('Post');
   const [previousContentType, setPreviousContentType] = useState('');
   
-  // Set default post type to Regular for all users
+  // Set default post type to Regular for normal users, allow business types only for business accounts
   const [postType, setPostType] = useState('Regular');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const allowProduct = user?.productEnabled ?? true;
-  const allowService = user?.serviceEnabled ?? true;
+  
+  // Only allow business post types if user has business profile
+  const isBusinessProfile = user?.isBusinessProfile ?? false;
+  const allowProduct = isBusinessProfile && (user?.productEnabled ?? false);
+  const allowService = isBusinessProfile && (user?.serviceEnabled ?? false);
+  const allowBusiness = isBusinessProfile;
 
   const [sharedForm, setSharedForm] = useState({
   description: '',
@@ -242,15 +246,26 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
 
   // Flags come from global store: no fetch here for instant updates
 
-  // Ensure selected postType remains valid if flags change
+  // Ensure selected postType remains valid if business profile status changes
   useEffect(() => {
-    if (postType === 'Product' && !allowProduct) {
-      setPostType('Regular');
+    if (!isBusinessProfile) {
+      // If user is not a business profile, reset to Regular
+      if (postType === 'Product' || postType === 'Service' || postType === 'Business') {
+        setPostType('Regular');
+      }
+    } else {
+      // If user is a business profile, reset invalid post types
+      if (postType === 'Product' && !allowProduct) {
+        setPostType('Regular');
+      }
+      if (postType === 'Service' && !allowService) {
+        setPostType('Regular');
+      }
+      if (postType === 'Business' && !allowBusiness) {
+        setPostType('Regular');
+      }
     }
-    if (postType === 'Service' && !allowService) {
-      setPostType('Regular');
-    }
-  }, [allowProduct, allowService, postType]);
+  }, [isBusinessProfile, allowProduct, allowService, allowBusiness, postType]);
 
   // Initialize and update location when user's location changes in store
   useEffect(() => {
@@ -1059,11 +1074,12 @@ const handleProductChange = (
       return false;
     }
 
-    // Check location requirement based on delivery options
-    const isLocationRequired =
+    // Check location requirement based on delivery options (only for business accounts)
+    const isLocationRequired = isBusinessProfile && (
       (postType === 'Product' && (productForm.product.deliveryOptions === 'offline' || productForm.product.deliveryOptions === 'both')) ||
       (postType === 'Service' && (serviceForm.service.deliveryOptions === 'offline' || serviceForm.service.deliveryOptions === 'both')) ||
-      (postType === 'Business' && (businessForm.formData.business.deliveryOptions === 'offline' || businessForm.formData.business.deliveryOptions === 'both'));
+      (postType === 'Business' && (businessForm.formData.business.deliveryOptions === 'offline' || businessForm.formData.business.deliveryOptions === 'both'))
+    );
 
     if (isLocationRequired && !sharedForm.location.name?.trim()) {
       toast.error('Location is required for offline or both delivery options', {
@@ -1077,8 +1093,8 @@ const handleProductChange = (
       return false;
     }
 
-    // Business-specific validation
-    if (postType === 'Business') {
+    // Business-specific validation (only for business accounts)
+    if (isBusinessProfile && postType === 'Business') {
       const business = businessForm.formData.business;
       
       if (!business.businessName?.trim()) {
@@ -1450,8 +1466,8 @@ const handleProductChange = (
               Regular Post
             </Button>
 
-            {/* Business Post Types - Available for all users */}
-            {allowProduct && (
+            {/* Business Post Types - Only available for business accounts */}
+            {isBusinessProfile && allowProduct && (
             <Button
               variant='custom'
               onClick={() => setPostType('Product')}
@@ -1464,7 +1480,7 @@ const handleProductChange = (
               <ShoppingBag className='mr-2' size={16} /> Product
             </Button>
             )}
-            {allowService && (
+            {isBusinessProfile && allowService && (
             <Button
               variant='custom'
               onClick={() => setPostType('Service')}
@@ -1477,6 +1493,7 @@ const handleProductChange = (
               <BriefcaseBusiness className='mr-2' size={16} /> Service
             </Button>
             )}
+            {isBusinessProfile && allowBusiness && (
             <Button
               variant='custom'
               onClick={() => setPostType('Business')}
@@ -1488,6 +1505,7 @@ const handleProductChange = (
             >
               <Building2 className='mr-2' size={16} /> Business
             </Button>
+            )}
             </div>
           )}
 
@@ -1552,20 +1570,20 @@ const handleProductChange = (
                   onChange={handleRegularChange}
                 />
               )}
-              {postType === 'Product' && (
+              {isBusinessProfile && postType === 'Product' && (
                 <ProductDetailsForm
                   formData={productForm}
                   onChange={handleProductChange}
                 />
               )}
-              {postType === 'Service' && (
+              {isBusinessProfile && postType === 'Service' && (
                 <ServiceDetailsForm
                   formData={serviceForm}
                   onChange={handleServiceChange}
                   categories={['Consulting', 'Repair', 'Education', 'Other']}
                 />
               )}
-              {postType === 'Business' && (
+              {isBusinessProfile && postType === 'Business' && (
                 <BusinessDetailsForm
                   formData={businessForm.formData}
                   onChange={handleBusinessChange}
@@ -1764,8 +1782,8 @@ const handleProductChange = (
             </div>
           )}
 
-          {/* Delivery Options - Only show for Product, Service, and Business post types */}
-          {(postType === 'Product' || postType === 'Service' || postType === 'Business') && (
+          {/* Delivery Options - Only show for business post types and business accounts */}
+          {isBusinessProfile && (postType === 'Product' || postType === 'Service' || postType === 'Business') && (
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 mb-3">
                 Delivery Options
@@ -1886,7 +1904,7 @@ const handleProductChange = (
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 <MapPin className="inline mr-2" size={16} />
                 Location {
-                (postType === 'Product' || postType === 'Service' || postType === 'Business') ? 
+                isBusinessProfile && (postType === 'Product' || postType === 'Service' || postType === 'Business') ? 
                   (
                     (postType === 'Product' && (productForm.product.deliveryOptions === 'offline' || productForm.product.deliveryOptions === 'both')) ||
                     (postType === 'Service' && (serviceForm.service.deliveryOptions === 'offline' || serviceForm.service.deliveryOptions === 'both')) ||
