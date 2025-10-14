@@ -6,7 +6,7 @@ import BusinessVerificationModal from './business/BusinessVerificationModal';
 import { PaymentMethodsModal } from './business/PaymentMethodModal';
 import FollowRequestManager from './FollowRequestManager';
 import { ChevronDown } from 'lucide-react';
-import { UpdateBusinessCategory, GetBusinessCategory, switchToBusiness, switchToPersonal, toggleProductPosts, toggleServicePosts, getMyBusinessId } from '@/api/business';
+import { UpdateBusinessCategory, UpdateBusinessSubCategory, GetBusinessCategory, switchToBusiness, switchToPersonal, toggleProductPosts, toggleServicePosts, getMyBusinessId } from '@/api/business';
 import { useUserStore } from '@/store/useUserStore';
 import { getUserProfile } from '@/api/user';
 import { toast } from 'react-toastify';
@@ -37,6 +37,7 @@ const businessCategories = [
 export default function AccountSettings() {
   const [showPlanModal, setShowPlanModal] = useState(false);
   const [showBusinessDetailsModal, setShowBusinessDetailsModal] = useState(false);
+  const [showEditBusinessDetails, setShowEditBusinessDetails] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showVerificationModal, setShowVerificationModal] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
@@ -46,6 +47,11 @@ export default function AccountSettings() {
   const [isUpdatingCategory, setIsUpdatingCategory] = useState(false);
   const [updateMessage, setUpdateMessage] = useState('');
   const [isLoadingCategory, setIsLoadingCategory] = useState(true);
+  const [subCategory, setSubCategory] = useState('');
+  const [subCategoryInput, setSubCategoryInput] = useState('');
+  const [isSavingSubCategory, setIsSavingSubCategory] = useState(false);
+  const [showSubCategoryInput, setShowSubCategoryInput] = useState(false);
+  const [subCategoryMessage, setSubCategoryMessage] = useState('');
   const [showBusinessOptions, setShowBusinessOptions] = useState(false);
   const [isSwitching, setIsSwitching] = useState(false);
   const [servicePostsAllowed, setServicePostsAllowed] = useState(false);
@@ -149,6 +155,30 @@ export default function AccountSettings() {
     fetchBusinessData();
   }, [isBusiness, businessId]);
 
+  // Fetch current business subcategory
+  useEffect(() => {
+    const fetchSubCategory = async () => {
+      if (!isBusiness) {
+        setSubCategory('');
+        setSubCategoryInput('');
+        return;
+      }
+
+      try {
+        const response = await GetBusinessCategory();
+        const currentSubCategory = response.data?.subcategory || '';
+        setSubCategory(currentSubCategory);
+        setSubCategoryInput(currentSubCategory);
+      } catch (error: unknown) {
+        console.error('Failed to fetch business subcategory:', error);
+        setSubCategory('');
+        setSubCategoryInput('');
+      }
+    };
+
+    fetchSubCategory();
+  }, [isBusiness]);
+
   // Close category dropdown on outside click
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -193,6 +223,49 @@ export default function AccountSettings() {
     }
   };
 
+  const handleSaveSubCategory = async () => {
+    if (!subCategoryInput.trim()) {
+      toast.error('Subcategory cannot be empty.');
+      return;
+    }
+
+    if (!currentCategory) {
+      toast.error('Please set a business category first before adding a subcategory.');
+      return;
+    }
+
+    try {
+      setIsSavingSubCategory(true);
+      setSubCategoryMessage('Saving subcategory...');
+      
+      await UpdateBusinessSubCategory(subCategoryInput.trim(), currentCategory);
+      setSubCategory(subCategoryInput.trim());
+      setSubCategoryMessage('Subcategory updated successfully!');
+      setShowSubCategoryInput(false); // Hide input after successful save
+      setTimeout(() => setSubCategoryMessage(''), 3000);
+    } catch (error: unknown) {
+      console.error('Failed to update subcategory:', error);
+      
+      const axiosError = error as AxiosError<{ message?: string }>;
+      const errorMessage = axiosError.response?.data?.message || 'Failed to update subcategory';
+      setSubCategoryMessage(errorMessage);
+      toast.error(errorMessage);
+      setTimeout(() => setSubCategoryMessage(''), 5000);
+    } finally {
+      setIsSavingSubCategory(false);
+    }
+  };
+
+  const handleUpdateSubCategory = () => {
+    setShowSubCategoryInput(true);
+  };
+
+  const handleCancelSubCategory = () => {
+    setShowSubCategoryInput(false);
+    setSubCategoryInput(subCategory); // Reset to current value
+    setSubCategoryMessage('');
+  };
+
   const handlePlanSelect = (plan: string) => {
     setSelectedPlan(plan);
     setShowPlanModal(false);
@@ -221,6 +294,16 @@ export default function AccountSettings() {
     }
     
     setTimeout(() => setUpdateMessage(''), 5000);
+  };
+
+  const handleEditBusinessDetailsSubmit = () => {
+    // API call will be handled inside the modal component  
+    setShowEditBusinessDetails(false);
+    setUpdateMessage('Business details updated successfully!');
+    setTimeout(() => {
+      setUpdateMessage('');
+      // Optionally close the settings modal
+    }, 3000);
   };
 
   // Switch to business account
@@ -406,7 +489,7 @@ export default function AccountSettings() {
             )}
           </div>
           <button
-            className={`px-4 sm:px-6 py-2 md:mr-4 lg:mr-6 cursor-pointer rounded-lg transition-colors bg-yellow-600 text-white hover:bg-yellow-700 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base md:w-56 lg:w-56`}
+            className={`px-4 sm:px-6 py-2 md:mr-4 lg:mr-6 cursor-pointer rounded-lg transition-colors bg-yellow-500 text-white hover:bg-yellow-700 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base md:w-56 lg:w-56`}
             onClick={() => {
               if (!isBusiness) {
                 handleSwitchToBusiness();
@@ -486,12 +569,85 @@ export default function AccountSettings() {
           </div>
         )}
 
-        {/* Business Details Section */}
+        {/* Business Sub-Category Section */}
+        {isBusiness && showBusinessOptions && (
+          <div className="mb-6 sm:mb-8 p-4 sm:p-6 bg-yellow-50 rounded-lg border border-green-100">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900">Business Sub-Category</h3>
+                <div className="flex gap-2">
+                  {showSubCategoryInput ? (
+                    <>
+                      <button
+                        onClick={handleCancelSubCategory}
+                        className="px-4 sm:px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base md:w-32 lg:w-32"
+                      >
+                        <span className="hidden sm:inline">Cancel</span>
+                        <span className="sm:hidden">Cancel</span>
+                      </button>
+                      <button
+                        onClick={handleSaveSubCategory}
+                        disabled={isSavingSubCategory}
+                        className="px-4 sm:px-6 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base md:w-32 lg:w-32"
+                      >
+                        {isSavingSubCategory ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                            <span className="hidden sm:inline">Saving...</span>
+                            <span className="sm:hidden">Saving...</span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="hidden sm:inline">Save</span>
+                            <span className="sm:hidden">Save</span>
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                          </>
+                        )}
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={handleUpdateSubCategory}
+                      className="px-4 sm:px-6 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-700 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base md:w-56 lg:w-56"
+                    >
+                      <span className="hidden sm:inline">Update Subcategory</span>
+                      <span className="sm:hidden">Update</span>
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+              </div>
+              <p className="text-sm sm:text-base text-gray-600 mb-3">
+                Current subcategory: <span className="font-medium text-yellow-600">{subCategory || 'No subcategory set'}</span>
+              </p>
+              {showSubCategoryInput && (
+                <input
+                  type="text"
+                  value={subCategoryInput}
+                  onChange={(e) => setSubCategoryInput(e.target.value)}
+                  placeholder="e.g., Photography, Web Design, Tutoring, Consulting"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 text-sm sm:text-base text-black placeholder-gray-600 mb-3"
+                />
+              )}
+              {subCategoryMessage && (
+                <p className={`text-xs sm:text-sm mt-1 ${subCategoryMessage.includes('successfully') ? 'text-green-600' : 'text-red-600'}`}>
+                  {subCategoryMessage}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Add Business Details Section */}
         {isBusiness && showBusinessOptions && (
           <div className="mb-6 sm:mb-8 p-4 sm:p-6 bg-yellow-50 rounded-lg border border-yellow-100">
             <div>
               <div className="flex items-center justify-between mb-2">
-                <h3 className="text-base sm:text-lg font-semibold text-gray-900">Business Details</h3>
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900">Add Business Details</h3>
                 <button
                   onClick={() => setShowBusinessDetailsModal(true)}
                   className="px-4 sm:px-6 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-700 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base md:w-56 lg:w-56"
@@ -505,6 +661,30 @@ export default function AccountSettings() {
               </div>
               <p className="text-sm sm:text-base text-gray-700">
                 Add your business information, contact details, and other relevant information.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Edit Business Details Section */}
+        {isBusiness && showBusinessOptions && (
+          <div className="mb-6 sm:mb-8 p-4 sm:p-6 bg-orange-50 rounded-lg border border-orange-100">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900">Edit Business Details</h3>
+                <button
+                  onClick={() => setShowEditBusinessDetails(true)}
+                  className="px-4 sm:px-6 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-700 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base md:w-56 lg:w-56"
+                >
+                  <span className="hidden sm:inline">Edit Business Details</span>
+                  <span className="sm:hidden">Edit Details</span>
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                  </svg>
+                </button>
+              </div>
+              <p className="text-sm sm:text-base text-gray-700">
+                View and edit your existing business information, contact details, and other relevant information.
               </p>
             </div>
           </div>
@@ -669,6 +849,14 @@ export default function AccountSettings() {
         isOpen={showBusinessDetailsModal}
         onClose={() => setShowBusinessDetailsModal(false)}
         onSubmit={handleBusinessDetailsSubmit}
+      />
+
+      {/* Edit Business Details Modal */}
+      <BusinessDetailsModal
+        isOpen={showEditBusinessDetails}
+        onClose={() => setShowEditBusinessDetails(false)}
+        onSubmit={handleEditBusinessDetailsSubmit}
+        isEdit={true}
       />
 
       {/* Business Verification Modal */}

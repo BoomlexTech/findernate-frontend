@@ -41,6 +41,11 @@ export const UpdateBusinessCategory = async (category: string) => {
     return response.data;
 }
 
+export const UpdateBusinessSubCategory = async (subcategory: string, category: string) => {
+    const response = await axios.patch("/business/update-category", { subcategory, category });
+    return response.data;
+}
+
 export const GetBusinessCategory = async () => {
     const response = await axios.get("/business/my-category");
     return response.data;
