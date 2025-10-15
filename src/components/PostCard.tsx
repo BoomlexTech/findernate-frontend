@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { FeedPost, SavedPostsResponse } from '@/types';
 import formatPostDate from '@/utils/formatDate';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useUserStore } from '@/store/useUserStore';
 import ServiceCard from './post-window/ServiceCard';
 import { Badge } from './ui/badge';
@@ -22,6 +22,7 @@ import ReportModal from './ReportModal';
 import ImageModal from './ImageModal';
 import { toast } from 'react-toastify';
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
+import { getCommentsByPost } from '@/api/comment';
 
 // Singleton cache for saved posts to prevent multiple API calls
 let savedPostsPromise: Promise<string[]> | null = null;
@@ -119,6 +120,29 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
     threshold: 0.1,
     rootMargin: '500px', // Start loading 500px before the video enters viewport
   });
+
+  // When the card becomes visible, fetch the latest total comments once to correct any stale count
+  useEffect(() => {
+    let cancelled = false;
+    const syncCommentCount = async () => {
+      try {
+        if (!hasIntersected) return;
+        const data = await getCommentsByPost(post._id, 1, 1);
+        const total = data?.totalComments ?? post.engagement.comments ?? commentsCount;
+        if (!cancelled && typeof total === 'number' && total >= 0) {
+          setCommentsCount(total);
+          // Persist corrected value so it stays consistent across interactions
+          if (isClient) {
+            localStorage.setItem(`post_comments_count_${post._id}`, String(total));
+          }
+        }
+      } catch {
+        // Ignore fetch errors; fallback count will be used
+      }
+    };
+    syncCommentCount();
+    return () => { cancelled = true; };
+  }, [hasIntersected, post._id, isClient]);
 
   // Allow editing on own posts anywhere (feed, profile, userprofile)
   const canEdit = !!user?.username && ((post.username || post.userId?.username) === user.username);

@@ -388,7 +388,7 @@ export default function StoryViewer({
               </div>
             )}
             <div>
-              <p className="text-black font-semibold text-base hover:text-yellow-400 transition-colors">{currentUser.username}</p>
+              <p className="text-white font-semibold text-base hover:text-yellow-400 transition-colors">{currentUser.username}</p>
               <p className="text-gray-200 text-sm">
                 {formatTimeAgo(currentStory.createdAt)}
               </p>

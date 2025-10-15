@@ -5,6 +5,7 @@ import Image from "next/image";
 import { X, Eye, Users } from "lucide-react";
 import { Story, StoryAnalytics as StoryAnalyticsType, StoryViewer } from "@/types/story";
 import { storyAPI } from "@/api/story";
+import { useUserStore } from "@/store/useUserStore";
 
 interface StoryAnalyticsProps {
   story: Story;
@@ -17,16 +18,24 @@ export default function StoryAnalytics({ story, onClose, onViewerCountUpdate }: 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const { user: currentUser } = useUserStore();
 
   // Remove duplicates - keep unique viewers only
   const processViewers = (viewers: StoryViewer[]): StoryViewer[] => {
     // Remove duplicates based on user ID
-    const uniqueViewers = viewers.filter((viewer, index, self) => 
+    const uniqueViewers = viewers.filter((viewer, index, self) =>
       index === self.findIndex(v => v._id === viewer._id)
     );
 
+    // Exclude current user from viewers list (should not see own name)
+    const withoutSelf = uniqueViewers.filter(v => {
+      const sameId = currentUser?._id && v._id === currentUser._id;
+      const sameUsername = currentUser?.username && v.username && v.username === currentUser.username;
+      return !sameId && !sameUsername;
+    });
+
     // Sort by view time if available (first view to last view), otherwise by username
-    return uniqueViewers.sort((a, b) => {
+    return withoutSelf.sort((a, b) => {
       if (a.viewedAt && b.viewedAt) {
         return new Date(a.viewedAt).getTime() - new Date(b.viewedAt).getTime();
       }
