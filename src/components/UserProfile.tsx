@@ -304,6 +304,14 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
       return;
     }
     
+    // Require authentication before rating
+    const token = useUserStore.getState().validateAndGetToken();
+    if (!token) {
+      alert('Please sign in to rate this business.');
+      router.push('/signin');
+      return;
+    }
+
     // //console.log('🚀 DEBUG: Submitting rating...');
     // //console.log('🚀 DEBUG: Business ID to rate:', businessId);
     // //console.log('🚀 DEBUG: Rating value:', selectedRating);
@@ -312,7 +320,7 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
     
     try {
       setSubmittingRating(true);
-      const response = await rateBusiness(businessId, selectedRating);
+      await rateBusiness(businessId, selectedRating);
       // //console.log('✅ Rating submitted successfully:', response);
       
       // Refresh the business rating after successful submission using the businessId
@@ -324,9 +332,11 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
       
       // You could show a success message here
       // //console.log('Rating submitted successfully!');
-    } catch (error) {
-      // console.error('Error submitting rating:', error);
-      // You could show an error message here
+    } catch (error: any) {
+      // Surface backend error message to the user (e.g., 401/403/validation)
+      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to submit rating';
+      console.error('Error submitting rating:', error?.response || error);
+      alert(errorMessage);
     } finally {
       setSubmittingRating(false);
     }

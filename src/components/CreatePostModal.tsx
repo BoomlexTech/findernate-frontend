@@ -8,6 +8,7 @@ import ProductDetailsForm from './posting/ProductDetailsForm';
 import ServiceDetailsForm from './posting/ServiceDetailsForm';
 import BusinessDetailsForm from './posting/BusinessDetailsForm';
 import { createProductPost, createRegularPost, createServicePost, createBusinessPost } from '@/api/post';
+import { GetBusinessDetails } from '@/api/business';
 import { ProductDetailsFormProps, RegularPostPayload, ServiceDetailsFormProps, BusinessPostFormProps } from '@/types';
 import RegularPostForm from './posting/RegularDetailsForm';
 import { useUserStore } from '@/store/useUserStore';
@@ -15,6 +16,7 @@ import { useUserStore } from '@/store/useUserStore';
 import TagInput from './TagInput';
 import { toast } from 'react-toastify';
 import { searchLocations, LocationSuggestion } from '@/api/location';
+import { storyAPI } from '@/api/story';
 import { postRefreshEvents } from '@/utils/postRefreshEvents';
 import BusinessDetailsModal from './business/BusinessDetailsModal';
 
@@ -318,6 +320,59 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
       }
     }
   }, [isBusinessProfile, allowProduct, allowService, allowBusiness, postType]);
+
+  // Prefill Business post fields from business profile when Business type is selected
+  useEffect(() => {
+    let cancelled = false;
+    const prefillFromBusinessProfile = async () => {
+      if (!isBusinessProfile || postType !== 'Business') return;
+      try {
+        const resp = await GetBusinessDetails();
+        const biz = resp?.data?.business || resp?.business || resp;
+        if (!biz || cancelled) return;
+
+        setBusinessForm(prev => {
+          const next = { ...prev };
+          next.formData.business.businessName = biz.businessName || next.formData.business.businessName;
+          next.formData.business.businessType = biz.category || next.formData.business.businessType;
+          next.formData.business.category = biz.category || next.formData.business.category;
+          next.formData.business.subcategory = biz.subcategory || next.formData.business.subcategory;
+          next.formData.business.description = biz.description || next.formData.business.description;
+          next.formData.business.link = biz.website || next.formData.business.link;
+          // Tags from business can help; keep existing if already set
+          if (Array.isArray(biz.tags) && biz.tags.length > 0 && (!next.formData.business.tags || next.formData.business.tags.length === 0)) {
+            next.formData.business.tags = biz.tags.slice(0, 10);
+          }
+          // Contact
+          if (biz.contact) {
+            next.formData.business.contact.phone = biz.contact.phone || next.formData.business.contact.phone;
+            next.formData.business.contact.email = biz.contact.email || next.formData.business.contact.email;
+            next.formData.business.contact.website = biz.contact.website || next.formData.business.contact.website;
+            next.formData.business.contact.socialMedia = Array.isArray(biz.contact.socialMedia) ? biz.contact.socialMedia : next.formData.business.contact.socialMedia;
+          }
+          // Location
+          if (biz.location) {
+            next.formData.business.location.address = biz.location.address || next.formData.business.location.address;
+            next.formData.business.location.city = biz.location.city || next.formData.business.location.city;
+            next.formData.business.location.state = biz.location.state || next.formData.business.location.state;
+            next.formData.business.location.country = biz.location.country || next.formData.business.location.country;
+          }
+          return next;
+        });
+
+        // Also prefill shared location name for convenience if empty
+        setSharedForm(prev => {
+          if (prev.location?.name) return prev;
+          const composed = [biz?.location?.city, biz?.location?.state].filter(Boolean).join(', ');
+          return { ...prev, location: { name: composed || prev.location.name } };
+        });
+      } catch {
+        // Ignore errors; user can still fill manually
+      }
+    };
+    prefillFromBusinessProfile();
+    return () => { cancelled = true; };
+  }, [isBusinessProfile, postType]);
 
   // Initialize and update location when user's location changes in store
   useEffect(() => {
@@ -1216,11 +1271,30 @@ const handleProductChange = (
   const handlePost = async () => {
     // Handle different content types
     if (contentType === 'Story') {
-      // TODO: Implement story creation logic
-      toast.info('Story creation will be implemented soon', {
-        position: "top-right",
-        autoClose: 3000,
-      });
+      // Story requires a single media (image or short video optionally)
+      if (sharedForm.image.length === 0) {
+        toast.error('Please add an image or video for your story', { position: 'top-right', autoClose: 3000 });
+        return;
+      }
+      if (sharedForm.image.length > 1) {
+        toast.error('Only one media can be uploaded for a story', { position: 'top-right', autoClose: 3000 });
+        return;
+      }
+
+      const media = sharedForm.image[0];
+      try {
+        setLoading(true);
+        setError(null);
+        await storyAPI.uploadStory({ media, caption: sharedForm.description });
+        toast.success('Story shared successfully!', { position: 'top-right', autoClose: 3000 });
+        closeModal();
+      } catch (e: unknown) {
+        const msg = isAxiosError(e) ? ((e.response?.data as any)?.message || e.message) : 'Failed to share story';
+        setError(msg);
+        toast.error(msg, { position: 'top-right', autoClose: 4000 });
+      } finally {
+        setLoading(false);
+      }
       return;
     }
     
@@ -1247,11 +1321,38 @@ const handleProductChange = (
         return;
       }
       
-      // TODO: Implement reel creation logic
-      toast.info('Reel creation will be implemented soon', {
-        position: "top-right",
-        autoClose: 3000,
-      });
+      // Treat short video as a Regular post with postType 'reel'
+      const organizedMedia = organizeMediaForReel(sharedForm.image);
+      const sharedFormWithCaption = {
+        ...sharedForm,
+        caption: sharedForm.description,
+        image: organizedMedia,
+      };
+      const reelRegularForm = { ...regularForm, postType: 'reel' };
+
+      const payload: RegularPostPayload = {
+        ...sharedFormWithCaption,
+        ...reelRegularForm,
+      } as unknown as RegularPostPayload;
+
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await createRegularPost(payload);
+        if (response && (response.status === 200 || response.status === 201)) {
+          toast.success('Reel created successfully!', { position: 'top-right', autoClose: 3000 });
+          postRefreshEvents.emitPostCreated(response.data || response);
+          closeModal();
+        } else {
+          throw new Error('Reel creation failed - unexpected response');
+        }
+      } catch (e: unknown) {
+        const msg = isAxiosError(e) ? ((e.response?.data as any)?.message || e.message) : 'Failed to create reel';
+        setError(msg);
+        toast.error(msg, { position: 'top-right', autoClose: 5000 });
+      } finally {
+        setLoading(false);
+      }
       return;
     }
     
