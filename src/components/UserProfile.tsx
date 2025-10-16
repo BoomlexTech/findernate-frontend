@@ -26,6 +26,7 @@ import { searchLocations, LocationSuggestion } from '@/api/location';
 import StarRating from './StarRating';
 import { getBusinessRatingSummary, rateBusiness } from '@/api/business';
 import PrivacySettings from './PrivacySettings';
+import { toast } from "react-toastify";
 
 interface UserProfileProps {
   userData: UserProfileType | null;
@@ -329,14 +330,26 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
       // Close modal and reset selected rating
       setShowRatingModal(false);
       setSelectedRating(0);
-      
-      // You could show a success message here
-      // //console.log('Rating submitted successfully!');
+      toast.success('Rating submitted successfully!', {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
     } catch (error: any) {
       // Surface backend error message to the user (e.g., 401/403/validation)
       const errorMessage = error?.response?.data?.message || error?.message || 'Failed to submit rating';
       console.error('Error submitting rating:', error?.response || error);
-      alert(errorMessage);
+      toast.error(errorMessage, {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
     } finally {
       setSubmittingRating(false);
     }

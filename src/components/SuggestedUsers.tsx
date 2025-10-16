@@ -56,7 +56,7 @@ export default function SuggestedUsers({ users: initialUsers }: SuggestedUsersPr
             isLoading: false
           }
         }), {}));
-      } catch (err) {
+      } catch {
         //console.log(err);
         setError('suggestions not found.');
         // Don't set default users - let the component hide itself
@@ -76,81 +76,100 @@ export default function SuggestedUsers({ users: initialUsers }: SuggestedUsersPr
     return count.toString();
   };
 
-  const handleFollowToggle = async (userId: string) => {
+  const handleFollowToggle = (userId: string) => {
     const currentState = userStates[userId];
     if (currentState?.isLoading) return;
 
-    setUserStates(prev => ({
-      ...prev,
-      [userId]: { ...prev[userId], isLoading: true }
-    }));
+    requireAuth(async () => {
+      setUserStates(prev => ({
+        ...prev,
+        [userId]: { ...prev[userId], isLoading: true }
+      }));
 
-    try {
-      if (currentState?.isFollowing) {
-        await unfollowUser(userId);
-        setUserStates(prev => ({
-          ...prev,
-          [userId]: {
-            isFollowing: false,
-            followersCount: prev[userId].followersCount - 1,
-            isLoading: false
-          }
-        }));
-      } else {
-        await followUser(userId);
-        setUserStates(prev => ({
-          ...prev,
-          [userId]: {
-            isFollowing: true,
-            followersCount: prev[userId].followersCount + 1,
-            isLoading: false
-          }
-        }));
-      }
-    } catch (error) {
-      console.error('Error toggling follow status:', error);
-      const axiosError = error as AxiosError;
-      const errorMessage = axiosError.response?.data as string;
-      
-      // Handle specific error cases
-      if (errorMessage === 'Already following') {
-        // Update state to reflect reality
-        setUserStates(prev => ({
-          ...prev,
-          [userId]: {
-            isFollowing: true,
-            followersCount: prev[userId].followersCount,
-            isLoading: false
-          }
-        }));
-        //console.log('User was already following - updating UI state');
-      } else if (errorMessage === 'Not following this user') {
-        // Update state to reflect reality
-        setUserStates(prev => ({
-          ...prev,
-          [userId]: {
-            isFollowing: false,
-            followersCount: prev[userId].followersCount,
-            isLoading: false
-          }
-        }));
-        //console.log('User was not following - updating UI state');
-      } else {
-        // Show user-friendly error message for other errors
-        alert(errorMessage || 'Failed to update follow status');
+      try {
+        if (currentState?.isFollowing) {
+          await unfollowUser(userId);
+          setUserStates(prev => ({
+            ...prev,
+            [userId]: {
+              isFollowing: false,
+              followersCount: prev[userId].followersCount - 1,
+              isLoading: false
+            }
+          }));
+        } else {
+          await followUser(userId);
+          setUserStates(prev => ({
+            ...prev,
+            [userId]: {
+              isFollowing: true,
+              followersCount: prev[userId].followersCount + 1,
+              isLoading: false
+            }
+          }));
+        }
+      } catch (error) {
+        console.error('Error toggling follow status:', error);
+        const axiosError = error as AxiosError<unknown>;
+        const responseData = axiosError.response?.data as unknown;
+        let extractedMessage: string | undefined;
+        if (typeof responseData === 'string') {
+          extractedMessage = responseData;
+        } else if (responseData && typeof responseData === 'object' && 'message' in responseData) {
+          const maybeMessage = (responseData as { message?: unknown }).message;
+          extractedMessage = typeof maybeMessage === 'string' ? maybeMessage : undefined;
+        }
+        const fallbackMessage = axiosError.message || 'Failed to update follow status';
+        const errorMessage = extractedMessage || fallbackMessage;
         
-        // Reset to original state on other errors
-        const originalUser = users.find(u => u._id === userId);
-        setUserStates(prev => ({
-          ...prev,
-          [userId]: { 
-            isFollowing: originalUser?.isFollowing || false,
-            followersCount: originalUser?.followersCount || 0,
-            isLoading: false 
-          }
-        }));
+        // Handle specific error cases
+        if (errorMessage === 'Already following') {
+          // Update state to reflect reality
+          setUserStates(prev => ({
+            ...prev,
+            [userId]: {
+              isFollowing: true,
+              followersCount: prev[userId].followersCount,
+              isLoading: false
+            }
+          }));
+        } else if (errorMessage === 'Not following this user') {
+          // Update state to reflect reality
+          setUserStates(prev => ({
+            ...prev,
+            [userId]: {
+              isFollowing: false,
+              followersCount: prev[userId].followersCount,
+              isLoading: false
+            }
+          }));
+        } else if (errorMessage === 'Cannot follow yourself') {
+          alert('You cannot follow yourself');
+          setUserStates(prev => ({
+            ...prev,
+            [userId]: {
+              isFollowing: false,
+              followersCount: prev[userId].followersCount,
+              isLoading: false
+            }
+          }));
+        } else {
+          // Show user-friendly error message for other errors
+          alert(errorMessage);
+          
+          // Reset to original state on other errors
+          const originalUser = users.find(u => u._id === userId);
+          setUserStates(prev => ({
+            ...prev,
+            [userId]: { 
+              isFollowing: originalUser?.isFollowing || false,
+              followersCount: originalUser?.followersCount || 0,
+              isLoading: false 
+            }
+          }));
+        }
       }
-    }
+    });
   };
 
   // Don't render the component if there are no users to display and not loading
