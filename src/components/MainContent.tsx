@@ -192,7 +192,7 @@ export default function MainContent() {
       setLoading(false);
       if (initialLoad) setInitialLoad(false);
     }
-  }, [initialLoad]);
+  }, [initialLoad, isUserBlocked]);
 
   const handleObserver = useCallback((entries: IntersectionObserverEntry[]) => {
     const [target] = entries;
@@ -256,10 +256,15 @@ export default function MainContent() {
         <>
           <div className="space-y-0 sm:space-y-6 mt-0 sm:mt-6">
             {feed
-            .filter(post => !!post && !!post._id)
-            .map((post) => (
-              <PostCard key={post._id} post={post} />
-            ))}
+              .filter(post => !!post && !!post._id)
+              .map((post, index) => (
+                <PostCard
+                  key={post._id}
+                  post={post}
+                  // Mark the very first post's image as priority to improve LCP
+                  isPriority={index === 0}
+                />
+              ))}
           </div>
 
           <div ref={loaderRef} className="h-10">
