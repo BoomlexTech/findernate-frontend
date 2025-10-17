@@ -166,7 +166,16 @@ export const unblockUser = async (blockedUserId: string) => {
 export const getBlockedUsers = async () => {
     try {
         const response = await axios.get('/users/blocked-users');
-        return response.data?.blockedUsers || [];
+        // Normalize various possible response shapes
+        const payload = response?.data;
+        const blockedList = Array.isArray(payload?.blockedUsers)
+            ? payload.blockedUsers
+            : Array.isArray(payload?.data?.blockedUsers)
+            ? payload.data.blockedUsers
+            : Array.isArray(payload?.data)
+            ? payload.data
+            : [];
+        return blockedList;
     } catch (error: any) {
         throw error;
     }
