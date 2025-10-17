@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { FeedPost, SavedPostsResponse } from '@/types';
 import formatPostDate from '@/utils/formatDate';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useUserStore } from '@/store/useUserStore';
 import ServiceCard from './post-window/ServiceCard';
 import { Badge } from './ui/badge';
@@ -74,9 +74,11 @@ export interface PostCardProps {
   // onPostClick is currently unused within this component; keep prop for compatibility
   onPostClick?: () => void;
   showComments?: boolean; // Whether to display comments inline
+  // Hint to mark this post's first media as high priority for LCP
+  isPriority?: boolean;
 }
 
-export default function PostCard({ post, onPostDeleted, onPostClick, showComments = false }: PostCardProps) {
+export default function PostCard({ post, onPostDeleted, onPostClick, showComments = false, isPriority = false }: PostCardProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { requireAuth, showAuthDialog, closeAuthDialog } = useAuthGuard();
@@ -112,8 +114,6 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
   });
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [isVideoMuted, setIsVideoMuted] = useState(true);
-  const [smallestImageHeight, setSmallestImageHeight] = useState<number | null>(null);
-  const [loadedImageHeights, setLoadedImageHeights] = useState<{ [index: number]: number }>({});
 
   // Intersection observer for lazy loading videos
   const { elementRef, hasIntersected } = useIntersectionObserver({
@@ -157,7 +157,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
     post.customization?.product?.location?.name ||
     (typeof post.location === 'string'
       ? post.location
-      : (post.location?.name || (post.location as any)?.label || (post.location as any)?.address)) ||
+      : (post.location?.name || (post.location as { label?: string; address?: string })?.label || (post.location as { label?: string; address?: string })?.address)) ||
     undefined
   );
   const normalizedLocationName = typeof locationName === 'string' ? locationName.trim() : '';
@@ -198,58 +198,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
     setMediaImageError(false);
   }, [currentMediaIndex]);
 
-  // Reset heights when post changes
-  useEffect(() => {
-    setLoadedImageHeights({});
-    setSmallestImageHeight(null);
-  }, [post._id]);
-
-  // Preload all images and calculate their heights for multi-image posts
-  useEffect(() => {
-    if (post.media.length > 1) {
-      const imagePromises = post.media
-        .filter(media => media.type !== 'video' && media.url)
-        .map((media, index) => {
-          return new Promise<{ index: number, height: number }>((resolve) => {
-            const img = document.createElement('img');
-            img.onload = () => {
-              // Assume container width of ~336px (21rem) for calculations
-              const containerWidth = 336;
-              const aspectRatio = img.naturalWidth / img.naturalHeight;
-              const renderedHeight = containerWidth / aspectRatio;
-              resolve({ index, height: renderedHeight });
-            };
-            img.onerror = () => {
-              // Use a default height for failed images
-              resolve({ index, height: 400 });
-            };
-            img.src = media.url!;
-          });
-        });
-
-      Promise.all(imagePromises).then((results) => {
-        const heightsMap = results.reduce((acc, { index, height }) => {
-          acc[index] = height;
-          return acc;
-        }, {} as { [index: number]: number });
-        
-        setLoadedImageHeights(heightsMap);
-      });
-    }
-  }, [post.media, post._id]);
-
-  // Calculate smallest height when image heights are loaded
-  useEffect(() => {
-    if (post.media.length > 1) {
-      const heights = Object.values(loadedImageHeights);
-      if (heights.length > 0) {
-        const minHeight = Math.min(...heights);
-        setSmallestImageHeight(minHeight);
-      }
-    } else {
-      setSmallestImageHeight(null);
-    }
-  }, [loadedImageHeights, post.media.length]);
+  // (image preloading and related state removed to reduce overhead)
 
   // Set client-side flag to prevent hydration issues
   useEffect(() => {
@@ -410,7 +359,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
             //   code: axiosError?.code
             // });
             
-            if ((axiosError?.response?.data as any)?.message === 'Like not found for this post' || 
+            if ((axiosError?.response?.data as { message?: string })?.message === 'Like not found for this post' || 
                 errorMessage?.includes('timeout') ||
                 axiosError?.code === 'ECONNABORTED') {
               // //console.log(`Unlike failed (${errorMessage || 'Like not found'}) - treating as successful unlike`);
@@ -421,13 +370,10 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
             throw unlikeError;
           }
         }
-      } catch (error) {
+      } catch {
         // Revert optimistic update on error
-        const axiosError = error as AxiosError;
-        const errorMessage = (error as Error)?.message;
-        
         // console.error(`Error ${shouldLike ? 'liking' : 'unliking'} post:`, error);
-        // console.error('Error details:', axiosError?.response?.data || errorMessage);
+        // console.error('Error details:', (error as AxiosError)?.response?.data || (error as Error)?.message);
         // console.error('Full error object:', error);
         setIsLiked(previousIsLiked);
         setLikesCount(previousLikesCount);
@@ -470,12 +416,12 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
       };
       await editPost(post._id, payload);
       // Optimistically update visible fields
-      (post as any).caption = payload.caption;
-      (post as any).description = payload.description;
-      (post as any).tags = payload.tags;
+      (post as unknown as { caption?: string }).caption = payload.caption;
+      (post as unknown as { description?: string }).description = payload.description;
+      (post as unknown as { tags?: string[] }).tags = payload.tags;
       setIsEditingPost(false);
       toast.success('Post updated');
-    } catch (err) {
+    } catch {
       // console.error('Failed to update post', err);
       toast.error('Failed to update post');
     } finally {
@@ -642,7 +588,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
           toast.success('Post saved successfully!', { autoClose: 2000 });
         }
         setShowDropdown(false);
-      } catch (error) {
+      } catch {
         // console.error('Error toggling save status:', error);
         setIsPostSaved(previousSavedState); // Revert state on error
         toast.error(`Error ${isPostSaved ? 'removing' : 'saving'} post. Please try again.`);
@@ -667,7 +613,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
         
         localStorage.setItem(CACHE_KEY, JSON.stringify(savedPostIds));
       }
-    } catch (error) {
+    } catch {
       // console.error('Error updating cache:', error);
     }
   };
@@ -719,7 +665,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
         }
         
         toast.success('Post deleted successfully!', { autoClose: 2000 });
-      } catch (error) {
+      } catch {
         // console.error('Error deleting post:', error);
         toast.error('Error deleting post. Please try again.');
       } finally {
@@ -757,7 +703,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
         const savedPostIds = await getSavedPostsCache();
         const isCurrentPostSaved = savedPostIds.includes(post._id);
         setIsPostSaved(isCurrentPostSaved);
-      } catch (error) {
+      } catch {
         // console.error('Error checking saved status:', error);
         setIsPostSaved(false);
       } finally {
@@ -1086,8 +1032,7 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
                          const video = e.currentTarget;
                          video.style.opacity = '1';
                        }}
-                       onLoadedMetadata={(e) => {
-                         const video = e.currentTarget;
+                       onLoadedMetadata={() => {
                          // Let CSS object-cover handle the fit
                        }}
                        onClick={(e) => {
@@ -1133,16 +1078,13 @@ export default function PostCard({ post, onPostDeleted, onPostClick, showComment
                 <Image
                   src={imageUrl}
                   alt="Post content"
-                  width={0}
-                  height={0}
-                  sizes="100vw"
+                  fill
+                  sizes="(min-width: 768px) 336px, 100vw"
                   className="rounded-xl w-full h-full object-cover cursor-zoom-in"
-                  unoptimized
-                  onLoad={() => {
-                    // Image loaded - heights are calculated during preload
-                  }}
+                  priority={Boolean(isPriority && currentMediaIndex === 0)}
+                  placeholder="blur"
+                  blurDataURL={safeThumb}
                   onError={() => {
-                    // console.warn('Media image failed to load for post:', post._id, 'URL:', imageUrl);
                     setMediaImageError(true);
                   }}
                   onClick={(e) => {
