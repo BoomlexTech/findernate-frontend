@@ -110,6 +110,11 @@ export default function MainContent() {
   const [initialLoad, setInitialLoad] = useState(true);
   const loaderRef = useRef<HTMLDivElement>(null);
   const { isUserBlocked } = useBlockedUsers();
+  // Stabilize predicate to avoid re-creating fetchPosts and re-fetching
+  const isUserBlockedRef = useRef(isUserBlocked);
+  useEffect(() => {
+    isUserBlockedRef.current = isUserBlocked;
+  }, [isUserBlocked]);
 
   const fetchPosts = useCallback(async (pageNum: number) => {
     try {
@@ -120,7 +125,7 @@ export default function MainContent() {
         // Filter out posts from blocked users
         .filter((item: RawFeedItem) => {
           if (!item.userId?._id) return true; // Keep posts with no user info (shouldn't happen)
-          return !isUserBlocked(item.userId._id);
+          return !isUserBlockedRef.current(item.userId._id);
         })
         .map((item: RawFeedItem & { comments?: RawComment[] }) => {
         // Calculate actual comment count from comments array
@@ -192,7 +197,7 @@ export default function MainContent() {
       setLoading(false);
       if (initialLoad) setInitialLoad(false);
     }
-  }, [initialLoad, isUserBlocked]);
+  }, [initialLoad]);
 
   const handleObserver = useCallback((entries: IntersectionObserverEntry[]) => {
     const [target] = entries;
