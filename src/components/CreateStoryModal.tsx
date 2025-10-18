@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
-import Image from "next/image";
-import { X, Upload, Camera, Image as ImageIcon, Video, Send, Play, Pause, RotateCcw } from "lucide-react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
+import { X, Upload, Send, Play, Pause, RotateCcw, Download, Type, Volume2, VolumeX } from "lucide-react";
 import { toast } from 'react-toastify';
 
 interface CreateStoryModalProps {
@@ -20,8 +19,21 @@ export default function CreateStoryModal({ isOpen, onClose, onUpload }: CreateSt
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const [videoDuration, setVideoDuration] = useState(0);
   const [videoCurrentTime, setVideoCurrentTime] = useState(0);
+  const [isMuted, setIsMuted] = useState(false);
   const [showCaptionInput, setShowCaptionInput] = useState(false);
-  const [imageScrollable, setImageScrollable] = useState(false);
+  // removed unused scroll state
+  // Canvas story states
+  const [activeTool, setActiveTool] = useState<"none" | "color" | "text" | "draw">("none");
+  const [bgIndex, setBgIndex] = useState(0); // default blue preset at index 0
+  const [textValue, setTextValue] = useState<string>("Edit This Story");
+  const textEditableRef = useRef<HTMLDivElement>(null);
+  const [showPlaceholder, setShowPlaceholder] = useState<boolean>(true);
+  const [isDrawing] = useState(false); // drawing removed
+  const [brushSize, setBrushSize] = useState<number>(5);
+  const [brushColor, setBrushColor] = useState<string>("#34d399");
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const offscreenRef = useRef<HTMLCanvasElement | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -29,8 +41,200 @@ export default function CreateStoryModal({ isOpen, onClose, onUpload }: CreateSt
   const imageContainerRef = useRef<HTMLDivElement>(null);
 
   const isVideo = selectedFile?.type.startsWith('video/');
+  const isImageMode = !!selectedFile && !isVideo;
   const maxFileSize = 50 * 1024 * 1024; // 50MB
   const maxVideoDuration = 30; // 30 seconds
+
+  // Background presets (as CSS and as color tuples for canvas gradient)
+  const backgrounds = useMemo(() => ([
+    { css: "from-blue-700 to-cyan-400", colors: ["#1d4ed8", "#22d3ee"] as [string, string] },
+    { css: "from-purple-700 to-pink-500", colors: ["#6d28d9", "#ec4899"] as [string, string] },
+    { css: "from-emerald-600 to-lime-400", colors: ["#059669", "#a3e635"] as [string, string] },
+    { css: "from-orange-500 to-yellow-400", colors: ["#f97316", "#facc15"] as [string, string] },
+    { css: "from-slate-800 to-slate-500", colors: ["#1f2937", "#64748b"] as [string, string] },
+  ] as const), []);
+
+  // Brush color palette (includes white/black and more variants)
+  const brushPalette = useMemo(
+    () => [
+      '#ffffff', '#000000', '#f87171', '#60a5fa', '#34d399', '#fbbf24',
+      '#a78bfa', '#22d3ee', '#fb7185', '#f59e0b', '#64748b', '#10b981'
+    ],
+    []
+  );
+
+  // Prepare drawBackground first so it can be used in resize callback dependencies
+  const drawBackground = useCallback(() => {
+    const canvas = canvasRef.current;
+    const off = offscreenRef.current;
+    if (!canvas || !off) return;
+    const ctx = canvas.getContext('2d');
+    const offCtx = off.getContext('2d');
+    if (!ctx || !offCtx) return;
+    const [c1, c2] = backgrounds[bgIndex].colors;
+    if (isImageMode) {
+      // For image mode, keep drawing canvas transparent; offscreen cleared only when switching modes
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      return;
+    }
+    // Canvas-only story: paint gradient background on both canvases
+    const g = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    g.addColorStop(0, c1);
+    g.addColorStop(1, c2);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const og = offCtx.createLinearGradient(0, 0, 0, off.height);
+    og.addColorStop(0, c1);
+    og.addColorStop(1, c2);
+    offCtx.fillStyle = og;
+    offCtx.fillRect(0, 0, off.width, off.height);
+  }, [bgIndex, backgrounds, isImageMode]);
+
+  // Sync canvas size with container
+  const resizeCanvasToContainer = useCallback(() => {
+    const canvas = canvasRef.current;
+    const container = containerRef.current;
+    if (!canvas || !container) return;
+    const rect = container.getBoundingClientRect();
+    const dpr = Math.max(1, Math.floor(window.devicePixelRatio || 1));
+    canvas.width = Math.floor(rect.width * dpr);
+    canvas.height = Math.floor(rect.height * dpr);
+    canvas.style.width = `${rect.width}px`;
+    canvas.style.height = `${rect.height}px`;
+
+    // Prepare offscreen high-res canvas (1080x1920 for download/upload)
+    if (!offscreenRef.current) {
+      offscreenRef.current = document.createElement('canvas');
+    }
+    const off = offscreenRef.current;
+    off.width = 1080;
+    off.height = 1920;
+
+    // Redraw background after resize
+    drawBackground();
+  }, [drawBackground]);
+
+  useEffect(() => {
+    const onResize = () => resizeCanvasToContainer();
+    resizeCanvasToContainer();
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [resizeCanvasToContainer]);
+
+  // drawBackground defined above
+
+  useEffect(() => {
+    drawBackground();
+  }, [drawBackground]);
+
+  // When entering image mode, clear offscreen so we can composite image behind strokes later
+  useEffect(() => {
+    if (isImageMode && offscreenRef.current) {
+      const off = offscreenRef.current;
+      const offCtx = off.getContext('2d');
+      if (offCtx) offCtx.clearRect(0, 0, off.width, off.height);
+    }
+  }, [isImageMode]);
+
+  // Drawing handlers (on visible and offscreen simultaneously)
+  const isPointerDownRef = useRef(false);
+  const prevPointRef = useRef<{ x: number; y: number } | null>(null);
+
+  const getCanvasPoint = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    const rect = canvas.getBoundingClientRect();
+    const dpr = Math.max(1, Math.floor(window.devicePixelRatio || 1));
+    return {
+      x: (e.clientX - rect.left) * dpr,
+      y: (e.clientY - rect.top) * dpr,
+    };
+  };
+
+  const strokeTo = (x: number, y: number) => {
+    const canvas = canvasRef.current;
+    const off = offscreenRef.current;
+    if (!canvas || !off) return;
+    const ctx = canvas.getContext('2d');
+    const offCtx = off.getContext('2d');
+    if (!ctx || !offCtx) return;
+    ctx.strokeStyle = brushColor;
+    ctx.lineWidth = brushSize * Math.max(1, Math.floor(window.devicePixelRatio || 1));
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    offCtx.strokeStyle = brushColor;
+    offCtx.lineWidth = brushSize * 2; // scale for high-res
+    offCtx.lineCap = 'round';
+    offCtx.lineJoin = 'round';
+    const p = prevPointRef.current;
+    if (p) {
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+      offCtx.beginPath();
+      offCtx.moveTo(p.x * (off.width / canvas.width), p.y * (off.height / canvas.height));
+      offCtx.lineTo(x * (off.width / canvas.width), y * (off.height / canvas.height));
+      offCtx.stroke();
+    }
+    prevPointRef.current = { x, y };
+  };
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!isDrawing) return;
+    isPointerDownRef.current = true;
+    prevPointRef.current = getCanvasPoint(e);
+  };
+  const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!isDrawing || !isPointerDownRef.current) return;
+    const pt = getCanvasPoint(e);
+    strokeTo(pt.x, pt.y);
+  };
+  const handlePointerUp = () => {
+    isPointerDownRef.current = false;
+    prevPointRef.current = null;
+  };
+
+  const cycleBackground = () => {
+    setBgIndex((i) => (i + 1) % backgrounds.length);
+  };
+
+  const downloadCanvasImage = () => {
+    const off = offscreenRef.current;
+    if (!off) return;
+    const link = document.createElement('a');
+    link.download = 'story.png';
+    link.href = off.toDataURL('image/png');
+    link.click();
+  };
+
+  // Focus the on-canvas text editor when text tool is active
+  useEffect(() => {
+    if (activeTool === 'text') {
+      setTimeout(() => {
+        const el = textEditableRef.current;
+        if (!el) return;
+        el.focus();
+        // Place caret at end
+        const range = document.createRange();
+        range.selectNodeContents(el);
+        range.collapse(false);
+        const sel = window.getSelection();
+        sel?.removeAllRanges();
+        sel?.addRange(range);
+      }, 0);
+    }
+  }, [activeTool]);
+
+  const handleTextInputDOM = (e: React.FormEvent<HTMLDivElement>) => {
+    const txt = (e.currentTarget.innerText || '').trim();
+    setShowPlaceholder(txt.length === 0);
+  };
+  const syncTextFromDom = () => {
+    const txt = (textEditableRef.current?.innerText || '').trim();
+    setTextValue(txt);
+    setShowPlaceholder(txt.length === 0);
+  };
 
   // Handle file selection
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -63,6 +267,10 @@ export default function CreateStoryModal({ isOpen, onClose, onUpload }: CreateSt
         // Always allow the video, but we'll trim it to 30s in the preview
         setSelectedFile(file);
         setPreviewUrl(URL.createObjectURL(file));
+        // Hide placeholder on media select; default unmuted
+        setShowPlaceholder(false);
+        setTextValue('');
+        setIsMuted(false);
         
         if (video.duration > maxVideoDuration) {
           // Show warning but don't reject the video
@@ -74,9 +282,11 @@ export default function CreateStoryModal({ isOpen, onClose, onUpload }: CreateSt
     } else {
       setSelectedFile(file);
       setPreviewUrl(URL.createObjectURL(file));
-      setImageScrollable(false); // Reset scroll state for new image
+      // Hide placeholder on media select
+      setShowPlaceholder(false);
+      setTextValue('');
     }
-  }, []);
+  }, [maxFileSize]);
 
   // Video control functions
   const toggleVideoPlayback = useCallback(() => {
@@ -102,6 +312,7 @@ export default function CreateStoryModal({ isOpen, onClose, onUpload }: CreateSt
   const handleVideoLoadedData = useCallback(() => {
     if (videoRef.current) {
       setVideoDuration(videoRef.current.duration);
+      videoRef.current.muted = isMuted;
       // Ensure video doesn't play beyond 30 seconds
       videoRef.current.addEventListener('timeupdate', () => {
         if (videoRef.current && videoRef.current.currentTime >= maxVideoDuration) {
@@ -126,9 +337,62 @@ export default function CreateStoryModal({ isOpen, onClose, onUpload }: CreateSt
     setError(null);
 
     try {
-      const success = await onUpload(selectedFile, caption || undefined);
+      let uploadOk = false;
+      if (!isVideo) {
+        // Compose image + overlay + strokes + text on offscreen and upload
+        const off = offscreenRef.current;
+        if (!off) throw new Error('Canvas not ready');
+        const offCtx = off.getContext('2d');
+        if (!offCtx) throw new Error('Canvas not ready');
+        // Clear first (preserve strokes drawn so far on a temp copy)
+        const snapshot = offCtx.getImageData(0, 0, off.width, off.height);
+        offCtx.clearRect(0, 0, off.width, off.height);
+        // Draw base image scaled to fit
+        const bitmap = await createImageBitmap(selectedFile);
+        const imgW = bitmap.width;
+        const imgH = bitmap.height;
+        const targetW = off.width;
+        const targetH = off.height;
+        const scale = Math.min(targetW / imgW, targetH / imgH);
+        const drawW = Math.floor(imgW * scale);
+        const drawH = Math.floor(imgH * scale);
+        const dx = Math.floor((targetW - drawW) / 2);
+        const dy = Math.floor((targetH - drawH) / 2);
+        offCtx.drawImage(bitmap, dx, dy, drawW, drawH);
+        // Restore strokes on top
+        offCtx.putImageData(snapshot, 0, 0);
+        // Gradient overlay
+        const [c1, c2] = backgrounds[bgIndex].colors;
+        const og = offCtx.createLinearGradient(0, 0, 0, off.height);
+        og.addColorStop(0, c1);
+        og.addColorStop(1, c2);
+        offCtx.save();
+        offCtx.globalAlpha = 0.25;
+        offCtx.fillStyle = og;
+        offCtx.fillRect(0, 0, off.width, off.height);
+        offCtx.restore();
+        // Text overlay
+        if (!showPlaceholder && textValue) {
+          offCtx.save();
+          offCtx.font = 'bold 80px Inter, system-ui, -apple-system, Segoe UI, Roboto';
+          offCtx.fillStyle = '#ffffff';
+          offCtx.textAlign = 'center';
+          offCtx.textBaseline = 'middle';
+          offCtx.shadowColor = 'rgba(0,0,0,0.35)';
+          offCtx.shadowBlur = 12;
+          offCtx.fillText(textValue, off.width / 2, off.height / 2);
+          offCtx.restore();
+        }
+        // Export
+        const blob = await new Promise<Blob | null>((resolve) => off.toBlob((b) => resolve(b), 'image/png'));
+        if (!blob) throw new Error('Failed to export story');
+        const file = new File([blob], 'story.png', { type: 'image/png' });
+        uploadOk = await onUpload(file, caption || undefined);
+      } else {
+        uploadOk = await onUpload(selectedFile, caption || undefined);
+      }
       
-      if (success) {
+      if (uploadOk) {
         // Show success toast
         toast.success('Story shared successfully!', {
           position: "top-right",
@@ -146,7 +410,6 @@ export default function CreateStoryModal({ isOpen, onClose, onUpload }: CreateSt
         setCaption("");
         setError(null);
         setShowCaptionInput(false);
-        setImageScrollable(false);
         setIsVideoPlaying(false);
         setVideoCurrentTime(0);
         // Reset file input
@@ -168,9 +431,8 @@ export default function CreateStoryModal({ isOpen, onClose, onUpload }: CreateSt
           draggable: true,
         });
       }
-    } catch (err) {
+    } catch {
       setError("An error occurred while uploading");
-      console.error("Upload error:", err);
       
       // Show error toast
       toast.error('Failed to upload story. Please try again.', {
@@ -181,6 +443,57 @@ export default function CreateStoryModal({ isOpen, onClose, onUpload }: CreateSt
         pauseOnHover: true,
         draggable: true,
       });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  // Upload from canvas when no media chosen
+  const handleUploadFromCanvas = async () => {
+    const off = offscreenRef.current;
+    if (!off) return;
+    setIsUploading(true);
+    setError(null);
+    try {
+      // Render text onto offscreen before exporting
+      if (!showPlaceholder && textValue) {
+        const offCtx = off.getContext('2d');
+        if (offCtx) {
+          offCtx.save();
+          offCtx.font = 'bold 80px Inter, system-ui, -apple-system, Segoe UI, Roboto';
+          offCtx.fillStyle = '#ffffff';
+          offCtx.textAlign = 'center';
+          offCtx.textBaseline = 'middle';
+          offCtx.shadowColor = 'rgba(0,0,0,0.35)';
+          offCtx.shadowBlur = 12;
+          offCtx.fillText(textValue, off.width / 2, off.height / 2);
+          offCtx.restore();
+        }
+      }
+
+      await new Promise<void>((resolve) => setTimeout(() => resolve(), 0));
+      const blob = await new Promise<Blob | null>((resolve) => off.toBlob((b) => resolve(b), 'image/png'));
+      if (!blob) throw new Error('Failed to export story');
+      const file = new File([blob], 'story.png', { type: 'image/png' });
+      const success = await onUpload(file, caption || undefined);
+      if (success) {
+        toast.success('Story shared successfully!', { position: 'top-right', autoClose: 3000 });
+        cleanup();
+        setSelectedFile(null);
+        setPreviewUrl(null);
+        setCaption('');
+        setError(null);
+        setShowCaptionInput(false);
+        setIsVideoPlaying(false);
+        setVideoCurrentTime(0);
+        onClose();
+      } else {
+        setError('Failed to upload story. Please try again.');
+        toast.error('Failed to upload story. Please try again.', { position: 'top-right', autoClose: 4000 });
+      }
+    } catch {
+      setError('An error occurred while uploading');
+      toast.error('Failed to upload story. Please try again.', { position: 'top-right', autoClose: 4000 });
     } finally {
       setIsUploading(false);
     }
@@ -208,10 +521,9 @@ export default function CreateStoryModal({ isOpen, onClose, onUpload }: CreateSt
     <div 
       className="fixed inset-0 bg-black/40 bg-opacity-90 flex items-center justify-center z-50 p-4"
       onClick={(e) => {
-        // Prevent modal from closing when clicking backdrop
+        // Close when clicking backdrop/outside modal
         if (e.target === e.currentTarget) {
-          e.preventDefault();
-          e.stopPropagation();
+          handleClose();
         }
       }}
     >
@@ -239,49 +551,115 @@ export default function CreateStoryModal({ isOpen, onClose, onUpload }: CreateSt
         {/* Content */}
         <div className="flex-1 overflow-y-auto">
           {!selectedFile ? (
-            /* File Selection */
-            <div className="p-4">
-              <div className="space-y-4">
-                <div className="text-center">
-                <p className="text-gray-600 mb-4">Share a moment with your story</p>
-                
-                {/* Upload Button */}
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-full p-8 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 transition-colors"
-                >
-                  <div className="flex flex-col items-center space-y-2">
-                    <Upload size={48} className="text-gray-400" />
-                    <p className="text-gray-600">Choose photo or video</p>
-                    <p className="text-sm text-gray-400">Up to 50MB • Videos up to 30s</p>
-                  </div>
-                </button>
+            // Canvas-based story editor (no media selected)
+            <div className="relative mx-4 mt-4">
+              <div className={`relative aspect-[9/16] rounded-2xl overflow-hidden max-h-[70vh] bg-gradient-to-br from-${backgrounds[bgIndex].css.split(' ')[0]} to-${backgrounds[bgIndex].css.split(' ')[1]}`}
+                   ref={containerRef}>
+                {/* Gradient background will be drawn on canvas for export consistency */}
+                <canvas
+                  ref={canvasRef}
+                  className="absolute inset-0 touch-none"
+                  onPointerDown={handlePointerDown}
+                  onPointerMove={handlePointerMove}
+                  onPointerUp={handlePointerUp}
+                />
 
-                {/* File Type Buttons */}
-                <div className="flex gap-4 mt-4">
+                {/* Centered text overlay (contentEditable) */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div
+                    ref={textEditableRef}
+                    contentEditable
+                    suppressContentEditableWarning
+                    onInput={handleTextInputDOM}
+                    onBlur={syncTextFromDom}
+                    className={`w-full max-w-full outline-none text-center px-6 font-bold drop-shadow-xl ${activeTool==='text' ? 'cursor-text' : 'cursor-default'} text-white text-3xl sm:text-4xl whitespace-pre-wrap break-words`}
+                    style={{ userSelect: 'text' }}
+                  >
+                    {showPlaceholder ? 'Edit This Story' : textValue}
+                  </div>
+                </div>
+
+                {/* Toolbar - top overlay (Close on left, tools on right) */}
+                <div className="absolute top-3 left-3 right-3 flex items-center justify-between">
+                  <button
+                    onClick={onClose}
+                    className="w-9 h-9 rounded-xl bg-black/40 backdrop-blur text-white flex items-center justify-center"
+                    title="Close"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={cycleBackground}
+                      className="w-9 h-9 rounded-full border border-white/80 shadow-sm"
+                      style={{ backgroundImage: `linear-gradient(135deg, ${backgrounds[bgIndex].colors[0]}, ${backgrounds[bgIndex].colors[1]})` }}
+                      title="Change background"
+                    />
+                    <button
+                      onClick={() => { setActiveTool('text'); }}
+                      className={`w-9 h-9 rounded-xl bg-black/40 backdrop-blur text-white flex items-center justify-center ${activeTool==='text' ? 'ring-2 ring-white/70' : ''}`}
+                      title="Add text"
+                    >
+                      <Type className="w-5 h-5" />
+                    </button>
+                    {/* Draw tool removed as requested */}
+                    <button
+                      onClick={downloadCanvasImage}
+                      className="w-9 h-9 rounded-xl bg-black/40 backdrop-blur text-white flex items-center justify-center"
+                      title="Download"
+                    >
+                      <Download className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* No separate text input overlay; editing happens inline */}
+
+                {/* Draw controls */}
+                {isDrawing && (
+                  <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 bg-black/40 backdrop-blur rounded-xl p-2">
+                      <label className="text-white text-xs opacity-80 mr-1">Size</label>
+                      <input
+                        type="range"
+                        min={2}
+                        max={24}
+                        value={brushSize}
+                        onChange={(e) => setBrushSize(parseInt(e.target.value, 10))}
+                      />
+                    </div>
+                    <div className="flex items-center gap-2 bg-black/40 backdrop-blur rounded-xl p-2">
+                      {brushPalette.map((c) => (
+                        <button
+                          key={c}
+                          onClick={() => setBrushColor(c)}
+                          className="w-6 h-6 rounded-full border border-white/80 shadow-sm"
+                          style={{ backgroundColor: c }}
+                          title="Brush color"
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Choose media below editor */}
+              <div className="px-4 pt-4">
+                <div className="flex gap-4">
                   <button
                     onClick={() => fileInputRef.current?.click()}
                     className="flex-1 flex items-center justify-center gap-2 p-3 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
                   >
-                    <ImageIcon size={20} />
-                    <span>Photo</span>
-                  </button>
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="flex-1 flex items-center justify-center gap-2 p-3 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 transition-colors"
-                  >
-                    <Video size={20} />
-                    <span>Video</span>
+                    <Upload className="w-5 h-5" />
+                    <span>Choose photo or video</span>
                   </button>
                 </div>
               </div>
-
               {error && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                <div className="m-4 bg-red-50 border border-red-200 rounded-lg p-3">
                   <p className="text-red-600 text-sm">{error}</p>
                 </div>
               )}
-            </div>
             </div>
           ) : (
             /* Preview and Upload */
@@ -299,7 +677,7 @@ export default function CreateStoryModal({ isOpen, onClose, onUpload }: CreateSt
                         className="max-w-full max-h-full object-contain"
                         onLoadedData={handleVideoLoadedData}
                         onEnded={handleVideoEnded}
-                        muted
+                        muted={isMuted}
                         playsInline
                       />
                       
@@ -334,57 +712,129 @@ export default function CreateStoryModal({ isOpen, onClose, onUpload }: CreateSt
                         </div>
                       </div>
 
-                      {/* Video Reset Button */}
-                      <button
-                        onClick={resetVideo}
-                        className="absolute top-4 left-4 bg-black bg-opacity-50 text-white rounded-full p-2 hover:bg-opacity-70"
-                        disabled={isUploading}
-                      >
-                        <RotateCcw size={16} />
-                      </button>
+                      {/* Video Controls Top Row */}
+                      <div className="absolute top-4 left-4 right-4 flex items-center justify-between gap-2">
+                        <button
+                          onClick={resetVideo}
+                          className="bg-black bg-opacity-50 text-white rounded-full p-2 hover:bg-opacity-70"
+                          disabled={isUploading}
+                          title="Restart"
+                        >
+                          <RotateCcw size={16} />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setIsMuted((m) => {
+                              const next = !m;
+                              if (videoRef.current) videoRef.current.muted = next;
+                              return next;
+                            });
+                          }}
+                          className="bg-black bg-opacity-50 text-white rounded-full p-2 hover:bg-opacity-70"
+                          disabled={isUploading}
+                          title={isMuted ? 'Unmute' : 'Mute'}
+                        >
+                          {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+                        </button>
+                      </div>
                     </>
                   ) : (
+                    <div className="relative w-full h-full" ref={containerRef}>
                     <div 
                       ref={imageContainerRef}
-                      className="w-full h-full overflow-auto scrollbar-thin scrollbar-thumb-white/50 scrollbar-track-transparent relative scroll-smooth"
-                      style={{ scrollBehavior: 'smooth' }}
+                        className="w-full h-full overflow-hidden relative"
                     >
-                      <div className="w-full h-full flex items-center justify-center">
                         <img
                           src={previewUrl!}
                           alt="Story preview"
-                          className="object-contain max-w-full max-h-full"
-                          style={{ 
-                            width: 'auto',
-                            height: 'auto',
-                            maxWidth: '100%',
-                            maxHeight: '100%'
-                          }}
-                          onLoad={(e) => {
-                            const img = e.target as HTMLImageElement;
-                            const container = imageContainerRef.current;
-                            if (container) {
-                              // Always fit the image within the container maintaining aspect ratio
-                              const containerWidth = container.clientWidth;
-                              const containerHeight = container.clientHeight;
-                              const imageAspectRatio = img.naturalWidth / img.naturalHeight;
-                              const containerAspectRatio = containerWidth / containerHeight;
-                              
-                              if (imageAspectRatio > containerAspectRatio) {
-                                // Image is wider, fit to width
-                                img.style.width = '100%';
-                                img.style.height = 'auto';
-                              } else {
-                                // Image is taller, fit to height
-                                img.style.height = '100%';
-                                img.style.width = 'auto';
-                              }
-                              
-                              // No need for scroll indicators as image is always fitted
-                              setImageScrollable(false);
-                            }
-                          }}
+                          className="absolute inset-0 w-full h-full object-contain"
                         />
+                        {/* Gradient overlay on image */}
+                        <div className={`absolute inset-0 bg-gradient-to-br opacity-30 pointer-events-none from-${backgrounds[bgIndex].css.split(' ')[0]} to-${backgrounds[bgIndex].css.split(' ')[1]}`} />
+                        {/* Drawing canvas overlay */}
+                        <canvas
+                          ref={canvasRef}
+                          className="absolute inset-0 touch-none"
+                          onPointerDown={handlePointerDown}
+                          onPointerMove={handlePointerMove}
+                          onPointerUp={handlePointerUp}
+                        />
+                        {/* Centered text overlay */}
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div
+                            ref={textEditableRef}
+                            contentEditable
+                            suppressContentEditableWarning
+                            onInput={handleTextInputDOM}
+                            onBlur={syncTextFromDom}
+                            className={`w-full max-w-full outline-none text-center px-6 font-bold drop-shadow-xl ${activeTool==='text' ? 'cursor-text' : 'cursor-default'} text-white text-3xl sm:text-4xl whitespace-pre-wrap break-words`}
+                            style={{ userSelect: 'text' }}
+                          >
+                            {showPlaceholder ? 'Edit This Story' : textValue}
+                          </div>
+                        </div>
+                        {/* Toolbar (Close left, tools right) */}
+                        <div className="absolute top-3 left-3 right-3 flex items-center justify-between">
+                          <button
+                            onClick={onClose}
+                            className="w-9 h-9 rounded-xl bg-black/40 backdrop-blur text-white flex items-center justify-center"
+                            title="Close"
+                          >
+                            <X className="w-5 h-5" />
+                          </button>
+                          <div className="flex items-center gap-3">
+                            <button
+                              onClick={cycleBackground}
+                              className="w-9 h-9 rounded-full border border-white/80 shadow-sm"
+                              style={{ backgroundImage: `linear-gradient(135deg, ${backgrounds[bgIndex].colors[0]}, ${backgrounds[bgIndex].colors[1]})` }}
+                              title="Change background"
+                            />
+                            <button
+                              onClick={() => { setActiveTool('text'); }}
+                              className={`w-9 h-9 rounded-xl bg-black/40 backdrop-blur text-white flex items-center justify-center ${activeTool==='text' ? 'ring-2 ring-white/70' : ''}`}
+                              title="Add text"
+                            >
+                              <Type className="w-5 h-5" />
+                            </button>
+                            {/* Draw tool removed as requested */}
+                            <button
+                              onClick={downloadCanvasImage}
+                              className="w-9 h-9 rounded-xl bg-black/40 backdrop-blur text-white flex items-center justify-center"
+                              title="Download"
+                            >
+                              <Download className="w-5 h-5" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* No separate text input overlay; editing happens inline */}
+
+                        {/* Draw controls */}
+                        {isDrawing && (
+                          <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-2 bg-black/40 backdrop-blur rounded-xl p-2">
+                              <label className="text-white text-xs opacity-80 mr-1">Size</label>
+                              <input
+                                type="range"
+                                min={2}
+                                max={24}
+                                value={brushSize}
+                                onChange={(e) => setBrushSize(parseInt(e.target.value, 10))}
+                              />
+                            </div>
+                            <div className="flex items-center gap-2 bg-black/40 backdrop-blur rounded-xl p-2">
+                              {brushPalette.map((c) => (
+                                <button
+                                  key={c}
+                                  onClick={() => setBrushColor(c)}
+                                  className="w-6 h-6 rounded-full border border-white/80 shadow-sm"
+                                  style={{ backgroundColor: c }}
+                                  title="Brush color"
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
@@ -399,7 +849,6 @@ export default function CreateStoryModal({ isOpen, onClose, onUpload }: CreateSt
                     setCaption("");
                     setError(null);
                     setShowCaptionInput(false);
-                    setImageScrollable(false);
                   }}
                   className="absolute top-4 right-4 bg-black bg-opacity-50 text-white rounded-full p-2 hover:bg-opacity-70 transition-all"
                   disabled={isUploading}
@@ -484,10 +933,30 @@ export default function CreateStoryModal({ isOpen, onClose, onUpload }: CreateSt
         </div>
 
         {/* Share Button - Always at bottom */}
-        {selectedFile && (
+        {selectedFile ? (
           <div className="p-4 border-t bg-white flex-shrink-0">
                 <button
                   onClick={handleUpload}
+                  disabled={isUploading}
+                  className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white py-3.5 rounded-xl font-semibold hover:from-pink-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-[0.98] active:scale-95"
+                >
+                  {isUploading ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>Sharing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send size={20} />
+                      <span>Share to Story</span>
+                    </>
+                  )}
+                </button>
+          </div>
+        ) : (
+          <div className="p-4 border-t bg-white flex-shrink-0">
+            <button
+              onClick={handleUploadFromCanvas}
                   disabled={isUploading}
                   className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white py-3.5 rounded-xl font-semibold hover:from-pink-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-[0.98] active:scale-95"
                 >

@@ -1057,7 +1057,7 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
                   {profile?.fullName}
                 </h1>
               )}
-              <BadgeCheck className="text-blue-500 w-5 h-5" />
+              {profile?.isBlueTickVerified && <BadgeCheck className="text-blue-500 w-5 h-5" />}
               {profile?.isBusinessProfile && (
                 <span className="bg-yellow-100 text-yellow-700 text-xs font-medium px-2 py-1 rounded-full flex items-center gap-1">
                   Business Account <Shield className="w-3 h-3" />

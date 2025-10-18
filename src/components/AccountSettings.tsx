@@ -6,7 +6,7 @@ import BusinessVerificationModal from './business/BusinessVerificationModal';
 import { PaymentMethodsModal } from './business/PaymentMethodModal';
 import FollowRequestManager from './FollowRequestManager';
 import { ChevronDown } from 'lucide-react';
-import { UpdateBusinessCategory, UpdateBusinessSubCategory, GetBusinessCategory, switchToBusiness, switchToPersonal, toggleProductPosts, toggleServicePosts, getMyBusinessId } from '@/api/business';
+import { UpdateBusinessCategory, UpdateBusinessSubCategory, GetBusinessCategory, switchToBusiness, switchToPersonal, toggleProductPosts, toggleServicePosts, getMyBusinessId, GetBusinessDetails } from '@/api/business';
 import { useUserStore } from '@/store/useUserStore';
 import { getUserProfile } from '@/api/user';
 import { toast } from 'react-toastify';
@@ -87,23 +87,28 @@ export default function AccountSettings() {
             setBusinessId(profileBusinessId);
             // Also store in localStorage as backup
             localStorage.setItem('businessId', profileBusinessId);
-            console.log('Business ID from user profile:', profileBusinessId);
+            
           } else if (flag) {
             // If business account but no businessId in profile, try localStorage
             const storedBusinessId = localStorage.getItem('businessId');
             if (storedBusinessId) {
               setBusinessId(storedBusinessId);
-              console.log('Business ID restored from localStorage:', storedBusinessId);
+            
             }
           }
           
           // Update user store with all relevant fields including privacy and toggle flags
+          // Try to pick nested completion flag if provided by backend
+          const nestedCompleted = (profile as any)?.business?.isProfileCompleted ?? (profile as any)?.businessProfile?.isProfileCompleted;
           updateUser({
             isBusinessProfile: flag,
             privacy: privacy,
             productEnabled: typeof profile?.productEnabled !== 'undefined' ? Boolean(profile.productEnabled) : undefined,
             serviceEnabled: typeof profile?.serviceEnabled !== 'undefined' ? Boolean(profile.serviceEnabled) : undefined,
+            // Persist onboarding completion flag if backend returns it (may be nested under business profile)
+            isProfileCompleted: typeof nestedCompleted === 'boolean' ? nestedCompleted : (typeof (profile as any)?.isProfileCompleted === 'boolean' ? (profile as any).isProfileCompleted : user?.isProfileCompleted)
           });
+          
           // Initialize toggles from profile fields if available
           if (typeof profile?.serviceEnabled !== 'undefined') {
             setServicePostsAllowed(Boolean(profile.serviceEnabled));
@@ -138,10 +143,10 @@ export default function AccountSettings() {
             const id = await getMyBusinessId();
             if (id) {
               setBusinessId(id);
-              console.log('Business ID fetched from business API:', id);
+              
             }
           } catch {
-            console.warn('Could not fetch business ID from business API, will use from user profile');
+            
           }
         }
       } catch (error: unknown) {
@@ -178,6 +183,23 @@ export default function AccountSettings() {
 
     fetchSubCategory();
   }, [isBusiness]);
+
+  // Fallback: If business but completion flag missing, hydrate from business profile once
+  useEffect(() => {
+    const hydrateCompletionFromBusiness = async () => {
+      if (!user?.isBusinessProfile) return;
+      if (typeof user?.isProfileCompleted !== 'undefined') return;
+      try {
+        const resp = await GetBusinessDetails();
+        const completed = Boolean(resp?.data?.business?.isProfileCompleted ?? resp?.data?.isProfileCompleted ?? false);
+        updateUser({ isProfileCompleted: completed });
+        
+      } catch (e) {
+        // ignore
+      }
+    };
+    hydrateCompletionFromBusiness();
+  }, [user?.isBusinessProfile, user?.isProfileCompleted, updateUser]);
 
   // Close category dropdown on outside click
   useEffect(() => {
@@ -282,7 +304,7 @@ export default function AccountSettings() {
   const handleBusinessDetailsSubmit = async () => {
     setShowBusinessDetailsModal(false);
     setIsBusiness(true);
-    try { updateUser({ isBusinessProfile: true }); } catch {}
+    try { updateUser({ isBusinessProfile: true, isProfileCompleted: true }); } catch {}
     setUpdateMessage('Business account created successfully! You can now update your business category.');
     
     // Refresh the business category after creating the profile
@@ -290,8 +312,10 @@ export default function AccountSettings() {
       const response = await GetBusinessCategory();
       setCurrentCategory(response.data?.category || '');
     } catch {
-      //console.log('Note: Business category not set yet, but profile created successfully');
+      
     }
+    // Mark onboarding as completed after adding business details
+    try { updateUser({ isProfileCompleted: true }); } catch {}
     
     setTimeout(() => setUpdateMessage(''), 5000);
   };
@@ -316,20 +340,21 @@ export default function AccountSettings() {
         
         // Extract and store businessId from response
         const businessIdFromResponse = response?.data?.businessId || response?.businessId;
+        const profileCompletedFromResponse = response?.data?.businessProfile?.isProfileCompleted ?? response?.data?.isProfileCompleted ?? response?.isProfileCompleted;
         if (businessIdFromResponse) {
           setBusinessId(businessIdFromResponse);
           // Also store in localStorage as backup
           localStorage.setItem('businessId', businessIdFromResponse);
-          console.log('Business ID stored after switching:', businessIdFromResponse);
+          
         } else {
-          console.warn('No businessId in switch response, will fetch from profile');
+          
         }
         
         // Update local state
         setIsBusiness(true);
         
         // Update user store - this will trigger real-time UI updates
-        updateUser({ isBusinessProfile: true });
+        updateUser({ isBusinessProfile: true, isProfileCompleted: typeof profileCompletedFromResponse === 'boolean' ? profileCompletedFromResponse : (user?.isProfileCompleted ?? false) });
         
         // Force a small delay to ensure state propagation
         await new Promise(resolve => setTimeout(resolve, 100));
@@ -361,13 +386,13 @@ export default function AccountSettings() {
         // Clear businessId when switching to personal
         setBusinessId(null);
         localStorage.removeItem('businessId');
-        console.log('Business ID cleared after switching to personal');
+        
         
         // Update local state
         setIsBusiness(false);
         
         // Update user store - this will trigger real-time UI updates
-        updateUser({ isBusinessProfile: false });
+        updateUser({ isBusinessProfile: false, isProfileCompleted: undefined });
         
         // Force a small delay to ensure state propagation
         await new Promise(resolve => setTimeout(resolve, 100));
@@ -642,8 +667,8 @@ export default function AccountSettings() {
           </div>
         )}
 
-        {/* Add Business Details Section */}
-        {isBusiness && showBusinessOptions && (
+        {/* Add Business Details Section - hidden after profile completion */}
+        {isBusiness && showBusinessOptions && !user?.isProfileCompleted && (
           <div className="mb-6 sm:mb-8 p-4 sm:p-6 bg-yellow-50 rounded-lg border border-yellow-100">
             <div>
               <div className="flex items-center justify-between mb-2">
