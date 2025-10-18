@@ -45,13 +45,22 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
     (async () => {
       try {
         const data = await getUserProfile();
-        //console.log(data)
+        
         const profile = data?.userId ?? data; // tolerate either shape
         if (isMounted) {
           if (typeof profile?.isBusinessProfile === 'boolean') {
             setIsBusinessProfile(profile.isBusinessProfile);
             updateUser({ isBusinessProfile: profile.isBusinessProfile });
           }
+          // Persist onboarding completion flag from profile load if available
+          // Hydrate nested completion flag if provided
+          const nestedCompleted = (profile as any)?.business?.isProfileCompleted ?? (profile as any)?.businessProfile?.isProfileCompleted;
+          if (typeof nestedCompleted === 'boolean') {
+            updateUser({ isProfileCompleted: nestedCompleted });
+          } else if (typeof (profile as any)?.isProfileCompleted === 'boolean') {
+            updateUser({ isProfileCompleted: (profile as any).isProfileCompleted });
+          }
+          
           if (profile?.privacy) {
             setAccountPrivacy(profile.privacy);
           }
@@ -142,9 +151,9 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
     setTimeout(() => setSuccessToast({ show: false, message: "" }), 3000); // Hide after 3 seconds
     onClose()
     // Optionally show a success message or refresh data
-    //console.log('Business details created:', data);
+    
     // Immediately reflect upgrade in client store
-    try { updateUser({ isBusinessProfile: true }); } catch {}
+    try { updateUser({ isBusinessProfile: true, isProfileCompleted: true }); } catch {}
   };
 
   const handleEditBusinessDetailsSubmit = () => {
@@ -156,7 +165,7 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
     }, 3000);
    
     // Optionally show a success message or refresh data
-    //console.log('Business details updated:', data);
+    
   };
 
   return (
@@ -226,11 +235,13 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
         <div className="px-4 py-6">
           <h2 className="text-gray-500 font-medium text-sm mb-4">Business Info</h2>
           <div className="space-y-0">
-            <SettingItem
-              icon={<Shield />}
-              title="Add Your Business Details"
-              onClick={() => setShowBusinessDetailsModal(true)}
-            />
+            {!user?.isProfileCompleted && (
+              <SettingItem
+                icon={<Shield />}
+                title="Add Your Business Details"
+                onClick={() => setShowBusinessDetailsModal(true)}
+              />
+            )}
             <SettingItem 
               icon={<Shield />} 
               title="View/Edit Your Business Details" 

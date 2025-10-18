@@ -141,13 +141,26 @@ const FollowRequestManager: React.FC<FollowRequestManagerProps> = ({ className =
   };
 
   const RequestCard: React.FC<{ request: FollowRequest; type: 'received' | 'sent' }> = ({ request, type }) => {
-    const user = type === 'received'
-      ? request.requesterId
-      : (request.recipient || request.recipientId);
+    // Normalize possible API shapes: sometimes fields can be objects or raw IDs
+    const normalizeUser = (u: any) => {
+      if (!u) return null;
+      if (typeof u === 'string') {
+        return { _id: u, username: u, fullName: 'Unknown User' };
+      }
+      return u;
+    };
 
+    const rawRequester = (request as any).requester || request.requesterId || (request as any).sender || (request as any).senderId;
+    const rawRecipient = request.recipient || request.recipientId || (request as any).target || (request as any).targetId;
+
+    const user = type === 'received' ? normalizeUser(rawRequester) : normalizeUser(rawRecipient);
     if (!user) return null;
 
-    const isProcessing = processingIds.has(user._id);
+    const requesterIdForActions = typeof request.requesterId === 'string'
+      ? request.requesterId
+      : request.requesterId?._id || (request as any).requester?._id || user._id;
+
+    const isProcessing = requesterIdForActions ? processingIds.has(requesterIdForActions) : false;
 
     return (
       <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
@@ -167,8 +180,8 @@ const FollowRequestManager: React.FC<FollowRequestManagerProps> = ({ className =
             )}
           </div>
           <div className="flex-1">
-            <h4 className="font-medium text-gray-800">{user.fullName}</h4>
-            <p className="text-sm text-gray-500">@{user.username}</p>
+            <h4 className="font-medium text-gray-800">{user.fullName || 'User'}</h4>
+            <p className="text-sm text-gray-500">@{user.username || user._id}</p>
             <p className="text-xs text-gray-400 flex items-center mt-1">
               <Clock className="w-3 h-3 mr-1" />
               {formatTimeAgo(request.timestamp || request.createdAt)}
@@ -180,16 +193,16 @@ const FollowRequestManager: React.FC<FollowRequestManagerProps> = ({ className =
           {type === 'received' && (
             <>
               <button
-                onClick={() => handleApprove(user._id)}
-                disabled={isProcessing}
+                onClick={() => requesterIdForActions && handleApprove(requesterIdForActions)}
+                disabled={!requesterIdForActions || isProcessing}
                 className="p-2 bg-green-100 text-green-600 rounded-full hover:bg-green-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Approve"
               >
                 <Check className="w-4 h-4" />
               </button>
               <button
-                onClick={() => handleReject(user._id)}
-                disabled={isProcessing}
+                onClick={() => requesterIdForActions && handleReject(requesterIdForActions)}
+                disabled={!requesterIdForActions || isProcessing}
                 className="p-2 bg-red-100 text-red-600 rounded-full hover:bg-red-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Reject"
               >

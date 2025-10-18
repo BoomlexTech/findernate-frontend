@@ -47,6 +47,8 @@ type User = {
   email: string;
   username?: string;
   isBusinessProfile: boolean;
+  // Whether the user's business profile onboarding is completed
+  isProfileCompleted?: boolean;
   profileImageUrl: string;
   avatar?: string;
   privacy?: 'public' | 'private';
@@ -99,6 +101,34 @@ const getUserFromToken = (): User | null => {
   };
 };
 
+// Persist a subset of user fields across reloads (no PII beyond simple flags)
+type UserMeta = Pick<User, 'isBusinessProfile' | 'isProfileCompleted' | 'privacy' | 'productEnabled' | 'serviceEnabled' | 'location'>;
+const USER_META_KEY = 'user_meta';
+
+const loadUserMeta = (): Partial<UserMeta> | null => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(USER_META_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
+
+const saveUserMeta = (meta: Partial<UserMeta>) => {
+  if (typeof window === 'undefined') return;
+  try {
+    const existing = loadUserMeta() || {};
+    const merged = { ...existing, ...meta };
+    localStorage.setItem(USER_META_KEY, JSON.stringify(merged));
+  } catch {}
+};
+
+const clearUserMeta = () => {
+  if (typeof window === 'undefined') return;
+  try { localStorage.removeItem(USER_META_KEY); } catch {}
+};
+
 export const useUserStore = create<UserStore>()((set) => ({
   user: null,
   token: null,
@@ -112,23 +142,41 @@ export const useUserStore = create<UserStore>()((set) => ({
         localStorage.setItem('token', token);
         // Also set user data from token
         const userData = getUserFromToken();
-        set({ user: userData });
+        // Merge any persisted meta flags
+        const meta = loadUserMeta();
+        const mergedUser = userData ? { ...userData, ...meta } as User : null;
+        set({ user: mergedUser });
       } else {
         localStorage.removeItem('token');
         set({ user: null });
+        clearUserMeta();
       }
     }
   },
 
   updateUser: (fields) =>
-    set((state) => ({
-      user: state.user ? { ...state.user, ...fields } : null,
-    })),
+    set((state) => {
+      // Persist only defined fields to avoid clobbering existing meta with undefined
+      const metaToSave: Partial<UserMeta> = {};
+      if (typeof fields.isBusinessProfile === 'boolean') metaToSave.isBusinessProfile = fields.isBusinessProfile;
+      if (typeof fields.isProfileCompleted === 'boolean') metaToSave.isProfileCompleted = fields.isProfileCompleted;
+      if (typeof fields.privacy !== 'undefined') metaToSave.privacy = fields.privacy;
+      if (typeof fields.productEnabled === 'boolean') metaToSave.productEnabled = fields.productEnabled;
+      if (typeof fields.serviceEnabled === 'boolean') metaToSave.serviceEnabled = fields.serviceEnabled;
+      if (typeof fields.location === 'string') metaToSave.location = fields.location;
+      if (Object.keys(metaToSave).length > 0) {
+        saveUserMeta(metaToSave);
+      }
+      return {
+        user: state.user ? { ...state.user, ...fields } : null,
+      };
+    }),
 
   logout: () => {
     set({ user: null, token: null });
     if (typeof window !== 'undefined') {
       localStorage.removeItem('token');
+      clearUserMeta();
     }
   },
 
@@ -165,6 +213,7 @@ export const useUserStore = create<UserStore>()((set) => ({
       console.warn('Token expired, automatically logging out user');
       set({ user: null, token: null });
       localStorage.removeItem('token');
+      clearUserMeta();
     }
   },
 }));
@@ -174,7 +223,9 @@ if (typeof window !== 'undefined') {
   const token = localStorage.getItem('token');
   if (token && isValidToken(token)) {
     const userData = getUserFromToken();
-    useUserStore.setState({ user: userData, token });
+    const meta = loadUserMeta();
+    const mergedUser = userData ? { ...userData, ...meta } : null;
+    useUserStore.setState({ user: mergedUser, token });
   } else if (token) {
     // Clean up invalid token
     console.warn('Invalid token found during initialization, cleaning up');

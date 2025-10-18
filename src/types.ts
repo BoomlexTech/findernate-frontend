@@ -348,6 +348,8 @@ export interface UserProfile {
   isFollowing?: boolean;
   privacy?: 'public' | 'private';
   isFullPrivate?: boolean;
+  // Blue tick verification flag controls showing the verification badge
+  isBlueTickVerified?: boolean;
 }
 
 // Below are the types for create,and update business details
