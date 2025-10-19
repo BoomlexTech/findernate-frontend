@@ -93,3 +93,19 @@ export const rateBusiness = async (businessId: string, rating: number) => {
     const response = await axios.post(`/business/${businessId}/rate`, { rating });
     return response.data;
 }
+
+// Upload a single verification document
+// endpoint: POST /business/upload-document
+// body multipart/form-data: { document: File, documentType: 'aadhaar'|'gst'|'pan'|'license'|'registration'|'other' }
+export const uploadBusinessDocument = async (document: File, documentType: 'aadhaar' | 'gst' | 'pan' | 'license' | 'registration' | 'other') => {
+    const formData = new FormData();
+    formData.append('document', document);
+    formData.append('documentType', documentType);
+
+    const response = await axios.post('/business/upload-document', formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data'
+        }
+    });
+    return response.data;
+}

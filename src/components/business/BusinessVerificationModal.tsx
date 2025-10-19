@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
+import { uploadBusinessDocument } from '@/api/business';
 
 type DocumentKey =
   | 'businessRegistration'
@@ -56,6 +57,8 @@ const BusinessVerificationModal: React.FC<BusinessVerificationModalProps> = ({ i
   const [files, setFiles] = useState<BusinessVerificationPayload>({});
   const [isRegistered, setIsRegistered] = useState<boolean>(true);
   const [showSuccess, setShowSuccess] = useState<boolean>(false);
+  const [isUploading, setIsUploading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
   const inputRefs = useRef<Record<DocumentKey, HTMLInputElement | null>>({
     businessRegistration: null,
     companyPan: null,
@@ -84,15 +87,57 @@ const BusinessVerificationModal: React.FC<BusinessVerificationModalProps> = ({ i
     setFiles(prev => ({ ...prev, [key]: file }));
   };
 
-  const handleUpload = () => {
+  const mapKeyToDocumentType = (key: DocumentKey): 'aadhaar' | 'gst' | 'pan' | 'license' | 'registration' | 'other' => {
+    switch (key) {
+      case 'aadhaar':
+        return 'aadhaar';
+      case 'panCard':
+        return 'pan';
+      case 'taxCertificate':
+        return 'gst';
+      case 'businessRegistration':
+        return 'registration';
+      case 'companyPan':
+        return 'pan';
+      case 'representativeId':
+      case 'representativeAddress':
+      case 'businessAddress':
+        return 'license'; // best-fit mapping; backend also supports 'other' if needed
+      default:
+        return 'other';
+    }
+  };
+
+  const handleUpload = async () => {
+    // keep existing callback behavior for any downstream usage
     onSubmit(files);
-    setShowSuccess(true);
-    
-    // Auto close the modal after showing success message for 3 seconds
-    setTimeout(() => {
-      setShowSuccess(false);
-      onClose();
-    }, 3000);
+
+    // Upload each selected file individually to backend
+    const entries = Object.entries(files) as [DocumentKey, File][];
+    if (entries.length === 0) {
+      setError('Please select at least one document to upload.');
+      return;
+    }
+
+    setIsUploading(true);
+    setError(null);
+    try {
+      for (const [key, file] of entries) {
+        const documentType = mapKeyToDocumentType(key);
+        await uploadBusinessDocument(file, documentType);
+      }
+      setShowSuccess(true);
+      // Auto close the modal after showing success message for 3 seconds
+      setTimeout(() => {
+        setShowSuccess(false);
+        onClose();
+      }, 3000);
+    } catch (e) {
+      const err = e as { response?: { data?: { message?: string } }; message?: string };
+      setError(err?.response?.data?.message || err?.message || 'Failed to upload documents');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -123,7 +168,7 @@ const BusinessVerificationModal: React.FC<BusinessVerificationModalProps> = ({ i
             </div>
             <h3 className="text-lg font-semibold text-black mb-2">Documents Submitted!</h3>
             <p className="text-gray-600 text-sm mb-4">
-              Your documents have been submitted for verification. We'll review them and get back to you soon.
+              Your documents have been submitted for verification. We&apos;ll review them and get back to you soon.
             </p>
             <div className="text-xs text-gray-500">This window will close automatically</div>
           </div>
@@ -175,7 +220,8 @@ const BusinessVerificationModal: React.FC<BusinessVerificationModalProps> = ({ i
                 {files[key] && <span className="text-xs text-gray-600 truncate max-w-[120px]">{files[key]?.name}</span>}
                 <button
                   onClick={() => triggerFile(key)}
-                  className="px-3 py-1.5 text-xs text-black bg-gray-100 hover:bg-gray-200 rounded-lg"
+                  className="px-3 py-1.5 text-xs text-black bg-gray-100 hover:bg-gray-200 rounded-lg disabled:opacity-50"
+                  disabled={isUploading}
                 >
                   {files[key] ? 'Change' : 'Upload'}
                 </button>
@@ -191,11 +237,15 @@ const BusinessVerificationModal: React.FC<BusinessVerificationModalProps> = ({ i
           ))}
         </div>
 
+        {error && (
+          <p className="mt-2 text-sm text-red-600 text-center">{error}</p>
+        )}
         <button
           onClick={handleUpload}
-          className="mt-5 w-full py-2.5 rounded-lg bg-button-gradient text-black font-medium"
+          className="mt-5 w-full py-2.5 rounded-lg bg-button-gradient text-black font-medium disabled:opacity-50"
+          disabled={isUploading}
         >
-          Upload
+          {isUploading ? 'Uploading...' : 'Upload'}
         </button>
 
         <p className="mt-3 text-[11px] text-gray-500 text-center">

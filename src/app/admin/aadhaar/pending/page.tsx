@@ -150,7 +150,7 @@ export default function PendingAadhaarPage() {
                         <h3 className="text-lg font-semibold text-gray-900">
                           {verification.businessName}
                         </h3>
-                        <p className="text-gray-600">Owner: {verification.userId.fullName}</p>
+                        <p className="text-gray-600">Owner: {verification.userId?.fullName || 'N/A'}</p>
                       </div>
                       <span className="px-3 py-1 bg-yellow-100 text-yellow-800 text-sm font-medium rounded-full">
                         Pending Review
@@ -179,9 +179,9 @@ export default function PendingAadhaarPage() {
                     <div className="mt-4">
                       <p className="text-sm text-gray-500">Contact Information</p>
                       <div className="flex flex-col gap-1 mt-1">
-                        <p className="text-sm"><span className="font-medium">Email:</span> {verification.contact.email}</p>
-                        <p className="text-sm"><span className="font-medium">Phone:</span> {verification.contact.phone}</p>
-                        <p className="text-sm"><span className="font-medium">Address:</span> {verification.contact.address}</p>
+                        <p className="text-sm"><span className="font-medium">Email:</span> {verification.contact?.email || 'N/A'}</p>
+                        <p className="text-sm"><span className="font-medium">Phone:</span> {verification.contact?.phone || 'N/A'}</p>
+                        <p className="text-sm"><span className="font-medium">Address:</span> {verification.contact?.address || 'N/A'}</p>
                       </div>
                     </div>
                   </div>
