@@ -228,7 +228,7 @@ export default function PendingBusinessVerificationsPage() {
                           <h3 className="text-lg font-semibold text-gray-900">
                             {business.businessName}
                           </h3>
-                          <p className="text-gray-600">Owner: {business.userId.fullName}</p>
+                          <p className="text-gray-600">Owner: {business.userId?.fullName || 'N/A'}</p>
                           {business.category && <p className="text-sm text-gray-500">{business.category}</p>}
                         </div>
                         <div className="flex gap-2">
@@ -252,11 +252,11 @@ export default function PendingBusinessVerificationsPage() {
                             <p className="font-medium">{business.businessType}</p>
                           </div>
                         )}
-                        {(business.location.city || business.location.state) && (
+                        {(business.location?.city || business.location?.state) && (
                           <div>
                             <p className="text-sm text-gray-500">Location</p>
                             <p className="font-medium text-gray-500">
-                              {[business.location.city, business.location.state].filter(Boolean).join(', ')}
+                              {[business.location?.city, business.location?.state].filter(Boolean).join(', ')}
                             </p>
                           </div>
                         )}
@@ -266,8 +266,8 @@ export default function PendingBusinessVerificationsPage() {
                         </div>
                         <div>
                           <p className="text-sm text-gray-500">Contact</p>
-                          {business.contact.email && <p className="text-sm text-gray-500">{business.contact.email}</p>}
-                          {business.contact.phone && <p className="text-sm text-gray-500">{business.contact.phone}</p>}
+                          {business.contact?.email && <p className="text-sm text-gray-500">{business.contact?.email}</p>}
+                          {business.contact?.phone && <p className="text-sm text-gray-500">{business.contact?.phone}</p>}
                         </div>
                       </div>
 
@@ -289,22 +289,22 @@ export default function PendingBusinessVerificationsPage() {
 
                       {/* Additional Details */}
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-4 border-t border-gray-100">
-                        {business.contact.phone && (
+                        {business.contact?.phone && (
                           <div className="flex items-center gap-2">
                             <Phone className="h-4 w-4 text-gray-400" />
-                            <span className="text-sm text-gray-600">{business.contact.phone}</span>
+                            <span className="text-sm text-gray-600">{business.contact?.phone}</span>
                           </div>
                         )}
-                        {business.userId.email && (
+                        {business.userId?.email && (
                           <div className="flex items-center gap-2">
                             <Mail className="h-4 w-4 text-gray-400" />
-                            <span className="text-sm text-gray-600">{business.userId.email}</span>
+                            <span className="text-sm text-gray-600">{business.userId?.email}</span>
                           </div>
                         )}
-                        {business.location.address && (
+                        {business.location?.address && (
                           <div className="flex items-center gap-2">
                             <MapPin className="h-4 w-4 text-gray-400" />
-                            <span className="text-sm text-gray-600">{business.location.address}</span>
+                            <span className="text-sm text-gray-600">{business.location?.address}</span>
                           </div>
                         )}
                       </div>
@@ -512,20 +512,20 @@ export default function PendingBusinessVerificationsPage() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                           <div>
                             <span className="text-gray-500">Full Name:</span>
-                            <span className="ml-2 font-medium text-black">{showDetailsModal.data.business.userId.fullName}</span>
+                            <span className="ml-2 font-medium text-black">{showDetailsModal.data.business.userId?.fullName || 'N/A'}</span>
                           </div>
                           <div>
                             <span className="text-gray-500">Username:</span>
-                            <span className="ml-2 font-medium text-black">{showDetailsModal.data.business.userId.username}</span>
+                            <span className="ml-2 font-medium text-black">{showDetailsModal.data.business.userId?.username || 'N/A'}</span>
                           </div>
                           <div>
                             <span className="text-gray-500">Email:</span>
-                            <span className="ml-2 font-medium text-black">{showDetailsModal.data.business.userId.email}</span>
+                            <span className="ml-2 font-medium text-black">{showDetailsModal.data.business.userId?.email || 'N/A'}</span>
                           </div>
-                          {showDetailsModal.data.business.userId.phoneNumber && (
+                          {showDetailsModal.data.business.userId?.phoneNumber && (
                             <div>
                               <span className="text-gray-500">Phone:</span>
-                              <span className="ml-2 font-medium text-black">{showDetailsModal.data.business.userId.phoneNumber}</span>
+                              <span className="ml-2 font-medium text-black">{showDetailsModal.data.business.userId?.phoneNumber}</span>
                             </div>
                           )}
                         </div>
@@ -535,24 +535,24 @@ export default function PendingBusinessVerificationsPage() {
                       <div>
                         <h4 className="text-lg font-medium text-gray-900 mb-3">Contact Information</h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                          {showDetailsModal.data.business.contact.phone && (
+                          {showDetailsModal.data.business.contact?.phone && (
                             <div>
                               <span className="text-gray-500">Business Phone:</span>
-                              <span className="ml-2 font-medium text-black">{showDetailsModal.data.business.contact.phone}</span>
+                              <span className="ml-2 font-medium text-black">{showDetailsModal.data.business.contact?.phone}</span>
                             </div>
                           )}
-                          {showDetailsModal.data.business.contact.email && (
+                          {showDetailsModal.data.business.contact?.email && (
                             <div>
                               <span className="text-gray-500">Business Email:</span>
-                              <span className="ml-2 font-medium text-black">{showDetailsModal.data.business.contact.email}</span>
+                              <span className="ml-2 font-medium text-black">{showDetailsModal.data.business.contact?.email}</span>
                             </div>
                           )}
-                          {showDetailsModal.data.business.contact.website && (
+                          {showDetailsModal.data.business.contact?.website && (
                             <div>
                               <span className="text-gray-500">Website:</span>
                               <span className="ml-2 font-medium text-blue-600">
-                                <a href={showDetailsModal.data.business.contact.website} target="_blank" rel="noopener noreferrer">
-                                  {showDetailsModal.data.business.contact.website}
+                                <a href={showDetailsModal.data.business.contact?.website} target="_blank" rel="noopener noreferrer">
+                                  {showDetailsModal.data.business.contact?.website}
                                 </a>
                               </span>
                             </div>
@@ -571,7 +571,7 @@ export default function PendingBusinessVerificationsPage() {
                       </div>
 
                       {/* Location Information */}
-                      {(showDetailsModal.data.business.location.address || showDetailsModal.data.business.location.city || showDetailsModal.data.business.location.state) && (
+                      {(showDetailsModal.data.business.location?.address || showDetailsModal.data.business.location?.city || showDetailsModal.data.business.location?.state) && (
                         <div>
                           <h4 className="text-lg font-medium text-gray-900 mb-3">Location Information</h4>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">

@@ -312,7 +312,7 @@ export default function AllBusinessesPage() {
                           <h3 className="text-lg font-semibold text-gray-900">
                             {business.businessName}
                           </h3>
-                          <p className="text-gray-600">Owner: {business.userId.fullName}</p>
+                          <p className="text-gray-600">Owner: {business.userId?.fullName || 'N/A'}</p>
                           <p className="text-sm text-gray-500">{business.category}</p>
                         </div>
                         <div className="flex gap-2">
@@ -327,11 +327,11 @@ export default function AllBusinessesPage() {
                           <p className="text-sm text-gray-500">Business Type</p>
                           <p className="font-medium">{business.businessType}</p>
                         </div>
-                        {(business.location.city || business.location.state) && (
+                        {(business.location?.city || business.location?.state) && (
                           <div>
                             <p className="text-sm text-gray-500">Location</p>
                             <p className="font-medium">
-                              {[business.location.city, business.location.state].filter(Boolean).join(', ')}
+                              {[business.location?.city, business.location?.state].filter(Boolean).join(', ')}
                             </p>
                           </div>
                         )}
@@ -342,10 +342,10 @@ export default function AllBusinessesPage() {
                             <p className="font-medium">{business.insights.views}</p>
                           </div>
                         </div>
-                        {business.contact.email && (
+                        {business.contact?.email && (
                           <div>
                             <p className="text-sm text-gray-500">Email</p>
-                            <p className="font-medium text-sm">{business.contact.email}</p>
+                            <p className="font-medium text-sm">{business.contact?.email}</p>
                           </div>
                         )}
                         <div>
@@ -358,24 +358,24 @@ export default function AllBusinessesPage() {
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 pt-4 border-t border-gray-100">
                         <div className="flex items-center gap-2">
                           <Phone className="h-4 w-4 text-gray-400" />
-                          <span className="text-sm text-gray-600">{business.contact.phone}</span>
+                          <span className="text-sm text-gray-600">{business.contact?.phone}</span>
                         </div>
-                        {business.contact.website && (
+                        {business.contact?.website && (
                           <div className="flex items-center gap-2">
                             <Globe className="h-4 w-4 text-gray-400" />
-                            <span className="text-sm text-gray-600 truncate">{business.contact.website}</span>
+                            <span className="text-sm text-gray-600 truncate">{business.contact?.website}</span>
                           </div>
                         )}
-                        {business.location.address && (
+                        {business.location?.address && (
                           <div className="flex items-center gap-2">
                             <MapPin className="h-4 w-4 text-gray-400" />
-                            <span className="text-sm text-gray-600">{business.location.address}</span>
+                            <span className="text-sm text-gray-600">{business.location?.address}</span>
                           </div>
                         )}
-                        {business.userId.email && (
+                        {business.userId?.email && (
                           <div className="flex items-center gap-2">
                             <Mail className="h-4 w-4 text-gray-400" />
-                            <span className="text-sm text-gray-600">{business.userId.email}</span>
+                            <span className="text-sm text-gray-600">{business.userId?.email}</span>
                           </div>
                         )}
                       </div>

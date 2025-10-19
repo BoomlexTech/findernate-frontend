@@ -209,7 +209,7 @@ export default function AadhaarHistoryPage() {
                           <h3 className="text-lg font-semibold text-gray-900">
                             {record.businessName}
                           </h3>
-                          <p className="text-gray-600">Owner: {record.userId.fullName}</p>
+                          <p className="text-gray-600">Owner: {record.userId?.fullName || 'N/A'}</p>
                         </div>
                         {getStatusBadge(record.verificationStatus)}
                       </div>
@@ -221,7 +221,7 @@ export default function AadhaarHistoryPage() {
                         </div>
                         <div>
                           <p className="text-sm text-gray-500">Verified By</p>
-                          <p className="font-medium text-black">{record.verifiedBy.fullName}</p>
+                          <p className="font-medium text-black">{record.verifiedBy?.fullName || 'N/A'}</p>
                         </div>
                         <div>
                           <p className="text-sm text-gray-500">Decision Date</p>
