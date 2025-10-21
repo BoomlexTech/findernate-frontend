@@ -17,7 +17,8 @@ const ServiceDetailsForm: React.FC<ServiceDetailsFormProps> = ({
 
     const [schedule, setSchedule] = useState(
     daysOfWeek.reduce((acc, day) => {
-      acc[day] = { isClosed: false, startTime: '', endTime: '' };
+      // Default business hours: 9:00 AM to 6:00 PM
+      acc[day] = { isClosed: false, startTime: '09:00', endTime: '18:00' };
       return acc;
     }, {} as Record<string, { isClosed: boolean; startTime: string; endTime: string }>)
   );
