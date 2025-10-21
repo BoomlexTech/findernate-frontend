@@ -1,6 +1,6 @@
 'use client'
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Camera, MapPin, ShoppingBag, BriefcaseBusiness, Building2  } from 'lucide-react';
+import { X, Camera, MapPin } from 'lucide-react';
 import Image from 'next/image';
 import { Button } from './ui/button';
 import { isAxiosError } from 'axios';
@@ -91,6 +91,8 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
   const [locationSearchTimeout, setLocationSearchTimeout] = useState<NodeJS.Timeout | null>(null);
   const locationInputRef = useRef<HTMLInputElement>(null);
   const locationDropdownRef = useRef<HTMLDivElement>(null);
+  // Track whether we've already initialized location from profile to avoid re-filling
+  const [hasInitializedLocation, setHasInitializedLocation] = useState(false);
   
   // Business profile modal state
   const [showBusinessProfileModal, setShowBusinessProfileModal] = useState(false);
@@ -100,7 +102,7 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
   }, [showBusinessProfileModal]);
 
   // Function to clear specific post type form data
-  const clearPostTypeForm = (type: string) => {
+  const clearPostTypeForm = React.useCallback((type: string) => {
     switch (type) {
       case 'Regular':
         setRegularForm({
@@ -156,20 +158,20 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
             category: '',
             subcategory: '',
             duration: 0,
-            serviceType: '',
+            serviceType: '', // 'in-person', 'online', 'hybrid'
             availability: {
-              schedule: [],
+              schedule: [], // [{ day: 'Monday', timeSlots: [{ startTime: '', endTime: '' }] }]
               timezone: '',
               bookingAdvance: '',
               maxBookingsPerDay: '',
             },
             location: {
-              type: '',
+              type: '', // 'studio', 'home', etc.
               address: '',
               city: '',
               state: '',
               country: '',
-              coordinates: undefined,
+              coordinates: undefined, // { type: 'Point', coordinates: [lng, lat] } or undefined
             },
             requirements: [],
             deliverables: [],
@@ -226,10 +228,10 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
         });
         break;
     }
-  };
+  }, []);
 
   // Reset form data when content type changes
-  const resetFormData = () => {
+  const resetFormData = React.useCallback(() => {
     setSharedForm({
       description: '',
       image: [],
@@ -252,7 +254,7 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
     setError(null);
     setLocationSuggestions([]);
     setShowLocationSuggestions(false);
-  };
+  }, [clearPostTypeForm]);
 
   // Watch for content type changes and reset form data
   useEffect(() => {
@@ -260,7 +262,7 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
       resetFormData();
     }
     setPreviousContentType(contentType);
-  }, [contentType]);
+  }, [contentType, previousContentType, resetFormData]);
 
   // Watch for post type changes and clear form data when switching
   useEffect(() => {
@@ -275,7 +277,7 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
       }));
     }
     setPreviousPostType(postType);
-  }, [postType]);
+  }, [postType, previousPostType, clearPostTypeForm]);
 
   // Flags come from global store: no fetch here for instant updates
 
@@ -374,36 +376,18 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
     return () => { cancelled = true; };
   }, [isBusinessProfile, postType]);
 
-  // Initialize and update location when user's location changes in store
+  // Initialize location from user profile ONCE when empty
   useEffect(() => {
-    if (user?.location && user.location !== sharedForm.location.name) {
+    if (!hasInitializedLocation && user?.location && !sharedForm.location.name) {
       setSharedForm(prev => ({
         ...prev,
         location: { name: user.location || '' }
       }));
+      setHasInitializedLocation(true);
     }
-  }, [user?.location, sharedForm.location.name]);
+  }, [user?.location, sharedForm.location.name, hasInitializedLocation]);
 
-  // Initialize location when user data becomes available
-  useEffect(() => {
-    if (user?.location && !sharedForm.location.name) {
-      setSharedForm(prev => ({
-        ...prev,
-        location: { name: user.location || '' }
-      }));
-    }
-  }, [user?.location]);
-
-  // Initialize location on component mount if user has location
-  useEffect(() => {
-    if (user?.location && sharedForm.location.name === '') {
-      const userLocation = user.location;
-      setSharedForm(prev => ({
-        ...prev,
-        location: { name: userLocation }
-      }));
-    }
-  }, [user?.location, sharedForm.location.name]);
+  // Removed duplicate location initialization effects to avoid overwriting manual edits
 
   // Location search functionality
   const searchLocationSuggestions = async (query: string) => {
@@ -417,7 +401,7 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
       const suggestions = await searchLocations(query);
       setLocationSuggestions(suggestions);
       setShowLocationSuggestions(suggestions.length > 0);
-    } catch (error) {
+    } catch {
       setLocationSuggestions([]);
       setShowLocationSuggestions(false);
     }
@@ -426,6 +410,10 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
   const handleLocationInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSharedForm({...sharedForm, location: {name: value}});
+    // Mark as initialized so profile prefill won't reapply after manual edits
+    if (!hasInitializedLocation) {
+      setHasInitializedLocation(true);
+    }
 
     // Clear previous timeout
     if (locationSearchTimeout) {
@@ -435,7 +423,7 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
     // Debounce location search
     const timeout = setTimeout(() => {
       searchLocationSuggestions(value);
-    }, 300);
+    }, 500);
 
     setLocationSearchTimeout(timeout);
   };
@@ -463,6 +451,10 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
 
     const formattedLocation = formatLocationForPost(suggestion);
     setSharedForm({...sharedForm, location: {name: formattedLocation}});
+    // Ensure we don't re-fill from profile after a selection
+    if (!hasInitializedLocation) {
+      setHasInitializedLocation(true);
+    }
     setShowLocationSuggestions(false);
     setLocationSuggestions([]);
   };
@@ -640,7 +632,7 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
         const optimizedFile = await compressVideo(file);
         return optimizedFile;
       }
-    } catch (error) {
+    } catch {
       toast.error('File optimization failed. Please try a smaller file.');
     } finally {
       setIsOptimizing(false);
@@ -697,7 +689,7 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
             autoClose: 3000,
           });
         }
-      } catch (error) {
+      } catch {
         // Default to video if we can't detect duration
         setShowReelVisibility(false);
         setReelVisibility(false);
@@ -1014,7 +1006,7 @@ const handleProductChange = (
         if (file.type === 'video/mp4' || file.type === 'video/quicktime' || file.type === 'video/webm' || optimizedFile.type.startsWith('video/')) {
           await updatePostTypeBasedOnVideo(optimizedFile);
         }
-      } catch (error) {
+      } catch {
         toast.error(`Failed to optimize ${file.name}. Please try a smaller file.`);
         return;
       }
@@ -1288,8 +1280,8 @@ const handleProductChange = (
         await storyAPI.uploadStory({ media, caption: sharedForm.description });
         toast.success('Story shared successfully!', { position: 'top-right', autoClose: 3000 });
         closeModal();
-      } catch (e: unknown) {
-        const msg = isAxiosError(e) ? ((e.response?.data as any)?.message || e.message) : 'Failed to share story';
+      } catch (_error) {
+        const msg = isAxiosError(_error) ? ((_error.response?.data as any)?.message || _error.message) : 'Failed to share story';
         setError(msg);
         toast.error(msg, { position: 'top-right', autoClose: 4000 });
       } finally {
@@ -1346,8 +1338,8 @@ const handleProductChange = (
         } else {
           throw new Error('Reel creation failed - unexpected response');
         }
-      } catch (e: unknown) {
-        const msg = isAxiosError(e) ? ((e.response?.data as any)?.message || e.message) : 'Failed to create reel';
+      } catch (_error) {
+        const msg = isAxiosError(_error) ? ((_error.response?.data as any)?.message || _error.message) : 'Failed to create reel';
         setError(msg);
         toast.error(msg, { position: 'top-right', autoClose: 5000 });
       } finally {
@@ -1417,17 +1409,17 @@ const handleProductChange = (
       }
       
 
-    } catch (error: unknown) {
-      console.error('Error creating post:', error);
+    } catch (_error) {
+      console.error('Error creating post:', _error);
       //console.log('Post type:', postType);
       
       let userMessage = 'Failed to create post. Please try again.';
-      if (isAxiosError(error)) {
-        userMessage = (error.response?.data as any)?.message || error.message || userMessage;
+      if (isAxiosError(_error)) {
+        userMessage = (_error.response?.data as any)?.message || _error.message || userMessage;
         
         // Debug logging for business profile errors
-        //console.log('Error response status:', error.response?.status);
-        //console.log('Error response data:', error.response?.data);
+        //console.log('Error response status:', _error.response?.status);
+        //console.log('Error response data:', _error.response?.data);
         //console.log('User message:', userMessage);
         //console.log('User message lowercase:', userMessage.toLowerCase());
         
@@ -1441,9 +1433,9 @@ const handleProductChange = (
           userMessage.toLowerCase().includes('complete your business profile') ||
           userMessage.toLowerCase().includes('business profile is required') ||
           userMessage.toLowerCase().includes('create business profile') ||
-          error.response?.status === 404 ||
+          _error.response?.status === 404 ||
           // Fallback: Any error when creating business post could be profile related
-          (error.response?.status !== undefined && error.response.status >= 400 && error.response.status < 500)
+          (_error.response?.status !== undefined && _error.response.status >= 400 && _error.response.status < 500)
         );
         
         //console.log('Is business profile error:', isBusinessProfileError);
@@ -1465,8 +1457,8 @@ const handleProductChange = (
           //console.log('Business modal state set to true');
           return; // Don't show the generic error
         }
-      } else if (error instanceof Error) {
-        userMessage = error.message || userMessage;
+      } else if (_error instanceof Error) {
+        userMessage = _error.message || userMessage;
       }
       setError(userMessage);
       
@@ -1491,7 +1483,7 @@ const handleProductChange = (
   };
 
   // Business profile modal handlers
-  const handleBusinessProfileSubmit = (data: any) => {
+  const handleBusinessProfileSubmit = () => {
     //console.log('Business profile submitted:', data);
     setShowBusinessProfileModal(false);
     // Optionally, you can retry the business post creation here
@@ -1603,169 +1595,7 @@ const handleProductChange = (
             )}
           </div>
 
-          {/* Post Type Tabs - Show for Posts and Reels */}
-          {(contentType === 'Post' || contentType === 'Reel') && (
-            <div className="grid grid-cols-2 gap-2 sm:flex sm:space-x-4 sm:gap-0 mb-6">
-              {/* Regular Post - Available for everyone */}
-            <Button
-              variant='custom'
-              onClick={() => setPostType('Regular')}
-              className={`px-4 py-2 rounded-lg border transition-colors ${
-                postType === 'Regular'
-                  ? 'border-[#ffd65c] bg-[#fefdf5] text-[#b8871f]'
-                  : 'border-gray-300 text-gray-600 hover:bg-gray-50'
-              } w-full sm:w-auto justify-center`}
-            >
-              Regular Post
-            </Button>
-
-            {/* Business Post Types - Only available for business accounts */}
-            {isBusinessProfile && allowProduct && (
-            <Button
-              variant='custom'
-              onClick={() => setPostType('Product')}
-              className={`px-4 py-2 rounded-lg border transition-colors ${
-                postType === 'Product'
-                  ? 'border-[#ffd65c] bg-[#fefdf5] text-[#b8871f]'
-                  : 'border-gray-300 text-gray-600 hover:bg-gray-50'
-              } w-full sm:w-auto justify-center`}
-            >
-              <ShoppingBag className='mr-2' size={16} /> Product
-            </Button>
-            )}
-            {isBusinessProfile && allowService && (
-            <Button
-              variant='custom'
-              onClick={() => setPostType('Service')}
-              className={`px-4 py-2 rounded-lg border transition-colors ${
-                postType === 'Service'
-                  ? 'border-[#ffd65c] bg-[#fefdf5] text-[#b8871f]'
-                  : 'border-gray-300 text-gray-600 hover:bg-gray-50'
-              } w-full sm:w-auto justify-center`}
-            >
-              <BriefcaseBusiness className='mr-2' size={16} /> Service
-            </Button>
-            )}
-            {isBusinessProfile && allowBusiness && (
-            <Button
-              variant='custom'
-              onClick={() => setPostType('Business')}
-              className={`px-4 py-2 rounded-lg border transition-colors ${
-                postType === 'Business'
-                  ? 'border-[#ffd65c] bg-[#fefdf5] text-[#b8871f]'
-                  : 'border-gray-300 text-gray-600 hover:bg-gray-50'
-              } w-full sm:w-auto justify-center`}
-            >
-              <Building2 className='mr-2' size={16} /> Business
-            </Button>
-            )}
-            </div>
-          )}
-
-          {/* Post Content - Show for Posts and Reels */}
-          {(contentType === 'Post' || contentType === 'Reel') && (
-            <div className="mb-4">
-              <label className='text-black text-bold ml-2'>Add Description</label>
-              <textarea
-                value={sharedForm.description}
-                onChange={(e) => setSharedForm({...sharedForm, description: e.target.value})}
-                placeholder="What's on your mind?"
-                className="w-full h-32 p-4 border border-gray-300 placeholder:text-gray-500 text-black rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
-              />
-            </div>
-          )}
-
-          {/* Category Selection - Show for Posts and Reels */}
-          {(contentType === 'Post' || contentType === 'Reel') && (
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Category
-              </label>
-              <select
-              value={sharedForm.category}
-              onChange={(e) => {
-                setSharedForm({
-                  ...sharedForm,
-                  category: e.target.value,
-                  customCategory: e.target.value === 'Other' ? sharedForm.customCategory : ''
-                });
-              }}
-              className="w-full p-3 border border-gray-300 text-black rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
-            >
-              {postCategories.map((category) => (
-                <option key={category} value={category}>
-                  {category}
-                </option>
-              ))}
-            </select>
-
-            {/* Custom Category Input - shown when "Other" is selected */}
-            {sharedForm.category === 'Other' && (
-              <div className="mt-3">
-                <input
-                  type="text"
-                  value={sharedForm.customCategory}
-                  onChange={(e) => setSharedForm({...sharedForm, customCategory: e.target.value})}
-                  placeholder="Enter custom category..."
-                  className="w-full p-3 border border-gray-300 placeholder:text-gray-500 text-black rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
-                />
-              </div>
-            )}
-            </div>
-          )}
-
-          {/* Show post-specific forms for Post and Reel content types */}
-          {(contentType === 'Post' || contentType === 'Reel') && (
-            <>
-              {postType === 'Regular' && (
-                <RegularPostForm
-                  formData={regularForm}
-                  onChange={handleRegularChange}
-                />
-              )}
-              {isBusinessProfile && postType === 'Product' && (
-                <ProductDetailsForm
-                  formData={productForm}
-                  onChange={handleProductChange}
-                />
-              )}
-              {isBusinessProfile && postType === 'Service' && (
-                <ServiceDetailsForm
-                  formData={serviceForm}
-                  onChange={handleServiceChange}
-                  categories={['Consulting', 'Repair', 'Education', 'Other']}
-                />
-              )}
-              {isBusinessProfile && postType === 'Business' && (
-                <BusinessDetailsForm
-                  formData={businessForm.formData}
-                  onChange={handleBusinessChange}
-                />
-              )}
-            </>
-          )}
-
-          {/* Show simple description input for Story only */}
-          {contentType === 'Story' && (
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-black mb-2">
-                {contentType === 'Story' ? 'Story Caption' : 'Reel Caption'} (Optional)
-              </label>
-              <textarea
-                value={sharedForm.description}
-                onChange={(e) => setSharedForm({...sharedForm, description: e.target.value})}
-                placeholder={`Add a caption to your ${contentType.toLowerCase()}...`}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent resize-none text-black placeholder:text-gray-500"
-                rows={3}
-                maxLength={500}
-              />
-              <div className="text-right text-xs text-black mt-1">
-                {sharedForm.description.length}/500
-              </div>
-            </div>
-          )}
-
-          {/* Media Section */}
+          {/* Media Section (moved up) */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-4">
               <span className="text-sm text-gray-600">Media</span>
@@ -1773,7 +1603,6 @@ const handleProductChange = (
                 {sharedForm.image.length}/{contentType === 'Post' ? '10' : '1'}
               </span>
             </div>
-            
             <div className={`border-2 border-dashed rounded-lg p-8 text-center ${
               (contentType === 'Post' ? sharedForm.image.length >= 10 : sharedForm.image.length >= 1)
                 ? 'border-gray-200 bg-gray-50' 
@@ -1802,11 +1631,11 @@ const handleProductChange = (
                 accept="image/*,video/mp4,video/quicktime,video/mov"
                 onChange={handleImageUpload}
                 className="hidden"
-                id="image-upload"
+                id="image-upload-top"
                 disabled={contentType === 'Post' ? sharedForm.image.length >= 10 : sharedForm.image.length >= 1}
               />
               <label
-                htmlFor="image-upload"
+                htmlFor="image-upload-top"
                 className={`inline-flex items-center px-4 py-2 rounded-lg transition-colors ${
                   (contentType === 'Post' ? sharedForm.image.length >= 10 : sharedForm.image.length >= 1)
                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
@@ -1895,9 +1724,164 @@ const handleProductChange = (
                     </button>
                   </div>
                 ))}
+            </div>
+          )}
+          </div>
+
+          {/* Post Content - Show for Posts and Reels */}
+          {(contentType === 'Post' || contentType === 'Reel') && (
+            <div className="mb-4">
+              <label className='text-black text-bold ml-2'>Add Description or Caption</label>
+              <textarea
+                value={sharedForm.description}
+                onChange={(e) => setSharedForm({...sharedForm, description: e.target.value})}
+                placeholder="What's on your mind?"
+                className="w-full h-32 p-4 border border-gray-300 placeholder:text-gray-500 text-black rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+              />
+            </div>
+          )}
+
+          {/* Category Selection - Show for Posts and Reels */}
+          {(contentType === 'Post' || contentType === 'Reel') && (
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Category
+              </label>
+              <select
+              value={sharedForm.category}
+              onChange={(e) => {
+                setSharedForm({
+                  ...sharedForm,
+                  category: e.target.value,
+                  customCategory: e.target.value === 'Other' ? sharedForm.customCategory : ''
+                });
+              }}
+              className="w-full p-3 border border-gray-300 text-black rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+            >
+              {postCategories.map((category) => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
+              ))}
+            </select>
+
+            {/* Custom Category Input - shown when "Other" is selected */}
+            {sharedForm.category === 'Other' && (
+              <div className="mt-3">
+                <input
+                  type="text"
+                  value={sharedForm.customCategory}
+                  onChange={(e) => setSharedForm({...sharedForm, customCategory: e.target.value})}
+                  placeholder="Enter custom category..."
+                  className="w-full p-3 border border-gray-300 placeholder:text-gray-500 text-black rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                />
               </div>
             )}
-          </div>
+            </div>
+          )}
+
+          {/* Post Type Selection (radio buttons) */}
+          {(contentType === 'Post' || contentType === 'Reel') && (
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Choose Post Type (optional)
+              </label>
+              <div className="flex flex-wrap gap-3">
+                <label className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer select-none text-black hover:bg-gray-50">
+                  <input
+                    type="radio"
+                    name="postType"
+                    value="Business"
+                    checked={postType === 'Business'}
+                    onChange={() => setPostType('Business')}
+                    disabled={!isBusinessProfile || !allowBusiness}
+                    className="text-yellow-500 focus:ring-yellow-500"
+                  />
+                  <span>Business</span>
+                </label>
+                <label className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer select-none text-black hover:bg-gray-50">
+                  <input
+                    type="radio"
+                    name="postType"
+                    value="Service"
+                    checked={postType === 'Service'}
+                    onChange={() => setPostType('Service')}
+                    disabled={!isBusinessProfile || !allowService}
+                    className="text-yellow-500 focus:ring-yellow-500"
+                  />
+                  <span>Service</span>
+                </label>
+                <label className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer select-none text-black hover:bg-gray-50">
+                  <input
+                    type="radio"
+                    name="postType"
+                    value="Product"
+                    checked={postType === 'Product'}
+                    onChange={() => setPostType('Product')}
+                    disabled={!isBusinessProfile || !allowProduct}
+                    className="text-yellow-500 focus:ring-yellow-500"
+                  />
+                  <span>Product</span>
+                </label>
+                {/* If none selected, it's Regular by default */}
+                {postType !== 'Business' && postType !== 'Service' && postType !== 'Product' && (
+                  <span className="text-sm text-gray-500 self-center">Default: Regular Post</span>
+                )}
+              </div>
+            </div>
+          )}
+
+
+          {/* Post-specific forms (single rendering) */}
+          {(contentType === 'Post' || contentType === 'Reel') && (
+            <>
+              {postType === 'Regular' && (
+                <RegularPostForm
+                  formData={regularForm}
+                  onChange={handleRegularChange}
+                />
+              )}
+              {isBusinessProfile && postType === 'Product' && (
+                <ProductDetailsForm
+                  formData={productForm}
+                  onChange={handleProductChange}
+                />
+              )}
+              {isBusinessProfile && postType === 'Service' && (
+                <ServiceDetailsForm
+                  formData={serviceForm}
+                  onChange={handleServiceChange}
+                  categories={['Consulting', 'Repair', 'Education', 'Other']}
+                />
+              )}
+              {isBusinessProfile && postType === 'Business' && (
+                <BusinessDetailsForm
+                  formData={businessForm.formData}
+                  onChange={handleBusinessChange}
+                />
+              )}
+            </>
+          )}
+
+          {/* Show simple description input for Story only */}
+          {contentType === 'Story' && (
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-black mb-2">
+                {contentType === 'Story' ? 'Story Caption' : 'Reel Caption'} (Optional)
+              </label>
+              <textarea
+                value={sharedForm.description}
+                onChange={(e) => setSharedForm({...sharedForm, description: e.target.value})}
+                placeholder={`Add a caption to your ${contentType.toLowerCase()}...`}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent resize-none text-black placeholder:text-gray-500"
+                rows={3}
+                maxLength={500}
+              />
+              <div className="text-right text-xs text-black mt-1">
+                {sharedForm.description.length}/500
+              </div>
+            </div>
+          )}
 
           {/* Reel Visibility Option */}
           {showReelVisibility && (
