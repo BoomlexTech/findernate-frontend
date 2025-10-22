@@ -13,9 +13,10 @@ interface UseMessageManagementProps {
   viewedRequests?: Set<string>;
   markRequestAsViewed?: (chatId: string) => void;
   refreshChatsWithAccurateUnreadCounts?: () => Promise<void>;
+  markChatAsRead?: (chatId: string) => void;
 }
 
-export const useMessageManagement = ({ selectedChat, user, setChats, messageRequests, viewedRequests, markRequestAsViewed, refreshChatsWithAccurateUnreadCounts }: UseMessageManagementProps) => {
+export const useMessageManagement = ({ selectedChat, user, setChats, messageRequests, viewedRequests, markRequestAsViewed, refreshChatsWithAccurateUnreadCounts, markChatAsRead }: UseMessageManagementProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loadingMessages, setLoadingMessages] = useState(false);
 
@@ -237,8 +238,11 @@ export const useMessageManagement = ({ selectedChat, user, setChats, messageRequ
         if (!isRequestChatFromState) {
           try {
             await messageAPI.markAllMessagesRead(chatId);
-            // Refresh unread counts after marking messages as read
-            refreshUnreadCounts();
+            // Refresh unread counts immediately after marking messages as read
+            setTimeout(() => refreshUnreadCounts(), 100);
+            // Refresh again after a delay to ensure backend has updated
+            setTimeout(() => refreshUnreadCounts(), 500);
+            setTimeout(() => refreshUnreadCounts(), 1000);
             // Refresh chats with accurate unread counts from server
             if (refreshChatsWithAccurateUnreadCounts) {
               setTimeout(() => refreshChatsWithAccurateUnreadCounts(), 1000);
@@ -254,6 +258,11 @@ export const useMessageManagement = ({ selectedChat, user, setChats, messageRequ
             ? { ...chat, unreadCount: 0 }
             : chat
         ));
+
+        // Mark this chat as read to persist the unreadCount: 0 across refreshes
+        if (markChatAsRead) {
+          markChatAsRead(chatId);
+        }
       } catch (error) {
         console.error('Failed to load messages:', error);
         setLoadingMessages(false);
@@ -359,22 +368,23 @@ export const useMessageManagement = ({ selectedChat, user, setChats, messageRequ
   // Mark unread messages as seen
   const markUnreadMessagesAsSeen = async (messagesToCheck: Message[]) => {
     if (!user || !selectedChat) return;
-    
-    const unreadMessages = messagesToCheck.filter(msg => 
+
+    const unreadMessages = messagesToCheck.filter(msg =>
       msg.sender._id !== user._id && !msg.readBy.includes(user._id)
     );
-    
+
     if (unreadMessages.length > 0) {
       const unreadMessageIds = unreadMessages.map(msg => msg._id);
       try {
         await messageAPI.markMessagesRead(selectedChat, unreadMessageIds);
-        setMessagesWithDebug(prev => prev.map(msg => 
-          unreadMessageIds.includes(msg._id) 
+        setMessagesWithDebug(prev => prev.map(msg =>
+          unreadMessageIds.includes(msg._id)
             ? { ...msg, readBy: [...msg.readBy, user._id] }
             : msg
         ));
-        // Refresh unread counts after marking messages as read
-        refreshUnreadCounts();
+        // Refresh unread counts after marking messages as read with multiple retries
+        setTimeout(() => refreshUnreadCounts(), 100);
+        setTimeout(() => refreshUnreadCounts(), 500);
       } catch (error) {
         console.error('Failed to mark messages as read:', error);
       }
@@ -384,21 +394,22 @@ export const useMessageManagement = ({ selectedChat, user, setChats, messageRequ
   // Mark messages as seen when they come into view
   const markMessageAsSeen = async (messageId: string) => {
     if (!user || !selectedChat) return;
-    
+
     const message = messages.find(msg => msg._id === messageId);
     if (!message || message.sender._id === user._id || message.readBy.includes(user._id)) {
       return;
     }
-    
+
     try {
       await messageAPI.markMessagesRead(selectedChat, [messageId]);
-      setMessagesWithDebug(prev => prev.map(msg => 
-        msg._id === messageId 
+      setMessagesWithDebug(prev => prev.map(msg =>
+        msg._id === messageId
           ? { ...msg, readBy: [...msg.readBy, user._id] }
           : msg
       ));
-      // Refresh unread counts after marking message as read
-      refreshUnreadCounts();
+      // Refresh unread counts after marking message as read with retries
+      setTimeout(() => refreshUnreadCounts(), 100);
+      setTimeout(() => refreshUnreadCounts(), 500);
     } catch (error) {
       console.error('Failed to mark message as read:', error);
     }

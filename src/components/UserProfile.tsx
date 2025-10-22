@@ -27,6 +27,7 @@ import StarRating from './StarRating';
 import { getBusinessRatingSummary, rateBusiness } from '@/api/business';
 import PrivacySettings from './PrivacySettings';
 import { toast } from "react-toastify";
+import { inMemoryStateManager } from '@/utils/inMemoryState';
 
 interface UserProfileProps {
   userData: UserProfileType | null;
@@ -34,6 +35,9 @@ interface UserProfileProps {
   onProfileUpdate?: (updatedData: Partial<UserProfileType>) => void;
 }
 
+
+// Constants for localStorage keys
+const FOLLOW_STORAGE_KEY = 'user_follow_states';
 
 const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserProfileProps) => {
   const { user: currentUser } = useUserStore();
@@ -43,6 +47,29 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
   const [profile, setProfile] = useState<UserProfileType | null>(userData);
   const [isFollowing, setIsFollowing] = useState(userData?.isFollowing || false);
   const [followersCount, setFollowersCount] = useState(userData?.followersCount || 0);
+
+  // Helper functions for follow state persistence
+  const getFollowStateFromStorage = (userId: string): boolean | null => {
+    try {
+      const stored = localStorage.getItem(FOLLOW_STORAGE_KEY);
+      if (!stored) return null;
+      const followStates = JSON.parse(stored);
+      return followStates[userId] || null;
+    } catch {
+      return null;
+    }
+  };
+
+  const saveFollowStateToStorage = (userId: string, isFollowed: boolean): void => {
+    try {
+      const stored = localStorage.getItem(FOLLOW_STORAGE_KEY);
+      const followStates = stored ? JSON.parse(stored) : {};
+      followStates[userId] = isFollowed;
+      localStorage.setItem(FOLLOW_STORAGE_KEY, JSON.stringify(followStates));
+    } catch (error) {
+      console.warn('Failed to save follow state to localStorage:', error);
+    }
+  };
 
   // Sync profile with userData when it changes (for real-time updates)
   useEffect(() => {
@@ -205,7 +232,12 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
     if (!userData) return;
     
     setProfile(userData);
-    setIsFollowing(userData.isFollowing || false);
+    
+    // Check localStorage first for follow state, then fall back to API data
+    const storedFollowState = getFollowStateFromStorage(userData._id);
+    const initialFollowState = storedFollowState !== null ? storedFollowState : (userData.isFollowing || false);
+    setIsFollowing(initialFollowState);
+    
     setFollowersCount(userData.followersCount);
     setFormData({
       fullName: userData.fullName,
@@ -728,6 +760,10 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
           setIsFollowing(false);
           setFollowersCount(prev => prev - 1);
         }
+        
+        // Save to localStorage and inMemoryStateManager
+        saveFollowStateToStorage(profile._id, false);
+        inMemoryStateManager.setUserFollowState(profile._id, false);
       } else {
         const result = await followUser(profile._id);
         
@@ -739,6 +775,10 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
           setIsFollowing(true);
           setFollowersCount(prev => prev + 1);
         }
+        
+        // Save to localStorage and inMemoryStateManager
+        saveFollowStateToStorage(profile._id, true);
+        inMemoryStateManager.setUserFollowState(profile._id, true);
       }
     } catch (error: any) {
       // console.error('Error toggling follow status:', error);
@@ -752,10 +792,16 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
         setIsFollowing(true);
         // Don't change followers count since we're already following
         // //console.log('User was already following - updating UI state');
+        // Save to localStorage and inMemoryStateManager
+        saveFollowStateToStorage(profile._id, true);
+        inMemoryStateManager.setUserFollowState(profile._id, true);
       } else if (errorMessage === 'Not following this user') {
         // Update state to reflect reality - user is not following
         setIsFollowing(false);
         // //console.log('User was not following - updating UI state');
+        // Save to localStorage and inMemoryStateManager
+        saveFollowStateToStorage(profile._id, false);
+        inMemoryStateManager.setUserFollowState(profile._id, false);
       } else if (errorMessage === 'Cannot follow yourself') {
         // Handle self-follow attempt
         // //console.log('Cannot follow yourself');

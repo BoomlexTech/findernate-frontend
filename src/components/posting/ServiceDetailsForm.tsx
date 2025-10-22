@@ -1,6 +1,7 @@
 import { ServiceDetailsFormProps } from '@/types';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronDown } from 'lucide-react';
+import { getServicePreviousData } from '@/api/serviceAutofill';
 
 
 const daysOfWeek = [
@@ -14,6 +15,8 @@ const ServiceDetailsForm: React.FC<ServiceDetailsFormProps> = ({
 
     const currency=['INR', 'USD', 'EUR'];
     const [showSchedule, setShowSchedule] = useState(false);
+    const [autofillData, setAutofillData] = useState<any>(null);
+    const [isLoadingAutofill, setIsLoadingAutofill] = useState(false);
 
     const [schedule, setSchedule] = useState(
     daysOfWeek.reduce((acc, day) => {
@@ -43,9 +46,83 @@ const ServiceDetailsForm: React.FC<ServiceDetailsFormProps> = ({
     }));
   };
 
+  // Fetch autofill data on component mount
+  useEffect(() => {
+    const fetchAutofillData = async () => {
+      try {
+        setIsLoadingAutofill(true);
+        const response = await getServicePreviousData();
+
+        console.log('Autofill API Response:', response);
+
+        if (response?.data?.autoFillEnabled && response?.data?.data) {
+          console.log('Autofill data available:', response.data.data);
+          setAutofillData(response.data.data);
+        } else {
+          console.log('Autofill disabled or no previous data');
+          setAutofillData(null);
+        }
+      } catch (error) {
+        console.error('Failed to fetch autofill data:', error);
+        setAutofillData(null);
+      } finally {
+        setIsLoadingAutofill(false);
+      }
+    };
+
+    fetchAutofillData();
+  }, []);
+
+  // Apply autofill data to form
+  const applyAutofill = () => {
+    if (!autofillData) {
+      console.log('No autofill data available');
+      return;
+    }
+
+    console.log('Applying autofill with data:', autofillData);
+
+    // Create a synthetic event to trigger onChange for each field
+    // Field names should match the 'name' attributes in the input elements
+    const fields = [
+      { name: 'name', value: autofillData.serviceName || '' },
+      { name: 'description', value: autofillData.description || '' },
+      { name: 'price', value: autofillData.price || 0 },
+      { name: 'currency', value: autofillData.currency || 'INR' }
+    ];
+
+    console.log('Fields to autofill:', fields);
+
+    fields.forEach(field => {
+      const syntheticEvent = {
+        target: {
+          name: field.name,
+          value: field.value,
+          type: field.name === 'price' ? 'number' : 'text'
+        }
+      } as React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>;
+
+      console.log('Triggering onChange for field:', field.name, 'with value:', field.value);
+      onChange(syntheticEvent);
+    });
+
+    console.log('Autofill completed');
+  };
+
   return (
     <div className="bg-white p-6 rounded-xl shadow mb-6 border-2 border-yellow-500">
-      <h3 className="text-lg text-black font-bold mb-4">Service Details</h3>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg text-black font-bold">Service Details</h3>
+        {autofillData && (
+          <button
+            onClick={applyAutofill}
+            disabled={isLoadingAutofill}
+            className="px-3 py-1.5 bg-blue-500 text-white text-sm rounded-md hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isLoadingAutofill ? 'Loading...' : 'Auto-fill from Previous'}
+          </button>
+        )}
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Service Name</label>
