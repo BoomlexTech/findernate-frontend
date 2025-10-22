@@ -117,9 +117,20 @@ export const ZegoCallProvider: React.FC<ZegoCallProviderProps> = ({ children }) 
       setCurrentCallType(callType);
 
       // Get ZegoCloud token
-      const { zegoRoom, zegoToken } = await callAPI.getZegoToken(callData._id, 'publisher');
+      const tokenResponse = await callAPI.getZegoToken(callData._id, 'publisher');
+      console.log('🎫 Got ZegoCloud token response:', tokenResponse);
 
-      console.log('🎫 Got ZegoCloud token, joining room...');
+      // Handle different response structures
+      const zegoRoom = tokenResponse.zegoRoom || tokenResponse;
+      const zegoToken = tokenResponse.zegoToken || tokenResponse.token;
+
+      console.log('🎫 Extracted zegoRoom:', zegoRoom);
+      console.log('🎫 Extracted zegoToken:', zegoToken);
+
+      // Validate required fields
+      if (!zegoRoom?.appId || !zegoRoom?.roomId || !zegoToken) {
+        throw new Error('Invalid ZegoCloud configuration received from server');
+      }
 
       // Join ZegoCloud room
       const config: ZegoCallConfig = {
@@ -132,13 +143,25 @@ export const ZegoCallProvider: React.FC<ZegoCallProviderProps> = ({ children }) 
         callType
       };
 
+      console.log('📞 Joining call with config:', { ...config, token: '***' });
+
       await joinCall(config);
       startCallTimer();
       toast.success(`${callType === 'video' ? 'Video' : 'Voice'} call started`);
 
     } catch (error: any) {
       console.error('❌ Failed to initiate call:', error);
-      toast.error(error.response?.data?.message || 'Failed to start call');
+
+      // Handle specific error cases
+      if (error.response?.status === 409) {
+        // 409 Conflict - there's already an active call
+        toast.error(error.response?.data?.message || 'You already have an active call. Please end it before starting a new one.');
+      } else if (error.message === 'Invalid ZegoCloud configuration received from server') {
+        toast.error('Failed to get call configuration from server. Please try again.');
+      } else {
+        toast.error(error.response?.data?.message || error.message || 'Failed to start call');
+      }
+
       setCurrentCallId(null);
       setCurrentCallType(null);
     }
@@ -160,9 +183,20 @@ export const ZegoCallProvider: React.FC<ZegoCallProviderProps> = ({ children }) 
       setCurrentCallType(incomingCall.callType);
 
       // Get ZegoCloud token
-      const { zegoRoom, zegoToken } = await callAPI.getZegoToken(callData._id, 'publisher');
+      const tokenResponse = await callAPI.getZegoToken(callData._id, 'publisher');
+      console.log('🎫 Got ZegoCloud token response:', tokenResponse);
 
-      console.log('🎫 Got ZegoCloud token, joining room...');
+      // Handle different response structures
+      const zegoRoom = tokenResponse.zegoRoom || tokenResponse;
+      const zegoToken = tokenResponse.zegoToken || tokenResponse.token;
+
+      console.log('🎫 Extracted zegoRoom:', zegoRoom);
+      console.log('🎫 Extracted zegoToken:', zegoToken);
+
+      // Validate required fields
+      if (!zegoRoom?.appId || !zegoRoom?.roomId || !zegoToken) {
+        throw new Error('Invalid ZegoCloud configuration received from server');
+      }
 
       // Join ZegoCloud room
       const config: ZegoCallConfig = {
@@ -174,6 +208,8 @@ export const ZegoCallProvider: React.FC<ZegoCallProviderProps> = ({ children }) 
         userName: user.fullName,
         callType: incomingCall.callType
       };
+
+      console.log('📞 Joining call with config:', { ...config, token: '***' });
 
       await joinCall(config);
       startCallTimer();
