@@ -2,7 +2,12 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { ZegoExpressEngine } from 'zego-express-engine-webrtc';
-import type { ZegoUser } from 'zego-express-engine-webrtc/sdk/code/zh/ZegoExpressEngine.entity';
+
+// Define ZegoUser type locally since the SDK doesn't export it properly
+interface ZegoUser {
+  userID: string;
+  userName: string;
+}
 
 export interface ZegoCallConfig {
   appId: number;
