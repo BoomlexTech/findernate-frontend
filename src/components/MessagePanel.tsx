@@ -3,7 +3,7 @@ import React, { useRef } from "react";
 import { useUserStore } from "@/store/useUserStore";
 import { messageAPI, Chat } from "@/api/message";
 import { EmojiClickData } from 'emoji-picker-react';
-import { useAgoraGlobalCall } from '@/components/providers/AgoraGlobalCallProvider';
+import { useZegoGlobalCall } from '@/components/providers/ZegoCallProvider';
 
 // Custom hooks
 import { useChatManagement } from '@/hooks/useChatManagement';
@@ -100,39 +100,33 @@ export default function MessagePanel() {
     scrollToBottom
   });
 
-  // Global call functionality
-  const { 
-    initiateCall
-  } = useAgoraGlobalCall();
+  // ZegoCloud call functionality
+  const { initiateCall } = useZegoGlobalCall();
 
   // Call handlers
   const handleVoiceCall = async (chat: Chat) => {
     if (chat.chatType !== 'direct') return;
-    
+
     const receiverId = chat.participants.find(p => p._id !== user?._id)?._id;
     if (!receiverId) return;
 
     try {
-      //console.log('Starting voice call with:', getChatDisplayName(chat));
       await initiateCall(receiverId, chat._id, 'voice');
     } catch (error) {
       console.error('Failed to start voice call:', error);
-      alert('Failed to start voice call. Please try again.');
     }
   };
 
   const handleVideoCall = async (chat: Chat) => {
     if (chat.chatType !== 'direct') return;
-    
+
     const receiverId = chat.participants.find(p => p._id !== user?._id)?._id;
     if (!receiverId) return;
 
     try {
-      //console.log('Starting video call with:', getChatDisplayName(chat));
       await initiateCall(receiverId, chat._id, 'video');
     } catch (error) {
       console.error('Failed to start video call:', error);
-      alert('Failed to start video call. Please try again.');
     }
   };
 

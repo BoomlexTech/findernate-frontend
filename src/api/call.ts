@@ -158,20 +158,10 @@ export const callAPI = {
     }
   },
 
-  // Get Agora channel details
-  getAgoraChannelDetails: async (callId: string): Promise<any> => {
+  // Get ZegoCloud token for a call
+  getZegoToken: async (callId: string, role: string = 'publisher'): Promise<any> => {
     try {
-      const response = await apiClient.get<{ success: boolean; data: any; message: string }>(`/calls/${callId}/agora-channel`);
-      return response.data.data.agoraChannel;
-    } catch (error: any) {
-      throw error;
-    }
-  },
-
-  // Get Agora token
-  getAgoraToken: async (callId: string, role: string = 'publisher'): Promise<any> => {
-    try {
-      const response = await apiClient.post<{ success: boolean; data: any; message: string }>(`/calls/${callId}/agora-token`, {
+      const response = await apiClient.post<{ success: boolean; data: any; message: string }>(`/calls/${callId}/zego-token`, {
         role
       });
       return response.data.data;

@@ -8,7 +8,8 @@ import { Menu, X } from 'lucide-react';
 import LeftSidebar from "@/components/LeftSidebar";
 import CreatePostModal from "@/components/CreatePostModal";
 import PushNotificationProvider from "@/components/providers/PushNotificationProvider";
-import { AgoraGlobalCallProvider } from "@/components/providers/AgoraGlobalCallProvider";
+import { ZegoCallProvider } from "@/components/providers/ZegoCallProvider";
+import { ZegoCallModal } from "@/components/call/ZegoCallModal";
 import { useCommentNotifications } from "@/hooks/useCommentNotifications";
 
 const MainLayout = ({children}:{children:React.ReactNode}) => {
@@ -31,7 +32,7 @@ const MainLayout = ({children}:{children:React.ReactNode}) => {
         setSidebarOpen(false); // Close mobile sidebar on larger screens
       }
     };
-    
+
     checkScreenSize();
     window.addEventListener('resize', checkScreenSize);
 		return () => window.removeEventListener('resize', checkScreenSize);
@@ -56,7 +57,7 @@ const MainLayout = ({children}:{children:React.ReactNode}) => {
   const toggleSidebar = () => {
     const newState = !sidebarOpen;
     setSidebarOpen(newState);
-    
+
     // Dispatch event when sidebar closes
     if (!newState) {
       try {
@@ -68,8 +69,11 @@ const MainLayout = ({children}:{children:React.ReactNode}) => {
 
   return (
     <PushNotificationProvider>
-      <AgoraGlobalCallProvider>
-        
+      <ZegoCallProvider>
+
+        {/* ZegoCloud Call Modal */}
+        <ZegoCallModal />
+
         {/* Hamburger Menu for mobile and medium screens (hidden on reels page) */}
         {!isNoSidebar && isMobile && !pathname.startsWith('/reels') && (
           <div className="fixed bottom-4 left-4 z-50 lg:hidden">
@@ -90,7 +94,7 @@ const MainLayout = ({children}:{children:React.ReactNode}) => {
         {/* Left Sidebar */}
         {!isNoSidebar && (
           <div className={`
-            ${isMobile 
+            ${isMobile
               ? `fixed left-0 top-0 h-full bg-white border-r border-gray-200 overflow-y-auto z-50 transform transition-transform duration-300 ${
                   sidebarOpen ? 'translate-x-0' : '-translate-x-full'
                 }`
@@ -112,7 +116,7 @@ const MainLayout = ({children}:{children:React.ReactNode}) => {
         )}
 
         {/* Create Post Modal - Rendered via Portal */}
-        {postToggle && typeof document !== 'undefined' && 
+        {postToggle && typeof document !== 'undefined' &&
           createPortal(
             <CreatePostModal closeModal={handlePostClose}/>,
             document.body
@@ -129,7 +133,7 @@ const MainLayout = ({children}:{children:React.ReactNode}) => {
             zIndex: 20000
           }}
         />
-      </AgoraGlobalCallProvider>
+      </ZegoCallProvider>
     </PushNotificationProvider>
   )
 }

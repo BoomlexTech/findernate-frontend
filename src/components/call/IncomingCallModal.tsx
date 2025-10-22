@@ -1,9 +1,21 @@
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
-import { IncomingCall } from '@/hooks/useAgora';
 import { Phone, PhoneOff, Video, Mic } from 'lucide-react';
 import Image from 'next/image';
+
+// Type definition for incoming call (moved from useAgora, now used with ZegoCloud)
+export interface IncomingCall {
+  callId: string;
+  callType: 'voice' | 'video';
+  caller: {
+    _id: string;
+    username: string;
+    fullName: string;
+    profileImageUrl?: string;
+  };
+  timestamp: number;
+}
 
 interface IncomingCallModalProps {
   incomingCall: IncomingCall;
