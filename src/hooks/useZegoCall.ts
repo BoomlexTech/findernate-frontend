@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { ZegoExpressEngine } from 'zego-express-engine-webrtc';
+import type { ZegoExpressEngine } from 'zego-express-engine-webrtc';
 
 // Define ZegoUser type locally since the SDK doesn't export it properly
 interface ZegoUser {
@@ -53,14 +53,23 @@ export const useZegoCall = (): UseZegoCallReturn => {
   const cleanupRef = useRef<(() => void) | null>(null);
 
   // Initialize ZegoCloud Engine
-  const initializeZego = useCallback((appId: number, server: string) => {
+  const initializeZego = useCallback(async (appId: number, server: string) => {
     try {
       if (zegoRef.current) {
         console.log('🎥 ZegoCloud already initialized');
         return zegoRef.current;
       }
 
+      // Only run on client-side
+      if (typeof window === 'undefined') {
+        throw new Error('ZegoCloud can only be initialized on the client-side');
+      }
+
       console.log('🎥 Initializing ZegoCloud Engine...');
+
+      // Dynamically import ZegoCloud SDK to avoid SSR issues
+      const { ZegoExpressEngine } = await import('zego-express-engine-webrtc');
+
       const zg = new ZegoExpressEngine(appId, server);
       zegoRef.current = zg;
       setIsInitialized(true);
@@ -81,7 +90,7 @@ export const useZegoCall = (): UseZegoCallReturn => {
       console.log('📞 Joining call with config:', { ...config, token: '***' });
 
       // Initialize engine if not already initialized
-      const zg = zegoRef.current || initializeZego(config.appId, config.server);
+      const zg = zegoRef.current || await initializeZego(config.appId, config.server);
       currentConfigRef.current = config;
 
       // Login to room
