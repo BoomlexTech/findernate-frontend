@@ -32,7 +32,7 @@ const MainLayout = ({children}:{children:React.ReactNode}) => {
         setSidebarOpen(false); // Close mobile sidebar on larger screens
       }
     };
-    
+
     checkScreenSize();
     window.addEventListener('resize', checkScreenSize);
 		return () => window.removeEventListener('resize', checkScreenSize);
@@ -57,7 +57,7 @@ const MainLayout = ({children}:{children:React.ReactNode}) => {
   const toggleSidebar = () => {
     const newState = !sidebarOpen;
     setSidebarOpen(newState);
-    
+
     // Dispatch event when sidebar closes
     if (!newState) {
       try {
@@ -94,7 +94,7 @@ const MainLayout = ({children}:{children:React.ReactNode}) => {
         {/* Left Sidebar */}
         {!isNoSidebar && (
           <div className={`
-            ${isMobile 
+            ${isMobile
               ? `fixed left-0 top-0 h-full bg-white border-r border-gray-200 overflow-y-auto z-50 transform transition-transform duration-300 ${
                   sidebarOpen ? 'translate-x-0' : '-translate-x-full'
                 }`
@@ -116,7 +116,7 @@ const MainLayout = ({children}:{children:React.ReactNode}) => {
         )}
 
         {/* Create Post Modal - Rendered via Portal */}
-        {postToggle && typeof document !== 'undefined' && 
+        {postToggle && typeof document !== 'undefined' &&
           createPortal(
             <CreatePostModal closeModal={handlePostClose}/>,
             document.body

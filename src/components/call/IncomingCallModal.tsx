@@ -4,7 +4,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Phone, PhoneOff, Video, Mic } from 'lucide-react';
 import Image from 'next/image';
 
-// Type definition for incoming call (moved from useAgora)
+// Type definition for incoming call (moved from useAgora, now used with ZegoCloud)
 export interface IncomingCall {
   callId: string;
   callType: 'voice' | 'video';
