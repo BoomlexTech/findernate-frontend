@@ -1,0 +1,504 @@
+import { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { messageAPI, Message, Chat } from '@/api/message';
+import socketManager from '@/utils/socket';
+import { requestChatCache } from '@/utils/requestChatCache';
+import { refreshUnreadCounts } from '@/hooks/useUnreadCounts';
+
+interface UseMessageManagementProps {
+  selectedChat: string | null;
+  user: any;
+  setChats: React.Dispatch<React.SetStateAction<Chat[]>>;
+  messageRequests?: Chat[];
+  viewedRequests?: Set<string>;
+  markRequestAsViewed?: (chatId: string) => void;
+  refreshChatsWithAccurateUnreadCounts?: () => Promise<void>;
+}
+
+export const useMessageManagement = ({ selectedChat, user, setChats, messageRequests, viewedRequests, markRequestAsViewed, refreshChatsWithAccurateUnreadCounts }: UseMessageManagementProps) => {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+
+  // Debug messages state changes
+  const originalSetMessages = setMessages;
+  const debugSetMessages = (newMessages: Message[] | ((prev: Message[]) => Message[])) => {
+    if (typeof newMessages === 'function') {
+      originalSetMessages(prev => {
+        const result = newMessages(prev);
+        //console.log('Messages state updated (function):', result.length, 'previous:', prev.length);
+        return result;
+      });
+    } else {
+      //console.log('Messages state updated (direct):', newMessages.length, 'messages');
+      originalSetMessages(newMessages);
+    }
+  };
+  // Override setMessages with debug version
+  const setMessagesWithDebug = debugSetMessages;
+  const [sendingMessage, setSendingMessage] = useState(false);
+  const [isRequestChat, setIsRequestChat] = useState(false); // Track if this is a request chat
+  const [newMessage, setNewMessage] = useState("");
+  const [typingUsers, setTypingUsers] = useState<Map<string, string>>(new Map());
+  const [showContextMenu, setShowContextMenu] = useState<{messageId: string, x: number, y: number} | null>(null);
+  
+  const searchParams = useSearchParams();
+  
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messageInputRef = useRef<HTMLInputElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+
+  // Typing indicators
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isTypingRef = useRef(false);
+
+  // Track the current chat to prevent race conditions
+  const currentChatRef = useRef<string | null>(null);
+
+  // Scroll to bottom when new messages arrive
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+    
+    if (messages.length > 0) {
+      const latestMessages = messages.slice(-5);
+      markUnreadMessagesAsSeen(latestMessages);
+    }
+  }, [messages]);
+
+  // Handle prefill message event
+  useEffect(() => {
+    const handlePrefillMessage = (event: CustomEvent) => {
+      const { message } = event.detail;
+      if (message && selectedChat) {
+        setNewMessage(message);
+        // Focus the input field
+        setTimeout(() => {
+          messageInputRef.current?.focus();
+        }, 100);
+      }
+    };
+
+    window.addEventListener('prefillMessage', handlePrefillMessage as EventListener);
+    return () => {
+      window.removeEventListener('prefillMessage', handlePrefillMessage as EventListener);
+    };
+  }, [selectedChat]);
+
+  // Load messages when chat is selected
+  useEffect(() => {
+    const loadMessages = async () => {
+      if (!selectedChat) {
+        setMessagesWithDebug([]);
+        setLoadingMessages(false);
+        currentChatRef.current = null;
+        return;
+      }
+
+      // Update current chat ref and set loading state
+      const chatId = selectedChat;
+      currentChatRef.current = chatId;
+      setLoadingMessages(true);
+
+      // Don't clear messages immediately - let them show during loading
+      // This prevents the blank screen flicker
+
+      try {
+        // Check if this selected chat is in the messageRequests array (faster than API call)
+        const isRequestChatFromState = messageRequests?.some(req => req._id === chatId);
+        const hasBeenViewed = viewedRequests?.has(chatId) || false;
+
+        if (isRequestChatFromState) {
+          //console.log('Detected request chat from state:', chatId);
+
+          // Mark this as a request chat so we can disable messaging
+          setIsRequestChat(true);
+
+          // Try to load messages directly using the chat ID - no temporary acceptance needed
+          //console.log('Loading messages directly for request chat:', chatId);
+          try {
+            const response = await messageAPI.getChatMessages(chatId);
+
+            // Only update if we're still on the same chat
+            if (currentChatRef.current !== chatId) return;
+
+            //console.log('Messages loaded for request chat:', chatId, 'Count:', response.messages?.length || 0);
+
+            if (response.messages && response.messages.length > 0) {
+              setMessagesWithDebug(response.messages);
+              setLoadingMessages(false);
+              //console.log('Successfully loaded', response.messages.length, 'messages for request chat');
+            } else {
+              //console.log('No messages returned for request chat, checking cached messages and lastMessage');
+              
+              // First, check if we have cached messages for this request chat
+              const cachedMessages = requestChatCache.getMessages(chatId);
+              const requestChat = messageRequests?.find(req => req._id === chatId);
+
+              if (cachedMessages.length > 0) {
+                //console.log('Found', cachedMessages.length, 'cached messages for request chat');
+                if (currentChatRef.current === chatId) {
+                  setMessagesWithDebug(cachedMessages);
+                  setLoadingMessages(false);
+                }
+              } else if (requestChat && requestChat.lastMessage && requestChat.lastMessage.message) {
+                //console.log('No cached messages, caching and displaying lastMessage');
+
+                // Cache the lastMessage using the utility function
+                requestChatCache.addLastMessage(
+                  chatId,
+                  requestChat.lastMessage,
+                  requestChat.participants
+                );
+
+                // Now get the cached messages (which should include the lastMessage we just cached)
+                const updatedCachedMessages = requestChatCache.getMessages(chatId);
+                if (currentChatRef.current === chatId) {
+                  setMessagesWithDebug(updatedCachedMessages);
+                  setLoadingMessages(false);
+                }
+                //console.log('Cached and displaying lastMessage, total messages:', updatedCachedMessages.length);
+              } else {
+                if (currentChatRef.current === chatId) {
+                  setMessagesWithDebug([]);
+                  setLoadingMessages(false);
+                }
+              }
+            }
+
+            // Mark this request as viewed for UI purposes
+            markRequestAsViewed?.(chatId);
+            
+          } catch (error: any) {
+            console.error('Failed to load request messages:', error);
+            
+            // For automated contact info messages, the sender can see them even if receiver can't initially
+            // Check if the current user is the sender (creator) of this chat
+            const requestChat = messageRequests?.find(req => req._id === chatId);
+            if (requestChat && requestChat.createdBy && requestChat.createdBy._id === user?._id) {
+              //console.log('Current user is the sender of this request chat, trying regular message loading...');
+              try {
+                // Try loading as a regular chat since sender should always see their messages
+                const regularResponse = await messageAPI.getChatMessages(chatId);
+
+                // Only update if we're still on the same chat
+                if (currentChatRef.current !== chatId) return;
+
+                //console.log('Messages loaded as regular chat for sender:', regularResponse.messages.length);
+                setMessagesWithDebug(regularResponse.messages || []);
+                setLoadingMessages(false);
+                setIsRequestChat(false); // Allow sender to continue messaging
+              } catch (regularError) {
+                console.error('Failed to load messages even as sender:', regularError);
+                if (currentChatRef.current === chatId) {
+                  setMessagesWithDebug([]);
+                  setLoadingMessages(false);
+                }
+              }
+            } else {
+              // This is a true request chat where receiver can't see messages yet
+              //console.log('Receiver cannot see messages until acceptance - showing empty state');
+              if (currentChatRef.current === chatId) {
+                setMessagesWithDebug([]);
+                setLoadingMessages(false);
+              }
+            }
+          }
+        } else {
+          // Check if this is a temporarily accepted chat that should still be treated as a request
+          const shouldTreatAsRequest = viewedRequests?.has(chatId) || false;
+
+          if (shouldTreatAsRequest) {
+            //console.log('This chat was temporarily accepted but should remain as request');
+            setIsRequestChat(true);
+          } else {
+            setIsRequestChat(false);
+          }
+
+          const response = await messageAPI.getChatMessages(chatId);
+
+          // Only update if we're still on the same chat
+          if (currentChatRef.current !== chatId) return;
+
+          //console.log('Loaded messages for regular chat:', chatId, 'count:', response.messages.length);
+
+          setMessagesWithDebug(response.messages);
+          setLoadingMessages(false);
+        }
+
+        // Only proceed with socket and read marking if still on same chat
+        if (currentChatRef.current !== chatId) return;
+
+        socketManager.joinChat(chatId);
+
+        // Mark messages as read (skip for request chats as they'll handle this after acceptance)
+        if (!isRequestChatFromState) {
+          try {
+            await messageAPI.markAllMessagesRead(chatId);
+            // Refresh unread counts after marking messages as read
+            refreshUnreadCounts();
+            // Refresh chats with accurate unread counts from server
+            if (refreshChatsWithAccurateUnreadCounts) {
+              setTimeout(() => refreshChatsWithAccurateUnreadCounts(), 1000);
+            }
+          } catch (error) {
+            console.error('Failed to mark messages as read:', error);
+          }
+        }
+
+        // Always update local chat unread count to 0 when opening a chat
+        setChats(prev => prev.map(chat =>
+          chat._id === chatId
+            ? { ...chat, unreadCount: 0 }
+            : chat
+        ));
+      } catch (error) {
+        console.error('Failed to load messages:', error);
+        setLoadingMessages(false);
+      }
+    };
+
+    loadMessages();
+
+    return () => {
+      if (selectedChat) {
+        stopTypingIndicator();
+        socketManager.leaveChat(selectedChat);
+      }
+    };
+  }, [selectedChat, messageRequests]);
+
+  // Intersection Observer to mark messages as seen when they come into view
+  useEffect(() => {
+    if (!messagesContainerRef.current || !user) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const messageId = entry.target.getAttribute('data-message-id');
+            if (messageId) {
+              markMessageAsSeen(messageId);
+            }
+          }
+        });
+      },
+      {
+        root: messagesContainerRef.current,
+        threshold: 0.8,
+      }
+    );
+
+    const messageElements = messagesContainerRef.current.querySelectorAll('[data-message-id]');
+    messageElements.forEach((el) => observer.observe(el));
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [messages, user]);
+
+  // Send message function
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!newMessage.trim() || !selectedChat || sendingMessage) return;
+    
+    // Prevent sending messages if this is a request chat
+    if (isRequestChat) {
+      //console.log('Cannot send message - this is a request chat. User must accept first.');
+      return;
+    }
+
+    const messageText = newMessage.trim();
+    setNewMessage("");
+    
+    await stopTypingIndicator();
+    
+    try {
+      setSendingMessage(true);
+      const message = await messageAPI.sendMessage(selectedChat, messageText);
+      
+      //console.log('API: Adding message from API response', message._id);
+      setMessagesWithDebug(prev => {
+        const messageExists = prev.some(msg => msg._id === message._id);
+        //console.log('API: Message exists?', messageExists, 'Message ID:', message._id);
+        if (messageExists) {
+          //console.log('API: Skipping duplicate message');
+          return prev;
+        }
+        //console.log('API: Adding new message to state');
+        return [...prev, message];
+      });
+      
+      setChats(prev => {
+        const updatedChats = prev.map(chat => 
+          chat._id === selectedChat 
+            ? { ...chat, lastMessage: { sender: message.sender._id, message: message.message, timestamp: message.timestamp }, lastMessageAt: message.timestamp }
+            : chat
+        );
+        
+        return updatedChats.sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime());
+      });
+      
+      scrollToBottom();
+      
+      setTimeout(() => {
+        messageInputRef.current?.focus();
+      }, 100);
+      
+    } catch (error) {
+      console.error('Failed to send message:', error);
+      setNewMessage(messageText);
+    } finally {
+      setSendingMessage(false);
+    }
+  };
+
+  // Mark unread messages as seen
+  const markUnreadMessagesAsSeen = async (messagesToCheck: Message[]) => {
+    if (!user || !selectedChat) return;
+    
+    const unreadMessages = messagesToCheck.filter(msg => 
+      msg.sender._id !== user._id && !msg.readBy.includes(user._id)
+    );
+    
+    if (unreadMessages.length > 0) {
+      const unreadMessageIds = unreadMessages.map(msg => msg._id);
+      try {
+        await messageAPI.markMessagesRead(selectedChat, unreadMessageIds);
+        setMessagesWithDebug(prev => prev.map(msg => 
+          unreadMessageIds.includes(msg._id) 
+            ? { ...msg, readBy: [...msg.readBy, user._id] }
+            : msg
+        ));
+        // Refresh unread counts after marking messages as read
+        refreshUnreadCounts();
+      } catch (error) {
+        console.error('Failed to mark messages as read:', error);
+      }
+    }
+  };
+
+  // Mark messages as seen when they come into view
+  const markMessageAsSeen = async (messageId: string) => {
+    if (!user || !selectedChat) return;
+    
+    const message = messages.find(msg => msg._id === messageId);
+    if (!message || message.sender._id === user._id || message.readBy.includes(user._id)) {
+      return;
+    }
+    
+    try {
+      await messageAPI.markMessagesRead(selectedChat, [messageId]);
+      setMessagesWithDebug(prev => prev.map(msg => 
+        msg._id === messageId 
+          ? { ...msg, readBy: [...msg.readBy, user._id] }
+          : msg
+      ));
+      // Refresh unread counts after marking message as read
+      refreshUnreadCounts();
+    } catch (error) {
+      console.error('Failed to mark message as read:', error);
+    }
+  };
+
+  // Handle message deletion
+  const handleDeleteMessage = async (messageId: string) => {
+    if (!selectedChat || !window.confirm('Are you sure you want to delete this message?')) return;
+    
+    try {
+      await messageAPI.deleteMessage(selectedChat, messageId);
+      setMessagesWithDebug(prev => prev.filter(msg => msg._id !== messageId));
+      socketManager.deleteMessage(selectedChat, messageId);
+    } catch (error) {
+      console.error('Failed to delete message:', error);
+      alert('Failed to delete message');
+    }
+    setShowContextMenu(null);
+  };
+
+  // Handle typing indicators with API calls
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewMessage(e.target.value);
+    
+    if (selectedChat) {
+      if (!isTypingRef.current) {
+        isTypingRef.current = true;
+        messageAPI.startTyping(selectedChat).catch(console.error);
+        socketManager.startTyping(selectedChat);
+      }
+      
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      
+      typingTimeoutRef.current = setTimeout(async () => {
+        if (isTypingRef.current) {
+          isTypingRef.current = false;
+          try {
+            await messageAPI.stopTyping(selectedChat);
+            socketManager.stopTyping(selectedChat);
+          } catch (error) {
+            console.error('Error stopping typing:', error);
+          }
+        }
+      }, 3000);
+    }
+  };
+
+  // Stop typing when user sends message or leaves chat
+  const stopTypingIndicator = async () => {
+    if (selectedChat && isTypingRef.current) {
+      isTypingRef.current = false;
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      try {
+        await messageAPI.stopTyping(selectedChat);
+        socketManager.stopTyping(selectedChat);
+      } catch (error) {
+        console.error('Error stopping typing:', error);
+      }
+    }
+  };
+
+  // Cleanup typing indicators on unmount
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      stopTypingIndicator();
+    };
+  }, []);
+
+  return {
+    // State
+    messages,
+    setMessages: setMessagesWithDebug,
+    sendingMessage,
+    newMessage,
+    setNewMessage,
+    typingUsers,
+    setTypingUsers,
+    showContextMenu,
+    setShowContextMenu,
+    isRequestChat,
+    loadingMessages,
+
+    // Refs
+    messagesEndRef,
+    messageInputRef,
+    messagesContainerRef,
+
+    // Functions
+    handleSendMessage,
+    handleDeleteMessage,
+    handleInputChange,
+    scrollToBottom,
+    markUnreadMessagesAsSeen,
+    stopTypingIndicator
+  };
+};
