@@ -89,6 +89,9 @@ class AdminAPI {
 
   // Helper method to check if user is authenticated (has valid token)
   isAuthenticated(): boolean {
+    // Only check on client-side
+    if (typeof window === 'undefined') return false;
+
     // Check if we have admin tokens in localStorage or cookies
     return !!(localStorage.getItem('adminAccessToken') || document.cookie.includes('adminAccessToken'));
   }

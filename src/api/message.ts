@@ -369,7 +369,7 @@ export const handleIncomingMessage = (message: Message, currentUserId: string) =
     
     // Show local notification if the user is currently on the app but not focused on the chat
     // or if the app is in the background
-    if (document.hidden || !document.hasFocus()) {
+    if (typeof document !== 'undefined' && (document.hidden || !document.hasFocus())) {
       pushNotificationManager.showLocalNotification(notificationData);
     }
   }

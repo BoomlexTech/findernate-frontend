@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { AdminUser, Notification } from '@/types/admin';
 import { adminAPI } from '@/api/admin';
 
@@ -58,9 +58,11 @@ export const useAdminStore = create<AdminStore>()(
             //console.log('🔐 Admin Login: Login successful, storing data...');
             
             // Store tokens and admin data in localStorage for persistence
-            localStorage.setItem('adminAccessToken', accessToken);
-            localStorage.setItem('adminRefreshToken', refreshToken);
-            localStorage.setItem('adminUser', JSON.stringify(admin));
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('adminAccessToken', accessToken);
+              localStorage.setItem('adminRefreshToken', refreshToken);
+              localStorage.setItem('adminUser', JSON.stringify(admin));
+            }
             
             set({
               user: admin,
@@ -107,9 +109,11 @@ export const useAdminStore = create<AdminStore>()(
           }
           
           // Clear stored data
-          localStorage.removeItem('adminUser');
-          localStorage.removeItem('adminAccessToken');
-          localStorage.removeItem('adminRefreshToken');
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('adminUser');
+            localStorage.removeItem('adminAccessToken');
+            localStorage.removeItem('adminRefreshToken');
+          }
           
           set({ 
             user: null,
@@ -126,9 +130,11 @@ export const useAdminStore = create<AdminStore>()(
         } catch (error: any) {
           console.error('🚪 Logout: Error during logout:', error);
           // Even if everything fails, clear local state
-          localStorage.removeItem('adminUser');
-          localStorage.removeItem('adminAccessToken');
-          localStorage.removeItem('adminRefreshToken');
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('adminUser');
+            localStorage.removeItem('adminAccessToken');
+            localStorage.removeItem('adminRefreshToken');
+          }
           
           set({ 
             user: null,
@@ -157,6 +163,11 @@ export const useAdminStore = create<AdminStore>()(
       initializeAuth: () => {
         try {
           //console.log('🔄 InitAuth: Starting auth initialization...');
+          if (typeof window === 'undefined') {
+            // Skip initialization on server-side
+            return;
+          }
+
           const storedAccessToken = localStorage.getItem('adminAccessToken');
           const storedRefreshToken = localStorage.getItem('adminRefreshToken');
           const storedAdminString = localStorage.getItem('adminUser');
@@ -181,9 +192,11 @@ export const useAdminStore = create<AdminStore>()(
             } catch (parseError) {
               console.error('🔄 InitAuth: Error parsing stored admin data:', parseError);
               // Clear corrupted data
-              localStorage.removeItem('adminUser');
-              localStorage.removeItem('adminAccessToken');
-              localStorage.removeItem('adminRefreshToken');
+              if (typeof window !== 'undefined') {
+                localStorage.removeItem('adminUser');
+                localStorage.removeItem('adminAccessToken');
+                localStorage.removeItem('adminRefreshToken');
+              }
               set({
                 user: null,
                 accessToken: null,
@@ -194,9 +207,11 @@ export const useAdminStore = create<AdminStore>()(
           } else {
             //console.log('🔄 InitAuth: Missing data, clearing auth state...');
             // If any piece is missing, clear everything
-            localStorage.removeItem('adminUser');
-            localStorage.removeItem('adminAccessToken');
-            localStorage.removeItem('adminRefreshToken');
+            if (typeof window !== 'undefined') {
+              localStorage.removeItem('adminUser');
+              localStorage.removeItem('adminAccessToken');
+              localStorage.removeItem('adminRefreshToken');
+            }
             set({
               user: null,
               accessToken: null,
@@ -207,9 +222,11 @@ export const useAdminStore = create<AdminStore>()(
         } catch (error) {
           console.error('🔄 InitAuth: Error during initialization:', error);
           // If there's an error reading from storage, clear everything
-          localStorage.removeItem('adminUser');
-          localStorage.removeItem('adminAccessToken');
-          localStorage.removeItem('adminRefreshToken');
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('adminUser');
+            localStorage.removeItem('adminAccessToken');
+            localStorage.removeItem('adminRefreshToken');
+          }
           set({
             user: null,
             accessToken: null,
@@ -272,6 +289,18 @@ export const useAdminStore = create<AdminStore>()(
 }),
 {
   name: 'admin-auth', // Key for localStorage
+  storage: createJSONStorage(() => {
+    // Only use localStorage on the client-side
+    if (typeof window !== 'undefined') {
+      return localStorage;
+    }
+    // Return a no-op storage for server-side
+    return {
+      getItem: () => null,
+      setItem: () => {},
+      removeItem: () => {},
+    };
+  }),
   partialize: (state) => ({
     user: state.user,
     accessToken: state.accessToken,

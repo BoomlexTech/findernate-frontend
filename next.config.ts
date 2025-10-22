@@ -10,6 +10,11 @@ const nextConfig: NextConfig = {
   },
   eslint:{
     ignoreDuringBuilds: true,
+  },
+  // Disable static page generation to prevent SSR document errors
+  output: 'standalone',
+  experimental: {
+    // Force all pages to use dynamic rendering
   }
 };
 
