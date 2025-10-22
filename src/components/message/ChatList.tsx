@@ -5,6 +5,98 @@ import { Chat } from '@/api/message';
 
 type TabType = 'direct' | 'group' | 'requests';
 
+// Memoized ChatItem component to prevent unnecessary re-renders
+const ChatItem = React.memo(({
+  chat,
+  selectedChat,
+  activeTab,
+  getChatAvatar,
+  getChatDisplayName,
+  formatTime,
+  renderChatPreview,
+  setSelectedChat,
+  onAcceptRequest,
+  onDeclineRequest
+}: {
+  chat: Chat;
+  selectedChat: string | null;
+  activeTab: TabType;
+  getChatAvatar: (chat: Chat) => string;
+  getChatDisplayName: (chat: Chat) => string;
+  formatTime: (timestamp: string) => string;
+  renderChatPreview: (chat: Chat) => React.ReactNode;
+  setSelectedChat: (chatId: string) => void;
+  onAcceptRequest?: (chatId: string) => void;
+  onDeclineRequest?: (chatId: string) => void;
+}) => {
+  return (
+    <div
+      key={chat._id}
+      className={`flex items-start gap-3 p-3 rounded-lg transition cursor-pointer ${
+        activeTab === 'requests'
+          ? `hover:bg-orange-50 ${selectedChat === chat._id ? "bg-orange-50 border border-orange-300" : ""}`
+          : `hover:bg-yellow-50 ${selectedChat === chat._id ? "bg-yellow-50 border border-yellow-300" : ""}`
+      }`}
+      onClick={() => setSelectedChat(chat._id)}
+    >
+      <Image
+        src={getChatAvatar(chat)}
+        alt={getChatDisplayName(chat)}
+        width={48}
+        height={48}
+        className="rounded-full"
+        loading="lazy"
+        unoptimized
+      />
+      <div className="flex-1">
+        <div className="flex items-center gap-2">
+          <span className="font-semibold text-black">{getChatDisplayName(chat)}</span>
+          <span className={`text-xs px-2 py-0.5 rounded-full ${
+            activeTab === 'requests'
+              ? 'bg-orange-100 text-orange-700'
+              : 'bg-yellow-100 text-yellow-700'
+          }`}>
+            {activeTab === 'requests' ? 'Request' : (chat.chatType === 'group' ? 'Group' : 'Direct')}
+          </span>
+          <span className="ml-auto text-xs text-gray-400">{formatTime(chat.lastMessageAt)}</span>
+        </div>
+        <p className="text-sm text-gray-600 truncate max-w-[200px] overflow-hidden whitespace-nowrap">
+          {renderChatPreview(chat)}
+        </p>
+
+        {activeTab === 'requests' && onAcceptRequest && onDeclineRequest && (
+          <div className="flex gap-2 mt-2">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onAcceptRequest(chat._id);
+              }}
+              className="px-3 py-1 bg-green-500 hover:bg-green-600 text-white text-xs rounded-full transition-colors"
+            >
+              Accept
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDeclineRequest(chat._id);
+              }}
+              className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white text-xs rounded-full transition-colors"
+            >
+              Decline
+            </button>
+          </div>
+        )}
+      </div>
+      {/* Unread count badge - commented out for now */}
+      {/* {activeTab !== 'requests' && (chat.unreadCount ?? 0) > 0 && (
+        <div className="ml-2 bg-yellow-500 text-white text-xs min-w-[20px] h-5 flex items-center justify-center rounded-full px-1 animate-pulse">
+          {chat?.unreadCount && chat.unreadCount > 99 ? '99+' : chat.unreadCount}
+        </div>
+      )} */}
+    </div>
+  );
+});
+
 interface ChatListProps {
   chats: Chat[];
   selectedChat: string | null;
@@ -46,7 +138,8 @@ export const ChatList: React.FC<ChatListProps> = ({
     });
   }, [chats]);
 
-  const renderChatPreview = (chat: Chat) => {
+  // Memoize chat preview rendering to avoid recalculating on every render
+  const renderChatPreview = React.useCallback((chat: Chat) => {
     const msg = chat.lastMessage?.message;
     if (!msg) return 'No messages yet';
     
@@ -65,33 +158,12 @@ export const ChatList: React.FC<ChatListProps> = ({
       } else {
         const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/);
         if (ytMatch && ytMatch[1]) {
-          const videoId = ytMatch[1];
-          return (
-            <span className="flex items-center gap-2">
-              <img
-                src={`https://img.youtube.com/vi/${videoId}/default.jpg`}
-                alt="YouTube thumbnail"
-                className="w-8 h-8 rounded object-cover border"
-                style={{ display: 'inline-block' }}
-              />
-              <span className="truncate">YouTube Video</span>
-            </span>
-          );
+          return '🎥 YouTube Video';
         }
-        
+
         try {
           const { hostname } = new URL(url);
-          return (
-            <span className="flex items-center gap-2">
-              <img
-                src={`https://www.google.com/s2/favicons?domain=${hostname}`}
-                alt="Favicon"
-                className="w-5 h-5 rounded"
-                style={{ display: 'inline-block' }}
-              />
-              <span className="truncate">{hostname}</span>
-            </span>
-          );
+          return `🔗 ${hostname}`;
         } catch {
           return 'Attachment';
         }
@@ -104,7 +176,7 @@ export const ChatList: React.FC<ChatListProps> = ({
       return textWithoutUrl.substring(0, maxLength) + '...';
     }
     return textWithoutUrl || 'No messages yet';
-  };
+  }, []);
 
   return (
     <>
@@ -141,71 +213,19 @@ export const ChatList: React.FC<ChatListProps> = ({
           </div>
         ) : (
           uniqueChats.map((chat) => (
-            <div
-              key={chat._id} 
-              className={`flex items-start gap-3 p-3 rounded-lg transition cursor-pointer ${
-                activeTab === 'requests' 
-                  ? `hover:bg-orange-50 ${selectedChat === chat._id ? "bg-orange-50 border border-orange-300" : ""}` 
-                  : `hover:bg-yellow-50 ${selectedChat === chat._id ? "bg-yellow-50 border border-yellow-300" : ""}`
-              }`} 
-              onClick={() => {
-                //console.log('Selecting chat:', chat._id, 'from tab:', activeTab);
-                // Only set selected chat, don't auto-accept or switch tabs for requests
-                setSelectedChat(chat._id);
-              }}
-            >
-              <Image 
-                src={getChatAvatar(chat)} 
-                alt={getChatDisplayName(chat)} 
-                width={48} 
-                height={48} 
-                className="rounded-full" 
-              />
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold text-black">{getChatDisplayName(chat)}</span>
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${
-                    activeTab === 'requests' 
-                      ? 'bg-orange-100 text-orange-700'
-                      : 'bg-yellow-100 text-yellow-700'
-                  }`}>
-                    {activeTab === 'requests' ? 'Request' : (chat.chatType === 'group' ? 'Group' : 'Direct')}
-                  </span>
-                  <span className="ml-auto text-xs text-gray-400">{formatTime(chat.lastMessageAt)}</span>
-                </div>
-                <p className="text-sm text-gray-600 truncate max-w-[200px] overflow-hidden whitespace-nowrap">
-                  {renderChatPreview(chat)}
-                </p>
-                
-                {activeTab === 'requests' && onAcceptRequest && onDeclineRequest && (
-                  <div className="flex gap-2 mt-2">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onAcceptRequest(chat._id);
-                      }}
-                      className="px-3 py-1 bg-green-500 hover:bg-green-600 text-white text-xs rounded-full transition-colors"
-                    >
-                      Accept
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDeclineRequest(chat._id);
-                      }}
-                      className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white text-xs rounded-full transition-colors"
-                    >
-                      Decline
-                    </button>
-                  </div>
-                )}
-              </div>
-              {activeTab !== 'requests' && (chat.unreadCount ?? 0) > 0 && (
-                <div className="ml-2 bg-yellow-500 text-white text-xs min-w-[20px] h-5 flex items-center justify-center rounded-full px-1 animate-pulse">
-                  {chat?.unreadCount && chat.unreadCount > 99 ? '99+' : chat.unreadCount}
-                </div>
-              )}
-            </div>
+            <ChatItem
+              key={chat._id}
+              chat={chat}
+              selectedChat={selectedChat}
+              activeTab={activeTab}
+              getChatAvatar={getChatAvatar}
+              getChatDisplayName={getChatDisplayName}
+              formatTime={formatTime}
+              renderChatPreview={renderChatPreview}
+              setSelectedChat={setSelectedChat}
+              onAcceptRequest={onAcceptRequest}
+              onDeclineRequest={onDeclineRequest}
+            />
           ))
         )}
       </div>

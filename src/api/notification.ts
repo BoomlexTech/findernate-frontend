@@ -6,7 +6,17 @@ export const getNotifications = async () => {
 }
 
 export const getUnreadCounts = async () => {
-    const response = await axios.get(`/notifications/unread-counts`);
+    const response = await axios.get(`/notifications/unread-counts`, {
+        headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+        },
+        // Add timestamp to prevent caching
+        params: {
+            _t: Date.now()
+        }
+    });
     return response.data;
 }
 
