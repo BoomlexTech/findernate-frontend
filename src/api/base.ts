@@ -12,6 +12,7 @@ const axiosInstance = axios.create({
   baseURL: `${resolvedBase}/api/v1`, // relative in dev/browser to hit Next rewrites, absolute otherwise
   headers: {
     'Content-Type': 'application/json',
+    'Cache-Control': 'no-cache',
   },
 });
 
@@ -49,7 +50,15 @@ axiosInstance.interceptors.request.use(
         delete config.headers['Content-Type'];
       }
     }
-    
+
+    // Remove pragma header to avoid CORS issues (not allowed by backend)
+    if (config.headers['pragma']) {
+      delete config.headers['pragma'];
+    }
+    if (config.headers['Pragma']) {
+      delete config.headers['Pragma'];
+    }
+
     return config;
   },
   (error) => Promise.reject(error)
