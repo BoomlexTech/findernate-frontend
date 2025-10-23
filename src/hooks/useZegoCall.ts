@@ -116,7 +116,10 @@ export const useZegoCall = (): UseZegoCallReturn => {
           audio: true,
           video: config.callType === 'video',
           videoQuality: 4, // 720p
+          width: 1280,
+          height: 720,
           frameRate: 30
+          //fixes
         }
       });
 
