@@ -132,10 +132,18 @@ export const ZegoCallProvider: React.FC<ZegoCallProviderProps> = ({ children }) 
         throw new Error('Invalid ZegoCloud configuration received from server');
       }
 
+      // Validate token format (JWT should have 3 parts separated by dots)
+      if (typeof zegoToken === 'string') {
+        const tokenParts = zegoToken.split('.');
+        if (tokenParts.length !== 3) {
+          console.warn('⚠️ Token format may be invalid. Expected JWT format with 3 parts.');
+        }
+      }
+
       // Join ZegoCloud room
       const config: ZegoCallConfig = {
         appId: zegoRoom.appId,
-        server: zegoRoom.server || 'wss://webliveroom-api.zegocloud.com/ws',
+        server: zegoRoom.server || `wss://webliveroom${zegoRoom.appId}-api.coolzcloud.com/ws`,
         roomId: zegoRoom.roomId,
         token: zegoToken,
         userId: user._id,
@@ -198,10 +206,18 @@ export const ZegoCallProvider: React.FC<ZegoCallProviderProps> = ({ children }) 
         throw new Error('Invalid ZegoCloud configuration received from server');
       }
 
+      // Validate token format (JWT should have 3 parts separated by dots)
+      if (typeof zegoToken === 'string') {
+        const tokenParts = zegoToken.split('.');
+        if (tokenParts.length !== 3) {
+          console.warn('⚠️ Token format may be invalid. Expected JWT format with 3 parts.');
+        }
+      }
+
       // Join ZegoCloud room
       const config: ZegoCallConfig = {
         appId: zegoRoom.appId,
-        server: zegoRoom.server || 'wss://webliveroom-api.zegocloud.com/ws',
+        server: zegoRoom.server || `wss://webliveroom${zegoRoom.appId}-api.coolzcloud.com/ws`,
         roomId: zegoRoom.roomId,
         token: zegoToken,
         userId: user._id,
