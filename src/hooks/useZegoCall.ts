@@ -180,7 +180,29 @@ export const useZegoCall = (): UseZegoCallReturn => {
 
     } catch (err: any) {
       console.error('❌ Failed to join call:', err);
-      setError(`Failed to join call: ${err.message || 'Unknown error'}`);
+
+      // Capture detailed error information
+      const errorCode = err.code || err.errorCode || 'UNKNOWN';
+      const errorMsg = err.message || err.msg || 'Unknown error';
+      const errorDetails = {
+        code: errorCode,
+        message: errorMsg,
+        config: { ...config, token: '***' }
+      };
+
+      console.error('📋 Error details:', errorDetails);
+
+      // User-friendly error messages based on error code
+      let userMessage = `Failed to join call: ${errorMsg}`;
+      if (errorCode === 1102016 || errorCode === 50119) {
+        userMessage = 'Authentication failed. Please try again or contact support.';
+      } else if (errorCode === 1102015) {
+        userMessage = 'Invalid room configuration. Please try again.';
+      } else if (errorCode === 1000001) {
+        userMessage = 'Network connection failed. Please check your internet.';
+      }
+
+      setError(userMessage);
       setIsConnecting(false);
       setIsInCall(false);
       throw err;
