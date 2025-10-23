@@ -115,7 +115,8 @@ export const useZegoCall = (): UseZegoCallReturn => {
         camera: {
           audio: true,
           video: config.callType === 'video',
-          videoQuality: 4 // 720p
+          videoQuality: 4, // 720p
+          frameRate: 30
         }
       });
 
