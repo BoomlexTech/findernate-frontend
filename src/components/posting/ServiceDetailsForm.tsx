@@ -73,55 +73,48 @@ const ServiceDetailsForm: React.FC<ServiceDetailsFormProps> = ({
     fetchAutofillData();
   }, []);
 
-  // Apply autofill data to form
-  const applyAutofill = () => {
-    if (!autofillData) {
-      console.log('No autofill data available');
-      return;
+  // Auto-apply autofill data when available
+  useEffect(() => {
+    if (autofillData && !isLoadingAutofill) {
+      console.log('Automatically applying autofill with data:', autofillData);
+
+      // Create a synthetic event to trigger onChange for each field
+      // Field names should match the 'name' attributes in the input elements
+      const fields = [
+        { name: 'name', value: autofillData.serviceName || '' },
+        { name: 'description', value: autofillData.description || '' },
+        { name: 'price', value: autofillData.price || 0 },
+        { name: 'currency', value: autofillData.currency || 'INR' },
+        // Location fields
+        { name: 'address', value: autofillData.location?.address || '' },
+        { name: 'city', value: autofillData.location?.city || '' },
+        { name: 'state', value: autofillData.location?.state || '' },
+        { name: 'country', value: autofillData.location?.country || '' }
+      ];
+
+      console.log('Fields to autofill:', fields);
+
+      fields.forEach(field => {
+        const syntheticEvent = {
+          target: {
+            name: field.name,
+            value: field.value,
+            type: field.name === 'price' ? 'number' : 'text'
+          }
+        } as React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>;
+
+        console.log('Triggering onChange for field:', field.name, 'with value:', field.value);
+        onChange(syntheticEvent);
+      });
+
+      console.log('Autofill completed automatically');
     }
-
-    console.log('Applying autofill with data:', autofillData);
-
-    // Create a synthetic event to trigger onChange for each field
-    // Field names should match the 'name' attributes in the input elements
-    const fields = [
-      { name: 'name', value: autofillData.serviceName || '' },
-      { name: 'description', value: autofillData.description || '' },
-      { name: 'price', value: autofillData.price || 0 },
-      { name: 'currency', value: autofillData.currency || 'INR' }
-    ];
-
-    console.log('Fields to autofill:', fields);
-
-    fields.forEach(field => {
-      const syntheticEvent = {
-        target: {
-          name: field.name,
-          value: field.value,
-          type: field.name === 'price' ? 'number' : 'text'
-        }
-      } as React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>;
-
-      console.log('Triggering onChange for field:', field.name, 'with value:', field.value);
-      onChange(syntheticEvent);
-    });
-
-    console.log('Autofill completed');
-  };
+  }, [autofillData, isLoadingAutofill]);
 
   return (
     <div className="bg-white p-6 rounded-xl shadow mb-6 border-2 border-yellow-500">
-      <div className="flex items-center justify-between mb-4">
+      <div className="mb-4">
         <h3 className="text-lg text-black font-bold">Service Details</h3>
-        {autofillData && (
-          <button
-            onClick={applyAutofill}
-            disabled={isLoadingAutofill}
-            className="px-3 py-1.5 bg-blue-500 text-white text-sm rounded-md hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isLoadingAutofill ? 'Loading...' : 'Auto-fill from Previous'}
-          </button>
-        )}
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <div>
