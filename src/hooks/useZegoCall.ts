@@ -119,6 +119,7 @@ export const useZegoCall = (): UseZegoCallReturn => {
           width: 1280,
           height: 720,
           frameRate: 30
+          //fixes
         }
       });
 
