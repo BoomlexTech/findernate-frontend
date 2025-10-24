@@ -1,22 +1,26 @@
 import axios from 'axios';
 
 export interface BusinessContact {
-  phone: string;
-  email: string;
-  website: string;
-  socialMedia: {
+  phone?: string;
+  email?: string;
+  website?: string;
+  socialMedia?: {
     platform: string;
     url: string;
   }[];
 }
 
 export interface BusinessLocation {
-  address: string;
-  city: string;
-  state: string;
-  country: string;
-  postalCode: string;
-  isLiveLocationEnabled: boolean;
+  address?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  postalCode?: string;
+  coordinates?: {
+    type: string;
+    coordinates: number[];
+  };
+  isLiveLocationEnabled?: boolean;
 }
 
 export interface BusinessInsights {
@@ -41,28 +45,28 @@ export interface VerifiedBy {
 
 export interface Business {
   _id: string;
-  userId: BusinessUser;
+  userId?: BusinessUser;
   businessName: string;
-  businessType: string;
-  description: string;
-  category: string;
-  subcategory: string;
-  contact: BusinessContact;
-  location: BusinessLocation;
-  tags: string[];
-  website: string;
-  gstNumber: string | null;
-  aadhaarNumber: string | null;
-  isVerified: boolean;
-  followers: string[];
+  businessType?: string;
+  description?: string;
+  category?: string;
+  subcategory?: string;
+  contact?: BusinessContact;
+  location?: BusinessLocation;
+  tags?: string[];
+  website?: string;
+  gstNumber?: string | null;
+  aadhaarNumber?: string | null;
+  isVerified?: boolean;
+  followers?: string[];
   plan: string;
-  subscriptionStatus: 'active' | 'inactive' | 'suspended';
-  verificationStatus: 'pending' | 'approved' | 'rejected';
-  gstVerified: boolean;
-  aadhaarVerified: boolean;
-  insights: BusinessInsights;
+  subscriptionStatus?: 'active' | 'inactive' | 'suspended';
+  verificationStatus?: 'pending' | 'approved' | 'rejected';
+  gstVerified?: boolean;
+  aadhaarVerified?: boolean;
+  insights?: BusinessInsights;
   createdAt: string;
-  updatedAt: string;
+  updatedAt?: string;
   verificationRemarks?: string;
   verifiedAt?: string;
   verifiedBy?: VerifiedBy;

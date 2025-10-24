@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import AdminLayout from '@/components/admin/layout/AdminLayout';
 import { Search, Building2, CheckCircle, XCircle, Eye, Star, Calendar, Globe, MapPin, Mail, Phone } from 'lucide-react';
 import { businessesAPI, Business, BusinessesData } from '@/api/businesses';
+import { safeString, formatLocation, safeArrayLength } from '@/utils/safeRender';
 
 export default function AllBusinessesPage() {
   const [businessesData, setBusinessesData] = useState<BusinessesData | null>(null);
@@ -327,14 +328,12 @@ export default function AllBusinessesPage() {
                           <p className="text-sm text-gray-500">Business Type</p>
                           <p className="font-medium">{business.businessType}</p>
                         </div>
-                        {(business.location?.city || business.location?.state) && (
-                          <div>
-                            <p className="text-sm text-gray-500">Location</p>
-                            <p className="font-medium">
-                              {[business.location?.city, business.location?.state].filter(Boolean).join(', ')}
-                            </p>
-                          </div>
-                        )}
+                        <div>
+                          <p className="text-sm text-gray-500">Location</p>
+                          <p className="font-medium">
+                            {formatLocation(business.location)}
+                          </p>
+                        </div>
                         <div>
                           <p className="text-sm text-gray-500">Views</p>
                           <div className="flex items-center gap-1">
@@ -345,7 +344,7 @@ export default function AllBusinessesPage() {
                         {business.contact?.email && (
                           <div>
                             <p className="text-sm text-gray-500">Email</p>
-                            <p className="font-medium text-sm">{business.contact?.email}</p>
+                            <p className="font-medium text-sm">{safeString(business.contact.email)}</p>
                           </div>
                         )}
                         <div>
@@ -356,38 +355,40 @@ export default function AllBusinessesPage() {
                       
                       {/* Additional Details */}
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 pt-4 border-t border-gray-100">
-                        <div className="flex items-center gap-2">
-                          <Phone className="h-4 w-4 text-gray-400" />
-                          <span className="text-sm text-gray-600">{business.contact?.phone}</span>
-                        </div>
+                        {business.contact?.phone && (
+                          <div className="flex items-center gap-2">
+                            <Phone className="h-4 w-4 text-gray-400" />
+                            <span className="text-sm text-gray-600">{safeString(business.contact.phone)}</span>
+                          </div>
+                        )}
                         {business.contact?.website && (
                           <div className="flex items-center gap-2">
                             <Globe className="h-4 w-4 text-gray-400" />
-                            <span className="text-sm text-gray-600 truncate">{business.contact?.website}</span>
+                            <span className="text-sm text-gray-600 truncate">{safeString(business.contact.website)}</span>
                           </div>
                         )}
                         {business.location?.address && (
                           <div className="flex items-center gap-2">
                             <MapPin className="h-4 w-4 text-gray-400" />
-                            <span className="text-sm text-gray-600">{business.location?.address}</span>
+                            <span className="text-sm text-gray-600">{safeString(business.location.address)}</span>
                           </div>
                         )}
                         {business.userId?.email && (
                           <div className="flex items-center gap-2">
                             <Mail className="h-4 w-4 text-gray-400" />
-                            <span className="text-sm text-gray-600">{business.userId?.email}</span>
+                            <span className="text-sm text-gray-600">{safeString(business.userId.email)}</span>
                           </div>
                         )}
                       </div>
-                      
+
                       {/* Tags */}
-                      {business.tags.length > 0 && (
+                      {safeArrayLength(business.tags) > 0 && (
                         <div className="mt-4">
                           <p className="text-sm text-gray-500 mb-2">Tags:</p>
                           <div className="flex flex-wrap gap-2">
-                            {business.tags.map((tag, index) => (
+                            {business.tags?.map((tag, index) => (
                               <span key={index} className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded">
-                                {tag}
+                                {safeString(tag)}
                               </span>
                             ))}
                           </div>

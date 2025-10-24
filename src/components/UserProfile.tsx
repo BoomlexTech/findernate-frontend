@@ -739,17 +739,19 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
 
   const handleFollowToggle = async () => {
     if (isFollowLoading || !profile) return;
-    
+
     // Debug check
-    // //console.log('Attempting to follow/unfollow user:', {
-    //   targetUserId: profile._id,
-    //   currentlyFollowing: isFollowing,
-    //   token: typeof window !== 'undefined' ? !!localStorage.getItem('token') : false
-    // });
-    
+    console.log('Attempting to follow/unfollow user:', {
+      targetUserId: profile._id,
+      currentlyFollowing: isFollowing,
+      token: typeof window !== 'undefined' ? !!localStorage.getItem('token') : false,
+      profile: profile
+    });
+
     setIsFollowLoading(true);
     try {
       if (isFollowing) {
+        console.log('Calling unfollowUser with profile._id:', profile._id);
         const result = await unfollowUser(profile._id);
         
         // Check if it was a "Not following this user" case
