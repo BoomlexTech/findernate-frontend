@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import AdminLayout from '@/components/admin/layout/AdminLayout';
-import { Search, CheckCircle, XCircle, Eye, FileText, Shield, Building2, Phone, Mail, MapPin, Globe } from 'lucide-react';
+import { Search, CheckCircle, XCircle, Eye, FileText, Shield, Building2, Phone, Mail, MapPin } from 'lucide-react';
 import { businessesAPI, Business, BusinessesData, BusinessDetailsResponse } from '@/api/businesses';
 
 export default function PendingBusinessVerificationsPage() {

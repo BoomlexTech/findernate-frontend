@@ -10,7 +10,7 @@ export interface AadhaarVerificationBusiness {
     phone: string;
     address: string;
   };
-  location: string;
+  location: string | { city?: string; state?: string };
   createdAt: string;
   userId: {
     _id: string;
