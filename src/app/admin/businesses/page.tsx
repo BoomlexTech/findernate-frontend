@@ -96,7 +96,7 @@ export default function AllBusinessesPage() {
     });
   };
 
-  const getVerificationBadge = (isVerified: boolean) => {
+  const getVerificationBadge = (isVerified?: boolean) => {
     return isVerified ? (
       <span className="px-3 py-1 bg-green-100 text-green-800 text-sm font-medium rounded-full flex items-center gap-1">
         <CheckCircle className="h-3 w-3" />
@@ -110,16 +110,18 @@ export default function AllBusinessesPage() {
     );
   };
 
-  const getSubscriptionBadge = (status: string) => {
+  const getSubscriptionBadge = (status?: string) => {
     const statusColors = {
       active: 'bg-green-100 text-green-800',
       pending: 'bg-yellow-100 text-yellow-800',
       inactive: 'bg-gray-100 text-gray-800'
     };
-    
+
+    const displayStatus = status || 'inactive';
+
     return (
-      <span className={`px-2 py-1 text-xs font-medium rounded ${statusColors[status as keyof typeof statusColors]}`}>
-        {status.charAt(0).toUpperCase() + status.slice(1)}
+      <span className={`px-2 py-1 text-xs font-medium rounded ${statusColors[displayStatus as keyof typeof statusColors] || 'bg-gray-100 text-gray-800'}`}>
+        {displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1)}
       </span>
     );
   };
@@ -314,7 +316,7 @@ export default function AllBusinessesPage() {
                             {business.businessName}
                           </h3>
                           <p className="text-gray-600">Owner: {business.userId?.fullName || 'N/A'}</p>
-                          <p className="text-sm text-gray-500">{business.category}</p>
+                          <p className="text-sm text-gray-500">{business.category || 'N/A'}</p>
                         </div>
                         <div className="flex gap-2">
                           {getVerificationBadge(business.isVerified)}
@@ -326,7 +328,7 @@ export default function AllBusinessesPage() {
                       <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4 text-gray-500">
                         <div>
                           <p className="text-sm text-gray-500">Business Type</p>
-                          <p className="font-medium">{business.businessType}</p>
+                          <p className="font-medium">{business.businessType || 'N/A'}</p>
                         </div>
                         <div>
                           <p className="text-sm text-gray-500">Location</p>
@@ -338,7 +340,7 @@ export default function AllBusinessesPage() {
                           <p className="text-sm text-gray-500">Views</p>
                           <div className="flex items-center gap-1">
                             <Eye className="h-4 w-4 text-blue-400" />
-                            <p className="font-medium">{business.insights.views}</p>
+                            <p className="font-medium">{business.insights?.views || 0}</p>
                           </div>
                         </div>
                         {business.contact?.email && (
