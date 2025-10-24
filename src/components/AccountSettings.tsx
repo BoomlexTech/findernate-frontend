@@ -5,7 +5,7 @@ import BusinessDetailsModal from './business/BusinessDetailsModal';
 import BusinessVerificationModal from './business/BusinessVerificationModal';
 import { PaymentMethodsModal } from './business/PaymentMethodModal';
 import FollowRequestManager from './FollowRequestManager';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, ShoppingBag } from 'lucide-react';
 import { UpdateBusinessCategory, UpdateBusinessSubCategory, GetBusinessCategory, switchToBusiness, switchToPersonal, toggleProductPosts, toggleServicePosts, getMyBusinessId, GetBusinessDetails } from '@/api/business';
 import { useUserStore } from '@/store/useUserStore';
 import { getUserProfile } from '@/api/user';
@@ -854,9 +854,7 @@ export default function AccountSettings() {
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
-                        <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 4a1 1 0 011-1h12a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1V8z" clipRule="evenodd" />
-                        </svg>
+                        <ShoppingBag className="w-5 h-5 text-green-600" />
                       </div>
                       <div>
                         <h4 className="font-medium text-gray-900">Product</h4>

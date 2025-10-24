@@ -99,15 +99,23 @@ const UserProfilePage = () => {
         if (profileResponse?.userId) {
           // Transform the backend response to include isFollowing
           // Handle both string and boolean values for isFollowedBy
-          const isFollowing = profileResponse.isFollowedBy === true || 
-                             profileResponse.isFollowedBy === "True" || 
+          const isFollowing = profileResponse.isFollowedBy === true ||
+                             profileResponse.isFollowedBy === "True" ||
                              profileResponse.isFollowedBy === "true";
-          
+
+          console.log('Profile API Response - Follow Status:', {
+            username: profileResponse.userId.username,
+            userId: profileResponse.userId._id,
+            isFollowedBy_raw: profileResponse.isFollowedBy,
+            isFollowing_computed: isFollowing,
+            fullResponse: profileResponse
+          });
+
           const userProfileData = {
             ...profileResponse.userId,
             isFollowing: isFollowing
           };
-          
+
           setProfileData(userProfileData);
           
           // Fetch user posts, reels, and videos on initial load
