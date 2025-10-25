@@ -330,6 +330,7 @@ export default function MessagePanel() {
           userImage={user.profileImageUrl}
           callId={currentCall.callId}
           callType={currentCall.callType}
+          streamCallType={currentCall.streamCallType}
         />
       )}
 

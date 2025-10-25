@@ -50,6 +50,17 @@ export interface StreamTokenResponse {
   expiresAt?: string;
 }
 
+export interface CreateStreamCallRequest {
+  callId: string;
+  callType: 'voice' | 'video';
+  members: string[];
+}
+
+export interface CreateStreamCallResponse {
+  streamCallType: 'audio_room' | 'default';
+  callId: string;
+}
+
 export const streamAPI = {
   // Get Stream.io token for video calls
   getStreamToken: async (): Promise<string> => {
@@ -58,6 +69,17 @@ export const streamAPI = {
       return response.data.data.token;
     } catch (error: any) {
       console.error('Failed to fetch Stream.io token:', error);
+      throw error;
+    }
+  },
+
+  // Create Stream.io call with proper settings
+  createStreamCall: async (data: CreateStreamCallRequest): Promise<CreateStreamCallResponse> => {
+    try {
+      const response = await apiClient.post<{ success: boolean; data: CreateStreamCallResponse; message: string }>('/stream/call/create', data);
+      return response.data.data;
+    } catch (error: any) {
+      console.error('Failed to create Stream.io call:', error);
       throw error;
     }
   }

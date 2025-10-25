@@ -24,6 +24,7 @@ interface VideoCallModalProps {
   userImage?: string;
   callId: string;
   callType?: 'voice' | 'video';
+  streamCallType?: 'audio_room' | 'default';
 }
 
 const CallLayout: React.FC<{ callType?: 'voice' | 'video' }> = ({ callType = 'video' }) => {
@@ -79,7 +80,8 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
   userName,
   userImage,
   callId,
-  callType = 'video'
+  callType = 'video',
+  streamCallType = 'default'
 }) => {
   const [client, setClient] = useState<StreamVideoClient | null>(null);
   const [call, setCall] = useState<any>(null);
@@ -102,13 +104,12 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
     const videoClient = new StreamVideoClient({ apiKey, user, token });
     setClient(videoClient);
 
-    // Map app call types to Stream.io SDK types
-    // Stream.io valid types: audio_room, default, development, livestream
-    // Use 'default' for both voice and video 1-on-1 calls
-    // The difference is handled by video enable/disable in CallControls
-    const streamCallType = 'default';
+    // Use the streamCallType from backend
+    // Backend returns 'audio_room' for voice calls, 'default' for video calls
+    // This ensures proper Stream.io configuration for each call type
+    console.log('📞 Using Stream.io call type:', streamCallType);
 
-    // Create and join call
+    // Create and join call with backend-provided type
     const videoCall = videoClient.call(streamCallType, callId);
 
     // Join the call with default settings
@@ -154,7 +155,7 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
         });
       }
     };
-  }, [isOpen, apiKey, token, userId, userName, userImage, callId, callType]);
+  }, [isOpen, apiKey, token, userId, userName, userImage, callId, callType, streamCallType]);
 
   const handleClose = async () => {
     // Optimistic UI update - close modal immediately for better UX
