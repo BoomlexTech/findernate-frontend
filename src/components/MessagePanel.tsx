@@ -324,7 +324,7 @@ export default function MessagePanel() {
         <VideoCallModal
           isOpen={isVideoCallOpen}
           onClose={endCall}
-          apiKey={process.env.NEXT_PUBLIC_STREAM_API_KEY || 'mmhfdzb5evj2'}
+          apiKey={process.env.NEXT_PUBLIC_STREAM_API_KEY || 'znpxrpjt6gjn'}
           token={streamToken}
           userId={user._id}
           userName={user.fullName || user.username || 'User'}
