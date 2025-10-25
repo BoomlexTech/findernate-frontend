@@ -100,29 +100,40 @@ export const useVideoCall = ({ user }: UseVideoCallProps) => {
         return;
       }
 
-      // Call backend to initiate call
-      const call = await callAPI.initiateCall({
-        receiverId: otherParticipant._id,
+      // Optimistic update: Open modal immediately with placeholder
+      setCurrentCall({
+        callId: 'connecting', // Temporary ID
         chatId: chat._id,
-        callType
+        callType,
+        isInitiator: true
       });
+      setIsVideoCallOpen(true);
+
+      // Parallelize API calls for faster connection
+      const [call, token] = await Promise.all([
+        callAPI.initiateCall({
+          receiverId: otherParticipant._id,
+          chatId: chat._id,
+          callType
+        }),
+        streamAPI.getStreamToken()
+      ]);
 
       console.log('📞 Call initiated:', call);
 
-      // Fetch Stream.io token from backend
-      const token = await streamAPI.getStreamToken();
+      // Update with real call ID and token
       setStreamToken(token);
-
       setCurrentCall({
         callId: call._id,
         chatId: chat._id,
         callType,
         isInitiator: true
       });
-
-      setIsVideoCallOpen(true);
     } catch (error: any) {
       console.error('Failed to initiate call:', error);
+      // Close modal on error
+      setIsVideoCallOpen(false);
+      setCurrentCall(null);
       const errorMessage = error?.response?.data?.message || error?.message || 'Failed to initiate call';
       alert(errorMessage);
     }
@@ -133,29 +144,39 @@ export const useVideoCall = ({ user }: UseVideoCallProps) => {
     if (!incomingCall) return;
 
     try {
-      // Call backend to accept call
-      await callAPI.acceptCall(incomingCall.callId);
+      // Optimistic update: Open modal immediately
+      setCurrentCall({
+        callId: 'connecting',
+        chatId: incomingCall.chatId,
+        callType: incomingCall.callType,
+        isInitiator: false
+      });
+      setIncomingCall(null);
+      setIsVideoCallOpen(true);
+
+      // Parallelize API calls for faster connection
+      const [, token] = await Promise.all([
+        callAPI.acceptCall(incomingCall.callId),
+        streamAPI.getStreamToken()
+      ]);
 
       console.log('📞 Call accepted:', incomingCall.callId);
 
-      // Fetch Stream.io token from backend
-      const token = await streamAPI.getStreamToken();
+      // Update with real call ID and token
       setStreamToken(token);
-
       setCurrentCall({
         callId: incomingCall.callId,
         chatId: incomingCall.chatId,
         callType: incomingCall.callType,
         isInitiator: false
       });
-
-      setIncomingCall(null);
-      setIsVideoCallOpen(true);
     } catch (error: any) {
       console.error('Failed to accept call:', error);
+      // Close modal on error
+      setIsVideoCallOpen(false);
+      setCurrentCall(null);
       const errorMessage = error?.response?.data?.message || error?.message || 'Failed to accept call';
       alert(errorMessage);
-      setIncomingCall(null);
     }
   }, [incomingCall]);
 
