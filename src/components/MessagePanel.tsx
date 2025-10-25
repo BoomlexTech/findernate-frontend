@@ -330,7 +330,7 @@ export default function MessagePanel() {
           userName={user.fullName || user.username || 'User'}
           userImage={user.profileImageUrl}
           callId={currentCall.callId}
-          callType={currentCall.callType === 'voice' ? 'audio' : 'default'}
+          callType={currentCall.callType}
         />
       )}
 

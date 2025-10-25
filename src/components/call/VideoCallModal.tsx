@@ -23,7 +23,7 @@ interface VideoCallModalProps {
   userName: string;
   userImage?: string;
   callId: string;
-  callType?: 'default' | 'audio';
+  callType?: 'voice' | 'video';
 }
 
 const CallLayout = () => {
@@ -58,7 +58,7 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
   userName,
   userImage,
   callId,
-  callType = 'default'
+  callType = 'video'
 }) => {
   const [client, setClient] = useState<StreamVideoClient | null>(null);
   const [call, setCall] = useState<any>(null);
@@ -76,8 +76,13 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
     const videoClient = new StreamVideoClient({ apiKey, user, token });
     setClient(videoClient);
 
+    // Map app call types to Stream.io SDK types
+    // 'voice' -> 'audio' for audio-only calls
+    // 'video' -> 'default' for video calls
+    const streamCallType = callType === 'voice' ? 'audio' : 'default';
+
     // Create and join call
-    const videoCall = videoClient.call(callType, callId);
+    const videoCall = videoClient.call(streamCallType, callId);
     videoCall.join({ create: true });
     setCall(videoCall);
 
