@@ -25,6 +25,7 @@ export const useVideoCall = ({ user }: UseVideoCallProps) => {
     chatId: string;
     callType: 'voice' | 'video';
     isInitiator: boolean;
+    streamCallType?: 'audio_room' | 'default';
   } | null>(null);
   const [streamToken, setStreamToken] = useState<string | null>(null);
 
@@ -109,7 +110,7 @@ export const useVideoCall = ({ user }: UseVideoCallProps) => {
       });
       setIsVideoCallOpen(true);
 
-      // Parallelize API calls for faster connection
+      // Step 1: Initiate call and get token in parallel
       const [call, token] = await Promise.all([
         callAPI.initiateCall({
           receiverId: otherParticipant._id,
@@ -121,13 +122,23 @@ export const useVideoCall = ({ user }: UseVideoCallProps) => {
 
       console.log('📞 Call initiated:', call);
 
-      // Update with real call ID and token
+      // Step 2: Create Stream.io call with proper settings
+      const streamCallData = await streamAPI.createStreamCall({
+        callId: call._id,
+        callType,
+        members: [otherParticipant._id]
+      });
+
+      console.log('📞 Stream.io call created:', streamCallData);
+
+      // Update with real call ID, token, and Stream.io call type
       setStreamToken(token);
       setCurrentCall({
         callId: call._id,
         chatId: chat._id,
         callType,
-        isInitiator: true
+        isInitiator: true,
+        streamCallType: streamCallData.streamCallType
       });
     } catch (error: any) {
       console.error('Failed to initiate call:', error);
@@ -154,7 +165,7 @@ export const useVideoCall = ({ user }: UseVideoCallProps) => {
       setIncomingCall(null);
       setIsVideoCallOpen(true);
 
-      // Parallelize API calls for faster connection
+      // Step 1: Accept call and get token in parallel
       const [, token] = await Promise.all([
         callAPI.acceptCall(incomingCall.callId),
         streamAPI.getStreamToken()
@@ -162,13 +173,23 @@ export const useVideoCall = ({ user }: UseVideoCallProps) => {
 
       console.log('📞 Call accepted:', incomingCall.callId);
 
-      // Update with real call ID and token
+      // Step 2: Create Stream.io call with proper settings
+      const streamCallData = await streamAPI.createStreamCall({
+        callId: incomingCall.callId,
+        callType: incomingCall.callType,
+        members: [incomingCall.callerId]
+      });
+
+      console.log('📞 Stream.io call created:', streamCallData);
+
+      // Update with real call ID, token, and Stream.io call type
       setStreamToken(token);
       setCurrentCall({
         callId: incomingCall.callId,
         chatId: incomingCall.chatId,
         callType: incomingCall.callType,
-        isInitiator: false
+        isInitiator: false,
+        streamCallType: streamCallData.streamCallType
       });
     } catch (error: any) {
       console.error('Failed to accept call:', error);
