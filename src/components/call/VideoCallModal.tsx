@@ -26,7 +26,7 @@ interface VideoCallModalProps {
   callType?: 'voice' | 'video';
 }
 
-const CallLayout = () => {
+const CallLayout: React.FC<{ callType?: 'voice' | 'video' }> = ({ callType = 'video' }) => {
   const { useCallCallingState } = useCallStateHooks();
   const callingState = useCallCallingState();
 
@@ -35,7 +35,9 @@ const CallLayout = () => {
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-white text-lg">Connecting to call...</p>
+          <p className="text-white text-lg">
+            Connecting to {callType === 'voice' ? 'voice' : 'video'} call...
+          </p>
         </div>
       </div>
     );
@@ -43,8 +45,27 @@ const CallLayout = () => {
 
   return (
     <StreamTheme>
-      <SpeakerLayout participantsBarPosition='bottom' />
-      <CallControls />
+      {callType === 'voice' ? (
+        <div className="flex flex-col items-center justify-center h-full bg-gradient-to-br from-gray-800 to-gray-900">
+          <div className="text-center">
+            <div className="w-32 h-32 rounded-full bg-blue-500/20 flex items-center justify-center mb-6 mx-auto animate-pulse">
+              <svg className="w-16 h-16 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+              </svg>
+            </div>
+            <p className="text-white text-xl mb-2">Voice Call in Progress</p>
+            <p className="text-gray-400 text-sm">Audio only</p>
+          </div>
+          <div className="mt-8">
+            <CallControls />
+          </div>
+        </div>
+      ) : (
+        <>
+          <SpeakerLayout participantsBarPosition='bottom' />
+          <CallControls />
+        </>
+      )}
     </StreamTheme>
   );
 };
@@ -77,13 +98,38 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
     setClient(videoClient);
 
     // Map app call types to Stream.io SDK types
-    // 'voice' -> 'audio' for audio-only calls
-    // 'video' -> 'default' for video calls
-    const streamCallType = callType === 'voice' ? 'audio' : 'default';
+    // Stream.io valid types: audio_room, default, development, livestream
+    // Use 'default' for both voice and video 1-on-1 calls
+    // The difference is handled by video enable/disable in CallControls
+    const streamCallType = 'default';
 
     // Create and join call
     const videoCall = videoClient.call(streamCallType, callId);
-    videoCall.join({ create: true });
+
+    // Configure call settings based on call type
+    const joinOptions: any = {
+      create: true,
+      data: {
+        members: [],
+      }
+    };
+
+    // For voice calls, disable video by default
+    if (callType === 'voice') {
+      joinOptions.data.settings_override = {
+        video: { camera_default_on: false }
+      };
+    }
+
+    videoCall.join(joinOptions);
+
+    // Disable camera for voice calls after joining
+    if (callType === 'voice') {
+      videoCall.camera.disable().catch((err) => {
+        console.warn('Failed to disable camera for voice call:', err);
+      });
+    }
+
     setCall(videoCall);
 
     return () => {
@@ -178,7 +224,7 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
           {client && call ? (
             <StreamVideo client={client}>
               <StreamCall call={call}>
-                <CallLayout />
+                <CallLayout callType={callType} />
               </StreamCall>
             </StreamVideo>
           ) : (
