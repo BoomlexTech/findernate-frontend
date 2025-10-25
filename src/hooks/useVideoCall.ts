@@ -28,6 +28,23 @@ export const useVideoCall = ({ user }: UseVideoCallProps) => {
   } | null>(null);
   const [streamToken, setStreamToken] = useState<string | null>(null);
 
+  // Clean up any stuck active calls on mount
+  useEffect(() => {
+    const cleanupActiveCall = async () => {
+      try {
+        const activeCall = await callAPI.getActiveCall();
+        if (activeCall) {
+          console.log('🧹 Found stuck active call, cleaning up:', activeCall._id);
+          await callAPI.endCall(activeCall._id, { endReason: 'cancelled' });
+        }
+      } catch (error) {
+        console.error('Failed to cleanup active call:', error);
+      }
+    };
+
+    cleanupActiveCall();
+  }, []);
+
   // Handle incoming call
   useEffect(() => {
     const handleIncomingCall = (data: any) => {
