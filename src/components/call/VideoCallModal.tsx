@@ -87,6 +87,11 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
   useEffect(() => {
     if (!isOpen) return;
 
+    // Don't initialize Stream.io if we're still connecting (waiting for real callId)
+    if (callId === 'connecting') {
+      return;
+    }
+
     const user: User = {
       id: userId,
       name: userName,
@@ -106,28 +111,17 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
     // Create and join call
     const videoCall = videoClient.call(streamCallType, callId);
 
-    // Configure call settings based on call type
-    const joinOptions: any = {
-      create: true,
-      data: {
-        members: [],
-      }
-    };
-
-    // For voice calls, disable video by default
-    if (callType === 'voice') {
-      joinOptions.data.settings_override = {
-        video: { camera_default_on: false }
-      };
-    }
-
-    videoCall.join(joinOptions);
+    // Join the call with default settings
+    videoCall.join({ create: true });
 
     // Disable camera for voice calls after joining
     if (callType === 'voice') {
-      videoCall.camera.disable().catch((err) => {
-        console.warn('Failed to disable camera for voice call:', err);
-      });
+      // Wait a bit for the call to initialize, then disable camera
+      setTimeout(() => {
+        videoCall.camera.disable().catch((err) => {
+          console.warn('Failed to disable camera for voice call:', err);
+        });
+      }, 100);
     }
 
     setCall(videoCall);
