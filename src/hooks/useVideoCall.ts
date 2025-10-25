@@ -177,17 +177,28 @@ export const useVideoCall = ({ user }: UseVideoCallProps) => {
   const endCall = useCallback(async () => {
     if (!currentCall) return;
 
+    const callId = currentCall.callId;
+
+    // Optimistic update - clear state immediately for better UX
+    setIsVideoCallOpen(false);
+    setCurrentCall(null);
+    setStreamToken(null);
+
     try {
-      await callAPI.endCall(currentCall.callId, { endReason: 'normal' });
-      console.log('📞 Call ended:', currentCall.callId);
-      setIsVideoCallOpen(false);
-      setCurrentCall(null);
-      setStreamToken(null);
+      // Make API call in background (with timeout protection)
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('End call API timeout')), 10000)
+      );
+
+      await Promise.race([
+        callAPI.endCall(callId, { endReason: 'normal' }),
+        timeoutPromise
+      ]);
+
+      console.log('📞 Call ended successfully:', callId);
     } catch (error) {
-      console.error('Failed to end call:', error);
-      setIsVideoCallOpen(false);
-      setCurrentCall(null);
-      setStreamToken(null);
+      console.error('Failed to end call (state already cleared):', error);
+      // State already cleared, so user experience is not affected
     }
   }, [currentCall]);
 

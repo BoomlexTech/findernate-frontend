@@ -82,28 +82,75 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
     setCall(videoCall);
 
     return () => {
-      // Cleanup on unmount or when modal closes
-      if (call) {
-        call.leave().catch(console.error);
+      // Cleanup on unmount - use parallel cleanup with timeout
+      const cleanupPromises: Promise<unknown>[] = [];
+
+      if (videoCall) {
+        cleanupPromises.push(
+          Promise.race([
+            videoCall.leave(),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000))
+          ]).catch((err) => console.warn('Call cleanup on unmount failed:', err))
+        );
       }
-      if (client) {
-        client.disconnectUser().catch(console.error);
+
+      if (videoClient) {
+        cleanupPromises.push(
+          Promise.race([
+            videoClient.disconnectUser(),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000))
+          ]).catch((err) => console.warn('Client cleanup on unmount failed:', err))
+        );
+      }
+
+      if (cleanupPromises.length > 0) {
+        Promise.allSettled(cleanupPromises).then(() => {
+          console.log('📞 Cleanup on unmount completed');
+        });
       }
     };
   }, [isOpen, apiKey, token, userId, userName, userImage, callId, callType]);
 
   const handleClose = async () => {
+    // Optimistic UI update - close modal immediately for better UX
+    onClose();
+
+    // Helper function to add timeout to promises
+    const withTimeout = <T,>(promise: Promise<T>, timeoutMs: number = 5000): Promise<T> => {
+      return Promise.race([
+        promise,
+        new Promise<T>((_, reject) =>
+          setTimeout(() => reject(new Error('Operation timed out')), timeoutMs)
+        ),
+      ]);
+    };
+
     try {
+      // Parallelize cleanup operations with timeout protection
+      const cleanupPromises: Promise<unknown>[] = [];
+
       if (call) {
-        await call.leave();
+        cleanupPromises.push(
+          withTimeout(call.leave(), 5000).catch((err) => {
+            console.warn('Call leave failed or timed out:', err);
+          })
+        );
       }
+
       if (client) {
-        await client.disconnectUser();
+        cleanupPromises.push(
+          withTimeout(client.disconnectUser(), 5000).catch((err) => {
+            console.warn('Client disconnect failed or timed out:', err);
+          })
+        );
       }
-      onClose();
+
+      // Wait for all cleanup operations to complete (or timeout)
+      await Promise.allSettled(cleanupPromises);
+      console.log('📞 Call cleanup completed');
     } catch (error) {
-      console.error('Error closing call:', error);
-      onClose();
+      console.error('Error during call cleanup:', error);
+      // UI already closed, so just log the error
     }
   };
 
