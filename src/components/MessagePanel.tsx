@@ -327,7 +327,7 @@ export default function MessagePanel() {
           apiKey={process.env.NEXT_PUBLIC_STREAM_API_KEY || 'mmhfdzb5evj2'}
           token={streamToken}
           userId={user._id}
-          userName={user.fullName || user.username}
+          userName={user.fullName || user.username || 'User'}
           userImage={user.profileImageUrl}
           callId={currentCall.callId}
           callType={currentCall.callType === 'voice' ? 'audio' : 'default'}
