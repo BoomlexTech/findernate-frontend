@@ -116,29 +116,34 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
         // This ensures proper Stream.io configuration for each call type
         console.log('📞 Using Stream.io call type:', streamCallType);
 
-        // Create and join call with backend-provided type
+        // Get the existing call that was already created by backend
         videoCall = videoClient.call(streamCallType, callId);
 
-        // Join the call with default settings (await it!)
-        console.log('📞 Joining call...');
-        await videoCall.join({ create: true });
-        console.log('📞 Successfully joined call!');
-
-        // Disable camera for voice calls after joining
-        if (callType === 'voice') {
-          try {
-            await videoCall.camera.disable();
-            console.log('📞 Camera disabled for voice call');
-          } catch (err) {
-            console.warn('Failed to disable camera for voice call:', err);
-          }
-        }
-
+        // Set call state immediately for faster UI
         setCall(videoCall);
+
+        // Join the existing call in the background (don't block UI)
+        console.log('📞 Joining existing call...');
+        videoCall.join({ create: false })
+          .then(() => {
+            console.log('📞 Successfully joined call!');
+
+            // Disable camera for voice calls after joining
+            if (callType === 'voice') {
+              videoCall.camera.disable()
+                .then(() => console.log('📞 Camera disabled for voice call'))
+                .catch((err) => console.warn('Failed to disable camera for voice call:', err));
+            }
+          })
+          .catch((error) => {
+            console.error('📞 Failed to join call:', error);
+            alert('Failed to join call. Please try again.');
+            onClose();
+          });
       } catch (error) {
-        console.error('📞 Failed to initialize/join call:', error);
+        console.error('📞 Failed to initialize call:', error);
         // Show error to user
-        alert('Failed to join call. Please check your connection and try again.');
+        alert('Failed to initialize call. Please check your connection and try again.');
         // Close the modal on error
         onClose();
       }
