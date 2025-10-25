@@ -94,38 +94,62 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
       return;
     }
 
-    const user: User = {
-      id: userId,
-      name: userName,
-      image: userImage || `https://getstream.io/random_svg/?id=${userId}&name=${userName}`,
+    // Declare these outside async function so cleanup can access them
+    let videoClient: StreamVideoClient | null = null;
+    let videoCall: any = null;
+
+    const initializeCall = async () => {
+      try {
+        const user: User = {
+          id: userId,
+          name: userName,
+          image: userImage || `https://getstream.io/random_svg/?id=${userId}&name=${userName}`,
+        };
+
+        // Initialize Stream Video client
+        console.log('📞 Initializing Stream.io client...');
+        videoClient = new StreamVideoClient({ apiKey, user, token });
+        setClient(videoClient);
+
+        // Use the streamCallType from backend
+        // Backend returns 'audio_room' for voice calls, 'default' for video calls
+        // This ensures proper Stream.io configuration for each call type
+        console.log('📞 Using Stream.io call type:', streamCallType);
+
+        // Get the existing call that was already created by backend
+        videoCall = videoClient.call(streamCallType, callId);
+
+        // Set call state immediately for faster UI
+        setCall(videoCall);
+
+        // Join the existing call in the background (don't block UI)
+        console.log('📞 Joining existing call...');
+        videoCall.join({ create: false })
+          .then(() => {
+            console.log('📞 Successfully joined call!');
+
+            // Disable camera for voice calls after joining
+            if (callType === 'voice') {
+              videoCall.camera.disable()
+                .then(() => console.log('📞 Camera disabled for voice call'))
+                .catch((err) => console.warn('Failed to disable camera for voice call:', err));
+            }
+          })
+          .catch((error) => {
+            console.error('📞 Failed to join call:', error);
+            alert('Failed to join call. Please try again.');
+            onClose();
+          });
+      } catch (error) {
+        console.error('📞 Failed to initialize call:', error);
+        // Show error to user
+        alert('Failed to initialize call. Please check your connection and try again.');
+        // Close the modal on error
+        onClose();
+      }
     };
 
-    // Initialize Stream Video client
-    const videoClient = new StreamVideoClient({ apiKey, user, token });
-    setClient(videoClient);
-
-    // Use the streamCallType from backend
-    // Backend returns 'audio_room' for voice calls, 'default' for video calls
-    // This ensures proper Stream.io configuration for each call type
-    console.log('📞 Using Stream.io call type:', streamCallType);
-
-    // Create and join call with backend-provided type
-    const videoCall = videoClient.call(streamCallType, callId);
-
-    // Join the call with default settings
-    videoCall.join({ create: true });
-
-    // Disable camera for voice calls after joining
-    if (callType === 'voice') {
-      // Wait a bit for the call to initialize, then disable camera
-      setTimeout(() => {
-        videoCall.camera.disable().catch((err) => {
-          console.warn('Failed to disable camera for voice call:', err);
-        });
-      }, 100);
-    }
-
-    setCall(videoCall);
+    initializeCall();
 
     return () => {
       // Cleanup on unmount - use parallel cleanup with timeout
@@ -155,7 +179,7 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
         });
       }
     };
-  }, [isOpen, apiKey, token, userId, userName, userImage, callId, callType, streamCallType]);
+  }, [isOpen, apiKey, token, userId, userName, userImage, callId, callType, streamCallType, onClose]);
 
   const handleClose = async () => {
     // Optimistic UI update - close modal immediately for better UX
