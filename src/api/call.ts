@@ -156,18 +156,6 @@ export const callAPI = {
     } catch (error: any) {
       throw error;
     }
-  },
-
-  // Get ZegoCloud token for a call
-  getZegoToken: async (callId: string, role: string = 'publisher'): Promise<any> => {
-    try {
-      const response = await apiClient.post<{ success: boolean; data: any; message: string }>(`/calls/${callId}/zego-token`, {
-        role
-      });
-      return response.data.data;
-    } catch (error: any) {
-      throw error;
-    }
   }
 };
 
