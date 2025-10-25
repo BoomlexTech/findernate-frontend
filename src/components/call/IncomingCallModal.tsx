@@ -1,226 +1,115 @@
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
-import { Phone, PhoneOff, Video, Mic } from 'lucide-react';
+import React from 'react';
 import Image from 'next/image';
-
-// Type definition for incoming call (moved from useAgora, now used with ZegoCloud)
-export interface IncomingCall {
-  callId: string;
-  callType: 'voice' | 'video';
-  caller: {
-    _id: string;
-    username: string;
-    fullName: string;
-    profileImageUrl?: string;
-  };
-  timestamp: number;
-}
+import { Phone, PhoneOff, Video } from 'lucide-react';
 
 interface IncomingCallModalProps {
-  incomingCall: IncomingCall;
+  isOpen: boolean;
+  callerName: string;
+  callerImage?: string;
+  callType: 'voice' | 'video';
   onAccept: () => void;
   onDecline: () => void;
-  isLoading?: boolean;
 }
 
 export const IncomingCallModal: React.FC<IncomingCallModalProps> = ({
-  incomingCall,
+  isOpen,
+  callerName,
+  callerImage,
+  callType,
   onAccept,
-  onDecline,
-  isLoading = false
+  onDecline
 }) => {
-  const [hasInteracted, setHasInteracted] = useState(false);
-  const onDeclineRef = useRef(onDecline);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Keep ref updated
-  useEffect(() => {
-    onDeclineRef.current = onDecline;
-  }, [onDecline]);
-
-  // Auto-decline after 30 seconds ONLY if user hasn't accepted/declined AND page is visible
-  // This effect runs ONLY ONCE when modal mounts
-  useEffect(() => {
-    console.log('🔔 Incoming call modal mounted, setting 30-second auto-decline timer');
-
-    timerRef.current = setTimeout(() => {
-      // Only auto-decline if page is visible and user hasn't interacted
-      const isPageVisible = !document.hidden;
-      if (!hasInteracted && isPageVisible) {
-        console.log('⏰ Auto-declining call after 30 seconds of no response');
-        onDeclineRef.current();
-      } else if (!isPageVisible) {
-        console.log('⚠️ Page is hidden, not auto-declining (user may have switched tabs)');
-      } else if (hasInteracted) {
-        console.log('⚠️ User already interacted, not auto-declining');
-      }
-    }, 90000);
-
-    return () => {
-      if (timerRef.current) {
-        console.log('🧹 Clearing auto-decline timer (modal unmounted or user interacted)');
-        clearTimeout(timerRef.current);
-        timerRef.current = null;
-      }
-    };
-  }, [incomingCall.callId]); // Only re-run if we get a NEW call (different callId)
-
-  const isVideoCall = incomingCall.callType === 'video';
+  if (!isOpen) return null;
 
   return (
-    <div 
-      className="
-        fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm
-        animate-in fade-in duration-150
-      "
-    >
-      <div 
-        className="
-          bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 overflow-hidden
-          animate-in zoom-in-95 slide-in-from-bottom-4 duration-150
-        "
-      >
-        {/* Header */}
-        <div className="bg-gradient-to-br from-blue-500 to-purple-600 px-6 py-8 text-center text-white">
-          <div className="flex items-center justify-center mb-4">
-            {isVideoCall ? (
-              <Video className="w-8 h-8 text-white/90" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-80 backdrop-blur-sm">
+      <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-3xl shadow-2xl p-8 max-w-md w-full mx-4 border border-gray-700">
+        {/* Call type indicator */}
+        <div className="flex items-center justify-center mb-6">
+          <div className={`
+            p-4 rounded-full
+            ${callType === 'video' ? 'bg-blue-500/20' : 'bg-green-500/20'}
+          `}>
+            {callType === 'video' ? (
+              <Video className="w-8 h-8 text-blue-400" />
             ) : (
-              <Phone className="w-8 h-8 text-white/90" />
-            )}
-          </div>
-          
-          <h2 className="text-lg font-medium mb-1">
-            Incoming {isVideoCall ? 'video' : 'voice'} call
-          </h2>
-          
-          <p className="text-white/80 text-sm">
-            {new Date(incomingCall.timestamp).toLocaleTimeString()}
-          </p>
-        </div>
-
-        {/* Caller Info */}
-        <div className="px-6 py-8 text-center">
-          <div className="mb-6">
-            {incomingCall.caller.profileImageUrl ? (
-              <Image
-                src={incomingCall.caller.profileImageUrl}
-                alt={incomingCall.caller.fullName}
-                width={120}
-                height={120}
-                className="w-30 h-30 rounded-full object-cover mx-auto shadow-lg border-4 border-gray-100"
-              />
-            ) : (
-              <div className="w-30 h-30 bg-gray-200 rounded-full mx-auto flex items-center justify-center shadow-lg">
-                <span className="text-4xl">👤</span>
-              </div>
-            )}
-          </div>
-          
-          <h3 className="text-2xl font-bold text-gray-900 mb-2">
-            {incomingCall.caller.fullName}
-          </h3>
-          
-          <p className="text-gray-600 mb-6">
-            @{incomingCall.caller.username}
-          </p>
-
-          {/* Call Type Info */}
-          <div className="flex items-center justify-center gap-2 mb-8 text-sm text-gray-500">
-            {isVideoCall ? (
-              <>
-                <Video className="w-4 h-4" />
-                <span>Video call with audio</span>
-              </>
-            ) : (
-              <>
-                <Mic className="w-4 h-4" />
-                <span>Voice call</span>
-              </>
+              <Phone className="w-8 h-8 text-green-400" />
             )}
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="px-6 pb-8">
-          <div className="flex gap-4 justify-center">
-            {/* Decline Button */}
-            <button
-              onClick={() => {
-                console.log('📞 User clicked Decline button');
-                setHasInteracted(true);
-                // Clear timer immediately when user declines
-                if (timerRef.current) {
-                  clearTimeout(timerRef.current);
-                  timerRef.current = null;
-                }
-                onDecline();
-              }}
-              disabled={isLoading}
-              className="
-                w-16 h-16 bg-red-500 hover:bg-red-600 text-white rounded-full
-                flex items-center justify-center transition-all duration-200
-                hover:scale-105 active:scale-95 shadow-lg
-                disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100
-              "
-              title="Decline call"
-            >
-              <PhoneOff className="w-6 h-6" />
-            </button>
+        {/* Caller info */}
+        <div className="text-center mb-8">
+          <div className="relative inline-block mb-4">
+            <Image
+              src={callerImage || `https://ui-avatars.com/api/?name=${encodeURIComponent(callerName)}&background=random`}
+              alt={callerName}
+              width={120}
+              height={120}
+              className="rounded-full border-4 border-gray-700 shadow-xl"
+            />
+            {/* Pulsing ring animation */}
+            <div className="absolute inset-0 rounded-full border-4 border-blue-400 animate-ping opacity-75"></div>
+          </div>
 
-            {/* Accept Button */}
-            <button
-              onClick={() => {
-                console.log('📞 User clicked Accept button');
-                setHasInteracted(true);
-                // Clear timer immediately when user accepts
-                if (timerRef.current) {
-                  clearTimeout(timerRef.current);
-                  timerRef.current = null;
-                }
-                onAccept();
-              }}
-              disabled={isLoading}
-              className="
-                w-16 h-16 bg-green-500 hover:bg-green-600 text-white rounded-full
-                flex items-center justify-center transition-all duration-200
-                hover:scale-105 active:scale-95 shadow-lg
-                disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100
-              "
-              title={`Accept ${isVideoCall ? 'video' : 'voice'} call`}
-            >
-              {isLoading ? (
-                <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          <h2 className="text-3xl font-bold text-white mb-2">{callerName}</h2>
+          <p className="text-gray-400 text-lg">
+            Incoming {callType} call...
+          </p>
+        </div>
+
+        {/* Action buttons */}
+        <div className="flex items-center justify-center gap-8">
+          {/* Decline button */}
+          <button
+            onClick={onDecline}
+            className="group relative flex flex-col items-center"
+            aria-label="Decline call"
+          >
+            <div className="
+              w-16 h-16 rounded-full
+              bg-red-500 hover:bg-red-600
+              flex items-center justify-center
+              transition-all duration-200
+              transform hover:scale-110 active:scale-95
+              shadow-lg hover:shadow-red-500/50
+            ">
+              <PhoneOff className="w-7 h-7 text-white" />
+            </div>
+            <span className="text-gray-300 text-sm mt-2 font-medium">Decline</span>
+          </button>
+
+          {/* Accept button */}
+          <button
+            onClick={onAccept}
+            className="group relative flex flex-col items-center"
+            aria-label="Accept call"
+          >
+            <div className={`
+              w-16 h-16 rounded-full
+              ${callType === 'video' ? 'bg-blue-500 hover:bg-blue-600' : 'bg-green-500 hover:bg-green-600'}
+              flex items-center justify-center
+              transition-all duration-200
+              transform hover:scale-110 active:scale-95
+              shadow-lg ${callType === 'video' ? 'hover:shadow-blue-500/50' : 'hover:shadow-green-500/50'}
+            `}>
+              {callType === 'video' ? (
+                <Video className="w-7 h-7 text-white" />
               ) : (
-                <Phone className="w-6 h-6" />
+                <Phone className="w-7 h-7 text-white" />
               )}
-            </button>
-          </div>
-
-          {/* Loading State */}
-          {isLoading && (
-            <p className="text-center text-gray-500 text-sm mt-4">
-              Starting {isVideoCall ? 'video' : 'voice'} call...
-            </p>
-          )}
-
-          {/* Hint Text */}
-          {!isLoading && (
-            <p className="text-center text-gray-400 text-xs mt-4">
-              Call will automatically decline in 30 seconds
-            </p>
-          )}
+            </div>
+            <span className="text-gray-300 text-sm mt-2 font-medium">Accept</span>
+          </button>
         </div>
-      </div>
 
-      {/* Decorative elements */}
-      <div className="absolute inset-0 pointer-events-none">
-        {/* Animated rings around the modal */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-96 h-96 border-2 border-white/10 rounded-full animate-ping" style={{ animationDuration: '2s' }} />
-          <div className="absolute w-80 h-80 border-2 border-white/10 rounded-full animate-ping" style={{ animationDuration: '2s', animationDelay: '0.5s' }} />
-          <div className="absolute w-64 h-64 border-2 border-white/10 rounded-full animate-ping" style={{ animationDuration: '2s', animationDelay: '1s' }} />
+        {/* Ringtone indicator */}
+        <div className="mt-8 flex items-center justify-center gap-2">
+          <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+          <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+          <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
         </div>
       </div>
     </div>

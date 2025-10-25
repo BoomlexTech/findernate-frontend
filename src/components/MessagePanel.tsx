@@ -3,7 +3,6 @@ import React, { useRef } from "react";
 import { useUserStore } from "@/store/useUserStore";
 import { messageAPI, Chat } from "@/api/message";
 import { EmojiClickData } from 'emoji-picker-react';
-import { useZegoGlobalCall } from '@/components/providers/ZegoCallProvider';
 
 // Custom hooks
 import { useChatManagement } from '@/hooks/useChatManagement';
@@ -11,6 +10,7 @@ import { useMessageManagement } from '@/hooks/useMessageManagement';
 import { useFileUpload } from '@/hooks/useFileUpload';
 import { useModalState } from '@/hooks/useModalState';
 import { useSocket } from '@/hooks/useSocket';
+import { useVideoCall } from '@/hooks/useVideoCall';
 
 // Components
 import { LeftPanel } from './message/LeftPanel';
@@ -20,6 +20,8 @@ import { ContextMenu } from './message/ContextMenu';
 import { NewChatModal } from './message/NewChatModal';
 import { GroupChatModal } from './message/GroupChatModal';
 import { GroupDetailsModal } from './message/GroupDetailsModal';
+import { VideoCallModal } from './call/VideoCallModal';
+import { IncomingCallModal } from './call/IncomingCallModal';
 
 export default function MessagePanel() {
   const user = useUserStore((state) => state.user);
@@ -101,36 +103,6 @@ export default function MessagePanel() {
     scrollToBottom
   });
 
-  // ZegoCloud call functionality
-  const { initiateCall } = useZegoGlobalCall();
-
-  // Call handlers
-  const handleVoiceCall = async (chat: Chat) => {
-    if (chat.chatType !== 'direct') return;
-
-    const receiverId = chat.participants.find(p => p._id !== user?._id)?._id;
-    if (!receiverId) return;
-
-    try {
-      await initiateCall(receiverId, chat._id, 'voice');
-    } catch (error) {
-      console.error('Failed to start voice call:', error);
-    }
-  };
-
-  const handleVideoCall = async (chat: Chat) => {
-    if (chat.chatType !== 'direct') return;
-
-    const receiverId = chat.participants.find(p => p._id !== user?._id)?._id;
-    if (!receiverId) return;
-
-    try {
-      await initiateCall(receiverId, chat._id, 'video');
-    } catch (error) {
-      console.error('Failed to start video call:', error);
-    }
-  };
-
   // Modal state
   const {
     showNewChatModal,
@@ -165,6 +137,18 @@ export default function MessagePanel() {
     scrollToBottom,
     isIncomingRequest
   });
+
+  // Video call management
+  const {
+    isVideoCallOpen,
+    incomingCall,
+    currentCall,
+    streamToken,
+    initiateCall,
+    acceptCall,
+    declineCall,
+    endCall
+  } = useVideoCall({ user });
 
   // Handle emoji selection
   const onEmojiClick = (emojiData: EmojiClickData) => {
@@ -253,8 +237,6 @@ export default function MessagePanel() {
             onProfileClick={(chat) => handleProfileClick(chat, setShowGroupDetails)}
             onBack={() => setSelectedChat(null)}
             onContextMenu={(messageId, x, y) => setShowContextMenu({ messageId, x, y })}
-            onVoiceCall={handleVoiceCall}
-            onVideoCall={handleVideoCall}
             newMessage={newMessage}
             setNewMessage={setNewMessage}
             onSendMessage={handleFormSubmit}
@@ -276,6 +258,8 @@ export default function MessagePanel() {
             messagesContainerRef={messagesContainerRef}
             isRequestChat={isRequestChat}
             loadingMessages={loadingMessages}
+            onVoiceCall={(chat) => initiateCall(chat, 'voice')}
+            onVideoCall={(chat) => initiateCall(chat, 'video')}
           />
         ) : (
           <EmptyState onNewChat={handleNewChatWithLoad} />
@@ -323,6 +307,32 @@ export default function MessagePanel() {
         user={user}
       />
 
+      {/* Incoming Call Modal */}
+      {incomingCall && (
+        <IncomingCallModal
+          isOpen={!!incomingCall}
+          callerName={incomingCall.callerName}
+          callerImage={incomingCall.callerImage}
+          callType={incomingCall.callType}
+          onAccept={acceptCall}
+          onDecline={declineCall}
+        />
+      )}
+
+      {/* Video Call Modal */}
+      {isVideoCallOpen && currentCall && streamToken && user && (
+        <VideoCallModal
+          isOpen={isVideoCallOpen}
+          onClose={endCall}
+          apiKey={process.env.NEXT_PUBLIC_STREAM_API_KEY || 'mmhfdzb5evj2'}
+          token={streamToken}
+          userId={user._id}
+          userName={user.fullName || user.username}
+          userImage={user.profileImageUrl}
+          callId={currentCall.callId}
+          callType={currentCall.callType === 'voice' ? 'audio' : 'default'}
+        />
+      )}
 
     </div>
   );
