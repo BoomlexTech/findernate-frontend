@@ -51,6 +51,12 @@ export const getFirebaseMessaging = async (): Promise<Messaging | null> => {
 // Request FCM token
 export const requestFCMToken = async (): Promise<string | null> => {
   try {
+    // Check if service worker is supported
+    if (!('serviceWorker' in navigator)) {
+      console.warn('Service Worker not supported in this browser');
+      return null;
+    }
+
     const messaging = await getFirebaseMessaging();
 
     if (!messaging) {
@@ -73,9 +79,24 @@ export const requestFCMToken = async (): Promise<string | null> => {
       return null;
     }
 
-    // Get FCM token
+    // Register service worker first
+    let registration: ServiceWorkerRegistration;
+    try {
+      registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+      console.log('Service Worker registered:', registration);
+
+      // Wait for service worker to be ready
+      await navigator.serviceWorker.ready;
+      console.log('Service Worker is ready');
+    } catch (swError) {
+      console.error('Service Worker registration failed:', swError);
+      return null;
+    }
+
+    // Get FCM token with the service worker registration
     const token = await getToken(messaging, {
-      vapidKey: vapidKey
+      vapidKey: vapidKey,
+      serviceWorkerRegistration: registration
     });
 
     console.log('FCM Token obtained:', token);
