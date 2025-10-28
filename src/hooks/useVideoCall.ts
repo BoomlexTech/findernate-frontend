@@ -159,46 +159,52 @@ export const useVideoCall = ({ user }: UseVideoCallProps) => {
         return;
       }
 
-      // Optimistic update: Open modal immediately with placeholder
-      setCurrentCall({
-        callId: 'connecting', // Temporary ID
-        chatId: chat._id,
-        callType,
-        isInitiator: true
-      });
-      setIsVideoCallOpen(true);
+      // Step 1: Get token immediately (cached if available - instant!)
+      const tokenPromise = streamAPI.getStreamToken();
 
-      // Step 1: Initiate call and get token in parallel
-      const [call, token] = await Promise.all([
-        callAPI.initiateCall({
-          receiverId: otherParticipant._id,
-          chatId: chat._id,
-          callType
-        }),
-        streamAPI.getStreamToken()
-      ]);
+      // Step 2: Start backend call (don't wait)
+      const callPromise = callAPI.initiateCall({
+        receiverId: otherParticipant._id,
+        chatId: chat._id,
+        callType
+      });
+
+      // Step 3: Wait for both to complete
+      const [call, token] = await Promise.all([callPromise, tokenPromise]);
 
       console.log('📞 Call initiated:', call);
 
-      // Step 2: Create Stream.io call with proper settings
-      const streamCallData = await streamAPI.createStreamCall({
-        callId: call._id,
-        callType,
-        members: [otherParticipant._id],
-        video_enabled: false  // Start call with video off
-      });
-
-      console.log('📞 Stream.io call created:', streamCallData);
-
-      // Update with real call ID, token, and Stream.io call type
+      // Step 4: Open modal IMMEDIATELY with real call data
+      // Don't wait for Stream call creation!
       setStreamToken(token);
       setCurrentCall({
         callId: call._id,
         chatId: chat._id,
         callType,
         isInitiator: true,
-        streamCallType: streamCallData.streamCallType
+        streamCallType: callType === 'voice' ? 'audio_room' : 'default'
       });
+      setIsVideoCallOpen(true);
+
+      // Step 5: Create Stream.io call in background (async - don't block UI)
+      streamAPI.createStreamCall({
+        callId: call._id,
+        callType,
+        members: [otherParticipant._id],
+        video_enabled: false  // Start call with video off
+      }).then(streamCallData => {
+        console.log('📞 Stream.io call created:', streamCallData);
+        // Update with actual Stream call type from backend
+        setCurrentCall(prev => prev ? {
+          ...prev,
+          streamCallType: streamCallData.streamCallType
+        } : null);
+      }).catch(error => {
+        console.error('Failed to create Stream.io call:', error);
+        // Don't close modal - the call is already initiated
+        // Stream SDK will try to create/join the call automatically
+      });
+
     } catch (error: any) {
       console.error('Failed to initiate call:', error);
       // Close modal on error
@@ -214,43 +220,49 @@ export const useVideoCall = ({ user }: UseVideoCallProps) => {
     if (!incomingCall) return;
 
     try {
-      // Optimistic update: Open modal immediately
-      setCurrentCall({
-        callId: 'connecting',
-        chatId: incomingCall.chatId,
-        callType: incomingCall.callType,
-        isInitiator: false
-      });
-      setIncomingCall(null);
-      setIsVideoCallOpen(true);
+      // Step 1: Get token immediately (cached if available - instant!)
+      const tokenPromise = streamAPI.getStreamToken();
 
-      // Step 1: Accept call and get token in parallel
-      const [, token] = await Promise.all([
-        callAPI.acceptCall(incomingCall.callId),
-        streamAPI.getStreamToken()
-      ]);
+      // Step 2: Start backend call (don't wait)
+      const acceptPromise = callAPI.acceptCall(incomingCall.callId);
+
+      // Step 3: Wait for both to complete
+      const [, token] = await Promise.all([acceptPromise, tokenPromise]);
 
       console.log('📞 Call accepted:', incomingCall.callId);
 
-      // Step 2: Create Stream.io call with proper settings
-      const streamCallData = await streamAPI.createStreamCall({
-        callId: incomingCall.callId,
-        callType: incomingCall.callType,
-        members: [incomingCall.callerId],
-        video_enabled: false  // Start call with video off
-      });
-
-      console.log('📞 Stream.io call created:', streamCallData);
-
-      // Update with real call ID, token, and Stream.io call type
+      // Step 4: Open modal IMMEDIATELY with real call data
+      // Don't wait for Stream call creation!
       setStreamToken(token);
       setCurrentCall({
         callId: incomingCall.callId,
         chatId: incomingCall.chatId,
         callType: incomingCall.callType,
         isInitiator: false,
-        streamCallType: streamCallData.streamCallType
+        streamCallType: incomingCall.callType === 'voice' ? 'audio_room' : 'default'
       });
+      setIncomingCall(null);
+      setIsVideoCallOpen(true);
+
+      // Step 5: Create Stream.io call in background (async - don't block UI)
+      streamAPI.createStreamCall({
+        callId: incomingCall.callId,
+        callType: incomingCall.callType,
+        members: [incomingCall.callerId],
+        video_enabled: false  // Start call with video off
+      }).then(streamCallData => {
+        console.log('📞 Stream.io call created:', streamCallData);
+        // Update with actual Stream call type from backend
+        setCurrentCall(prev => prev ? {
+          ...prev,
+          streamCallType: streamCallData.streamCallType
+        } : null);
+      }).catch(error => {
+        console.error('Failed to create Stream.io call:', error);
+        // Don't close modal - the call is already accepted
+        // Stream SDK will try to create/join the call automatically
+      });
+
     } catch (error: any) {
       console.error('Failed to accept call:', error);
       // Close modal on error
