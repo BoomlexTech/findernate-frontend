@@ -3,6 +3,7 @@ import { socketManager } from '@/utils/socket';
 import { callAPI } from '@/api/call';
 import { streamAPI } from '@/api/stream';
 import { Chat } from '@/api/message';
+import { pushNotificationManager, CallNotificationData } from '@/utils/pushNotifications';
 
 interface UseVideoCallProps {
   user: any;
@@ -46,10 +47,10 @@ export const useVideoCall = ({ user }: UseVideoCallProps) => {
     cleanupActiveCall();
   }, []);
 
-  // Handle incoming call
+  // Handle incoming call from Socket (backup - FCM is primary)
   useEffect(() => {
     const handleIncomingCall = (data: any) => {
-      console.log('📞 Incoming call received:', data);
+      console.log('📞 Incoming call received via Socket:', data);
 
       setIncomingCall({
         callId: data.callId,
@@ -89,6 +90,63 @@ export const useVideoCall = ({ user }: UseVideoCallProps) => {
     };
   }, [currentCall]);
 
+  // Handle incoming call from FCM (primary method)
+  useEffect(() => {
+    // Handle FCM foreground messages
+    const handleFCMCall = (data: CallNotificationData) => {
+      console.log('📞 Incoming call received via FCM:', data);
+
+      setIncomingCall({
+        callId: data.callId,
+        callerId: data.callerId,
+        callerName: data.callerName,
+        callerImage: data.callerImage,
+        chatId: data.chatId,
+        callType: data.callType
+      });
+    };
+
+    // Setup FCM listener
+    pushNotificationManager.setupFCMListener(handleFCMCall);
+
+    // Handle service worker messages (from notification actions)
+    const handleServiceWorkerMessage = (event: MessageEvent) => {
+      const { type, data } = event.data;
+
+      if (type === 'ACCEPT_CALL') {
+        console.log('📞 Accept call from notification:', data);
+        setIncomingCall({
+          callId: data.callId,
+          callerId: data.callerId,
+          callerName: data.callerName,
+          callerImage: data.callerImage,
+          chatId: data.chatId,
+          callType: data.callType
+        });
+
+        // Auto-accept the call
+        setTimeout(() => {
+          acceptCall();
+        }, 100);
+      } else if (type === 'DECLINE_CALL') {
+        console.log('📞 Decline call from notification:', data);
+        if (data.callId) {
+          callAPI.declineCall(data.callId).catch(console.error);
+        }
+      }
+    };
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('message', handleServiceWorkerMessage);
+    }
+
+    return () => {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.removeEventListener('message', handleServiceWorkerMessage);
+      }
+    };
+  }, []);
+
   // Initiate a call
   const initiateCall = useCallback(async (chat: Chat, callType: 'voice' | 'video') => {
     if (!user || chat.chatType !== 'direct') return;
@@ -126,7 +184,8 @@ export const useVideoCall = ({ user }: UseVideoCallProps) => {
       const streamCallData = await streamAPI.createStreamCall({
         callId: call._id,
         callType,
-        members: [otherParticipant._id]
+        members: [otherParticipant._id],
+        video_enabled: false  // Start call with video off
       });
 
       console.log('📞 Stream.io call created:', streamCallData);
@@ -177,7 +236,8 @@ export const useVideoCall = ({ user }: UseVideoCallProps) => {
       const streamCallData = await streamAPI.createStreamCall({
         callId: incomingCall.callId,
         callType: incomingCall.callType,
-        members: [incomingCall.callerId]
+        members: [incomingCall.callerId],
+        video_enabled: false  // Start call with video off
       });
 
       console.log('📞 Stream.io call created:', streamCallData);

@@ -1,5 +1,6 @@
 // Push Notification Utilities
 import { messageAPI } from '../api/message';
+import { requestFCMToken, onForegroundMessage } from '../config/firebase';
 
 // VAPID public key - replace with your actual VAPID key
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '';
@@ -32,8 +33,21 @@ export interface GeneralNotificationData {
   type?: 'comment' | 'like' | 'follow' | 'reply';
 }
 
+export interface CallNotificationData {
+  title: string;
+  body: string;
+  callId: string;
+  callerId: string;
+  callerName: string;
+  callerImage?: string;
+  chatId: string;
+  callType: 'voice' | 'video';
+  type: 'incoming_call';
+}
+
 class PushNotificationManager {
   private registration: ServiceWorkerRegistration | null = null;
+  private fcmToken: string | null = null;
 
   // Check if push notifications are supported
   isSupported(): boolean {
@@ -284,6 +298,77 @@ class PushNotificationManager {
     }
   }
 
+  // Get FCM token
+  async getFCMToken(): Promise<string | null> {
+    try {
+      if (this.fcmToken) {
+        return this.fcmToken;
+      }
+
+      // Request FCM token from Firebase
+      const token = await requestFCMToken();
+
+      if (token) {
+        this.fcmToken = token;
+        // Send token to backend
+        await this.sendFCMTokenToBackend(token);
+      }
+
+      return token;
+    } catch (error) {
+      console.error('Error getting FCM token:', error);
+      return null;
+    }
+  }
+
+  // Send FCM token to backend
+  private async sendFCMTokenToBackend(fcmToken: string): Promise<void> {
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://thedashman.org';
+      const response = await fetch(`${baseUrl}/api/v1/users/fcm-token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ fcmToken })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to send FCM token to backend');
+      }
+
+      console.log('FCM token sent to backend successfully');
+    } catch (error) {
+      console.error('Error sending FCM token to backend:', error);
+      // Don't throw error as local FCM still works
+    }
+  }
+
+  // Setup FCM foreground message listener
+  setupFCMListener(onCallNotification: (data: CallNotificationData) => void): void {
+    onForegroundMessage((payload) => {
+      console.log('Foreground FCM message:', payload);
+
+      // Handle incoming call notifications
+      if (payload.data?.type === 'incoming_call') {
+        const callData: CallNotificationData = {
+          title: payload.notification?.title || payload.data?.title || 'Incoming Call',
+          body: payload.notification?.body || payload.data?.body || '',
+          callId: payload.data.callId,
+          callerId: payload.data.callerId,
+          callerName: payload.data.callerName,
+          callerImage: payload.data.callerImage,
+          chatId: payload.data.chatId,
+          callType: payload.data.callType as 'voice' | 'video',
+          type: 'incoming_call'
+        };
+
+        onCallNotification(callData);
+      }
+    });
+  }
+
   // Show local notification (for testing or immediate feedback)
   showLocalNotification(data: MessageNotificationData): void {
     if (!this.isSupported()) {
@@ -457,13 +542,13 @@ export async function initializePushNotifications(): Promise<NotificationPermiss
   try {
     // Register service worker
     await pushNotificationManager.registerServiceWorker();
-    
+
     // Set up message listener
     pushNotificationManager.setupMessageListener();
-    
+
     // Get current state
     const state = await pushNotificationManager.getPermissionState();
-    
+
     // Only auto-subscribe if permission is already granted AND VAPID key is configured
     if (state.permission === 'granted' && !state.subscription && VAPID_PUBLIC_KEY) {
       try {
@@ -473,7 +558,17 @@ export async function initializePushNotifications(): Promise<NotificationPermiss
         // Don't throw error here, just log it - the state is still valid
       }
     }
-    
+
+    // Get FCM token if permission is granted
+    if (state.permission === 'granted') {
+      try {
+        await pushNotificationManager.getFCMToken();
+      } catch (fcmError) {
+        console.error('Failed to get FCM token:', fcmError);
+        // Don't throw error - regular push notifications still work
+      }
+    }
+
     return state;
   } catch (error) {
     console.error('Error initializing push notifications:', error);

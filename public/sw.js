@@ -83,11 +83,65 @@ self.addEventListener('push', (event) => {
 // Notification click event
 self.addEventListener('notificationclick', (event) => {
   //console.log('Service Worker: Notification clicked', event);
-  
+
   event.notification.close();
 
   const action = event.action;
   const data = event.notification.data;
+
+  // Handle call-specific actions
+  if (action === 'accept_call') {
+    event.waitUntil(
+      self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+        .then((clientList) => {
+          // Send message to app to accept call
+          for (const client of clientList) {
+            if (client.url.includes(self.location.origin)) {
+              client.postMessage({
+                type: 'ACCEPT_CALL',
+                data: {
+                  callId: data.callId,
+                  callerId: data.callerId || data.senderId,
+                  callerName: data.callerName,
+                  callerImage: data.callerImage,
+                  chatId: data.chatId,
+                  callType: data.callType
+                }
+              });
+              return client.focus();
+            }
+          }
+
+          // If no window open, open new one with action parameter
+          if (self.clients.openWindow) {
+            return self.clients.openWindow(`/?action=accept_call&callId=${data.callId}`);
+          }
+        })
+    );
+    return;
+  }
+
+  if (action === 'decline_call') {
+    event.waitUntil(
+      self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+        .then((clientList) => {
+          // Send message to app to decline call
+          for (const client of clientList) {
+            if (client.url.includes(self.location.origin)) {
+              client.postMessage({
+                type: 'DECLINE_CALL',
+                data: {
+                  callId: data.callId,
+                  callerId: data.callerId || data.senderId
+                }
+              });
+              return;
+            }
+          }
+        })
+    );
+    return;
+  }
 
   if (action === 'dismiss') {
     return;
@@ -95,7 +149,7 @@ self.addEventListener('notificationclick', (event) => {
 
   // Default action or 'open' action
   const urlToOpen = data.url || '/chats';
-  
+
   // Add chat ID to URL if available
   const finalUrl = data.chatId ? `${urlToOpen}?chatId=${data.chatId}` : urlToOpen;
 
@@ -113,7 +167,7 @@ self.addEventListener('notificationclick', (event) => {
             return client.focus();
           }
         }
-        
+
         // If no window is open, open a new one
         if (self.clients.openWindow) {
           return self.clients.openWindow(finalUrl);
