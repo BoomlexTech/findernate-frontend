@@ -54,6 +54,7 @@ export interface CreateStreamCallRequest {
   callId: string;
   callType: 'voice' | 'video';
   members: string[];
+  video_enabled?: boolean;  // Set to false to start call with video off
 }
 
 export interface CreateStreamCallResponse {
