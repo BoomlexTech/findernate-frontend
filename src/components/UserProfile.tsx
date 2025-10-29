@@ -618,6 +618,49 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
     setSelectedImage(null);
   };
 
+  // Upload image to Cloudinary and return the URL
+  const uploadImageToCloudinary = async (dataUrl: string): Promise<string> => {
+    // Convert data URL to blob
+    const response = await fetch(dataUrl);
+    const blob = await response.blob();
+
+    // Get Cloudinary signature from our API
+    const signResponse = await fetch('/api/cloudinary-sign', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ folder: 'findernate/profiles' }),
+    });
+
+    if (!signResponse.ok) {
+      throw new Error('Failed to get Cloudinary signature');
+    }
+
+    const { signature, timestamp, apiKey, cloudName, folder } = await signResponse.json();
+
+    // Upload to Cloudinary
+    const formData = new FormData();
+    formData.append('file', blob);
+    formData.append('api_key', apiKey);
+    formData.append('timestamp', timestamp.toString());
+    formData.append('signature', signature);
+    formData.append('folder', folder);
+
+    const uploadResponse = await fetch(
+      `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+      {
+        method: 'POST',
+        body: formData,
+      }
+    );
+
+    if (!uploadResponse.ok) {
+      throw new Error('Failed to upload image to Cloudinary');
+    }
+
+    const uploadData = await uploadResponse.json();
+    return uploadData.secure_url; // Return the Cloudinary URL
+  };
+
   const handleSave = async () => {
     try {
       // Prepare data for API - only include fields that the API expects
@@ -628,7 +671,7 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
         link: formData.link,
         profileImageUrl: formData.profileImageUrl,
       };
-      
+
       // Debug: Log what we're sending to the API
       // //console.log('Sending profile data to API:', {
       //   fullName: profileData.fullName,
@@ -639,15 +682,21 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
       //   profileImageUrlStart: profileData.profileImageUrl ? profileData.profileImageUrl.substring(0, 100) : 'No image URL'
       // });
 
-      // If image is a data URL (newly selected), resize and send to backend
+      // If image is a data URL (newly selected), upload to Cloudinary first
       if (profileData.profileImageUrl && profileData.profileImageUrl.startsWith('data:')) {
-        // Resize to safe dimensions to avoid large payloads and network errors
-        const resizedDataUrl = await resizeImageDataUrl(profileData.profileImageUrl, 512, 512, 0.85, 'image/jpeg');
-        profileData.profileImageUrl = resizedDataUrl;
+        try {
+          // Resize to safe dimensions before upload
+          const resizedDataUrl = await resizeImageDataUrl(profileData.profileImageUrl, 512, 512, 0.85, 'image/jpeg');
+
+          // Upload to Cloudinary and get URL back
+          const cloudinaryUrl = await uploadImageToCloudinary(resizedDataUrl);
+          profileData.profileImageUrl = cloudinaryUrl;
+        } catch (uploadError) {
+          console.error('Error uploading image to Cloudinary:', uploadError);
+          throw new Error('Failed to upload profile image. Please try again.');
+        }
       }
-      
- 
-      
+
       // Call the editProfile API
       const updatedProfile = await editProfile(profileData);
       
