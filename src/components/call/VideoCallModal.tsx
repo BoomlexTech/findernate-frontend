@@ -46,27 +46,36 @@ const CallLayout: React.FC<{ callType?: 'voice' | 'video' }> = ({ callType = 'vi
 
   return (
     <StreamTheme>
-      {callType === 'voice' ? (
-        <div className="flex flex-col items-center justify-center h-full bg-gradient-to-br from-gray-800 to-gray-900">
-          <div className="text-center">
-            <div className="w-32 h-32 rounded-full bg-blue-500/20 flex items-center justify-center mb-6 mx-auto animate-pulse">
-              <svg className="w-16 h-16 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-              </svg>
+      <div className="str-video__call-layout relative">
+        {callType === 'voice' ? (
+          <>
+            {/* SpeakerLayout rendered invisibly for audio */}
+            <div className="opacity-0 pointer-events-none absolute inset-0">
+              <SpeakerLayout participantsBarPosition="bottom" />
             </div>
-            <p className="text-white text-xl mb-2">Voice Call in Progress</p>
-            <p className="text-gray-400 text-sm">Audio only</p>
-          </div>
-          <div className="mt-8">
+            {/* Custom voice call UI overlay */}
+            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900">
+              <div className="text-center">
+                <div className="w-32 h-32 rounded-full bg-blue-500/20 flex items-center justify-center mb-6 mx-auto animate-pulse">
+                  <svg className="w-16 h-16 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                  </svg>
+                </div>
+                <p className="text-white text-xl mb-2">Voice Call in Progress</p>
+                <p className="text-gray-400 text-sm">Audio only</p>
+              </div>
+              <div className="mt-8">
+                <CallControls />
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <SpeakerLayout participantsBarPosition="bottom" />
             <CallControls />
-          </div>
-        </div>
-      ) : (
-        <div className="str-video__call-layout">
-          <SpeakerLayout participantsBarPosition="bottom" />
-          <CallControls />
-        </div>
-      )}
+          </>
+        )}
+      </div>
     </StreamTheme>
   );
 };
