@@ -162,8 +162,17 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
         try {
           await videoCall.microphone.enable();
           console.log('📞 Microphone enabled');
+
+          // Debug: Check microphone state
+          const micState = videoCall.microphone.state;
+          console.log('📞 Microphone state:', micState);
+
+          // Debug: Check if audio track is publishing
+          const localParticipant = videoCall.state.localParticipant;
+          console.log('📞 Local participant:', localParticipant);
+          console.log('📞 Audio publishing:', localParticipant?.publishedTracks);
         } catch (micError) {
-          console.error('Failed to enable microphone:', micError);
+          console.error('❌ Failed to enable microphone:', micError);
           alert('Failed to enable microphone. Please check your microphone permissions.');
         }
 
@@ -176,6 +185,10 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
             console.warn('Failed to disable camera for voice call:', err);
           }
         }
+
+        // Debug: Log all participants and their tracks
+        console.log('📞 All call participants:', videoCall.state.participants);
+        console.log('📞 Call state:', videoCall.state.callingState);
       } catch (error) {
         console.error('📞 Failed to initialize call:', error);
         // Show error to user
