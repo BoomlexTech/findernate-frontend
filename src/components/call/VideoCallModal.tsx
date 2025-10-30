@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import {
   CallControls,
   CallingState,
+  PaginatedGridLayout,
   SpeakerLayout,
   StreamCall,
   StreamTheme,
@@ -71,7 +72,7 @@ const CallLayout: React.FC<{ callType?: 'voice' | 'video' }> = ({ callType = 'vi
           </>
         ) : (
           <>
-            <SpeakerLayout participantsBarPosition="bottom" />
+            <PaginatedGridLayout />
             <CallControls />
           </>
         )}
