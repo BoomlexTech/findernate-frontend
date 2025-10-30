@@ -11,7 +11,7 @@ import ServiceCard from './post-window/ServiceCard';
 import { Badge } from './ui/badge';
 import ProductCard from './post-window/ProductCard';
 import BusinessPostCard from './post-window/BusinessCard';
-import { likePost, unlikePost, savePost, unsavePost, getSavedPost, deletePost, editPost, EditPostPayload } from '@/api/post';
+import { likePost, unlikePost, savePost, unsavePost, getPrivateSavedPosts, deletePost, editPost, EditPostPayload } from '@/api/post';
 //import { createComment } from '@/api/comment';
 import { postEvents } from '@/utils/postEvents';
 import { AxiosError } from 'axios';
@@ -50,14 +50,18 @@ const getSavedPostsCache = async (): Promise<string[]> => {
   // Create a new promise for the API call
   savedPostsPromise = (async () => {
     try {
-      const response: SavedPostsResponse = await getSavedPost();
-      const savedPostIds = response.data.savedPosts
+      // Fetch all saved posts from unified endpoint
+      const response = await getPrivateSavedPosts(1, 100);
+
+      // Extract post IDs from response
+      const savedPosts = response.data?.savedPosts || [];
+      const savedPostIds = savedPosts
         .filter(savedPost => savedPost.postId?._id)
         .map(savedPost => savedPost.postId!._id);
-      
+
       localStorage.setItem(CACHE_KEY, JSON.stringify(savedPostIds));
       localStorage.setItem(CACHE_TIME_KEY, currentTime.toString());
-      
+
       return savedPostIds;
     } finally {
       // Clear the promise after completion (success or failure)

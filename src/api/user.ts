@@ -21,8 +21,13 @@ export const getOtherUserProfile = async (username: string) => {
                 identifier: username
             },
         });
-        
-        console.log(response)
+
+        console.log('getOtherUserProfile API Response:', {
+            username: username,
+            isFollowedBy: response.data.data.isFollowedBy,
+            fullData: response.data.data
+        });
+
         return response.data.data;
     } catch (error: any) {
         throw error;
@@ -65,23 +70,34 @@ export const followUser = async (userId: string) => {
 
 export const unfollowUser = async (userId: string) => {
     try {
+        console.log('Unfollow API called with userId:', userId);
+        console.log('Request payload:', { userId });
+
         const response = await axios.post('/users/unfollow', { userId });
-        
+
+        console.log('Unfollow API response:', response.data);
+
         // Emit unfollow event for message panel integration
         followEvents.emit(userId, false);
-        
+
         return response.data;
     } catch (error: any) {
-        
+        console.error('Unfollow API error:', {
+            status: error.response?.status,
+            message: error.response?.data?.message,
+            data: error.response?.data,
+            userId: userId
+        });
+
         // Handle specific cases where we want to return success-like response
-        if (error.response?.status === 400 && 
-            (error.response?.data?.message === 'Not following this user' || 
+        if (error.response?.status === 400 &&
+            (error.response?.data?.message === 'Not following this user' ||
              error.response?.data?.message?.includes('Not following'))) {
             // If not following, emit event and return success response
             followEvents.emit(userId, false);
             return { success: true, message: 'Not following this user' };
         }
-        
+
         throw error;
     }
 }

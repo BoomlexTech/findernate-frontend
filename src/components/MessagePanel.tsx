@@ -58,7 +58,8 @@ export default function MessagePanel() {
     isIncomingRequest,
     viewedRequests,
     markRequestAsViewed,
-    refreshChatsWithAccurateUnreadCounts
+    refreshChatsWithAccurateUnreadCounts,
+    markChatAsRead
   } = useChatManagement({ user });
 
   // Message management
@@ -81,7 +82,7 @@ export default function MessagePanel() {
     handleDeleteMessage,
     handleInputChange,
     scrollToBottom
-  } = useMessageManagement({ selectedChat, user, setChats, messageRequests, viewedRequests, markRequestAsViewed, refreshChatsWithAccurateUnreadCounts });
+  } = useMessageManagement({ selectedChat, user, setChats, messageRequests, viewedRequests, markRequestAsViewed, refreshChatsWithAccurateUnreadCounts, markChatAsRead });
 
   // File upload
   const {
@@ -143,6 +144,7 @@ export default function MessagePanel() {
     incomingCall,
     currentCall,
     streamToken,
+    isInitiating,
     initiateCall,
     acceptCall,
     declineCall,
@@ -259,6 +261,7 @@ export default function MessagePanel() {
             loadingMessages={loadingMessages}
             onVoiceCall={(chat) => initiateCall(chat, 'voice')}
             onVideoCall={(chat) => initiateCall(chat, 'video')}
+            isInitiatingCall={isInitiating}
           />
         ) : (
           <EmptyState onNewChat={handleNewChatWithLoad} />

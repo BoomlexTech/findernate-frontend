@@ -35,7 +35,7 @@ export const useUnreadCounts = () => {
             return null; // Don't fail the whole operation if notifications fail
           })
         ]);
-        
+
         if (countsResponse?.data) {
           setCounts({
             unreadNotifications: countsResponse.data.unreadNotifications || 0,

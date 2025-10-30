@@ -173,20 +173,23 @@ export const getPrivateSavedPosts = async (page: number = 1, limit: number = 10)
   }
 }
 
-export const getPublicSavedPosts = async (page: number = 1, limit: number = 10) => {
-  try {
-    const response = await axios.get(`/posts/saved/public?page=${page}&limit=${limit}`)
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
-}
+// Deprecated - /posts/saved/public endpoint is removed from backend
+// Use getPrivateSavedPosts() which now uses the unified /posts/saved/ endpoint
+// export const getPublicSavedPosts = async (page: number = 1, limit: number = 10) => {
+//   try {
+//     const response = await axios.get(`/posts/saved/public?page=${page}&limit=${limit}`)
+//     return response.data;
+//   } catch (error) {
+//     throw error;
+//   }
+// }
 
-// Legacy function - keeping for backward compatibility, fetches private posts by default
-export const getSavedPost = async () => {
-  const response = await axios.get('/posts/saved/private?page=1&limit=100')
-  return response.data
-}
+// Legacy function - removed as /posts/saved/private endpoint is deprecated on backend
+// Use getPrivateSavedPosts() which now uses the unified /posts/saved/ endpoint
+// export const getSavedPost = async () => {
+//   const response = await axios.get('/posts/saved/private?page=1&limit=100')
+//   return response.data
+// }
 
 export const unsavePost = async (postId: string) => {
   const response = await axios.delete(`/posts/save/${postId}`)
@@ -218,7 +221,7 @@ export const toggleSavedPostPrivacy = async (postId: string, privacy: 'private' 
   }
 }
 
-// Note: Use getSavedPost() to get all saved posts and check if postId exists in the list
+// Note: Use getPrivateSavedPosts() to get all saved posts and check if postId exists in the list
 export const deletePost = async (postId: string) => {
   const response = await axios.delete(`/posts/${postId}`)
   return response.data
