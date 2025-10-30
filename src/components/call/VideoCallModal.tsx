@@ -3,9 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   CallControls,
-  CallParticipantsList,
   CallingState,
-  ParticipantView,
   SpeakerLayout,
   StreamCall,
   StreamTheme,
@@ -30,10 +28,8 @@ interface VideoCallModalProps {
 }
 
 const CallLayout: React.FC<{ callType?: 'voice' | 'video' }> = ({ callType = 'video' }) => {
-  const { useCallCallingState, useParticipants, useLocalParticipant } = useCallStateHooks();
+  const { useCallCallingState } = useCallStateHooks();
   const callingState = useCallCallingState();
-  const participants = useParticipants();
-  const localParticipant = useLocalParticipant();
 
   if (callingState !== CallingState.JOINED) {
     return (
@@ -66,30 +62,9 @@ const CallLayout: React.FC<{ callType?: 'voice' | 'video' }> = ({ callType = 'vi
           </div>
         </div>
       ) : (
-        <div className="relative h-full flex flex-col">
-          {/* Main speaker view - showing the active speaker or remote participant */}
-          <div className="flex-1 relative">
-            {participants.length > 0 && (
-              <div className="absolute inset-0">
-                {/* Find the remote participant (not local) to show as main */}
-                {(() => {
-                  const remoteParticipant = participants.find(p => p.sessionId !== localParticipant?.sessionId);
-                  const mainParticipant = remoteParticipant || participants[0];
-                  return <ParticipantView participant={mainParticipant} />;
-                })()}
-              </div>
-            )}
-            {/* Local participant in small corner view */}
-            {localParticipant && (
-              <div className="absolute bottom-4 right-4 w-48 h-36 rounded-lg overflow-hidden shadow-lg border-2 border-white/20 z-10">
-                <ParticipantView participant={localParticipant} />
-              </div>
-            )}
-          </div>
-          {/* Call controls at bottom */}
-          <div className="relative z-20">
-            <CallControls />
-          </div>
+        <div className="str-video__call-layout">
+          <SpeakerLayout participantsBarPosition="bottom" />
+          <CallControls />
         </div>
       )}
     </StreamTheme>
@@ -159,42 +134,48 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
         // Set call state immediately for faster UI
         setCall(videoCall);
 
-        // Step 2: Join the call with audio settings enabled
+        // Step 2: Disable camera first for voice calls (before joining)
+        if (callType === 'voice') {
+          console.log('📞 Disabling camera for voice call...');
+          await videoCall.camera.disable();
+        }
+
+        // Step 3: Join the call with audio settings enabled
         console.log('📞 Joining existing call...');
-        videoCall.join({
+        await videoCall.join({
           create: false,
           data: {
-            settings: {
+            members: [],
+            settings_override: {
               audio: {
                 mic_default_on: true,
-                speaker_default_on: true
+                speaker_default_on: true,
+                default_device: 'speaker'
               }
             }
           }
-        })
-          .then(async () => {
-            console.log('📞 Successfully joined call!');
+        });
 
-            // Step 3: Explicitly enable microphone
-            try {
-              await videoCall.microphone.enable();
-              console.log('📞 Microphone enabled');
-            } catch (micError) {
-              console.warn('Failed to enable microphone:', micError);
-            }
+        console.log('📞 Successfully joined call!');
 
-            // Disable camera for voice calls after joining
-            if (callType === 'voice') {
-              videoCall.camera.disable()
-                .then(() => console.log('📞 Camera disabled for voice call'))
-                .catch((err) => console.warn('Failed to disable camera for voice call:', err));
-            }
-          })
-          .catch((error) => {
-            console.error('📞 Failed to join call:', error);
-            alert('Failed to join call. Please try again.');
-            onClose();
-          });
+        // Step 4: Explicitly enable microphone after joining
+        try {
+          await videoCall.microphone.enable();
+          console.log('📞 Microphone enabled');
+        } catch (micError) {
+          console.error('Failed to enable microphone:', micError);
+          alert('Failed to enable microphone. Please check your microphone permissions.');
+        }
+
+        // Step 5: Ensure camera stays disabled for voice calls
+        if (callType === 'voice') {
+          try {
+            await videoCall.camera.disable();
+            console.log('📞 Camera confirmed disabled for voice call');
+          } catch (err) {
+            console.warn('Failed to disable camera for voice call:', err);
+          }
+        }
       } catch (error) {
         console.error('📞 Failed to initialize call:', error);
         // Show error to user
