@@ -184,7 +184,7 @@ export const useVideoCall = ({ user }: UseVideoCallProps) => {
         callId: call._id,
         callType,
         members: [otherParticipant._id],
-        video_enabled: false  // Start call with video off
+        video_enabled: callType === 'video'  // Enable video for video calls
       });
 
       console.log('📞 Stream.io call created with type:', streamCallData.streamCallType);
@@ -233,7 +233,7 @@ export const useVideoCall = ({ user }: UseVideoCallProps) => {
         callId: incomingCall.callId,
         callType: incomingCall.callType,
         members: [incomingCall.callerId],
-        video_enabled: false  // Start call with video off
+        video_enabled: incomingCall.callType === 'video'  // Enable video for video calls
       });
 
       console.log('📞 Stream.io call created with type:', streamCallData.streamCallType);
