@@ -30,11 +30,11 @@ export const ChatTabs: React.FC<ChatTabsProps> = ({
       >
         <MessageCircle className="w-4 h-4" />
         Direct
-        {directUnreadCount > 0 && (
+        {/* {directUnreadCount > 0 && (
           <span className="bg-red-500 text-white text-xs min-w-[18px] h-4 flex items-center justify-center rounded-full px-1">
             {directUnreadCount > 99 ? '99+' : directUnreadCount}
           </span>
-        )}
+        )} */}
       </button>
       <button
         onClick={() => setActiveTab('group')}

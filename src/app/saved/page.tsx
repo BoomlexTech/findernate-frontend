@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import PostCard from '@/components/PostCard'
 import { FeedPost, SavedPostsResponse } from '@/types'
-import { getSavedPost, getPrivateSavedPosts, getPublicSavedPosts } from '@/api/post'
+import { getPrivateSavedPosts } from '@/api/post'
 import { getCommentsByPost, Comment } from '@/api/comment'
 import { useAuthGuard } from '@/hooks/useAuthGuard'
 import { AuthDialog } from '@/components/AuthDialog'
@@ -21,19 +21,15 @@ const SavedPage = () => {
       setLoading(true)
       setError(null)
       
-      // Fetch both private and public saved posts
-      const [privatePostsResponse, publicPostsResponse] = await Promise.all([
-        getPrivateSavedPosts(1, 100),
-        getPublicSavedPosts(1, 100)
-      ])
-      
-      // Helper function to process saved posts
-      const processSavedPosts = (savedPostsData: any[], privacy: 'private' | 'public') => {
-        return savedPostsData
+      // Fetch all saved posts from unified endpoint
+      const savedPostsResponse = await getPrivateSavedPosts(1, 100);
+
+      // Process saved posts
+      const allSavedPosts = (savedPostsResponse.data?.savedPosts || [])
         .filter(savedPost => savedPost.postId !== null)
         .map(savedPost => {
           const post = savedPost.postId as any // Raw post data from API
-          
+
           // Calculate actual comment count from comments array (same logic as MainContent)
           let actualCommentCount = 0;
           if (post.comments && Array.isArray(post.comments)) {
@@ -42,7 +38,7 @@ const SavedPage = () => {
               return total + 1 + repliesCount;
             }, 0);
           }
-          
+
           // Map to FeedPost structure that PostCard expects
           return {
             _id: post._id,
@@ -71,22 +67,12 @@ const SavedPage = () => {
             customization: post.customization,
             // Add comments array for PostCard to use
             comments: post.comments || [],
-            // Add privacy field to track visibility
-            savedPostPrivacy: privacy
-          } as FeedPost & { savedPostPrivacy: 'private' | 'public' }
+          } as FeedPost
         })
-      }
+        .sort((a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        )
 
-      const privatePosts = processSavedPosts(privatePostsResponse.data?.savedPosts || [], 'private')
-      const publicPosts = processSavedPosts(publicPostsResponse.data?.savedPosts || [], 'public')
-      
-      // Combine both private and public posts and sort by creation date
-      const allSavedPosts = [...privatePosts, ...publicPosts].sort((a, b) => 
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      )
-
-      //console.log('Private saved posts:', privatePosts.length)
-      //console.log('Public saved posts:', publicPosts.length)
       //console.log('Total saved posts:', allSavedPosts.length)
 
       //console.log('Initial saved posts:', allSavedPosts.slice(0, 2));

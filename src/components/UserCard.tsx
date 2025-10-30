@@ -10,6 +10,10 @@ import { useAuthGuard } from "@/hooks/useAuthGuard";
 import { AuthDialog } from "@/components/AuthDialog";
 import { AxiosError } from "axios";
 import ReportModal from './ReportModal';
+import { inMemoryStateManager } from '@/utils/inMemoryState';
+
+// Constants for localStorage keys
+const FOLLOW_STORAGE_KEY = 'user_follow_states';
 
 interface UserCardProps {
   user: SearchUser;
@@ -29,6 +33,29 @@ const UserCard: React.FC<UserCardProps> = ({ user, onFollow }) => {
   const currentUser = useUserStore(state => state.user);
   const isCurrentUser = currentUser?._id === userData._id;
 
+  // Helper functions for follow state persistence
+  const getFollowStateFromStorage = (userId: string): boolean | null => {
+    try {
+      const stored = localStorage.getItem(FOLLOW_STORAGE_KEY);
+      if (!stored) return null;
+      const followStates = JSON.parse(stored);
+      return followStates[userId] || null;
+    } catch {
+      return null;
+    }
+  };
+
+  const saveFollowStateToStorage = (userId: string, isFollowed: boolean): void => {
+    try {
+      const stored = localStorage.getItem(FOLLOW_STORAGE_KEY);
+      const followStates = stored ? JSON.parse(stored) : {};
+      followStates[userId] = isFollowed;
+      localStorage.setItem(FOLLOW_STORAGE_KEY, JSON.stringify(followStates));
+    } catch (error) {
+      console.warn('Failed to save follow state to localStorage:', error);
+    }
+  };
+
   console.log('🎴 UserCard Render:', {
     username: userData.username,
     userId: userData._id,
@@ -36,10 +63,14 @@ const UserCard: React.FC<UserCardProps> = ({ user, onFollow }) => {
     stateIsFollowing: isFollowing
   });
 
-  // Update local state when user prop changes
+  // Update local state when user prop changes, checking localStorage first
   useEffect(() => {
     console.log('🎴 UserCard useEffect: Updating isFollowing for', userData.username, 'from', isFollowing, 'to', userData.isFollowing);
-    setIsFollowing(userData.isFollowing || false);
+    
+    // Check localStorage first for follow state, then fall back to API data
+    const storedFollowState = getFollowStateFromStorage(userData._id);
+    const initialFollowState = storedFollowState !== null ? storedFollowState : (userData.isFollowing || false);
+    setIsFollowing(initialFollowState);
   }, [userData.isFollowing, userData._id]);
 
   const handleFollowClick = async () => {
@@ -50,9 +81,15 @@ const UserCard: React.FC<UserCardProps> = ({ user, onFollow }) => {
         if (isFollowing) {
           await unfollowUser(userData._id);
           setIsFollowing(false);
+          // Save to localStorage and inMemoryStateManager
+          saveFollowStateToStorage(userData._id, false);
+          inMemoryStateManager.setUserFollowState(userData._id, false);
         } else {
           await followUser(userData._id);
           setIsFollowing(true);
+          // Save to localStorage and inMemoryStateManager
+          saveFollowStateToStorage(userData._id, true);
+          inMemoryStateManager.setUserFollowState(userData._id, true);
         }
         onFollow?.(userData._id);
       } catch (error: any) {
@@ -74,10 +111,16 @@ const UserCard: React.FC<UserCardProps> = ({ user, onFollow }) => {
           if (responseMessage.includes('Already following') || errorMessage.includes('Already following')) {
             //console.log('Already following - user should see Unfollow button');
             setIsFollowing(true); // User is following, show Unfollow
+            // Save to localStorage and inMemoryStateManager
+            saveFollowStateToStorage(userData._id, true);
+            inMemoryStateManager.setUserFollowState(userData._id, true);
             onFollow?.(user._id);
           } else if (responseMessage.includes('Not following') || errorMessage.includes('Not following')) {
             //console.log('Not following - user should see Follow button');
             setIsFollowing(false); // User is not following, show Follow
+            // Save to localStorage and inMemoryStateManager
+            saveFollowStateToStorage(userData._id, false);
+            inMemoryStateManager.setUserFollowState(userData._id, false);
             onFollow?.(user._id);
           } else if (responseMessage.includes('yourself')) {
             alert("You can't follow yourself");

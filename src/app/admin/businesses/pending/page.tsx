@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import AdminLayout from '@/components/admin/layout/AdminLayout';
-import { Search, CheckCircle, XCircle, Eye, FileText, Shield, Building2, Phone, Mail, MapPin, Globe } from 'lucide-react';
+import { Search, CheckCircle, XCircle, Eye, FileText, Shield, Building2, Phone, Mail, MapPin } from 'lucide-react';
 import { businessesAPI, Business, BusinessesData, BusinessDetailsResponse } from '@/api/businesses';
 
 export default function PendingBusinessVerificationsPage() {
@@ -123,6 +123,54 @@ export default function PendingBusinessVerificationsPage() {
     });
   };
 
+  // Safe getter functions to prevent object rendering errors
+  const safeGetContactInfo = (contact: any) => {
+    try {
+      if (!contact || typeof contact !== 'object') return { email: null, phone: null };
+
+      // Extra safety: ensure we're not dealing with nested objects
+      const safeString = (val: any) => {
+        if (!val) return null;
+        if (typeof val === 'string' && val.trim() !== '') return String(val);
+        if (typeof val === 'object') return null; // Don't render objects
+        return String(val);
+      };
+
+      return {
+        email: safeString(contact.email),
+        phone: safeString(contact.phone)
+      };
+    } catch (error) {
+      console.error('Error getting contact info:', error);
+      return { email: null, phone: null };
+    }
+  };
+
+  const safeGetLocationInfo = (location: any) => {
+    try {
+      if (!location || typeof location !== 'object') return { city: null, state: null, address: null, country: null, postalCode: null };
+
+      // Extra safety: ensure we're not dealing with nested objects
+      const safeString = (val: any) => {
+        if (!val) return null;
+        if (typeof val === 'string' && val.trim() !== '') return String(val);
+        if (typeof val === 'object') return null; // Don't render objects
+        return String(val);
+      };
+
+      return {
+        city: safeString(location.city),
+        state: safeString(location.state),
+        address: safeString(location.address),
+        country: safeString(location.country),
+        postalCode: safeString(location.postalCode)
+      };
+    } catch (error) {
+      console.error('Error getting location info:', error);
+      return { city: null, state: null, address: null, country: null, postalCode: null };
+    }
+  };
+
   const getPlanBadge = (plan: string) => {
     const planColors = {
       plan1: 'bg-blue-100 text-blue-800',
@@ -216,7 +264,18 @@ export default function PendingBusinessVerificationsPage() {
             </div>
           ) : (
             <div className="divide-y divide-gray-200">
-              {businesses.map((business: Business) => (
+              {businesses.map((business: Business) => {
+                // Safely extract data to prevent object rendering
+                const contactInfo = safeGetContactInfo(business?.contact);
+                const locationInfo = safeGetLocationInfo(business?.location);
+                const businessName = String(business?.businessName || 'N/A');
+                const ownerName = String(business?.userId?.fullName || 'N/A');
+                const category = business?.category ? String(business.category) : null;
+                const description = business?.description ? String(business.description) : null;
+                const businessType = business?.businessType ? String(business.businessType) : null;
+                const plan = String(business?.plan || 'basic');
+
+                return (
                 <div key={business._id} className="p-6">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
@@ -226,49 +285,51 @@ export default function PendingBusinessVerificationsPage() {
                         </div>
                         <div>
                           <h3 className="text-lg font-semibold text-gray-900">
-                            {business.businessName}
+                            {businessName}
                           </h3>
-                          <p className="text-gray-600">Owner: {business.userId?.fullName || 'N/A'}</p>
-                          {business.category && <p className="text-sm text-gray-500">{business.category}</p>}
+                          <p className="text-gray-600">Owner: {ownerName}</p>
+                          {category && <p className="text-sm text-gray-500">{category}</p>}
                         </div>
                         <div className="flex gap-2">
                           <span className="px-3 py-1 bg-yellow-100 text-yellow-800 text-sm font-medium rounded-full">
                             Pending Review
                           </span>
-                          {getPlanBadge(business.plan)}
+                          {getPlanBadge(plan)}
                         </div>
                       </div>
-                      
-                      {business.description && (
+
+                      {description && (
                         <div className="mb-4">
-                          <p className="text-sm text-gray-700">{business.description}</p>
+                          <p className="text-sm text-gray-700">{description}</p>
                         </div>
                       )}
-                      
+
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                        {business.businessType && (
+                        {businessType && (
                           <div>
                             <p className="text-sm text-gray-500">Business Type</p>
-                            <p className="font-medium">{business.businessType}</p>
+                            <p className="font-medium text-gray-700">{businessType}</p>
                           </div>
                         )}
-                        {(business.location?.city || business.location?.state) && (
+                        {(locationInfo.city || locationInfo.state) && (
                           <div>
                             <p className="text-sm text-gray-500">Location</p>
-                            <p className="font-medium text-gray-500">
-                              {[business.location?.city, business.location?.state].filter(Boolean).join(', ')}
+                            <p className="font-medium text-gray-700">
+                              {[locationInfo.city, locationInfo.state].filter(Boolean).join(', ')}
                             </p>
                           </div>
                         )}
                         <div>
                           <p className="text-sm text-gray-500">Submitted</p>
-                          <p className="font-medium text-gray-500">{formatDate(business.createdAt)}</p>
+                          <p className="font-medium text-gray-700">{formatDate(business.createdAt)}</p>
                         </div>
-                        <div>
-                          <p className="text-sm text-gray-500">Contact</p>
-                          {business.contact?.email && <p className="text-sm text-gray-500">{business.contact?.email}</p>}
-                          {business.contact?.phone && <p className="text-sm text-gray-500">{business.contact?.phone}</p>}
-                        </div>
+                        {(contactInfo.email || contactInfo.phone) && (
+                          <div>
+                            <p className="text-sm text-gray-500">Contact</p>
+                            {contactInfo.email && <p className="text-sm text-gray-700">{contactInfo.email}</p>}
+                            {contactInfo.phone && <p className="text-sm text-gray-700">{contactInfo.phone}</p>}
+                          </div>
+                        )}
                       </div>
 
                       {/* Document Status */}
@@ -289,22 +350,22 @@ export default function PendingBusinessVerificationsPage() {
 
                       {/* Additional Details */}
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-4 border-t border-gray-100">
-                        {business.contact?.phone && (
+                        {contactInfo.phone && (
                           <div className="flex items-center gap-2">
                             <Phone className="h-4 w-4 text-gray-400" />
-                            <span className="text-sm text-gray-600">{business.contact?.phone}</span>
+                            <span className="text-sm text-gray-600">{contactInfo.phone}</span>
                           </div>
                         )}
                         {business.userId?.email && (
                           <div className="flex items-center gap-2">
                             <Mail className="h-4 w-4 text-gray-400" />
-                            <span className="text-sm text-gray-600">{business.userId?.email}</span>
+                            <span className="text-sm text-gray-600">{business.userId.email}</span>
                           </div>
                         )}
-                        {business.location?.address && (
+                        {locationInfo.address && (
                           <div className="flex items-center gap-2">
                             <MapPin className="h-4 w-4 text-gray-400" />
-                            <span className="text-sm text-gray-600">{business.location?.address}</span>
+                            <span className="text-sm text-gray-600">{locationInfo.address}</span>
                           </div>
                         )}
                       </div>
@@ -338,7 +399,8 @@ export default function PendingBusinessVerificationsPage() {
                     </div>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -575,31 +637,31 @@ export default function PendingBusinessVerificationsPage() {
                         <div>
                           <h4 className="text-lg font-medium text-gray-900 mb-3">Location Information</h4>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                            {showDetailsModal.data.business.location.address && (
+                            {showDetailsModal.data.business.location?.address && (
                               <div>
                                 <span className="text-gray-500">Address:</span>
                                 <span className="ml-2 font-medium text-black">{showDetailsModal.data.business.location.address}</span>
                               </div>
                             )}
-                            {showDetailsModal.data.business.location.city && (
+                            {showDetailsModal.data.business.location?.city && (
                               <div>
                                 <span className="text-gray-500">City:</span>
                                 <span className="ml-2 font-medium text-black">{showDetailsModal.data.business.location.city}</span>
                               </div>
                             )}
-                            {showDetailsModal.data.business.location.state && (
+                            {showDetailsModal.data.business.location?.state && (
                               <div>
                                 <span className="text-gray-500">State:</span>
                                 <span className="ml-2 font-medium text-black">{showDetailsModal.data.business.location.state}</span>
                               </div>
                             )}
-                            {showDetailsModal.data.business.location.country && (
+                            {showDetailsModal.data.business.location?.country && (
                               <div>
                                 <span className="text-gray-500">Country:</span>
                                 <span className="ml-2 font-medium text-black">{showDetailsModal.data.business.location.country}</span>
                               </div>
                             )}
-                            {showDetailsModal.data.business.location.postalCode && (
+                            {showDetailsModal.data.business.location?.postalCode && (
                               <div>
                                 <span className="text-gray-500">Postal Code:</span>
                                 <span className="ml-2 font-medium text-black">{showDetailsModal.data.business.location.postalCode}</span>
@@ -625,24 +687,28 @@ export default function PendingBusinessVerificationsPage() {
                               GST {showDetailsModal.data.business.gstVerified ? 'Verified' : 'Not Verified'}
                             </span>
                           </div>
-                          <div>
-                            <span className={`px-3 py-1 text-sm font-medium rounded-full ${
-                              showDetailsModal.data.business.verificationStatus === 'approved' ? 'bg-green-100 text-green-800' :
-                              showDetailsModal.data.business.verificationStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                              'bg-red-100 text-red-800'
-                            }`}>
-                              {showDetailsModal.data.business.verificationStatus.charAt(0).toUpperCase() + showDetailsModal.data.business.verificationStatus.slice(1)}
-                            </span>
-                          </div>
-                          <div>
-                            <span className={`px-3 py-1 text-sm font-medium rounded-full ${
-                              showDetailsModal.data.business.subscriptionStatus === 'active' ? 'bg-green-100 text-green-800' :
-                              showDetailsModal.data.business.subscriptionStatus === 'inactive' ? 'bg-gray-100 text-gray-800' :
-                              'bg-red-100 text-red-800'
-                            }`}>
-                              {showDetailsModal.data.business.subscriptionStatus.charAt(0).toUpperCase() + showDetailsModal.data.business.subscriptionStatus.slice(1)}
-                            </span>
-                          </div>
+                          {showDetailsModal.data.business.verificationStatus && (
+                            <div>
+                              <span className={`px-3 py-1 text-sm font-medium rounded-full ${
+                                showDetailsModal.data.business.verificationStatus === 'approved' ? 'bg-green-100 text-green-800' :
+                                showDetailsModal.data.business.verificationStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                'bg-red-100 text-red-800'
+                              }`}>
+                                {showDetailsModal.data.business.verificationStatus.charAt(0).toUpperCase() + showDetailsModal.data.business.verificationStatus.slice(1)}
+                              </span>
+                            </div>
+                          )}
+                          {showDetailsModal.data.business.subscriptionStatus && (
+                            <div>
+                              <span className={`px-3 py-1 text-sm font-medium rounded-full ${
+                                showDetailsModal.data.business.subscriptionStatus === 'active' ? 'bg-green-100 text-green-800' :
+                                showDetailsModal.data.business.subscriptionStatus === 'inactive' ? 'bg-gray-100 text-gray-800' :
+                                'bg-red-100 text-red-800'
+                              }`}>
+                                {showDetailsModal.data.business.subscriptionStatus.charAt(0).toUpperCase() + showDetailsModal.data.business.subscriptionStatus.slice(1)}
+                              </span>
+                            </div>
+                          )}
                         </div>
                       </div>
 
@@ -688,23 +754,25 @@ export default function PendingBusinessVerificationsPage() {
                       )}
 
                       {/* Business Insights */}
-                      <div>
-                        <h4 className="text-lg font-medium text-gray-900 mb-3">Business Insights</h4>
-                        <div className="grid grid-cols-3 gap-4 text-center">
-                          <div className="bg-blue-50 p-4 rounded-lg">
-                            <div className="text-2xl font-bold text-blue-600">{showDetailsModal.data.business.insights.views}</div>
-                            <div className="text-sm text-gray-500">Views</div>
-                          </div>
-                          <div className="bg-green-50 p-4 rounded-lg">
-                            <div className="text-2xl font-bold text-green-600">{showDetailsModal.data.business.insights.clicks}</div>
-                            <div className="text-sm text-gray-500">Clicks</div>
-                          </div>
-                          <div className="bg-purple-50 p-4 rounded-lg">
-                            <div className="text-2xl font-bold text-purple-600">{showDetailsModal.data.business.insights.conversions}</div>
-                            <div className="text-sm text-gray-500">Conversions</div>
+                      {showDetailsModal.data.business.insights && (
+                        <div>
+                          <h4 className="text-lg font-medium text-gray-900 mb-3">Business Insights</h4>
+                          <div className="grid grid-cols-3 gap-4 text-center">
+                            <div className="bg-blue-50 p-4 rounded-lg">
+                              <div className="text-2xl font-bold text-blue-600">{showDetailsModal.data.business.insights?.views || 0}</div>
+                              <div className="text-sm text-gray-500">Views</div>
+                            </div>
+                            <div className="bg-green-50 p-4 rounded-lg">
+                              <div className="text-2xl font-bold text-green-600">{showDetailsModal.data.business.insights?.clicks || 0}</div>
+                              <div className="text-sm text-gray-500">Clicks</div>
+                            </div>
+                            <div className="bg-purple-50 p-4 rounded-lg">
+                              <div className="text-2xl font-bold text-purple-600">{showDetailsModal.data.business.insights?.conversions || 0}</div>
+                              <div className="text-sm text-gray-500">Conversions</div>
+                            </div>
                           </div>
                         </div>
-                      </div>
+                      )}
 
                       {/* Timestamps */}
                       <div>
@@ -714,10 +782,12 @@ export default function PendingBusinessVerificationsPage() {
                             <span className="text-gray-500">Created At:</span>
                             <span className="ml-2 font-medium text-black">{formatDate(showDetailsModal.data.business.createdAt)}</span>
                           </div>
-                          <div>
-                            <span className="text-gray-500">Last Updated:</span>
-                            <span className="ml-2 font-medium text-black">{formatDate(showDetailsModal.data.business.updatedAt)}</span>
-                          </div>
+                          {showDetailsModal.data.business.updatedAt && (
+                            <div>
+                              <span className="text-gray-500">Last Updated:</span>
+                              <span className="ml-2 font-medium text-black">{formatDate(showDetailsModal.data.business.updatedAt)}</span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>

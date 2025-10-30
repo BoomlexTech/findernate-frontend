@@ -19,6 +19,7 @@ interface RightPanelProps {
   onContextMenu: (messageId: string, x: number, y: number) => void;
   onVoiceCall?: (chat: Chat) => void;
   onVideoCall?: (chat: Chat) => void;
+  isInitiatingCall?: boolean;
 
   // Message input props
   newMessage: string;
@@ -56,6 +57,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
   onContextMenu,
   onVoiceCall,
   onVideoCall,
+  isInitiatingCall = false,
   newMessage,
   setNewMessage,
   onSendMessage,
@@ -120,6 +122,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
         onBack={onBack}
         onVoiceCall={onVoiceCall}
         onVideoCall={onVideoCall}
+        isInitiatingCall={isInitiatingCall}
       />
 
       <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-6 bg-gray-50">

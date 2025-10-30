@@ -1,5 +1,6 @@
 import { ProductDetailsFormProps } from '@/types';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { getProductPreviousData } from '@/api/serviceAutofill';
 
 
 
@@ -9,10 +10,75 @@ const ProductDetailsForm: React.FC<ProductDetailsFormProps> = ({
 }) => {
 
   const currency=['INR', 'USD', 'EUR'];
+  const [autofillData, setAutofillData] = useState<any>(null);
+  const [isLoadingAutofill, setIsLoadingAutofill] = useState(false);
+
+  // Fetch autofill data on component mount
+  useEffect(() => {
+    const fetchAutofillData = async () => {
+      try {
+        setIsLoadingAutofill(true);
+        const response = await getProductPreviousData();
+
+        console.log('Product Autofill API Response:', response);
+
+        if (response?.data?.autoFillEnabled && response?.data?.data) {
+          console.log('Product autofill data available:', response.data.data);
+          setAutofillData(response.data.data);
+        } else {
+          console.log('Product autofill disabled or no previous data');
+          setAutofillData(null);
+        }
+      } catch (error) {
+        console.error('Failed to fetch product autofill data:', error);
+        setAutofillData(null);
+      } finally {
+        setIsLoadingAutofill(false);
+      }
+    };
+
+    fetchAutofillData();
+  }, []);
+
+  // Auto-apply autofill data when available
+  useEffect(() => {
+    if (autofillData && !isLoadingAutofill) {
+      console.log('Automatically applying product autofill with data:', autofillData);
+
+      // Create a synthetic event to trigger onChange for each field
+      // Field names should match the 'name' attributes in the input elements
+      const fields = [
+        { name: 'name', value: autofillData.productName || '' },
+        { name: 'price', value: autofillData.price || 0 },
+        { name: 'currency', value: autofillData.currency || 'INR' },
+        // Note: brand, category, subcategory are not in the current form
+        // but are in the API response - can be added later if form is updated
+      ];
+
+      console.log('Product fields to autofill:', fields);
+
+      fields.forEach(field => {
+        const syntheticEvent = {
+          target: {
+            name: field.name,
+            value: field.value,
+            type: field.name === 'price' ? 'number' : 'text'
+          }
+        } as React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>;
+
+        console.log('Triggering onChange for field:', field.name, 'with value:', field.value);
+        onChange(syntheticEvent);
+      });
+
+      console.log('Product autofill completed automatically');
+    }
+  }, [autofillData, isLoadingAutofill]);
 
   return (
     <div className="bg-white p-6 rounded-xl shadow-md mb-6 border-2 border-yellow-500">
-      <h3 className="text-lg text-black font-semibold mb-4">Product Details</h3>
+      <div className="mb-4">
+        <h3 className="text-lg text-black font-semibold">Product Details</h3>
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Product Name</label>

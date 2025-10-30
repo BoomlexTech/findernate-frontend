@@ -27,6 +27,7 @@ import StarRating from './StarRating';
 import { getBusinessRatingSummary, rateBusiness } from '@/api/business';
 import PrivacySettings from './PrivacySettings';
 import { toast } from "react-toastify";
+import { inMemoryStateManager } from '@/utils/inMemoryState';
 
 interface UserProfileProps {
   userData: UserProfileType | null;
@@ -34,6 +35,9 @@ interface UserProfileProps {
   onProfileUpdate?: (updatedData: Partial<UserProfileType>) => void;
 }
 
+
+// Constants for localStorage keys
+const FOLLOW_STORAGE_KEY = 'user_follow_states';
 
 const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserProfileProps) => {
   const { user: currentUser } = useUserStore();
@@ -43,6 +47,29 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
   const [profile, setProfile] = useState<UserProfileType | null>(userData);
   const [isFollowing, setIsFollowing] = useState(userData?.isFollowing || false);
   const [followersCount, setFollowersCount] = useState(userData?.followersCount || 0);
+
+  // Helper functions for follow state persistence
+  const getFollowStateFromStorage = (userId: string): boolean | null => {
+    try {
+      const stored = localStorage.getItem(FOLLOW_STORAGE_KEY);
+      if (!stored) return null;
+      const followStates = JSON.parse(stored);
+      return followStates[userId] || null;
+    } catch {
+      return null;
+    }
+  };
+
+  const saveFollowStateToStorage = (userId: string, isFollowed: boolean): void => {
+    try {
+      const stored = localStorage.getItem(FOLLOW_STORAGE_KEY);
+      const followStates = stored ? JSON.parse(stored) : {};
+      followStates[userId] = isFollowed;
+      localStorage.setItem(FOLLOW_STORAGE_KEY, JSON.stringify(followStates));
+    } catch (error) {
+      console.warn('Failed to save follow state to localStorage:', error);
+    }
+  };
 
   // Sync profile with userData when it changes (for real-time updates)
   useEffect(() => {
@@ -205,7 +232,12 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
     if (!userData) return;
     
     setProfile(userData);
-    setIsFollowing(userData.isFollowing || false);
+    
+    // Check localStorage first for follow state, then fall back to API data
+    const storedFollowState = getFollowStateFromStorage(userData._id);
+    const initialFollowState = storedFollowState !== null ? storedFollowState : (userData.isFollowing || false);
+    setIsFollowing(initialFollowState);
+    
     setFollowersCount(userData.followersCount);
     setFormData({
       fullName: userData.fullName,
@@ -586,6 +618,49 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
     setSelectedImage(null);
   };
 
+  // Upload image to Cloudinary and return the URL
+  const uploadImageToCloudinary = async (dataUrl: string): Promise<string> => {
+    // Convert data URL to blob
+    const response = await fetch(dataUrl);
+    const blob = await response.blob();
+
+    // Get Cloudinary signature from our API
+    const signResponse = await fetch('/api/cloudinary-sign', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ folder: 'findernate/profiles' }),
+    });
+
+    if (!signResponse.ok) {
+      throw new Error('Failed to get Cloudinary signature');
+    }
+
+    const { signature, timestamp, apiKey, cloudName, folder } = await signResponse.json();
+
+    // Upload to Cloudinary
+    const formData = new FormData();
+    formData.append('file', blob);
+    formData.append('api_key', apiKey);
+    formData.append('timestamp', timestamp.toString());
+    formData.append('signature', signature);
+    formData.append('folder', folder);
+
+    const uploadResponse = await fetch(
+      `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+      {
+        method: 'POST',
+        body: formData,
+      }
+    );
+
+    if (!uploadResponse.ok) {
+      throw new Error('Failed to upload image to Cloudinary');
+    }
+
+    const uploadData = await uploadResponse.json();
+    return uploadData.secure_url; // Return the Cloudinary URL
+  };
+
   const handleSave = async () => {
     try {
       // Prepare data for API - only include fields that the API expects
@@ -596,7 +671,7 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
         link: formData.link,
         profileImageUrl: formData.profileImageUrl,
       };
-      
+
       // Debug: Log what we're sending to the API
       // //console.log('Sending profile data to API:', {
       //   fullName: profileData.fullName,
@@ -607,15 +682,21 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
       //   profileImageUrlStart: profileData.profileImageUrl ? profileData.profileImageUrl.substring(0, 100) : 'No image URL'
       // });
 
-      // If image is a data URL (newly selected), resize and send to backend
+      // If image is a data URL (newly selected), upload to Cloudinary first
       if (profileData.profileImageUrl && profileData.profileImageUrl.startsWith('data:')) {
-        // Resize to safe dimensions to avoid large payloads and network errors
-        const resizedDataUrl = await resizeImageDataUrl(profileData.profileImageUrl, 512, 512, 0.85, 'image/jpeg');
-        profileData.profileImageUrl = resizedDataUrl;
+        try {
+          // Resize to safe dimensions before upload
+          const resizedDataUrl = await resizeImageDataUrl(profileData.profileImageUrl, 512, 512, 0.85, 'image/jpeg');
+
+          // Upload to Cloudinary and get URL back
+          const cloudinaryUrl = await uploadImageToCloudinary(resizedDataUrl);
+          profileData.profileImageUrl = cloudinaryUrl;
+        } catch (uploadError) {
+          console.error('Error uploading image to Cloudinary:', uploadError);
+          throw new Error('Failed to upload profile image. Please try again.');
+        }
       }
-      
- 
-      
+
       // Call the editProfile API
       const updatedProfile = await editProfile(profileData);
       
@@ -707,17 +788,19 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
 
   const handleFollowToggle = async () => {
     if (isFollowLoading || !profile) return;
-    
+
     // Debug check
-    // //console.log('Attempting to follow/unfollow user:', {
-    //   targetUserId: profile._id,
-    //   currentlyFollowing: isFollowing,
-    //   token: typeof window !== 'undefined' ? !!localStorage.getItem('token') : false
-    // });
-    
+    console.log('Attempting to follow/unfollow user:', {
+      targetUserId: profile._id,
+      currentlyFollowing: isFollowing,
+      token: typeof window !== 'undefined' ? !!localStorage.getItem('token') : false,
+      profile: profile
+    });
+
     setIsFollowLoading(true);
     try {
       if (isFollowing) {
+        console.log('Calling unfollowUser with profile._id:', profile._id);
         const result = await unfollowUser(profile._id);
         
         // Check if it was a "Not following this user" case
@@ -728,6 +811,10 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
           setIsFollowing(false);
           setFollowersCount(prev => prev - 1);
         }
+        
+        // Save to localStorage and inMemoryStateManager
+        saveFollowStateToStorage(profile._id, false);
+        inMemoryStateManager.setUserFollowState(profile._id, false);
       } else {
         const result = await followUser(profile._id);
         
@@ -739,6 +826,10 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
           setIsFollowing(true);
           setFollowersCount(prev => prev + 1);
         }
+        
+        // Save to localStorage and inMemoryStateManager
+        saveFollowStateToStorage(profile._id, true);
+        inMemoryStateManager.setUserFollowState(profile._id, true);
       }
     } catch (error: any) {
       // console.error('Error toggling follow status:', error);
@@ -752,10 +843,16 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
         setIsFollowing(true);
         // Don't change followers count since we're already following
         // //console.log('User was already following - updating UI state');
+        // Save to localStorage and inMemoryStateManager
+        saveFollowStateToStorage(profile._id, true);
+        inMemoryStateManager.setUserFollowState(profile._id, true);
       } else if (errorMessage === 'Not following this user') {
         // Update state to reflect reality - user is not following
         setIsFollowing(false);
         // //console.log('User was not following - updating UI state');
+        // Save to localStorage and inMemoryStateManager
+        saveFollowStateToStorage(profile._id, false);
+        inMemoryStateManager.setUserFollowState(profile._id, false);
       } else if (errorMessage === 'Cannot follow yourself') {
         // Handle self-follow attempt
         // //console.log('Cannot follow yourself');

@@ -24,6 +24,9 @@ export const useChatManagement = ({ user }: UseChatManagementProps) => {
   const [allChatsCache, setAllChatsCache] = useState<Chat[]>([]);
   const [userFollowingList, setUserFollowingList] = useState<string[]>([]);
   const [requestDecisionCache, setRequestDecisionCache] = useState<Map<string, 'accepted' | 'declined'>>(new Map());
+
+  // Track chats that have been opened and should have unreadCount: 0
+  const [readChats, setReadChats] = useState<Set<string>>(new Set());
   
   // Track which requests we've viewed (to prevent auto-acceptance after refresh)
   const [viewedRequests, setViewedRequests] = useState<Set<string>>(() => {
@@ -57,34 +60,45 @@ export const useChatManagement = ({ user }: UseChatManagementProps) => {
 
   const selected = [...chats, ...messageRequests].find((chat) => chat._id === selectedChat);
 
+  // Function to mark a chat as read and add it to readChats set
+  const markChatAsRead = (chatId: string) => {
+    setReadChats(prev => new Set([...prev, chatId]));
+  };
+
   // Function to refresh chats with accurate unread counts
   const refreshChatsWithAccurateUnreadCounts = async () => {
     try {
-      //console.log('Refreshing chats with accurate unread counts...');
       const [activeChatsResponse, requestsResponse] = await Promise.all([
         messageAPI.getActiveChats(),
         messageAPI.getMessageRequests()
       ]);
-      
+
       // Update chats with fresh data from server
-      const sortedActiveChats = activeChatsResponse.chats.sort((a, b) => 
+      const sortedActiveChats = activeChatsResponse.chats.sort((a, b) =>
         new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
       );
-      
+
+      // Preserve unreadCount: 0 for all chats that have been read (including currently selected)
+      const chatsWithPreservedSelection = sortedActiveChats.map(chat => {
+        // Force unreadCount to 0 for any chat that's been opened or is currently selected
+        if (chat._id === selectedChat || readChats.has(chat._id)) {
+          return { ...chat, unreadCount: 0 };
+        }
+        return chat;
+      });
+
       const filteredRequests = requestsResponse.chats.filter(chat => {
         if (!user?._id) return false;
         return isIncomingRequest(chat, user._id);
       });
-      
-      const sortedRequests = filteredRequests.sort((a, b) => 
+
+      const sortedRequests = filteredRequests.sort((a, b) =>
         new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
       );
-      
-      setChats(sortedActiveChats);
+
+      setChats(chatsWithPreservedSelection);
       setMessageRequests(sortedRequests);
-      setAllChatsCache([...sortedActiveChats, ...sortedRequests]);
-      
-      //console.log('Chats refreshed with accurate unread counts');
+      setAllChatsCache([...chatsWithPreservedSelection, ...sortedRequests]);
     } catch (error) {
       console.error('Failed to refresh chats with accurate unread counts:', error);
     }
@@ -730,6 +744,7 @@ export const useChatManagement = ({ user }: UseChatManagementProps) => {
     handleDeclineRequest,
     handleProfileClick,
     refreshChatsWithAccurateUnreadCounts,
+    markChatAsRead,
     
     // Utility functions (re-exported for convenience)
     getChatDisplayName: (chat: Chat) => getChatDisplayName(chat, user),

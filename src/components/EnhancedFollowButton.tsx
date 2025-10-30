@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { UserPlus, UserCheck, Clock, UserX } from 'lucide-react';
 import { followUser, unfollowUser } from '@/api/privacy';
 import { toast } from 'react-toastify';
 import { useAuthGuard } from '@/hooks/useAuthGuard';
+import { inMemoryStateManager } from '@/utils/inMemoryState';
 
 interface EnhancedFollowButtonProps {
   userId: string;
@@ -19,6 +20,9 @@ interface EnhancedFollowButtonProps {
     isPending: boolean;
   }) => void;
 }
+
+// Constants for localStorage keys
+const FOLLOW_STORAGE_KEY = 'user_follow_states';
 
 const EnhancedFollowButton: React.FC<EnhancedFollowButtonProps> = ({
   userId,
@@ -35,6 +39,38 @@ const EnhancedFollowButton: React.FC<EnhancedFollowButtonProps> = ({
   const [currentIsPending, setCurrentIsPending] = useState(isPending);
   const { requireAuth } = useAuthGuard();
 
+  // Helper functions for follow state persistence
+  const getFollowStateFromStorage = (userId: string): boolean | null => {
+    try {
+      const stored = localStorage.getItem(FOLLOW_STORAGE_KEY);
+      if (!stored) return null;
+      const followStates = JSON.parse(stored);
+      return followStates[userId] || null;
+    } catch {
+      return null;
+    }
+  };
+
+  const saveFollowStateToStorage = (userId: string, isFollowed: boolean): void => {
+    try {
+      const stored = localStorage.getItem(FOLLOW_STORAGE_KEY);
+      const followStates = stored ? JSON.parse(stored) : {};
+      followStates[userId] = isFollowed;
+      localStorage.setItem(FOLLOW_STORAGE_KEY, JSON.stringify(followStates));
+    } catch (error) {
+      console.warn('Failed to save follow state to localStorage:', error);
+    }
+  };
+
+  // Initialize follow state from localStorage on mount
+  useEffect(() => {
+    const storedFollowState = getFollowStateFromStorage(userId);
+    if (storedFollowState !== null) {
+      setCurrentIsFollowing(storedFollowState);
+      setCurrentIsPending(false); // Clear pending state when loading from storage
+    }
+  }, [userId]);
+
   const handleFollowToggle = async () => {
     requireAuth(async () => {
       setLoading(true);
@@ -50,6 +86,10 @@ const EnhancedFollowButton: React.FC<EnhancedFollowButtonProps> = ({
             isPending: false
           });
 
+          // Save to localStorage and inMemoryStateManager
+          saveFollowStateToStorage(userId, false);
+          inMemoryStateManager.setUserFollowState(userId, false);
+
           toast.success(`Unfollowed ${fullName || username}`, {
             position: "top-right",
             autoClose: 2000,
@@ -64,6 +104,10 @@ const EnhancedFollowButton: React.FC<EnhancedFollowButtonProps> = ({
             isFollowing: false,
             isPending: false
           });
+
+          // Save to localStorage and inMemoryStateManager
+          saveFollowStateToStorage(userId, false);
+          inMemoryStateManager.setUserFollowState(userId, false);
 
           toast.success('Follow request cancelled', {
             position: "top-right",
@@ -82,6 +126,10 @@ const EnhancedFollowButton: React.FC<EnhancedFollowButtonProps> = ({
               isFollowing: true,
               isPending: false
             });
+
+            // Save to localStorage and inMemoryStateManager
+            saveFollowStateToStorage(userId, true);
+            inMemoryStateManager.setUserFollowState(userId, true);
 
             toast.success(`Now following ${fullName || username}`, {
               position: "top-right",

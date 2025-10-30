@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { Grid3X3, Play, Video, Heart, MessageCircle, Bookmark, ChevronLeft, ChevronRight, Eye, EyeOff } from 'lucide-react';
+import { Grid3X3, Play, Video, Heart, MessageCircle, Bookmark, ChevronLeft, ChevronRight, Eye, EyeOff, ShoppingBag, Briefcase, Building2 } from 'lucide-react';
 import { FeedPost } from '@/types';
 import Image from 'next/image';
 import { likePost, unlikePost, toggleSavedPostPrivacy } from '@/api/post';
@@ -134,9 +134,9 @@ const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
   ];
 
   const businessTabs = [
-    { id: 'business', label: 'Business', icon: Grid3X3, count: filteredPosts.business.length },
-    { id: 'service', label: 'Service', icon: Grid3X3, count: filteredPosts.service.length },
-    { id: 'product', label: 'Product', icon: Play, count: filteredPosts.product.length }
+    { id: 'business', label: 'Business', icon: Building2, count: filteredPosts.business.length },
+    { id: 'service', label: 'Service', icon: Briefcase, count: filteredPosts.service.length },
+    { id: 'product', label: 'Product', icon: ShoppingBag, count: filteredPosts.product.length }
   ];
 
   const tabs = activeCategory === 'personal' ? personalTabs : businessTabs;
@@ -371,9 +371,9 @@ const ProfilePostsSection: React.FC<ProfilePostsSectionProps> = ({
               {activeTab === 'reels' && <Play className="w-12 h-12 mx-auto" />}
               {activeTab === 'videos' && <Video className="w-12 h-12 mx-auto" />}
               {activeTab === 'saved' && <Bookmark className="w-12 h-12 mx-auto" />}
-              {activeTab === 'business' && <Grid3X3 className="w-12 h-12 mx-auto" />}
-              {activeTab === 'service' && <Grid3X3 className="w-12 h-12 mx-auto" />}
-              {activeTab === 'product' && <Play className="w-12 h-12 mx-auto" />}
+              {activeTab === 'business' && <Building2 className="w-12 h-12 mx-auto" />}
+              {activeTab === 'service' && <Briefcase className="w-12 h-12 mx-auto" />}
+              {activeTab === 'product' && <ShoppingBag className="w-12 h-12 mx-auto" />}
             </div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">
               No {activeTab} yet

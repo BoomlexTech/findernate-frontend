@@ -160,28 +160,35 @@ export default function PendingAadhaarPage() {
                     <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
                       <div>
                         <p className="text-sm text-gray-500">Aadhaar Number</p>
-                        <p className="font-medium">{maskAadhaarNumber(verification.aadhaarNumber)}</p>
+                        <p className="font-medium text-gray-900">{maskAadhaarNumber(verification.aadhaarNumber)}</p>
                       </div>
                       <div>
                         <p className="text-sm text-gray-500">GST Number</p>
-                        <p className="font-medium">{verification.gstNumber || 'Not provided'}</p>
+                        <p className="font-medium text-gray-900">{verification.gstNumber || 'Not provided'}</p>
                       </div>
                       <div>
                         <p className="text-sm text-gray-500">Location</p>
-                        <p className="font-medium">{verification.location}</p>
+                        <p className="font-medium text-gray-900">
+                          {typeof verification.location === 'string'
+                            ? verification.location
+                            : verification.location?.city && verification.location?.state
+                              ? `${verification.location.city}, ${verification.location.state}`
+                              : verification.location?.city || verification.location?.state || 'N/A'
+                          }
+                        </p>
                       </div>
                       <div>
                         <p className="text-sm text-gray-500">Submitted</p>
-                        <p className="font-medium">{formatDate(verification.createdAt)}</p>
+                        <p className="font-medium text-gray-900">{formatDate(verification.createdAt)}</p>
                       </div>
                     </div>
 
                     <div className="mt-4">
-                      <p className="text-sm text-gray-500">Contact Information</p>
-                      <div className="flex flex-col gap-1 mt-1">
-                        <p className="text-sm"><span className="font-medium">Email:</span> {verification.contact?.email || 'N/A'}</p>
-                        <p className="text-sm"><span className="font-medium">Phone:</span> {verification.contact?.phone || 'N/A'}</p>
-                        <p className="text-sm"><span className="font-medium">Address:</span> {verification.contact?.address || 'N/A'}</p>
+                      <p className="text-sm text-gray-500 mb-2">Contact Information</p>
+                      <div className="flex flex-col gap-1">
+                        <p className="text-sm text-gray-900"><span className="font-medium">Email:</span> {verification.contact?.email || 'N/A'}</p>
+                        <p className="text-sm text-gray-900"><span className="font-medium">Phone:</span> {verification.contact?.phone || 'N/A'}</p>
+                        <p className="text-sm text-gray-900"><span className="font-medium">Address:</span> {verification.contact?.address || 'N/A'}</p>
                       </div>
                     </div>
                   </div>

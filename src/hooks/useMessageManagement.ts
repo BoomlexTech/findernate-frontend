@@ -13,9 +13,10 @@ interface UseMessageManagementProps {
   viewedRequests?: Set<string>;
   markRequestAsViewed?: (chatId: string) => void;
   refreshChatsWithAccurateUnreadCounts?: () => Promise<void>;
+  markChatAsRead?: (chatId: string) => void;
 }
 
-export const useMessageManagement = ({ selectedChat, user, setChats, messageRequests, viewedRequests, markRequestAsViewed, refreshChatsWithAccurateUnreadCounts }: UseMessageManagementProps) => {
+export const useMessageManagement = ({ selectedChat, user, setChats, messageRequests, viewedRequests, markRequestAsViewed, refreshChatsWithAccurateUnreadCounts, markChatAsRead }: UseMessageManagementProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loadingMessages, setLoadingMessages] = useState(false);
 
@@ -54,19 +55,77 @@ export const useMessageManagement = ({ selectedChat, user, setChats, messageRequ
   // Track the current chat to prevent race conditions
   const currentChatRef = useRef<string | null>(null);
 
+  // Track if user is near bottom of messages
+  const isNearBottomRef = useRef(true);
+  const previousMessagesLengthRef = useRef(0);
+  const hasScrolledForCurrentChatRef = useRef(false);
+  const lastChatIdRef = useRef<string | null>(null);
+
   // Scroll to bottom when new messages arrive
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  const scrollToBottom = (force = false) => {
+    const shouldScroll = force || isNearBottomRef.current;
+    if (shouldScroll) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
   };
 
+  // Track scroll position to determine if user is near bottom
   useEffect(() => {
-    scrollToBottom();
-    
-    if (messages.length > 0) {
-      const latestMessages = messages.slice(-5);
-      markUnreadMessagesAsSeen(latestMessages);
+    const container = messagesContainerRef.current;
+    if (!container) {
+      return;
     }
-  }, [messages]);
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+      const isNearBottom = distanceFromBottom < 100;
+      isNearBottomRef.current = isNearBottom;
+    };
+
+    // Initial check
+    handleScroll();
+
+    container.addEventListener('scroll', handleScroll, { passive: true });
+
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+    };
+  }, [selectedChat]); // Re-attach when chat changes
+
+  useEffect(() => {
+    // Check if chat has changed
+    const chatHasChanged = selectedChat !== lastChatIdRef.current;
+
+    // Reset refs only when chat changes
+    if (chatHasChanged) {
+      lastChatIdRef.current = selectedChat;
+      previousMessagesLengthRef.current = 0;
+      hasScrolledForCurrentChatRef.current = false;
+      isNearBottomRef.current = true;
+    }
+
+    // Only auto-scroll when:
+    // 1. User is near the bottom (has isNearBottomRef = true)
+    // 2. OR it's the first load (previousMessagesLengthRef = 0)
+    const isFirstLoad = previousMessagesLengthRef.current === 0 && messages.length > 0 && !hasScrolledForCurrentChatRef.current;
+    const hasNewMessages = messages.length > previousMessagesLengthRef.current;
+
+    // Only scroll if there are actually NEW messages (count increased), not just updates
+    if (isFirstLoad) {
+      // Force scroll on first load (only once per chat)
+      scrollToBottom(true);
+      previousMessagesLengthRef.current = messages.length;
+      hasScrolledForCurrentChatRef.current = true;
+    } else if (hasNewMessages) {
+      // New message arrived, only scroll if user is near bottom
+      scrollToBottom(false);
+      previousMessagesLengthRef.current = messages.length;
+    }
+
+    // Note: We don't mark messages as read here anymore
+    // The Intersection Observer handles marking messages as seen when they come into view
+  }, [messages, selectedChat]);
 
   // Handle prefill message event
   useEffect(() => {
@@ -101,6 +160,9 @@ export const useMessageManagement = ({ selectedChat, user, setChats, messageRequ
       const chatId = selectedChat;
       currentChatRef.current = chatId;
       setLoadingMessages(true);
+
+      // Note: Scroll tracking reset is handled in the messages effect
+      // to ensure it only resets once per chat change
 
       // Don't clear messages immediately - let them show during loading
       // This prevents the blank screen flicker
@@ -237,8 +299,11 @@ export const useMessageManagement = ({ selectedChat, user, setChats, messageRequ
         if (!isRequestChatFromState) {
           try {
             await messageAPI.markAllMessagesRead(chatId);
-            // Refresh unread counts after marking messages as read
-            refreshUnreadCounts();
+            // Refresh unread counts immediately after marking messages as read
+            setTimeout(() => refreshUnreadCounts(), 100);
+            // Refresh again after a delay to ensure backend has updated
+            setTimeout(() => refreshUnreadCounts(), 500);
+            setTimeout(() => refreshUnreadCounts(), 1000);
             // Refresh chats with accurate unread counts from server
             if (refreshChatsWithAccurateUnreadCounts) {
               setTimeout(() => refreshChatsWithAccurateUnreadCounts(), 1000);
@@ -254,6 +319,11 @@ export const useMessageManagement = ({ selectedChat, user, setChats, messageRequ
             ? { ...chat, unreadCount: 0 }
             : chat
         ));
+
+        // Mark this chat as read to persist the unreadCount: 0 across refreshes
+        if (markChatAsRead) {
+          markChatAsRead(chatId);
+        }
       } catch (error) {
         console.error('Failed to load messages:', error);
         setLoadingMessages(false);
@@ -333,17 +403,18 @@ export const useMessageManagement = ({ selectedChat, user, setChats, messageRequ
       });
       
       setChats(prev => {
-        const updatedChats = prev.map(chat => 
-          chat._id === selectedChat 
+        const updatedChats = prev.map(chat =>
+          chat._id === selectedChat
             ? { ...chat, lastMessage: { sender: message.sender._id, message: message.message, timestamp: message.timestamp }, lastMessageAt: message.timestamp }
             : chat
         );
-        
+
         return updatedChats.sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime());
       });
-      
-      scrollToBottom();
-      
+
+      // Force scroll to bottom when user sends a message
+      scrollToBottom(true);
+
       setTimeout(() => {
         messageInputRef.current?.focus();
       }, 100);
@@ -359,22 +430,23 @@ export const useMessageManagement = ({ selectedChat, user, setChats, messageRequ
   // Mark unread messages as seen
   const markUnreadMessagesAsSeen = async (messagesToCheck: Message[]) => {
     if (!user || !selectedChat) return;
-    
-    const unreadMessages = messagesToCheck.filter(msg => 
+
+    const unreadMessages = messagesToCheck.filter(msg =>
       msg.sender._id !== user._id && !msg.readBy.includes(user._id)
     );
-    
+
     if (unreadMessages.length > 0) {
       const unreadMessageIds = unreadMessages.map(msg => msg._id);
       try {
         await messageAPI.markMessagesRead(selectedChat, unreadMessageIds);
-        setMessagesWithDebug(prev => prev.map(msg => 
-          unreadMessageIds.includes(msg._id) 
+        setMessagesWithDebug(prev => prev.map(msg =>
+          unreadMessageIds.includes(msg._id)
             ? { ...msg, readBy: [...msg.readBy, user._id] }
             : msg
         ));
-        // Refresh unread counts after marking messages as read
-        refreshUnreadCounts();
+        // Refresh unread counts after marking messages as read with multiple retries
+        setTimeout(() => refreshUnreadCounts(), 100);
+        setTimeout(() => refreshUnreadCounts(), 500);
       } catch (error) {
         console.error('Failed to mark messages as read:', error);
       }
@@ -384,21 +456,22 @@ export const useMessageManagement = ({ selectedChat, user, setChats, messageRequ
   // Mark messages as seen when they come into view
   const markMessageAsSeen = async (messageId: string) => {
     if (!user || !selectedChat) return;
-    
+
     const message = messages.find(msg => msg._id === messageId);
     if (!message || message.sender._id === user._id || message.readBy.includes(user._id)) {
       return;
     }
-    
+
     try {
       await messageAPI.markMessagesRead(selectedChat, [messageId]);
-      setMessagesWithDebug(prev => prev.map(msg => 
-        msg._id === messageId 
+      setMessagesWithDebug(prev => prev.map(msg =>
+        msg._id === messageId
           ? { ...msg, readBy: [...msg.readBy, user._id] }
           : msg
       ));
-      // Refresh unread counts after marking message as read
-      refreshUnreadCounts();
+      // Refresh unread counts after marking message as read with retries
+      setTimeout(() => refreshUnreadCounts(), 100);
+      setTimeout(() => refreshUnreadCounts(), 500);
     } catch (error) {
       console.error('Failed to mark message as read:', error);
     }
