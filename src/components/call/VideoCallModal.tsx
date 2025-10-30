@@ -134,31 +134,15 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
         // Set call state immediately for faster UI
         setCall(videoCall);
 
-        // Step 2: Disable camera first for voice calls (before joining)
-        if (callType === 'voice') {
-          console.log('📞 Disabling camera for voice call...');
-          await videoCall.camera.disable();
-        }
-
-        // Step 3: Join the call with audio settings enabled
+        // Step 2: Join the call with audio settings enabled
         console.log('📞 Joining existing call...');
         await videoCall.join({
-          create: false,
-          data: {
-            members: [],
-            settings_override: {
-              audio: {
-                mic_default_on: true,
-                speaker_default_on: true,
-                default_device: 'speaker'
-              }
-            }
-          }
+          create: false
         });
 
         console.log('📞 Successfully joined call!');
 
-        // Step 4: Explicitly enable microphone after joining
+        // Step 3: Enable microphone first (most important for audio calls)
         try {
           await videoCall.microphone.enable();
           console.log('📞 Microphone enabled');
@@ -171,16 +155,20 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
           const localParticipant = videoCall.state.localParticipant;
           console.log('📞 Local participant:', localParticipant);
           console.log('📞 Audio publishing:', localParticipant?.publishedTracks);
+
+          // Small delay to let audio stream activate
+          await new Promise(resolve => setTimeout(resolve, 500));
+
         } catch (micError) {
           console.error('❌ Failed to enable microphone:', micError);
           alert('Failed to enable microphone. Please check your microphone permissions.');
         }
 
-        // Step 5: Ensure camera stays disabled for voice calls
+        // Step 4: Now disable camera for voice calls (after audio is working)
         if (callType === 'voice') {
           try {
             await videoCall.camera.disable();
-            console.log('📞 Camera confirmed disabled for voice call');
+            console.log('📞 Camera disabled for voice call');
           } catch (err) {
             console.warn('Failed to disable camera for voice call:', err);
           }
