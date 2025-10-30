@@ -3,7 +3,9 @@
 import React, { useEffect, useState } from 'react';
 import {
   CallControls,
+  CallParticipantsList,
   CallingState,
+  ParticipantView,
   SpeakerLayout,
   StreamCall,
   StreamTheme,
@@ -28,8 +30,10 @@ interface VideoCallModalProps {
 }
 
 const CallLayout: React.FC<{ callType?: 'voice' | 'video' }> = ({ callType = 'video' }) => {
-  const { useCallCallingState } = useCallStateHooks();
+  const { useCallCallingState, useParticipants, useLocalParticipant } = useCallStateHooks();
   const callingState = useCallCallingState();
+  const participants = useParticipants();
+  const localParticipant = useLocalParticipant();
 
   if (callingState !== CallingState.JOINED) {
     return (
@@ -62,10 +66,31 @@ const CallLayout: React.FC<{ callType?: 'voice' | 'video' }> = ({ callType = 'vi
           </div>
         </div>
       ) : (
-        <>
-          <SpeakerLayout participantsBarPosition='bottom' />
-          <CallControls />
-        </>
+        <div className="relative h-full flex flex-col">
+          {/* Main speaker view - showing the active speaker or remote participant */}
+          <div className="flex-1 relative">
+            {participants.length > 0 && (
+              <div className="absolute inset-0">
+                {/* Find the remote participant (not local) to show as main */}
+                {(() => {
+                  const remoteParticipant = participants.find(p => p.sessionId !== localParticipant?.sessionId);
+                  const mainParticipant = remoteParticipant || participants[0];
+                  return <ParticipantView participant={mainParticipant} />;
+                })()}
+              </div>
+            )}
+            {/* Local participant in small corner view */}
+            {localParticipant && (
+              <div className="absolute bottom-4 right-4 w-48 h-36 rounded-lg overflow-hidden shadow-lg border-2 border-white/20 z-10">
+                <ParticipantView participant={localParticipant} />
+              </div>
+            )}
+          </div>
+          {/* Call controls at bottom */}
+          <div className="relative z-20">
+            <CallControls />
+          </div>
+        </div>
       )}
     </StreamTheme>
   );

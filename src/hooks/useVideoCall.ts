@@ -179,36 +179,27 @@ export const useVideoCall = ({ user }: UseVideoCallProps) => {
 
       console.log('📞 Call initiated:', call);
 
-      // Step 4: Open modal IMMEDIATELY with real call data
-      // Don't wait for Stream call creation!
+      // Step 4: Create Stream.io call and get streamCallType from backend
+      const streamCallData = await streamAPI.createStreamCall({
+        callId: call._id,
+        callType,
+        members: [otherParticipant._id],
+        video_enabled: false  // Start call with video off
+      });
+
+      console.log('📞 Stream.io call created with type:', streamCallData.streamCallType);
+
+      // Step 5: Open modal with correct streamCallType from backend response
       setStreamToken(token);
       setCurrentCall({
         callId: call._id,
         chatId: chat._id,
         callType,
         isInitiator: true,
-        streamCallType: callType === 'voice' ? 'audio_room' : 'default'
+        streamCallType: streamCallData.streamCallType  // ✅ Use backend's streamCallType, not hardcoded
       });
       setIsVideoCallOpen(true);
 
-      // Step 5: Create Stream.io call in background (async - don't block UI)
-      streamAPI.createStreamCall({
-        callId: call._id,
-        callType,
-        members: [otherParticipant._id],
-        video_enabled: false  // Start call with video off
-      }).then(streamCallData => {
-        console.log('📞 Stream.io call created:', streamCallData);
-        // Update with actual Stream call type from backend
-        setCurrentCall(prev => prev ? {
-          ...prev,
-          streamCallType: streamCallData.streamCallType
-        } : null);
-      }).catch(error => {
-        console.error('Failed to create Stream.io call:', error);
-        // Don't close modal - the call is already initiated
-        // Stream SDK will try to create/join the call automatically
-      });
     } catch (error: any) {
       console.error('Failed to initiate call:', error);
       // Close modal on error
@@ -237,37 +228,27 @@ export const useVideoCall = ({ user }: UseVideoCallProps) => {
 
       console.log('📞 Call accepted:', incomingCall.callId);
 
-      // Step 4: Open modal IMMEDIATELY with real call data
-      // Don't wait for Stream call creation!
+      // Step 4: Create Stream.io call and get streamCallType from backend
+      const streamCallData = await streamAPI.createStreamCall({
+        callId: incomingCall.callId,
+        callType: incomingCall.callType,
+        members: [incomingCall.callerId],
+        video_enabled: false  // Start call with video off
+      });
+
+      console.log('📞 Stream.io call created with type:', streamCallData.streamCallType);
+
+      // Step 5: Open modal with correct streamCallType from backend response
       setStreamToken(token);
       setCurrentCall({
         callId: incomingCall.callId,
         chatId: incomingCall.chatId,
         callType: incomingCall.callType,
         isInitiator: false,
-        streamCallType: incomingCall.callType === 'voice' ? 'audio_room' : 'default'
+        streamCallType: streamCallData.streamCallType  // ✅ Use backend's streamCallType, not hardcoded
       });
       setIncomingCall(null);
       setIsVideoCallOpen(true);
-
-      // Step 5: Create Stream.io call in background (async - don't block UI)
-      streamAPI.createStreamCall({
-        callId: incomingCall.callId,
-        callType: incomingCall.callType,
-        members: [incomingCall.callerId],
-        video_enabled: false  // Start call with video off
-      }).then(streamCallData => {
-        console.log('📞 Stream.io call created:', streamCallData);
-        // Update with actual Stream call type from backend
-        setCurrentCall(prev => prev ? {
-          ...prev,
-          streamCallType: streamCallData.streamCallType
-        } : null);
-      }).catch(error => {
-        console.error('Failed to create Stream.io call:', error);
-        // Don't close modal - the call is already accepted
-        // Stream SDK will try to create/join the call automatically
-      });
 
     } catch (error: any) {
       console.error('Failed to accept call:', error);
