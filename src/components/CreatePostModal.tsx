@@ -1780,49 +1780,52 @@ const handleProductChange = (
             </div>
           )}
 
-          {/* Post Type Selection (radio buttons) */}
-          {(contentType === 'Post' || contentType === 'Reel') && (
+          {/* Post Type Selection (radio buttons) - Only show for business accounts */}
+          {(contentType === 'Post' || contentType === 'Reel') && isBusinessProfile && (
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Choose Post Type (optional)
               </label>
               <div className="flex flex-wrap gap-3">
-                <label className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer select-none text-black hover:bg-gray-50">
-                  <input
-                    type="radio"
-                    name="postType"
-                    value="Business"
-                    checked={postType === 'Business'}
-                    onChange={() => setPostType('Business')}
-                    disabled={!isBusinessProfile || !allowBusiness}
-                    className="text-yellow-500 focus:ring-yellow-500"
-                  />
-                  <span>Business</span>
-                </label>
-                <label className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer select-none text-black hover:bg-gray-50">
-                  <input
-                    type="radio"
-                    name="postType"
-                    value="Service"
-                    checked={postType === 'Service'}
-                    onChange={() => setPostType('Service')}
-                    disabled={!isBusinessProfile || !allowService}
-                    className="text-yellow-500 focus:ring-yellow-500"
-                  />
-                  <span>Service</span>
-                </label>
-                <label className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer select-none text-black hover:bg-gray-50">
-                  <input
-                    type="radio"
-                    name="postType"
-                    value="Product"
-                    checked={postType === 'Product'}
-                    onChange={() => setPostType('Product')}
-                    disabled={!isBusinessProfile || !allowProduct}
-                    className="text-yellow-500 focus:ring-yellow-500"
-                  />
-                  <span>Product</span>
-                </label>
+                {allowBusiness && (
+                  <label className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer select-none text-black hover:bg-gray-50">
+                    <input
+                      type="radio"
+                      name="postType"
+                      value="Business"
+                      checked={postType === 'Business'}
+                      onChange={() => setPostType('Business')}
+                      className="text-yellow-500 focus:ring-yellow-500"
+                    />
+                    <span>Business</span>
+                  </label>
+                )}
+                {allowService && (
+                  <label className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer select-none text-black hover:bg-gray-50">
+                    <input
+                      type="radio"
+                      name="postType"
+                      value="Service"
+                      checked={postType === 'Service'}
+                      onChange={() => setPostType('Service')}
+                      className="text-yellow-500 focus:ring-yellow-500"
+                    />
+                    <span>Service</span>
+                  </label>
+                )}
+                {allowProduct && (
+                  <label className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer select-none text-black hover:bg-gray-50">
+                    <input
+                      type="radio"
+                      name="postType"
+                      value="Product"
+                      checked={postType === 'Product'}
+                      onChange={() => setPostType('Product')}
+                      className="text-yellow-500 focus:ring-yellow-500"
+                    />
+                    <span>Product</span>
+                  </label>
+                )}
                 {/* If none selected, it's Regular by default */}
                 {postType !== 'Business' && postType !== 'Service' && postType !== 'Product' && (
                   <span className="text-sm text-gray-500 self-center">Default: Regular Post</span>

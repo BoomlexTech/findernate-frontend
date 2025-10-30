@@ -144,6 +144,7 @@ export default function MessagePanel() {
     incomingCall,
     currentCall,
     streamToken,
+    isInitiating,
     initiateCall,
     acceptCall,
     declineCall,
@@ -260,6 +261,7 @@ export default function MessagePanel() {
             loadingMessages={loadingMessages}
             onVoiceCall={(chat) => initiateCall(chat, 'voice')}
             onVideoCall={(chat) => initiateCall(chat, 'video')}
+            isInitiatingCall={isInitiating}
           />
         ) : (
           <EmptyState onNewChat={handleNewChatWithLoad} />
