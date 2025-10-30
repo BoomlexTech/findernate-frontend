@@ -1782,55 +1782,101 @@ const handleProductChange = (
 
           {/* Post Type Selection (radio buttons) - Only show for business accounts */}
           {(contentType === 'Post' || contentType === 'Reel') && isBusinessProfile && (
-            <div className="mb-6">
+            <div className="mb-5">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Choose Post Type (optional)
+                Choose Post Type
               </label>
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-wrap gap-2">
                 {allowBusiness && (
-                  <label className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer select-none text-black hover:bg-gray-50">
+                  <label className={`
+                    relative inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border cursor-pointer select-none
+                    transition-all duration-200 ease-in-out text-sm
+                    ${postType === 'Business'
+                      ? 'border-yellow-500 bg-yellow-50 shadow-sm'
+                      : 'border-gray-200 bg-white hover:border-yellow-300 hover:bg-yellow-50/50'
+                    }
+                  `}>
                     <input
                       type="radio"
                       name="postType"
                       value="Business"
                       checked={postType === 'Business'}
                       onChange={() => setPostType('Business')}
-                      className="text-yellow-500 focus:ring-yellow-500"
+                      className="w-3.5 h-3.5 text-yellow-500 focus:ring-0 focus:ring-offset-0 border-gray-300"
                     />
-                    <span>Business</span>
+                    <span className={`font-medium ${postType === 'Business' ? 'text-yellow-700' : 'text-gray-700'}`}>
+                      Business
+                    </span>
+                    {postType === 'Business' && (
+                      <svg className="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    )}
                   </label>
                 )}
                 {allowService && (
-                  <label className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer select-none text-black hover:bg-gray-50">
+                  <label className={`
+                    relative inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border cursor-pointer select-none
+                    transition-all duration-200 ease-in-out text-sm
+                    ${postType === 'Service'
+                      ? 'border-blue-500 bg-blue-50 shadow-sm'
+                      : 'border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/50'
+                    }
+                  `}>
                     <input
                       type="radio"
                       name="postType"
                       value="Service"
                       checked={postType === 'Service'}
                       onChange={() => setPostType('Service')}
-                      className="text-yellow-500 focus:ring-yellow-500"
+                      className="w-3.5 h-3.5 text-blue-500 focus:ring-0 focus:ring-offset-0 border-gray-300"
                     />
-                    <span>Service</span>
+                    <span className={`font-medium ${postType === 'Service' ? 'text-blue-700' : 'text-gray-700'}`}>
+                      Service
+                    </span>
+                    {postType === 'Service' && (
+                      <svg className="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    )}
                   </label>
                 )}
                 {allowProduct && (
-                  <label className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer select-none text-black hover:bg-gray-50">
+                  <label className={`
+                    relative inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border cursor-pointer select-none
+                    transition-all duration-200 ease-in-out text-sm
+                    ${postType === 'Product'
+                      ? 'border-green-500 bg-green-50 shadow-sm'
+                      : 'border-gray-200 bg-white hover:border-green-300 hover:bg-green-50/50'
+                    }
+                  `}>
                     <input
                       type="radio"
                       name="postType"
                       value="Product"
                       checked={postType === 'Product'}
                       onChange={() => setPostType('Product')}
-                      className="text-yellow-500 focus:ring-yellow-500"
+                      className="w-3.5 h-3.5 text-green-500 focus:ring-0 focus:ring-offset-0 border-gray-300"
                     />
-                    <span>Product</span>
+                    <span className={`font-medium ${postType === 'Product' ? 'text-green-700' : 'text-gray-700'}`}>
+                      Product
+                    </span>
+                    {postType === 'Product' && (
+                      <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    )}
                   </label>
                 )}
-                {/* If none selected, it's Regular by default */}
-                {postType !== 'Business' && postType !== 'Service' && postType !== 'Product' && (
-                  <span className="text-sm text-gray-500 self-center">Default: Regular Post</span>
-                )}
               </div>
+              {postType !== 'Business' && postType !== 'Service' && postType !== 'Product' && (
+                <p className="text-xs text-gray-500 mt-2 flex items-center gap-1">
+                  <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                  </svg>
+                  No selection will default to Regular Post
+                </p>
+              )}
             </div>
           )}
 
