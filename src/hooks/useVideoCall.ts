@@ -29,6 +29,7 @@ export const useVideoCall = ({ user }: UseVideoCallProps) => {
     streamCallType?: 'audio_room' | 'default';
   } | null>(null);
   const [streamToken, setStreamToken] = useState<string | null>(null);
+  const [isInitiating, setIsInitiating] = useState(false);
 
   // Clean up any stuck active calls on mount
   useEffect(() => {
@@ -152,10 +153,14 @@ export const useVideoCall = ({ user }: UseVideoCallProps) => {
     if (!user || chat.chatType !== 'direct') return;
 
     try {
+      // Set initiating state immediately for button feedback
+      setIsInitiating(true);
+
       // Get the other participant
       const otherParticipant = chat.participants.find((p: any) => p._id !== user._id);
       if (!otherParticipant) {
         console.error('No other participant found');
+        setIsInitiating(false);
         return;
       }
 
@@ -204,12 +209,13 @@ export const useVideoCall = ({ user }: UseVideoCallProps) => {
         // Don't close modal - the call is already initiated
         // Stream SDK will try to create/join the call automatically
       });
-
     } catch (error: any) {
       console.error('Failed to initiate call:', error);
       // Close modal on error
       setIsVideoCallOpen(false);
       setCurrentCall(null);
+      setStreamToken(null); 
+      setIsInitiating(false);
       const errorMessage = error?.response?.data?.message || error?.message || 'Failed to initiate call';
       alert(errorMessage);
     }
@@ -321,6 +327,7 @@ export const useVideoCall = ({ user }: UseVideoCallProps) => {
     incomingCall,
     currentCall,
     streamToken,
+    isInitiating,
     initiateCall,
     acceptCall,
     declineCall,
