@@ -32,17 +32,16 @@ const nextConfig: NextConfig = {
         ]
       }
     ];
+  },
+  // Use a dev-time proxy to avoid CORS in the browser by keeping same-origin requests
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: `${API_BASE}/api/:path*`,
+      },
+    ];
   }
 };
-
-// Use a dev-time proxy to avoid CORS in the browser by keeping same-origin requests
-export async function rewrites() {
-  return [
-    {
-      source: '/api/:path*',
-      destination: `${API_BASE}/api/:path*`,
-    },
-  ];
-}
 
 export default nextConfig; 

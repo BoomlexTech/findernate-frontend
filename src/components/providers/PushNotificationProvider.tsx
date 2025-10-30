@@ -3,15 +3,16 @@
 import React, { useEffect } from 'react';
 import { usePushNotifications } from '../../hooks/usePushNotifications';
 import { setupMessageNotifications } from '../../api/message';
+import { streamAPI } from '../../api/stream';
 
 interface PushNotificationProviderProps {
   children: React.ReactNode;
   userId?: string;
 }
 
-export default function PushNotificationProvider({ 
-  children, 
-  userId 
+export default function PushNotificationProvider({
+  children,
+  userId
 }: PushNotificationProviderProps) {
   const { supported, permission } = usePushNotifications();
 
@@ -21,6 +22,18 @@ export default function PushNotificationProvider({
       setupMessageNotifications(userId);
     }
   }, [userId, supported, permission]);
+
+  // Pre-fetch Stream.io token for faster call initiation
+  useEffect(() => {
+    if (userId) {
+      // Wait a bit for auth to stabilize, then prefetch token
+      const timeoutId = setTimeout(() => {
+        streamAPI.prefetchStreamToken();
+      }, 2000); // 2 second delay
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [userId]);
 
   // Listen for visibility changes to handle focus notifications
   useEffect(() => {

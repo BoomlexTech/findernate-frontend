@@ -35,12 +35,21 @@ export const useSocket = ({
 }: UseSocketProps) => {
   const router = useRouter();
   const selectedChatRef = useRef<string | null>(null);
+  const chatsRef = useRef<Chat[]>([]);
+  const messageRequestsRef = useRef<Chat[]>([]);
 
-  // Update ref when selectedChat changes
+  // Update refs when values change
   useEffect(() => {
-    // //console.log('selectedChat changed to:', selectedChat);
     selectedChatRef.current = selectedChat;
   }, [selectedChat]);
+
+  useEffect(() => {
+    chatsRef.current = chats;
+  }, [chats]);
+
+  useEffect(() => {
+    messageRequestsRef.current = messageRequests;
+  }, [messageRequests]);
 
   // Initialize socket connection
   useEffect(() => {
@@ -245,7 +254,10 @@ export const useSocket = ({
       socketManager.off('message_deleted', handleMessageDeleted);
       socketManager.off('messages_read', handleMessagesRead);
     };
-  }, [selectedChat, user, chats, messageRequests, setChats, setMessageRequests, setAllChatsCache, setMessages, setTypingUsers, scrollToBottom, isIncomingRequest]);
+    // CRITICAL FIX: Removed 'chats' and 'messageRequests' from dependencies to prevent infinite re-renders
+    // These cause the effect to re-run on every message update, creating a render loop
+    // Socket handlers use refs and callbacks that remain stable
+  }, [selectedChat, user, setChats, setMessageRequests, setAllChatsCache, setMessages, setTypingUsers, scrollToBottom, isIncomingRequest]);
 
   return {
     selectedChatRef

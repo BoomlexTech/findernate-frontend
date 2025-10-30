@@ -100,6 +100,18 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
 
     const initializeCall = async () => {
       try {
+        // Step 1: Request microphone permissions first
+        console.log('📞 Requesting microphone permissions...');
+        try {
+          await navigator.mediaDevices.getUserMedia({ audio: true });
+          console.log('📞 Microphone permission granted');
+        } catch (permissionError) {
+          console.error('📞 Microphone permission denied:', permissionError);
+          alert('Microphone access is required for calls. Please enable microphone permissions in your browser settings.');
+          onClose();
+          return;
+        }
+
         const user: User = {
           id: userId,
           name: userName,
@@ -122,11 +134,29 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
         // Set call state immediately for faster UI
         setCall(videoCall);
 
-        // Join the existing call in the background (don't block UI)
+        // Step 2: Join the call with audio settings enabled
         console.log('📞 Joining existing call...');
-        videoCall.join({ create: false })
-          .then(() => {
+        videoCall.join({
+          create: false,
+          data: {
+            settings: {
+              audio: {
+                mic_default_on: true,
+                speaker_default_on: true
+              }
+            }
+          }
+        })
+          .then(async () => {
             console.log('📞 Successfully joined call!');
+
+            // Step 3: Explicitly enable microphone
+            try {
+              await videoCall.microphone.enable();
+              console.log('📞 Microphone enabled');
+            } catch (micError) {
+              console.warn('Failed to enable microphone:', micError);
+            }
 
             // Disable camera for voice calls after joining
             if (callType === 'voice') {
