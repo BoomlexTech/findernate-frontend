@@ -15,7 +15,7 @@ const BusinessDetailsForm: React.FC<BusinessPostFormProps> = ({
       <div className="space-y-4 mb-6">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Business Name *
+            Business Name 
           </label>
           <input
             type="text"
@@ -29,7 +29,7 @@ const BusinessDetailsForm: React.FC<BusinessPostFormProps> = ({
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Business Link *
+            Business Link 
           </label>
           <input
             type="text"
@@ -43,7 +43,7 @@ const BusinessDetailsForm: React.FC<BusinessPostFormProps> = ({
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Business Description *
+            Business Description 
           </label>
           <textarea
             name="description"
@@ -57,7 +57,7 @@ const BusinessDetailsForm: React.FC<BusinessPostFormProps> = ({
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Business Announcement *
+            Business Announcement 
           </label>
           <textarea
             name="announcement"
@@ -75,7 +75,7 @@ const BusinessDetailsForm: React.FC<BusinessPostFormProps> = ({
         <h4 className="text-md text-black font-semibold mb-3">Location</h4>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Business Address *
+            Business Address 
           </label>
           <input
             type="text"
