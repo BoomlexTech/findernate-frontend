@@ -124,8 +124,8 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
         setClient(videoClient);
 
         // Use the streamCallType from backend
-        // Backend returns 'audio_room' for voice calls, 'default' for video calls
-        // This ensures proper Stream.io configuration for each call type
+        // Backend returns 'default' for both voice and video calls
+        // Video is controlled through settings (disabled for voice calls)
         console.log('📞 Using Stream.io call type:', streamCallType);
 
         // Get the existing call that was already created by backend
