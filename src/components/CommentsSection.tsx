@@ -5,7 +5,7 @@ import { MessageCircle, ChevronDown, Filter, ChevronLeft, ChevronRight } from 'l
 import { Button } from './ui/button';
 import CommentItem from './CommentItem';
 import AddComment from './AddComment';
-import { Comment, getCommentsByPost } from '@/api/comment';
+import { Comment, getCommentsByPost, getCommentById } from '@/api/comment';
 import { postEvents } from '@/utils/postEvents';
 
 interface CommentsSectionProps {
@@ -136,99 +136,107 @@ const CommentsSection = ({ postId, postOwnerId, onCommentCountChange, initialCom
         }
       
       // Process comments using simpler approach (like ReelCommentsSection)
-      const processedComments = rawComments
-        .filter(comment => {
-          const isTopLevel = !comment.parentCommentId;
-          if (!isTopLevel) {
-            console.log(`[CommentsSection] Filtering out reply comment:`, comment._id);
-          }
-          return isTopLevel;
-        }) // Only show top-level comments
-        .map((comment, index) => {
-          console.log(`[CommentsSection] Processing comment ${index + 1}/${rawComments.length}:`, {
-            commentId: comment._id,
-            hasUser: !!comment.user,
-            userIdType: typeof comment.userId,
-            userId: comment.userId
-          });
-          
-          // Check if we already have user data for this comment in cache
-          const cachedComment = userCommentsRef.current[comment._id];
-          if (cachedComment && cachedComment.user) {
-            console.log(`[CommentsSection] Using cached user data for comment ${comment._id}`);
-            return { ...comment, user: cachedComment.user };
-          }
-          
-          // Simple user data extraction - if userId is an object, use it directly as user
-          if (comment.user) {
-            console.log(`[CommentsSection] Comment ${comment._id} already has user data:`, comment.user);
-            // Already has user data - ensure profileImageUrl exists
-            return {
-              ...comment,
-              user: {
-                ...comment.user,
-                profileImageUrl: comment.user.profileImageUrl || ''
-              }
-            };
-          } else if (typeof comment.userId === 'object' && comment.userId !== null) {
-            // userId is populated user object, use it as user
-            const userObj = comment.userId as { _id?: string; username?: string; fullName?: string; profileImageUrl?: string };
-            console.log(`[CommentsSection] Comment ${comment._id} has populated userId object:`, userObj);
-            const commentWithUser = {
-              ...comment,
-              user: {
-                _id: userObj._id || '',
-                username: userObj.username || 'User',
-                fullName: userObj.fullName || userObj.username || 'User',
-                profileImageUrl: userObj.profileImageUrl || ''
-              }
-            };
-            
-            // Process replies
-            const commentReplies = rawComments
-              .filter(r => r.parentCommentId === comment._id)
-              .map(r => {
-                if (r.user) return r;
-                if (typeof r.userId === 'object' && r.userId !== null) {
-                  const replyUserObj = r.userId as { _id?: string; username?: string; fullName?: string; profileImageUrl?: string };
-                  return {
-                    ...r,
-                    user: {
-                      _id: replyUserObj._id || '',
-                      username: replyUserObj.username || 'User',
-                      fullName: replyUserObj.fullName || replyUserObj.username || 'User',
-                      profileImageUrl: replyUserObj.profileImageUrl || ''
-                    }
-                  };
-                }
+      const topLevelComments = rawComments.filter(comment => {
+        const isTopLevel = !comment.parentCommentId;
+        if (!isTopLevel) {
+          console.log(`[CommentsSection] Filtering out reply comment:`, comment._id);
+        }
+        return isTopLevel;
+      });
+
+      // Process each top-level comment and fetch its replies
+      const processedCommentsPromises = topLevelComments.map(async (comment, index) => {
+        console.log(`[CommentsSection] Processing comment ${index + 1}/${topLevelComments.length}:`, {
+          commentId: comment._id,
+          hasUser: !!comment.user,
+          userIdType: typeof comment.userId,
+          userId: comment.userId
+        });
+
+        // Check if we already have user data for this comment in cache
+        const cachedComment = userCommentsRef.current[comment._id];
+        if (cachedComment && cachedComment.user) {
+          console.log(`[CommentsSection] Using cached user data for comment ${comment._id}`);
+          return { ...comment, user: cachedComment.user, replies: cachedComment.replies || [] };
+        }
+
+        // Process user data
+        let processedComment: Comment;
+        if (comment.user) {
+          console.log(`[CommentsSection] Comment ${comment._id} already has user data:`, comment.user);
+          processedComment = {
+            ...comment,
+            user: {
+              ...comment.user,
+              profileImageUrl: comment.user.profileImageUrl || ''
+            }
+          };
+        } else if (typeof comment.userId === 'object' && comment.userId !== null) {
+          const userObj = comment.userId as { _id?: string; username?: string; fullName?: string; profileImageUrl?: string };
+          console.log(`[CommentsSection] Comment ${comment._id} has populated userId object:`, userObj);
+          processedComment = {
+            ...comment,
+            user: {
+              _id: userObj._id || '',
+              username: userObj.username || 'User',
+              fullName: userObj.fullName || userObj.username || 'User',
+              profileImageUrl: userObj.profileImageUrl || ''
+            }
+          };
+        } else {
+          console.warn(`[CommentsSection] Comment ${comment._id} has string userId (no user data populated):`, comment);
+          processedComment = {
+            ...comment,
+            user: {
+              _id: typeof comment.userId === 'string' ? comment.userId : '',
+              username: 'User',
+              fullName: 'User',
+              profileImageUrl: ''
+            }
+          };
+        }
+
+        // Fetch replies using getCommentById API
+        try {
+          const commentData = await getCommentById(comment._id);
+          if (commentData?.replies?.comments && Array.isArray(commentData.replies.comments)) {
+            const replies = commentData.replies.comments.map((reply: any) => {
+              // Process reply user data
+              if (reply.user) {
+                return reply;
+              } else if (typeof reply.userId === 'object' && reply.userId !== null) {
+                const replyUserObj = reply.userId as { _id?: string; username?: string; fullName?: string; profileImageUrl?: string };
                 return {
-                  ...r,
+                  ...reply,
                   user: {
-                    _id: typeof r.userId === 'string' ? r.userId : '',
-                    username: 'User',
-                    fullName: 'User',
-                    profileImageUrl: ''
+                    _id: replyUserObj._id || '',
+                    username: replyUserObj.username || 'User',
+                    fullName: replyUserObj.fullName || replyUserObj.username || 'User',
+                    profileImageUrl: replyUserObj.profileImageUrl || ''
                   }
                 };
-              });
-            
-            console.log(`[CommentsSection] Comment ${comment._id} processed with ${commentReplies.length} replies`);
-            return { ...commentWithUser, replies: commentReplies };
-          } else {
-            // userId is string, no user data available
-            console.warn(`[CommentsSection] Comment ${comment._id} has string userId (no user data populated):`, comment);
-            return {
-              ...comment,
-              user: {
-                _id: typeof comment.userId === 'string' ? comment.userId : '',
-                username: 'User',
-                fullName: 'User',
-                profileImageUrl: ''
-              },
-              replies: []
-            };
+              }
+              return {
+                ...reply,
+                user: {
+                  _id: typeof reply.userId === 'string' ? reply.userId : '',
+                  username: 'User',
+                  fullName: 'User',
+                  profileImageUrl: ''
+                }
+              };
+            });
+            console.log(`[CommentsSection] Comment ${comment._id} fetched with ${replies.length} replies`);
+            return { ...processedComment, replies };
           }
-        });
+        } catch (error) {
+          console.error(`[CommentsSection] Error fetching replies for comment ${comment._id}:`, error);
+        }
+
+        return { ...processedComment, replies: [] };
+      });
+
+      const processedComments = await Promise.all(processedCommentsPromises);
         
         // Ensure newest comments render on top regardless of API order
         const sortedByLatest = [...processedComments].sort((a, b) => {
