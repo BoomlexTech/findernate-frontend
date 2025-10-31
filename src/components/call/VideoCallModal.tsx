@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import {
   CallControls,
   CallingState,
-  PaginatedGridLayout,
+  ParticipantView,
   SpeakerLayout,
   StreamCall,
   StreamTheme,
@@ -29,8 +29,10 @@ interface VideoCallModalProps {
 }
 
 const CallLayout: React.FC<{ callType?: 'voice' | 'video' }> = ({ callType = 'video' }) => {
-  const { useCallCallingState } = useCallStateHooks();
+  const { useCallCallingState, useRemoteParticipants, useLocalParticipant } = useCallStateHooks();
   const callingState = useCallCallingState();
+  const remoteParticipants = useRemoteParticipants();
+  const localParticipant = useLocalParticipant();
 
   if (callingState !== CallingState.JOINED) {
     return (
@@ -47,7 +49,7 @@ const CallLayout: React.FC<{ callType?: 'voice' | 'video' }> = ({ callType = 'vi
 
   return (
     <StreamTheme>
-      <div className="str-video__call-layout relative">
+      <div className="str-video__call-layout relative w-full h-full">
         {callType === 'voice' ? (
           <>
             {/* SpeakerLayout rendered invisibly for audio */}
@@ -72,8 +74,34 @@ const CallLayout: React.FC<{ callType?: 'voice' | 'video' }> = ({ callType = 'vi
           </>
         ) : (
           <>
-            <PaginatedGridLayout />
-            <CallControls />
+            {/* Remote participant full screen */}
+            <div className="absolute inset-0 w-full h-full bg-gray-900">
+              {remoteParticipants.length > 0 ? (
+                <ParticipantView
+                  participant={remoteParticipants[0]}
+                  ParticipantViewUI={null}
+                />
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                  <p className="text-white text-lg">Waiting for other participant...</p>
+                </div>
+              )}
+            </div>
+
+            {/* Local participant - small window bottom right */}
+            {localParticipant && (
+              <div className="absolute bottom-24 right-6 w-48 h-36 rounded-lg overflow-hidden shadow-2xl border-2 border-white/20 z-20">
+                <ParticipantView
+                  participant={localParticipant}
+                  ParticipantViewUI={null}
+                />
+              </div>
+            )}
+
+            {/* Call controls - bottom middle */}
+            <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-30">
+              <CallControls />
+            </div>
           </>
         )}
       </div>

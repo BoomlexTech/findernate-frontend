@@ -77,6 +77,9 @@ export const useVideoCall = ({ user }: UseVideoCallProps) => {
       });
       setIsVideoCallOpen(true);
 
+      // Reset initiating state after call is successfully opened
+      setIsInitiating(false);
+
     } catch (error: any) {
       console.error('Failed to initiate call:', error);
       // Close modal on error
