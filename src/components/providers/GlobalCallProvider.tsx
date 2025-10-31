@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect, createContext, useContext } from 'react';
-import { useRouter } from 'next/navigation';
 import { socketManager } from '@/utils/socket';
 import { callAPI } from '@/api/call';
 import { streamAPI } from '@/api/stream';
@@ -55,7 +54,6 @@ export const GlobalCallProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [currentCall, setCurrentCall] = useState<CurrentCall | null>(null);
   const [isVideoCallOpen, setIsVideoCallOpen] = useState(false);
   const [streamToken, setStreamToken] = useState<string | null>(null);
-  const router = useRouter();
   const { user } = useUserStore();
 
   // Use ref to avoid re-registering socket listeners
@@ -64,6 +62,24 @@ export const GlobalCallProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   React.useEffect(() => {
     currentCallRef.current = currentCall;
   }, [currentCall]);
+
+  // Initialize socket connection globally (so it works on all pages)
+  useEffect(() => {
+    if (!user) {
+      console.log('🔌 GlobalCallProvider: Waiting for user to be loaded...');
+      return;
+    }
+
+    const { validateAndGetToken } = useUserStore.getState();
+    const validToken = validateAndGetToken();
+
+    if (validToken) {
+      console.log('🔌 GlobalCallProvider: Initializing socket connection for user:', user.username);
+      socketManager.connect(validToken);
+    } else {
+      console.warn('🔌 GlobalCallProvider: No valid token found');
+    }
+  }, [user]);
 
   // Clean up any stuck active calls on mount
   useEffect(() => {
