@@ -104,24 +104,24 @@ export default function SignupComponent() {
       }));
       return;
     }
-    // Special handling for username: remove spaces and check availability
+    // Special handling for username: remove spaces and dots, check availability
     if (name === 'username') {
-      const noSpaces = value.replace(/\s/g, '');
+      const sanitized = value.replace(/[\s.]/g, '');
       setFormData(prev => ({
         ...prev,
-        [name]: noSpaces
+        [name]: sanitized
       }));
-      
+
       // Clear existing timeout
       if (usernameTimeoutRef.current) {
         clearTimeout(usernameTimeoutRef.current);
       }
-      
+
       // Set new timeout for debounced API call
       usernameTimeoutRef.current = setTimeout(() => {
-        checkUsernameWithSuggestions(noSpaces);
+        checkUsernameWithSuggestions(sanitized);
       }, 500); // 500ms delay
-      
+
       return;
     }
     setFormData(prev => ({
