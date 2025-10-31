@@ -20,8 +20,6 @@ import { ContextMenu } from './message/ContextMenu';
 import { NewChatModal } from './message/NewChatModal';
 import { GroupChatModal } from './message/GroupChatModal';
 import { GroupDetailsModal } from './message/GroupDetailsModal';
-import { VideoCallModal } from './call/VideoCallModal';
-import { IncomingCallModal } from './call/IncomingCallModal';
 
 export default function MessagePanel() {
   const user = useUserStore((state) => state.user);
@@ -309,33 +307,7 @@ export default function MessagePanel() {
         user={user}
       />
 
-      {/* Incoming Call Modal */}
-      {incomingCall && (
-        <IncomingCallModal
-          isOpen={!!incomingCall}
-          callerName={incomingCall.callerName}
-          callerImage={incomingCall.callerImage}
-          callType={incomingCall.callType}
-          onAccept={acceptCall}
-          onDecline={declineCall}
-        />
-      )}
-
-      {/* Video Call Modal */}
-      {isVideoCallOpen && currentCall && streamToken && user && (
-        <VideoCallModal
-          isOpen={isVideoCallOpen}
-          onClose={endCall}
-          apiKey={process.env.NEXT_PUBLIC_STREAM_API_KEY || 'znpxrpjt6gjn'}
-          token={streamToken}
-          userId={user._id}
-          userName={user.fullName || user.username || 'User'}
-          userImage={user.profileImageUrl}
-          callId={currentCall.callId}
-          callType={currentCall.callType}
-          streamCallType={currentCall.streamCallType}
-        />
-      )}
+      {/* Call modals are now handled globally by GlobalCallProvider */}
 
     </div>
   );

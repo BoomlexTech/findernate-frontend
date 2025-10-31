@@ -58,6 +58,13 @@ export const GlobalCallProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const router = useRouter();
   const { user } = useUserStore();
 
+  // Use ref to avoid re-registering socket listeners
+  const currentCallRef = React.useRef<CurrentCall | null>(null);
+
+  React.useEffect(() => {
+    currentCallRef.current = currentCall;
+  }, [currentCall]);
+
   // Clean up any stuck active calls on mount
   useEffect(() => {
     const cleanupActiveCall = async () => {
@@ -96,7 +103,7 @@ export const GlobalCallProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
     const handleCallDeclined = (data: any) => {
       console.log('📞 Call declined:', data);
-      if (currentCall?.callId === data.callId) {
+      if (currentCallRef.current?.callId === data.callId) {
         setIsVideoCallOpen(false);
         setCurrentCall(null);
         alert('Call was declined');
@@ -105,7 +112,7 @@ export const GlobalCallProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
     const handleCallEnded = (data: any) => {
       console.log('📞 Call ended:', data);
-      if (currentCall?.callId === data.callId) {
+      if (currentCallRef.current?.callId === data.callId) {
         setIsVideoCallOpen(false);
         setCurrentCall(null);
       }
@@ -120,7 +127,7 @@ export const GlobalCallProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       socketManager.off('call_declined', handleCallDeclined);
       socketManager.off('call_ended', handleCallEnded);
     };
-  }, [currentCall, user]);
+  }, [user]);
 
   // Handle incoming call from FCM (primary method)
   useEffect(() => {
@@ -219,10 +226,8 @@ export const GlobalCallProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       setIncomingCall(null);
       setIsVideoCallOpen(true);
 
-      // Navigate to messages page if not already there
-      if (!window.location.pathname.includes('/messages')) {
-        router.push('/messages');
-      }
+      // Don't navigate - modal is global and works on all pages
+      // User can continue on their current page during the call
 
     } catch (error: any) {
       console.error('Failed to accept call:', error);
