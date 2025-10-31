@@ -488,14 +488,14 @@ const Notifications = () => {
                 <button
                   onClick={handleMarkAllAsRead}
                   disabled={markingAllAsRead}
-                  className="bg-white/20 backdrop-blur-sm px-3 py-2 rounded-lg text-white text-sm font-medium hover:bg-white/30 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="bg-white/20 backdrop-blur-sm px-3 py-2 rounded-lg text-black text-sm font-bold hover:bg-white/30 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {markingAllAsRead ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
                     <CheckCheck className="w-4 h-4" />
                   )}
-                  {markingAllAsRead ? 'Marking...' : 'Mark All Read'}
+                  {markingAllAsRead ? 'Marking...' : 'Mark All as Read'}
                 </button>
               )}
             </div>

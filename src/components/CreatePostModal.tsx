@@ -1089,23 +1089,32 @@ const handleProductChange = (
       image: organizedMedia,
       category: finalCategory
     };
-    
-    // Determine the final post type for regular posts
+
+    // Determine if we should set postType to 'reel' based on reel visibility toggle
+    const shouldBeReel = reelVisibility && showReelVisibility;
+
+    // Determine the final post type for each post type
     let finalRegularForm = { ...regularForm };
-    if (postType === 'Regular' && reelVisibility && showReelVisibility) {
+    let finalProductForm = { ...productForm };
+    let finalServiceForm = { ...serviceForm };
+
+    if (shouldBeReel) {
       finalRegularForm = { ...regularForm, postType: 'reel' };
+      finalProductForm = { ...productForm, postType: 'reel' };
+      finalServiceForm = { ...serviceForm, postType: 'reel' };
     }
-    
+
     switch (postType) {
       case 'Regular':
         return { ...sharedFormWithCaption, ...finalRegularForm };
       case 'Product':
-        return { ...sharedFormWithCaption, ...productForm };
+        return { ...sharedFormWithCaption, ...finalProductForm };
       case 'Service':
-        return { ...sharedFormWithCaption, ...serviceForm };
+        return { ...sharedFormWithCaption, ...finalServiceForm };
       case 'Business':
         return {
           ...businessForm.formData,  // Get the business form data
+          postType: shouldBeReel ? 'reel' : businessForm.formData.postType, // Set reel postType if applicable
           ...sharedFormWithCaption,  // Override with shared form data (images, etc.)
           business: businessForm.formData.business  // Keep the business object
         };
@@ -1292,10 +1301,10 @@ const handleProductChange = (
     
     if (contentType === 'Reel') {
       // Check if there's any video
-      const hasVideo = sharedForm.image.some(file => 
+      const hasVideo = sharedForm.image.some(file =>
         file.type === 'video/mp4' || file.type === 'video/quicktime' || file.type === 'video/webm'
       );
-      
+
       if (!hasVideo) {
         toast.error('Please upload a video to create a Reel', {
           position: "top-right",
@@ -1303,7 +1312,7 @@ const handleProductChange = (
         });
         return;
       }
-      
+
       // Check if video is under 60 seconds
       if (videoDuration && videoDuration > 60) {
         toast.error(`Video is ${Math.round(videoDuration)} seconds long. Please upload a video under 60 seconds for Reels.`, {
@@ -1312,25 +1321,62 @@ const handleProductChange = (
         });
         return;
       }
-      
-      // Treat short video as a Regular post with postType 'reel'
+
+      // Validate form before submission (same as regular posts)
+      if (!validateForm()) {
+        return;
+      }
+
+      // Organize media and build payload based on postType
       const organizedMedia = organizeMediaForReel(sharedForm.image);
+
+      // Determine final category
+      const finalCategory = sharedForm.category === 'Other' && sharedForm.customCategory.trim()
+        ? sharedForm.customCategory.trim()
+        : sharedForm.category;
+
       const sharedFormWithCaption = {
         ...sharedForm,
         caption: sharedForm.description,
         image: organizedMedia,
+        category: finalCategory
       };
-      const reelRegularForm = { ...regularForm, postType: 'reel' };
-
-      const payload: RegularPostPayload = {
-        ...sharedFormWithCaption,
-        ...reelRegularForm,
-      } as unknown as RegularPostPayload;
 
       try {
         setLoading(true);
         setError(null);
-        const response = await createRegularPost(payload);
+        let response;
+
+        // Create reel based on selected postType
+        if (postType === 'Regular') {
+          const reelRegularForm = { ...regularForm, postType: 'reel' };
+          const payload: RegularPostPayload = {
+            ...sharedFormWithCaption,
+            ...reelRegularForm,
+          } as unknown as RegularPostPayload;
+          console.log('[REEL CONTENT TYPE] Creating Regular Reel with payload:', payload);
+          response = await createRegularPost(payload);
+        } else if (postType === 'Product') {
+          const reelProductForm = { ...productForm, postType: 'reel' };
+          const payload = { ...sharedFormWithCaption, ...reelProductForm };
+          console.log('[REEL CONTENT TYPE] Creating Product Reel with payload:', payload);
+          response = await createProductPost({formData: payload} as unknown as ProductDetailsFormProps);
+        } else if (postType === 'Service') {
+          const reelServiceForm = { ...serviceForm, postType: 'reel' };
+          const payload = { ...sharedFormWithCaption, ...reelServiceForm };
+          console.log('[REEL CONTENT TYPE] Creating Service Reel with payload:', payload);
+          response = await createServicePost({formData: payload} as unknown as ServiceDetailsFormProps);
+        } else if (postType === 'Business') {
+          const reelBusinessForm = {
+            ...businessForm.formData,
+            postType: 'reel',
+            ...sharedFormWithCaption,
+            business: businessForm.formData.business
+          };
+          console.log('[REEL CONTENT TYPE] Creating Business Reel with payload:', reelBusinessForm);
+          response = await createBusinessPost({formData: reelBusinessForm} as unknown as BusinessPostFormProps);
+        }
+
         if (response && (response.status === 200 || response.status === 201)) {
           toast.success('Reel created successfully!', { position: 'top-right', autoClose: 3000 });
           postRefreshEvents.emitPostCreated(response.data || response);
@@ -1362,25 +1408,21 @@ const handleProductChange = (
       let response;
       
       if (postType === 'Regular') {
-        //console.log("Payload being sent:", sharedForm, regularForm);
         const regularPayload = finalPayload as RegularPostPayload;
+        console.log('[POST CONTENT TYPE] Creating Regular Post with payload:', regularPayload);
         response = await createRegularPost(regularPayload);
-        //console.log(response);
       } else if (postType === 'Product') {
-        //console.log('Product Post Data:',sharedForm, productForm); 
         const productPayload = finalPayload;
+        console.log('[POST CONTENT TYPE] Creating Product Post with payload:', productPayload);
         response = await createProductPost({formData:productPayload} as unknown as ProductDetailsFormProps);
-        //console.log(response);
       } else if (postType === 'Service') {
-        //console.log('Service Post Data:',sharedForm, serviceForm);
         const servicePayload = finalPayload;
+        console.log('[POST CONTENT TYPE] Creating Service Post with payload:', servicePayload);
         response = await createServicePost({formData:servicePayload} as unknown as ServiceDetailsFormProps);
-        //console.log(response);
        } else if (postType === 'Business') {
-        //console.log('Business Post Data:',sharedForm, businessForm);
         const businessPayload = finalPayload;
+        console.log('[POST CONTENT TYPE] Creating Business Post with payload:', businessPayload);
         response = await createBusinessPost({formData:businessPayload} as unknown as BusinessPostFormProps);
-        //console.log(response);
        }
 
       // Only show success toast if we actually got a successful response
@@ -1932,42 +1974,6 @@ const handleProductChange = (
             </div>
           )}
 
-          {/* Reel Visibility Option */}
-          {showReelVisibility && (
-            <div className="mb-6">
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="text-sm font-semibold text-yellow-800 mb-1">
-                      🎬 Reel Visibility
-                    </h4>
-                    <p className="text-xs text-yellow-700">
-                      Your video is under 1 minute and eligible for reels. Enable this option to show it in the reels section.
-                      {sharedForm.image.some(file => file.type.startsWith('image/')) && 
-                        " Videos will appear first in the reel slider, followed by images."
-                      }
-                    </p>
-                  </div>
-                  <label className="flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={reelVisibility}
-                      onChange={(e) => setReelVisibility(e.target.checked)}
-                      className="sr-only"
-                    />
-                    <div className={`relative w-11 h-6 rounded-full transition-colors ${
-                      reelVisibility ? 'bg-yellow-500' : 'bg-gray-300'
-                    }`}>
-                      <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
-                        reelVisibility ? 'translate-x-5' : 'translate-x-0'
-                      }`} />
-                    </div>
-                  </label>
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* Delivery Options - Only show for business post types and business accounts */}
           {isBusinessProfile && (postType === 'Product' || postType === 'Service' || postType === 'Business') && (
             <div className="mb-6">
@@ -2143,6 +2149,42 @@ const handleProductChange = (
           {(contentType === 'Post' || contentType === 'Reel') && (
             <div className="mb-6">
               <TagInput tags={sharedForm.tags} setTags={(tags) => setSharedForm({...sharedForm, tags})} />
+            </div>
+          )}
+
+          {/* Reel Visibility Option */}
+          {showReelVisibility && (
+            <div className="mb-6">
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm font-semibold text-yellow-800 mb-1">
+                      🎬 Reel Visibility
+                    </h4>
+                    <p className="text-xs text-yellow-700">
+                      Your video is under 1 minute and eligible for reels. Enable this option to show it in the reels section.
+                      {sharedForm.image.some(file => file.type.startsWith('image/')) &&
+                        " Videos will appear first in the reel slider, followed by images."
+                      }
+                    </p>
+                  </div>
+                  <label className="flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={reelVisibility}
+                      onChange={(e) => setReelVisibility(e.target.checked)}
+                      className="sr-only"
+                    />
+                    <div className={`relative w-11 h-6 rounded-full transition-colors ${
+                      reelVisibility ? 'bg-yellow-500' : 'bg-gray-300'
+                    }`}>
+                      <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
+                        reelVisibility ? 'translate-x-5' : 'translate-x-0'
+                      }`} />
+                    </div>
+                  </label>
+                </div>
+              </div>
             </div>
           )}
         </div>
