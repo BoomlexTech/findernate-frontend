@@ -87,12 +87,12 @@ const ChatItem = React.memo(({
           </div>
         )}
       </div>
-      {/* Unread count badge - commented out for now */}
-      {/* {activeTab !== 'requests' && (chat.unreadCount ?? 0) > 0 && (
+      {/* Unread count badge */}
+      {activeTab !== 'requests' && (chat.unreadCount ?? 0) > 0 && (
         <div className="ml-2 bg-yellow-500 text-white text-xs min-w-[20px] h-5 flex items-center justify-center rounded-full px-1 animate-pulse">
           {chat?.unreadCount && chat.unreadCount > 99 ? '99+' : chat.unreadCount}
         </div>
-      )} */}
+      )}
     </div>
   );
 });
