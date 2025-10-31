@@ -73,36 +73,48 @@ const CallLayout: React.FC<{ callType?: 'voice' | 'video' }> = ({ callType = 'vi
             </div>
           </>
         ) : (
-          <>
-            {/* Remote participant full screen */}
-            <div className="absolute inset-0 w-full h-full bg-gray-900">
+          <div className="relative w-full h-full">
+            {/* Remote participant full screen - Main view */}
+            <div className="absolute inset-0 w-full h-full bg-black">
               {remoteParticipants.length > 0 ? (
-                <ParticipantView
-                  participant={remoteParticipants[0]}
-                  ParticipantViewUI={null}
-                />
+                <div className="w-full h-full [&>div]:w-full [&>div]:h-full [&_video]:w-full [&_video]:h-full [&_video]:object-cover">
+                  <ParticipantView
+                    participant={remoteParticipants[0]}
+                  />
+                </div>
               ) : (
                 <div className="flex items-center justify-center h-full">
-                  <p className="text-white text-lg">Waiting for other participant...</p>
+                  <div className="text-center">
+                    <div className="animate-pulse mb-4">
+                      <div className="w-20 h-20 rounded-full bg-blue-500/20 flex items-center justify-center mx-auto">
+                        <Video className="w-10 h-10 text-blue-400" />
+                      </div>
+                    </div>
+                    <p className="text-white text-lg">Waiting for other participant...</p>
+                  </div>
                 </div>
               )}
             </div>
 
-            {/* Local participant - small window bottom right */}
+            {/* Local participant - small window bottom right corner */}
             {localParticipant && (
-              <div className="absolute bottom-24 right-6 w-48 h-36 rounded-lg overflow-hidden shadow-2xl border-2 border-white/20 z-20">
-                <ParticipantView
-                  participant={localParticipant}
-                  ParticipantViewUI={null}
-                />
+              <div
+                className="absolute bottom-24 right-6 rounded-xl overflow-hidden shadow-2xl border-3 border-white/80 z-20 bg-gray-900"
+                style={{ width: '220px', height: '165px' }}
+              >
+                <div className="w-full h-full [&>div]:w-full [&>div]:h-full [&_video]:w-full [&_video]:h-full [&_video]:object-cover">
+                  <ParticipantView
+                    participant={localParticipant}
+                  />
+                </div>
               </div>
             )}
 
-            {/* Call controls - bottom middle */}
-            <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-30">
+            {/* Call controls - bottom center */}
+            <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-30">
               <CallControls />
             </div>
-          </>
+          </div>
         )}
       </div>
     </StreamTheme>
