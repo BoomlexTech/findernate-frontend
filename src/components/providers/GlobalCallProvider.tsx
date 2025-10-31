@@ -311,12 +311,13 @@ export const GlobalCallProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         <VideoCallModal
           isOpen={isVideoCallOpen}
           onClose={endCall}
-          callId={currentCall.callId}
-          chatId={currentCall.chatId}
-          callType={currentCall.callType}
-          isInitiator={currentCall.isInitiator}
-          streamToken={streamToken}
+          apiKey={process.env.NEXT_PUBLIC_STREAM_API_KEY || 'znpxrpjt6gjn'}
+          token={streamToken}
           userId={user._id}
+          userName={user.fullName || user.username || 'User'}
+          userImage={user.profileImageUrl}
+          callId={currentCall.callId}
+          callType={currentCall.callType}
           streamCallType={currentCall.streamCallType}
         />
       )}
