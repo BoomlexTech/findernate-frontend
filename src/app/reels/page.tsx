@@ -1264,12 +1264,52 @@ const Page = () => {
       </div>
       
       {/* Center - Reels */}
-      <div className="flex-1 flex justify-center items-center xl:justify-center lg:justify-start">
+      <div className="flex-1 flex justify-center items-center xl:justify-center lg:justify-start relative">
         <ReelsComponent
           onReelChange={setCurrentReelIndex}
           apiReelsData={reelsData}
           isMobile={false}
+          currentIndex={currentReelIndex}
         />
+
+        {/* Navigation Arrows - Only visible on lg screens and up */}
+        <div className="hidden lg:block">
+          {/* Up Arrow */}
+          <button
+            onClick={() => {
+              if (currentReelIndex > 0) {
+                setCurrentReelIndex(currentReelIndex - 1);
+              }
+            }}
+            disabled={currentReelIndex === 0}
+            className={`absolute right-[-20px] top-1/3 -translate-y-1/2 bg-white/50 hover:bg-white/70 rounded-full p-4 transition-all duration-200 shadow-lg ${
+              currentReelIndex === 0 ? 'opacity-30 cursor-not-allowed' : 'opacity-50 hover:opacity-100'
+            }`}
+            aria-label="Previous Reel"
+          >
+            <svg className="w-6 h-6 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+            </svg>
+          </button>
+
+          {/* Down Arrow */}
+          <button
+            onClick={() => {
+              if (currentReelIndex < reelsData.length - 1) {
+                setCurrentReelIndex(currentReelIndex + 1);
+              }
+            }}
+            disabled={currentReelIndex === reelsData.length - 1}
+            className={`absolute right-[-20px] bottom-1/3 translate-y-1/2 bg-white/50 hover:bg-white/70 rounded-full p-4 transition-all duration-200 shadow-lg ${
+              currentReelIndex === reelsData.length - 1 ? 'opacity-30 cursor-not-allowed' : 'opacity-50 hover:opacity-100'
+            }`}
+            aria-label="Next Reel"
+          >
+            <svg className="w-6 h-6 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       {/* Right sidebar - Profile Info + Comments */}

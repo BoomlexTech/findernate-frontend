@@ -53,9 +53,10 @@ const ReelsComponent: React.FC<ReelsComponentProps> = memo(({
   username,
   description,
   hashtags,
-  profileImageUrl
+  profileImageUrl,
+  currentIndex: externalIndex
 }) => {
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [currentIndex, setCurrentIndex] = useState(externalIndex || 0);
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMuted, setIsMuted] = useState(true);
   const [reels, setReels] = useState<Reel[]>([]);
@@ -354,6 +355,16 @@ const ReelsComponent: React.FC<ReelsComponentProps> = memo(({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [currentIndex, reels.length, scrollToReel, onReelChange]);
+
+  // Sync with external currentIndex prop (from parent navigation arrows)
+  useEffect(() => {
+    // If parent provides externalIndex prop, sync with it
+    if (typeof externalIndex === 'number' && externalIndex !== currentIndex) {
+      // Update internal state and scroll to the reel
+      setCurrentIndex(externalIndex);
+      scrollToReel(externalIndex);
+    }
+  }, [externalIndex, currentIndex, scrollToReel]);
 
   const containerClasses = isMobile
     ? "relative w-screen h-screen mx-auto flex-shrink-0"
