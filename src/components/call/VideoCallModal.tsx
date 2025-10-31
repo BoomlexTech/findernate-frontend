@@ -13,7 +13,7 @@ import {
   useCallStateHooks,
   type User
 } from '@stream-io/video-react-sdk';
-import { X } from 'lucide-react';
+import { X, Video } from 'lucide-react';
 
 interface VideoCallModalProps {
   isOpen: boolean;
