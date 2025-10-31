@@ -974,7 +974,7 @@ const Page = () => {
     if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
     return num.toString();
   };
-  
+
   if (loading) {
     return (
       <div className="flex min-h-screen bg-gray-50 items-center justify-center">
@@ -1221,7 +1221,7 @@ const Page = () => {
 
   // Desktop layout - Original design
   return (
-    <div className="flex h-screen bg-gray-100 gap-6 p-6 xl:justify-start lg:justify-center">
+    <div className="flex h-screen bg-gray-100 gap-6 p-6 xl:justify-start lg:justify-center overflow-hidden">
   {/* Auth Dialog (shown if unauthenticated user triggers protected action) */}
   <AuthDialog isOpen={showAuthDialog} onClose={closeAuthDialog} />
       
@@ -1265,8 +1265,8 @@ const Page = () => {
       
       {/* Center - Reels */}
       <div className="flex-1 flex justify-center items-center xl:justify-center lg:justify-start">
-        <ReelsComponent 
-          onReelChange={setCurrentReelIndex} 
+        <ReelsComponent
+          onReelChange={setCurrentReelIndex}
           apiReelsData={reelsData}
           isMobile={false}
         />

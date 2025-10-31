@@ -319,7 +319,7 @@ const ReelsComponent: React.FC<ReelsComponentProps> = memo(({
     const scrollTop = container.scrollTop;
     const containerHeight = container.clientHeight;
     const newIndex = Math.round(scrollTop / containerHeight);
-    
+
     if (newIndex !== currentIndex && newIndex >= 0 && newIndex < reels.length) {
       setCurrentIndex(newIndex);
       // Notify parent component about reel change
@@ -328,6 +328,32 @@ const ReelsComponent: React.FC<ReelsComponentProps> = memo(({
       }
     }
   }, [currentIndex, reels.length, onReelChange]);
+
+  // Handle keyboard arrow keys for navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowDown' && currentIndex < reels.length - 1) {
+        e.preventDefault();
+        const newIndex = currentIndex + 1;
+        setCurrentIndex(newIndex);
+        scrollToReel(newIndex);
+        if (onReelChange) {
+          onReelChange(newIndex);
+        }
+      } else if (e.key === 'ArrowUp' && currentIndex > 0) {
+        e.preventDefault();
+        const newIndex = currentIndex - 1;
+        setCurrentIndex(newIndex);
+        scrollToReel(newIndex);
+        if (onReelChange) {
+          onReelChange(newIndex);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentIndex, reels.length, scrollToReel, onReelChange]);
 
   const containerClasses = isMobile
     ? "relative w-screen h-screen mx-auto flex-shrink-0"
@@ -566,14 +592,18 @@ const ReelsComponent: React.FC<ReelsComponentProps> = memo(({
     </div>
   );
 }, (prevProps, nextProps) => {
-  // Only re-render if essential props change
-  return prevProps.currentIndex === nextProps.currentIndex &&
-         prevProps.isLiked === nextProps.isLiked &&
-         prevProps.isSaved === nextProps.isSaved &&
-         prevProps.likesCount === nextProps.likesCount &&
-         prevProps.commentsCount === nextProps.commentsCount &&
-         prevProps.apiReelsData?.length === nextProps.apiReelsData?.length &&
-         prevProps.isMobile === nextProps.isMobile;
+  // Return true if props are equal (skip re-render), false if different (do re-render)
+  // Re-render when currentIndex changes to trigger scroll animation
+  if (prevProps.currentIndex !== nextProps.currentIndex) return false;
+  if (prevProps.isLiked !== nextProps.isLiked) return false;
+  if (prevProps.isSaved !== nextProps.isSaved) return false;
+  if (prevProps.likesCount !== nextProps.likesCount) return false;
+  if (prevProps.commentsCount !== nextProps.commentsCount) return false;
+  if (prevProps.apiReelsData?.length !== nextProps.apiReelsData?.length) return false;
+  if (prevProps.isMobile !== nextProps.isMobile) return false;
+
+  // All props are the same, skip re-render
+  return true;
 });
 
 ReelsComponent.displayName = 'ReelsComponent';
