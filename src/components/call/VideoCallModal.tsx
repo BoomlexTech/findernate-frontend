@@ -46,7 +46,17 @@ const CallLayout: React.FC<{ callType?: 'voice' | 'video' }> = ({ callType = 'vi
 
   return (
     <StreamTheme>
-      <SpeakerLayout participantsBarPosition="top" />
+      <div className="w-full h-full flex flex-col">
+        {/* Video area */}
+        <div className="flex-1 overflow-hidden">
+          <SpeakerLayout participantsBarPosition="top" />
+        </div>
+
+        {/* Control buttons - inside the same StreamCall context */}
+        <div className="flex-shrink-0 flex items-center justify-center py-6 bg-gray-800/90 backdrop-blur-sm">
+          <CallControls />
+        </div>
+      </div>
     </StreamTheme>
   );
 };
@@ -287,7 +297,7 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90">
-      <div className="relative w-full h-full max-w-7xl max-h-screen p-4 flex flex-col">
+      <div className="relative w-full h-full max-w-7xl max-h-screen p-4">
         {/* Close button */}
         <button
           onClick={handleClose}
@@ -297,8 +307,8 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
           <X className="w-6 h-6" />
         </button>
 
-        {/* Video call container - takes remaining space */}
-        <div className="flex-1 rounded-lg overflow-hidden bg-gray-900">
+        {/* Video call container */}
+        <div className="w-full h-full rounded-lg overflow-hidden bg-gray-900">
           {client && call ? (
             <StreamVideo client={client}>
               <StreamCall call={call}>
@@ -315,17 +325,6 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
             </div>
           )}
         </div>
-
-        {/* Call controls - completely outside video area at bottom */}
-        {client && call && (
-          <div className="flex-shrink-0 flex items-center justify-center py-6 bg-gray-800/50 backdrop-blur-sm rounded-lg mt-3 border border-gray-700/50">
-            <StreamVideo client={client}>
-              <StreamCall call={call}>
-                <CallControls />
-              </StreamCall>
-            </StreamVideo>
-          </div>
-        )}
       </div>
     </div>
   );
