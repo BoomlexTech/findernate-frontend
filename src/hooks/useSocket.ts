@@ -98,22 +98,26 @@ export const useSocket = ({
             messageAPI.getActiveChats(),
             messageAPI.getMessageRequests()
           ]).then(([activeChatsResponse, requestsResponse]) => {
-            const sortedActiveChats = activeChatsResponse.chats.sort((a, b) => 
-              new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
-            );
-            
+            // Filter out declined chats
+            const sortedActiveChats = activeChatsResponse.chats
+              .filter(chat => chat.status !== 'declined')
+              .sort((a, b) =>
+                new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
+              );
+
             const filteredRequests = requestsResponse.chats.filter(chat => {
               if (!user?._id) return false;
+              if (chat.status === 'declined') return false;
               return isIncomingRequest(chat, user._id);
             });
-            
-            const sortedRequests = filteredRequests.sort((a, b) => 
+
+            const sortedRequests = filteredRequests.sort((a, b) =>
               new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
             );
             setChats(sortedActiveChats);
             setMessageRequests(sortedRequests);
             setAllChatsCache([...sortedActiveChats, ...sortedRequests]);
-          }).catch(error => { 
+          }).catch(error => {
             // console.error('Failed to reload chats:', error);
           });
         }
@@ -179,9 +183,9 @@ export const useSocket = ({
         // Cache the message for request chats so recipients can see the full conversation
         // //console.log('Caching message for request chat:', data.chatId, data.message.message);
         requestChatCache.addMessage(data.chatId, data.message);
-        
+
         setMessageRequests(prev => {
-          return prev.map(request =>
+          const updated = prev.map(request =>
             request._id === data.chatId
               ? {
                   ...request,
@@ -193,6 +197,10 @@ export const useSocket = ({
                   lastMessageAt: data.message.timestamp
                 }
               : request
+          );
+          // Sort by lastMessageAt to keep most recent at the top
+          return updated.sort((a, b) =>
+            new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
           );
         });
       }
@@ -261,6 +269,9 @@ export const useSocket = ({
       const requestChat = messageRequestsRef.current.find(r => r._id === data.chatId);
 
       if (requestChat) {
+        // Update the chat status to 'active'
+        const updatedChat = { ...requestChat, status: 'active' as const };
+
         // Remove from message requests
         setMessageRequests(prev => prev.filter(request => request._id !== data.chatId));
 
@@ -268,21 +279,21 @@ export const useSocket = ({
         setChats(prev => {
           const exists = prev.some(chat => chat._id === data.chatId);
           if (exists) {
-            return prev;
+            // Update existing chat status
+            return prev.map(chat =>
+              chat._id === data.chatId ? updatedChat : chat
+            );
           }
           // Add the chat to active chats
-          return [requestChat, ...prev].sort((a, b) =>
+          return [updatedChat, ...prev].sort((a, b) =>
             new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
           );
         });
 
         // Update the all chats cache
         setAllChatsCache(prev => {
-          const exists = prev.some(chat => chat._id === data.chatId);
-          if (exists) {
-            return prev.filter(chat => chat._id !== data.chatId);
-          }
-          return [requestChat, ...prev.filter(chat => chat._id !== data.chatId)];
+          const filtered = prev.filter(chat => chat._id !== data.chatId);
+          return [updatedChat, ...filtered];
         });
 
         // Clear cached messages from request cache
