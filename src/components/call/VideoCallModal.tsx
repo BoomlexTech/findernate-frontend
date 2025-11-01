@@ -114,27 +114,24 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
         // Set call state immediately for faster UI
         setCall(videoCall);
 
-        // Step 1: Join the call with camera settings
-        console.log('📞 Joining existing call...');
-
-        // Set default device settings for front camera BEFORE joining
-        const joinOptions: any = {
-          create: false
-        };
-
-        // For video calls, configure to use front camera
+        // Step 1: Set camera facing mode BEFORE joining
         if (callType === 'video') {
-          joinOptions.data = {
-            settings_override: {
-              video: {
-                enabled: true,
-                facingMode: 'user' // Front camera
-              }
-            }
-          };
+          try {
+            // Set preferred camera to front camera before joining
+            await videoCall.camera.setSettings({
+              preferredFacingMode: 'user' // Front camera (selfie camera on mobile)
+            });
+            console.log('📞 Camera settings configured for front camera');
+          } catch (settingsError) {
+            console.warn('Failed to set camera settings:', settingsError);
+          }
         }
 
-        await videoCall.join(joinOptions);
+        // Step 2: Join the call
+        console.log('📞 Joining existing call...');
+        await videoCall.join({
+          create: false
+        });
 
         console.log('📞 Successfully joined call!');
 
@@ -157,31 +154,37 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
           alert('Failed to enable microphone. Please check your microphone permissions.');
         }
 
-        // Step 4: Enable/disable camera based on call type with facingMode constraint
+        // Step 4: Enable/disable camera based on call type
         if (callType === 'video') {
           try {
-            // Request camera with front-facing constraint
-            const stream = await navigator.mediaDevices.getUserMedia({
-              video: {
-                facingMode: { ideal: 'user' } // Prefer front camera
-              }
-            });
+            // Get list of available cameras
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const videoDevices = devices.filter(device => device.kind === 'videoinput');
+            console.log('📞 Available cameras:', videoDevices.map(d => ({ label: d.label, id: d.deviceId })));
 
-            console.log('📞 Got front camera stream');
+            // Find front camera (usually labeled with "front" or comes first on mobile)
+            // On mobile, front camera typically has "front" in label or is the first device
+            let frontCamera = videoDevices.find(device =>
+              device.label.toLowerCase().includes('front') ||
+              device.label.toLowerCase().includes('user') ||
+              device.label.toLowerCase().includes('facing')
+            );
 
-            // Get the video track
-            const videoTrack = stream.getVideoTracks()[0];
-            const settings = videoTrack.getSettings();
-            console.log('📞 Camera track settings:', settings);
-            console.log('📞 Camera facing mode:', settings.facingMode);
+            // If no explicit front camera found, use the first one (usually front on mobile)
+            if (!frontCamera && videoDevices.length > 0) {
+              frontCamera = videoDevices[0];
+            }
 
-            // Stop the temporary stream
-            stream.getTracks().forEach(track => track.stop());
-
-            // Now enable Stream.io camera with the same constraint
-            await videoCall.camera.enable({
-              videoDeviceId: videoTrack.getSettings().deviceId
-            });
+            // Enable camera with preference for front camera
+            if (frontCamera) {
+              console.log('📞 Using camera:', frontCamera.label, frontCamera.deviceId);
+              await videoCall.camera.enable({
+                deviceId: frontCamera.deviceId
+              });
+            } else {
+              // Fallback: enable with facingMode constraint
+              await videoCall.camera.enable();
+            }
 
             console.log('📞 Camera enabled for video call (front camera)');
 
