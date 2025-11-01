@@ -12,7 +12,8 @@ import {
   useCallStateHooks,
   type User
 } from '@stream-io/video-react-sdk';
-import { X } from 'lucide-react';
+import { X, Phone, Mic, MicOff } from 'lucide-react';
+import Image from 'next/image';
 
 interface VideoCallModalProps {
   isOpen: boolean;
@@ -28,8 +29,9 @@ interface VideoCallModalProps {
 }
 
 const CallLayout: React.FC<{ callType?: 'voice' | 'video' }> = ({ callType = 'video' }) => {
-  const { useCallCallingState } = useCallStateHooks();
+  const { useCallCallingState, useParticipants } = useCallStateHooks();
   const callingState = useCallCallingState();
+  const participants = useParticipants();
 
   if (callingState !== CallingState.JOINED) {
     return (
@@ -44,6 +46,85 @@ const CallLayout: React.FC<{ callType?: 'voice' | 'video' }> = ({ callType = 'vi
     );
   }
 
+  // Audio call UI - show avatars
+  if (callType === 'voice') {
+    return (
+      <StreamTheme>
+        <div className="w-full h-full flex flex-col bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+          {/* Audio call participants - avatars */}
+          <div className="flex-1 flex items-center justify-center">
+            <div className="flex flex-wrap items-center justify-center gap-8 p-8">
+              {participants.map((participant) => (
+                <div key={participant.sessionId} className="flex flex-col items-center">
+                  {/* Avatar */}
+                  <div className="relative mb-4">
+                    <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-blue-500 shadow-2xl">
+                      {participant.image ? (
+                        <Image
+                          src={participant.image}
+                          alt={participant.name || 'User'}
+                          width={128}
+                          height={128}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                          <span className="text-white text-4xl font-bold">
+                            {(participant.name || 'U')[0].toUpperCase()}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Animated ring for active speaker */}
+                    <div className="absolute inset-0 rounded-full border-4 border-blue-400 animate-ping opacity-75"></div>
+
+                    {/* Mic status indicator */}
+                    <div className={`absolute bottom-0 right-0 w-10 h-10 rounded-full flex items-center justify-center shadow-lg ${
+                      participant.publishedTracks.includes('audio')
+                        ? 'bg-green-500'
+                        : 'bg-red-500'
+                    }`}>
+                      {participant.publishedTracks.includes('audio') ? (
+                        <Mic className="w-5 h-5 text-white" />
+                      ) : (
+                        <MicOff className="w-5 h-5 text-white" />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Name */}
+                  <p className="text-white text-xl font-semibold mb-1">
+                    {participant.name || 'Unknown'}
+                  </p>
+
+                  {/* Status */}
+                  <p className="text-gray-400 text-sm">
+                    {participant.publishedTracks.includes('audio') ? 'Speaking...' : 'Muted'}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Audio indicator */}
+          <div className="flex-shrink-0 flex items-center justify-center py-4">
+            <div className="flex items-center gap-3 text-gray-400">
+              <Phone className="w-5 h-5" />
+              <span className="text-sm">Voice Call in Progress</span>
+            </div>
+          </div>
+
+          {/* Control buttons */}
+          <div className="flex-shrink-0 flex items-center justify-center py-6 bg-gray-800/90 backdrop-blur-sm">
+            <CallControls />
+          </div>
+        </div>
+      </StreamTheme>
+    );
+  }
+
+  // Video call UI - show video feeds
   return (
     <StreamTheme>
       <div className="w-full h-full flex flex-col" style={{ maxWidth: '100%', width: '100%' }}>
