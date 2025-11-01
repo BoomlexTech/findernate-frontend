@@ -296,35 +296,33 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90">
-      <div className="relative w-full h-full max-w-7xl max-h-screen p-4">
-        {/* Close button */}
-        <button
-          onClick={handleClose}
-          className="absolute top-6 right-6 z-50 p-2 rounded-full bg-red-500 hover:bg-red-600 text-white transition-colors"
-          title="End call"
-        >
-          <X className="w-6 h-6" />
-        </button>
+    <div className="fixed inset-0 z-50 bg-black">
+      {/* Close button */}
+      <button
+        onClick={handleClose}
+        className="absolute top-4 right-4 z-50 p-2 rounded-full bg-red-500 hover:bg-red-600 text-white transition-colors shadow-lg"
+        title="End call"
+      >
+        <X className="w-6 h-6" />
+      </button>
 
-        {/* Video call container */}
-        <div className="w-full h-full rounded-lg overflow-hidden bg-gray-900">
-          {client && call ? (
-            <StreamVideo client={client}>
-              <StreamCall call={call}>
-                <CallLayout callType={callType} />
-              </StreamCall>
-            </StreamVideo>
-          ) : (
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
-                <p className="text-white text-lg">Connecting...</p>
-                <p className="text-gray-400 text-sm mt-2">Please wait</p>
-              </div>
+      {/* Video call container - full screen */}
+      <div className="w-full h-full bg-gray-900">
+        {client && call ? (
+          <StreamVideo client={client}>
+            <StreamCall call={call}>
+              <CallLayout callType={callType} />
+            </StreamCall>
+          </StreamVideo>
+        ) : (
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
+              <p className="text-white text-lg">Connecting...</p>
+              <p className="text-gray-400 text-sm mt-2">Please wait</p>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
