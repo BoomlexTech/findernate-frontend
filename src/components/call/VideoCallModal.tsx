@@ -80,28 +80,6 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
 
     const initializeCall = async () => {
       try {
-        // Step 1: Request media permissions (audio + video for video calls)
-        console.log('📞 Requesting media permissions...');
-        try {
-          const constraints = callType === 'video'
-            ? {
-                audio: true,
-                video: {
-                  facingMode: 'user' // Use front camera by default (selfie camera on mobile)
-                }
-              }
-            : { audio: true };
-
-          await navigator.mediaDevices.getUserMedia(constraints);
-          console.log(`📞 ${callType === 'video' ? 'Audio and video' : 'Audio'} permission granted`);
-        } catch (permissionError) {
-          console.error('📞 Media permission denied:', permissionError);
-          const mediaType = callType === 'video' ? 'camera and microphone' : 'microphone';
-          alert(`${mediaType.charAt(0).toUpperCase() + mediaType.slice(1)} access is required for calls. Please enable permissions in your browser settings.`);
-          onClose();
-          return;
-        }
-
         const user: User = {
           id: userId,
           name: userName,
@@ -124,7 +102,20 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
         // Set call state immediately for faster UI
         setCall(videoCall);
 
-        // Step 2: Join the call with audio settings enabled
+        // Step 1: Set camera facing mode BEFORE joining
+        if (callType === 'video') {
+          try {
+            // Set preferred camera to front camera before joining
+            await videoCall.camera.setSettings({
+              preferredFacingMode: 'user' // Front camera (selfie camera on mobile)
+            });
+            console.log('📞 Camera settings configured for front camera');
+          } catch (settingsError) {
+            console.warn('Failed to set camera settings:', settingsError);
+          }
+        }
+
+        // Step 2: Join the call
         console.log('📞 Joining existing call...');
         await videoCall.join({
           create: false
@@ -154,15 +145,41 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
         // Step 4: Enable/disable camera based on call type
         if (callType === 'video') {
           try {
-            // Enable camera with front-facing preference
-            await videoCall.camera.enable({
-              preferredFacingMode: 'user' // Front camera (selfie camera on mobile)
-            });
+            // Get list of available cameras
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const videoDevices = devices.filter(device => device.kind === 'videoinput');
+            console.log('📞 Available cameras:', videoDevices.map(d => ({ label: d.label, id: d.deviceId })));
+
+            // Find front camera (usually labeled with "front" or comes first on mobile)
+            // On mobile, front camera typically has "front" in label or is the first device
+            let frontCamera = videoDevices.find(device =>
+              device.label.toLowerCase().includes('front') ||
+              device.label.toLowerCase().includes('user') ||
+              device.label.toLowerCase().includes('facing')
+            );
+
+            // If no explicit front camera found, use the first one (usually front on mobile)
+            if (!frontCamera && videoDevices.length > 0) {
+              frontCamera = videoDevices[0];
+            }
+
+            // Enable camera with preference for front camera
+            if (frontCamera) {
+              console.log('📞 Using camera:', frontCamera.label, frontCamera.deviceId);
+              await videoCall.camera.enable({
+                deviceId: frontCamera.deviceId
+              });
+            } else {
+              // Fallback: enable with facingMode constraint
+              await videoCall.camera.enable();
+            }
+
             console.log('📞 Camera enabled for video call (front camera)');
 
             // Debug: Check camera state
             const cameraState = videoCall.camera.state;
             console.log('📞 Camera state:', cameraState);
+
           } catch (cameraError) {
             console.error('❌ Failed to enable camera:', cameraError);
             alert('Failed to enable camera. Please check your camera permissions.');
@@ -301,7 +318,7 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
 
         {/* Call controls - completely outside video area at bottom */}
         {client && call && (
-          <div className="flex-shrink-0 flex items-center justify-center py-6">
+          <div className="flex-shrink-0 flex items-center justify-center py-6 bg-gray-800/50 backdrop-blur-sm rounded-lg mt-3 border border-gray-700/50">
             <StreamVideo client={client}>
               <StreamCall call={call}>
                 <CallControls />
