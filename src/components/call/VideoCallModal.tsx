@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   CallingState,
+  CallControls,
   SpeakerLayout,
   StreamCall,
   StreamTheme,
@@ -45,7 +46,15 @@ const CallLayout: React.FC<{ callType?: 'voice' | 'video' }> = ({ callType = 'vi
 
   return (
     <StreamTheme>
-      <SpeakerLayout participantsBarPosition="bottom" />
+      <div className="str-video__call-layout relative w-full h-full">
+        {/* Main video layout */}
+        <SpeakerLayout participantsBarPosition="top" />
+
+        {/* Call controls overlay at the bottom */}
+        <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-50">
+          <CallControls />
+        </div>
+      </div>
     </StreamTheme>
   );
 };
