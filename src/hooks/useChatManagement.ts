@@ -6,6 +6,7 @@ import { AxiosError } from 'axios';
 import { followEvents } from '@/utils/followEvents';
 import { isIncomingRequest, getChatDisplayName, getChatAvatar, formatTime, calculateUnreadCounts } from '@/utils/message/chatUtils';
 import { requestChatCache } from '@/utils/requestChatCache';
+import { toast } from 'react-toastify';
 
 const REQUEST_DECISIONS_KEY = 'message_request_decisions';
 const VIEWED_REQUESTS_KEY = 'viewedMessageRequests';
@@ -73,10 +74,12 @@ export const useChatManagement = ({ user }: UseChatManagementProps) => {
         messageAPI.getMessageRequests()
       ]);
 
-      // Update chats with fresh data from server
-      const sortedActiveChats = activeChatsResponse.chats.sort((a, b) =>
-        new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
-      );
+      // Filter out declined chats and sort
+      const sortedActiveChats = activeChatsResponse.chats
+        .filter(chat => chat.status !== 'declined')
+        .sort((a, b) =>
+          new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
+        );
 
       // Preserve unreadCount: 0 for all chats that have been read (including currently selected)
       const chatsWithPreservedSelection = sortedActiveChats.map(chat => {
@@ -87,8 +90,10 @@ export const useChatManagement = ({ user }: UseChatManagementProps) => {
         return chat;
       });
 
+      // Filter out declined chats from requests as well
       const filteredRequests = requestsResponse.chats.filter(chat => {
         if (!user?._id) return false;
+        if (chat.status === 'declined') return false;
         return isIncomingRequest(chat, user._id);
       });
 
@@ -154,15 +159,18 @@ export const useChatManagement = ({ user }: UseChatManagementProps) => {
         //console.log('Active chats from server:', activeChatsResponse.chats.length);
         //console.log('Message requests from server:', requestsResponse.chats.length);
         
+        // Filter out declined chats from active chats
+        const activeChatsFiltered = activeChatsResponse.chats.filter(chat => chat.status !== 'declined');
+
         // Include chats created by current user (outgoing requests) in active chats for Instagram-like behavior
-        const outgoingChats = requestsResponse.chats.filter(chat => 
-          chat.createdBy && chat.createdBy._id === user._id
+        const outgoingChats = requestsResponse.chats.filter(chat =>
+          chat.createdBy && chat.createdBy._id === user._id && chat.status !== 'declined'
         );
-        
+
         //console.log('Outgoing chats (created by current user):', outgoingChats.length);
-        
+
         // Merge active chats and outgoing chats, avoiding duplicates by checking participants
-        const combinedChats = [...activeChatsResponse.chats];
+        const combinedChats = [...activeChatsFiltered];
         
         outgoingChats.forEach(outgoingChat => {
           // Check if there's already a chat with the same participants
@@ -184,12 +192,14 @@ export const useChatManagement = ({ user }: UseChatManagementProps) => {
           }
         });
         
-        const sortedActiveChats = combinedChats.sort((a, b) => 
+        const sortedActiveChats = combinedChats.sort((a, b) =>
           new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
         );
-        
+
+        // Filter out declined chats from requests
         const filteredRequests = requestsResponse.chats.filter(chat => {
           if (!user?._id) return false;
+          if (chat.status === 'declined') return false;
           return isIncomingRequest(chat, user._id);
         });
         
@@ -642,7 +652,7 @@ export const useChatManagement = ({ user }: UseChatManagementProps) => {
 
     } catch (error) {
       console.error('Failed to accept request:', error);
-      alert(`Failed to accept request: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(`Failed to accept request: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -668,7 +678,7 @@ export const useChatManagement = ({ user }: UseChatManagementProps) => {
 
     } catch (error) {
       console.error('Failed to decline request:', error);
-      alert(`Failed to decline request: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(`Failed to decline request: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 

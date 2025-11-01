@@ -44,6 +44,7 @@ export interface Chat {
     profileImageUrl?: string;
   }>;
   chatType: 'direct' | 'group';
+  status?: 'requested' | 'active' | 'declined';
   groupName?: string;
   groupDescription?: string;
   groupImage?: string;
