@@ -195,89 +195,54 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
         // Set call state immediately for faster UI
         setCall(videoCall);
 
-        // Step 1: Set camera facing mode BEFORE joining
+        // Step 1: Request and enable media BEFORE joining
+        console.log('📞 Requesting media permissions...');
+
+        // Enable microphone first
+        try {
+          await videoCall.microphone.enable();
+          console.log('📞 Microphone enabled before joining');
+        } catch (micError) {
+          console.error('❌ Failed to enable microphone:', micError);
+          alert('Failed to enable microphone. Please check your microphone permissions.');
+          onClose();
+          return;
+        }
+
+        // For video calls, enable camera before joining
         if (callType === 'video') {
           try {
-            // Set preferred camera to front camera before joining
+            // Set preferred camera to front camera
             await videoCall.camera.setSettings({
               preferredFacingMode: 'user' // Front camera (selfie camera on mobile)
             });
-            console.log('📞 Camera settings configured for front camera');
-          } catch (settingsError) {
-            console.warn('Failed to set camera settings:', settingsError);
+
+            // Enable camera
+            await videoCall.camera.enable();
+            console.log('📞 Camera enabled before joining');
+          } catch (cameraError) {
+            console.error('❌ Failed to enable camera:', cameraError);
+            // Continue even if camera fails - audio-only is still useful
           }
         }
 
-        // Step 2: Join the call
-        console.log('📞 Joining existing call...');
+        // Step 2: Join the call with audio/video already enabled
+        console.log('📞 Joining existing call with media enabled...');
         await videoCall.join({
           create: false
         });
 
         console.log('📞 Successfully joined call!');
 
-        // Step 3: Enable microphone
-        try {
-          await videoCall.microphone.enable();
-          console.log('📞 Microphone enabled');
+        // Debug: Check media state after joining
+        const micState = videoCall.microphone.state;
+        const localParticipant = videoCall.state.localParticipant;
+        console.log('📞 Microphone state:', micState);
+        console.log('📞 Local participant:', localParticipant);
+        console.log('📞 Publishing tracks:', localParticipant?.publishedTracks);
 
-          // Debug: Check microphone state
-          const micState = videoCall.microphone.state;
-          console.log('📞 Microphone state:', micState);
-
-          // Debug: Check if audio track is publishing
-          const localParticipant = videoCall.state.localParticipant;
-          console.log('📞 Local participant:', localParticipant);
-          console.log('📞 Audio publishing:', localParticipant?.publishedTracks);
-
-        } catch (micError) {
-          console.error('❌ Failed to enable microphone:', micError);
-          alert('Failed to enable microphone. Please check your microphone permissions.');
-        }
-
-        // Step 4: Enable/disable camera based on call type
-        if (callType === 'video') {
-          try {
-            // Get list of available cameras
-            const devices = await navigator.mediaDevices.enumerateDevices();
-            const videoDevices = devices.filter(device => device.kind === 'videoinput');
-            console.log('📞 Available cameras:', videoDevices.map(d => ({ label: d.label, id: d.deviceId })));
-
-            // Find front camera (usually labeled with "front" or comes first on mobile)
-            // On mobile, front camera typically has "front" in label or is the first device
-            let frontCamera = videoDevices.find(device =>
-              device.label.toLowerCase().includes('front') ||
-              device.label.toLowerCase().includes('user') ||
-              device.label.toLowerCase().includes('facing')
-            );
-
-            // If no explicit front camera found, use the first one (usually front on mobile)
-            if (!frontCamera && videoDevices.length > 0) {
-              frontCamera = videoDevices[0];
-            }
-
-            // Enable camera with preference for front camera
-            if (frontCamera) {
-              console.log('📞 Using camera:', frontCamera.label, frontCamera.deviceId);
-              await videoCall.camera.enable({
-                deviceId: frontCamera.deviceId
-              });
-            } else {
-              // Fallback: enable with facingMode constraint
-              await videoCall.camera.enable();
-            }
-
-            console.log('📞 Camera enabled for video call (front camera)');
-
-            // Debug: Check camera state
-            const cameraState = videoCall.camera.state;
-            console.log('📞 Camera state:', cameraState);
-
-          } catch (cameraError) {
-            console.error('❌ Failed to enable camera:', cameraError);
-            alert('Failed to enable camera. Please check your camera permissions.');
-          }
-        } else {
+        // Step 3: For voice calls, ensure camera is disabled
+        if (callType === 'voice') {
           try {
             await videoCall.camera.disable();
             console.log('📞 Camera disabled for voice call');
