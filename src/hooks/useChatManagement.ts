@@ -256,13 +256,18 @@ export const useChatManagement = ({ user }: UseChatManagementProps) => {
   // Simple categorization for when we need to update chats locally
   const categorizeChats = (allChats: Chat[]) => {
     //console.log('Local categorization called with:', allChats.length, 'chats');
-    
+
     const regularChats: Chat[] = [];
     const requestChats: Chat[] = [];
 
     allChats.forEach((chat) => {
+      // Filter out declined chats
+      if (chat.status === 'declined') {
+        return;
+      }
+
       const decision = requestDecisionCache.get(chat._id);
-      
+
       if (decision === 'declined') {
         return;
       } else if (decision === 'accepted') {
@@ -270,7 +275,7 @@ export const useChatManagement = ({ user }: UseChatManagementProps) => {
       } else {
         const existsInRequests = messageRequests.some(r => r._id === chat._id);
         const existsInRegular = chats.some(c => c._id === chat._id);
-        
+
         if (existsInRequests) {
           requestChats.push(chat);
         } else {
@@ -289,12 +294,14 @@ export const useChatManagement = ({ user }: UseChatManagementProps) => {
   };
 
   // Recategorize chats when following list or decisions change
+  // Removed allChatsCache from dependencies to prevent flickering caused by socket updates
   useEffect(() => {
     if (allChatsCache.length > 0 && userFollowingList.length >= 0) {
       //console.log('Recategorizing due to state change');
       categorizeChats(allChatsCache);
     }
-  }, [userFollowingList, requestDecisionCache, allChatsCache, user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userFollowingList, requestDecisionCache, user]);
 
   // Monitor messageRequests for lastMessage changes and cache them
   useEffect(() => {
