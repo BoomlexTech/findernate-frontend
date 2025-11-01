@@ -46,17 +46,7 @@ const CallLayout: React.FC<{ callType?: 'voice' | 'video' }> = ({ callType = 'vi
 
   return (
     <StreamTheme>
-      <div className="str-video__call-layout w-full h-full flex flex-col">
-        {/* Main video layout - takes remaining space */}
-        <div className="flex-1 overflow-hidden">
-          <SpeakerLayout participantsBarPosition="top" />
-        </div>
-
-        {/* Call controls - fixed at bottom */}
-        <div className="flex-shrink-0 flex items-center justify-center py-4 bg-gradient-to-t from-black/80 to-transparent">
-          <CallControls />
-        </div>
-      </div>
+      <SpeakerLayout participantsBarPosition="top" />
     </StreamTheme>
   );
 };
@@ -94,7 +84,12 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
         console.log('📞 Requesting media permissions...');
         try {
           const constraints = callType === 'video'
-            ? { audio: true, video: true }
+            ? {
+                audio: true,
+                video: {
+                  facingMode: 'user' // Use front camera by default (selfie camera on mobile)
+                }
+              }
             : { audio: true };
 
           await navigator.mediaDevices.getUserMedia(constraints);
@@ -159,8 +154,11 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
         // Step 4: Enable/disable camera based on call type
         if (callType === 'video') {
           try {
-            await videoCall.camera.enable();
-            console.log('📞 Camera enabled for video call');
+            // Enable camera with front-facing preference
+            await videoCall.camera.enable({
+              preferredFacingMode: 'user' // Front camera (selfie camera on mobile)
+            });
+            console.log('📞 Camera enabled for video call (front camera)');
 
             // Debug: Check camera state
             const cameraState = videoCall.camera.state;
@@ -272,7 +270,7 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90">
-      <div className="relative w-full h-full max-w-7xl max-h-screen p-4">
+      <div className="relative w-full h-full max-w-7xl max-h-screen p-4 flex flex-col">
         {/* Close button */}
         <button
           onClick={handleClose}
@@ -282,8 +280,8 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
           <X className="w-6 h-6" />
         </button>
 
-        {/* Video call container */}
-        <div className="w-full h-full rounded-lg overflow-hidden bg-gray-900">
+        {/* Video call container - takes remaining space */}
+        <div className="flex-1 rounded-lg overflow-hidden bg-gray-900">
           {client && call ? (
             <StreamVideo client={client}>
               <StreamCall call={call}>
@@ -300,6 +298,17 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
             </div>
           )}
         </div>
+
+        {/* Call controls - completely outside video area at bottom */}
+        {client && call && (
+          <div className="flex-shrink-0 flex items-center justify-center py-6">
+            <StreamVideo client={client}>
+              <StreamCall call={call}>
+                <CallControls />
+              </StreamCall>
+            </StreamVideo>
+          </div>
+        )}
       </div>
     </div>
   );
