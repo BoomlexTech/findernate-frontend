@@ -81,11 +81,11 @@ const CallLayout: React.FC<{ callType?: 'voice' | 'video' }> = ({ callType = 'vi
 
                     {/* Mic status indicator */}
                     <div className={`absolute bottom-0 right-0 w-10 h-10 rounded-full flex items-center justify-center shadow-lg ${
-                      participant.publishedTracks.includes('audio')
+                      participant.audioStream
                         ? 'bg-green-500'
                         : 'bg-red-500'
                     }`}>
-                      {participant.publishedTracks.includes('audio') ? (
+                      {participant.audioStream ? (
                         <Mic className="w-5 h-5 text-white" />
                       ) : (
                         <MicOff className="w-5 h-5 text-white" />
@@ -100,7 +100,7 @@ const CallLayout: React.FC<{ callType?: 'voice' | 'video' }> = ({ callType = 'vi
 
                   {/* Status */}
                   <p className="text-gray-400 text-sm">
-                    {participant.publishedTracks.includes('audio') ? 'Speaking...' : 'Muted'}
+                    {participant.audioStream ? 'Speaking...' : 'Muted'}
                   </p>
                 </div>
               ))}
