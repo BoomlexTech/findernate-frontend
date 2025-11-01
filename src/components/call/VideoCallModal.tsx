@@ -2,9 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import {
-  CallControls,
   CallingState,
-  ParticipantView,
   SpeakerLayout,
   StreamCall,
   StreamTheme,
@@ -13,7 +11,7 @@ import {
   useCallStateHooks,
   type User
 } from '@stream-io/video-react-sdk';
-import { X, Video } from 'lucide-react';
+import { X } from 'lucide-react';
 
 interface VideoCallModalProps {
   isOpen: boolean;
@@ -29,10 +27,8 @@ interface VideoCallModalProps {
 }
 
 const CallLayout: React.FC<{ callType?: 'voice' | 'video' }> = ({ callType = 'video' }) => {
-  const { useCallCallingState, useRemoteParticipants, useLocalParticipant } = useCallStateHooks();
+  const { useCallCallingState } = useCallStateHooks();
   const callingState = useCallCallingState();
-  const remoteParticipants = useRemoteParticipants();
-  const localParticipant = useLocalParticipant();
 
   if (callingState !== CallingState.JOINED) {
     return (
@@ -49,74 +45,7 @@ const CallLayout: React.FC<{ callType?: 'voice' | 'video' }> = ({ callType = 'vi
 
   return (
     <StreamTheme>
-      <div className="str-video__call-layout relative w-full h-full">
-        {callType === 'voice' ? (
-          <>
-            {/* SpeakerLayout rendered invisibly for audio */}
-            <div className="opacity-0 pointer-events-none absolute inset-0">
-              <SpeakerLayout participantsBarPosition="bottom" />
-            </div>
-            {/* Custom voice call UI overlay */}
-            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900">
-              <div className="text-center">
-                <div className="w-32 h-32 rounded-full bg-blue-500/20 flex items-center justify-center mb-6 mx-auto animate-pulse">
-                  <svg className="w-16 h-16 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                  </svg>
-                </div>
-                <p className="text-white text-xl mb-2">Voice Call in Progress</p>
-                <p className="text-gray-400 text-sm">Audio only</p>
-              </div>
-              <div className="mt-8">
-                <CallControls />
-              </div>
-            </div>
-          </>
-        ) : (
-          <div className="relative w-full h-full">
-            {/* Remote participant full screen - Main view */}
-            <div className="absolute inset-0 w-full h-full bg-black">
-              {remoteParticipants.length > 0 ? (
-                <div className="w-full h-full [&>div]:w-full [&>div]:h-full [&_video]:w-full [&_video]:h-full [&_video]:object-cover">
-                  <ParticipantView
-                    participant={remoteParticipants[0]}
-                  />
-                </div>
-              ) : (
-                <div className="flex items-center justify-center h-full">
-                  <div className="text-center">
-                    <div className="animate-pulse mb-4">
-                      <div className="w-20 h-20 rounded-full bg-blue-500/20 flex items-center justify-center mx-auto">
-                        <Video className="w-10 h-10 text-blue-400" />
-                      </div>
-                    </div>
-                    <p className="text-white text-lg">Waiting for other participant...</p>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Local participant - small window bottom right corner */}
-            {localParticipant && (
-              <div
-                className="absolute bottom-24 right-6 rounded-xl overflow-hidden shadow-2xl border-3 border-white/80 z-20 bg-gray-900"
-                style={{ width: '220px', height: '165px' }}
-              >
-                <div className="w-full h-full [&>div]:w-full [&>div]:h-full [&_video]:w-full [&_video]:h-full [&_video]:object-cover">
-                  <ParticipantView
-                    participant={localParticipant}
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Call controls - bottom center */}
-            <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-30">
-              <CallControls />
-            </div>
-          </div>
-        )}
-      </div>
+      <SpeakerLayout participantsBarPosition="bottom" />
     </StreamTheme>
   );
 };
