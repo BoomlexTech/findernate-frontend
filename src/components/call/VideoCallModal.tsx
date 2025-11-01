@@ -50,9 +50,14 @@ const CallLayout: React.FC<{ callType?: 'voice' | 'video' }> = ({ callType = 'vi
   if (callType === 'voice') {
     return (
       <StreamTheme>
-        <div className="w-full h-full flex flex-col bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
-          {/* Audio call participants - avatars */}
-          <div className="flex-1 flex items-center justify-center">
+        <div className="w-full h-full flex flex-col bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 relative">
+          {/* IMPORTANT: Hidden SpeakerLayout to handle audio playback */}
+          <div className="absolute inset-0 opacity-0 pointer-events-none">
+            <SpeakerLayout participantsBarPosition="top" />
+          </div>
+
+          {/* Audio call participants - avatars (visible UI) */}
+          <div className="flex-1 flex items-center justify-center relative z-10">
             <div className="flex flex-wrap items-center justify-center gap-8 p-8">
               {participants.map((participant) => (
                 <div key={participant.sessionId} className="flex flex-col items-center">
@@ -108,7 +113,7 @@ const CallLayout: React.FC<{ callType?: 'voice' | 'video' }> = ({ callType = 'vi
           </div>
 
           {/* Audio indicator */}
-          <div className="flex-shrink-0 flex items-center justify-center py-4">
+          <div className="flex-shrink-0 flex items-center justify-center py-4 relative z-10">
             <div className="flex items-center gap-3 text-gray-400">
               <Phone className="w-5 h-5" />
               <span className="text-sm">Voice Call in Progress</span>
@@ -116,7 +121,7 @@ const CallLayout: React.FC<{ callType?: 'voice' | 'video' }> = ({ callType = 'vi
           </div>
 
           {/* Control buttons */}
-          <div className="flex-shrink-0 flex items-center justify-center py-6 bg-gray-800/90 backdrop-blur-sm">
+          <div className="flex-shrink-0 flex items-center justify-center py-6 bg-gray-800/90 backdrop-blur-sm relative z-10">
             <CallControls />
           </div>
         </div>
