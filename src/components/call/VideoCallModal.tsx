@@ -195,21 +195,37 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
         // Set call state immediately for faster UI
         setCall(videoCall);
 
-        // Step 1: Request and enable media BEFORE joining
-        console.log('📞 Requesting media permissions...');
+        // Step 1: Join the call first
+        console.log('📞 Joining existing call...');
+        await videoCall.join({
+          create: false
+        });
 
-        // Enable microphone first
+        console.log('📞 Successfully joined call!');
+
+        // Step 2: Enable microphone after joining
         try {
           await videoCall.microphone.enable();
-          console.log('📞 Microphone enabled before joining');
+          console.log('📞 Microphone enabled');
+
+          // Wait a bit for microphone to initialize
+          await new Promise(resolve => setTimeout(resolve, 500));
+
+          // Debug: Check microphone state
+          const micState = videoCall.microphone.state;
+          console.log('📞 Microphone state:', micState);
+
+          // Debug: Check if audio track is publishing
+          const localParticipant = videoCall.state.localParticipant;
+          console.log('📞 Local participant:', localParticipant);
+          console.log('📞 Publishing tracks:', localParticipant?.publishedTracks);
+
         } catch (micError) {
           console.error('❌ Failed to enable microphone:', micError);
           alert('Failed to enable microphone. Please check your microphone permissions.');
-          onClose();
-          return;
         }
 
-        // For video calls, enable camera before joining
+        // Step 3: For video calls, enable camera
         if (callType === 'video') {
           try {
             // Set preferred camera to front camera
@@ -219,35 +235,10 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
 
             // Enable camera
             await videoCall.camera.enable();
-            console.log('📞 Camera enabled before joining');
+            console.log('📞 Camera enabled');
           } catch (cameraError) {
             console.error('❌ Failed to enable camera:', cameraError);
-            // Continue even if camera fails - audio-only is still useful
-          }
-        }
-
-        // Step 2: Join the call with audio/video already enabled
-        console.log('📞 Joining existing call with media enabled...');
-        await videoCall.join({
-          create: false
-        });
-
-        console.log('📞 Successfully joined call!');
-
-        // Debug: Check media state after joining
-        const micState = videoCall.microphone.state;
-        const localParticipant = videoCall.state.localParticipant;
-        console.log('📞 Microphone state:', micState);
-        console.log('📞 Local participant:', localParticipant);
-        console.log('📞 Publishing tracks:', localParticipant?.publishedTracks);
-
-        // Step 3: For voice calls, ensure camera is disabled
-        if (callType === 'voice') {
-          try {
-            await videoCall.camera.disable();
-            console.log('📞 Camera disabled for voice call');
-          } catch (err) {
-            console.warn('Failed to disable camera for voice call:', err);
+            // Continue even if camera fails - audio works
           }
         }
 
