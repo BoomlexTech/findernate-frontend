@@ -46,12 +46,14 @@ const CallLayout: React.FC<{ callType?: 'voice' | 'video' }> = ({ callType = 'vi
 
   return (
     <StreamTheme>
-      <div className="str-video__call-layout relative w-full h-full">
-        {/* Main video layout */}
-        <SpeakerLayout participantsBarPosition="top" />
+      <div className="str-video__call-layout w-full h-full flex flex-col">
+        {/* Main video layout - takes remaining space */}
+        <div className="flex-1 overflow-hidden">
+          <SpeakerLayout participantsBarPosition="top" />
+        </div>
 
-        {/* Call controls overlay at the bottom */}
-        <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-50">
+        {/* Call controls - fixed at bottom */}
+        <div className="flex-shrink-0 flex items-center justify-center py-4 bg-gradient-to-t from-black/80 to-transparent">
           <CallControls />
         </div>
       </div>
@@ -88,14 +90,19 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
 
     const initializeCall = async () => {
       try {
-        // Step 1: Request microphone permissions first
-        console.log('📞 Requesting microphone permissions...');
+        // Step 1: Request media permissions (audio + video for video calls)
+        console.log('📞 Requesting media permissions...');
         try {
-          await navigator.mediaDevices.getUserMedia({ audio: true });
-          console.log('📞 Microphone permission granted');
+          const constraints = callType === 'video'
+            ? { audio: true, video: true }
+            : { audio: true };
+
+          await navigator.mediaDevices.getUserMedia(constraints);
+          console.log(`📞 ${callType === 'video' ? 'Audio and video' : 'Audio'} permission granted`);
         } catch (permissionError) {
-          console.error('📞 Microphone permission denied:', permissionError);
-          alert('Microphone access is required for calls. Please enable microphone permissions in your browser settings.');
+          console.error('📞 Media permission denied:', permissionError);
+          const mediaType = callType === 'video' ? 'camera and microphone' : 'microphone';
+          alert(`${mediaType.charAt(0).toUpperCase() + mediaType.slice(1)} access is required for calls. Please enable permissions in your browser settings.`);
           onClose();
           return;
         }
@@ -130,7 +137,7 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
 
         console.log('📞 Successfully joined call!');
 
-        // Step 3: Enable microphone first (most important for audio calls)
+        // Step 3: Enable microphone
         try {
           await videoCall.microphone.enable();
           console.log('📞 Microphone enabled');
@@ -144,16 +151,25 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
           console.log('📞 Local participant:', localParticipant);
           console.log('📞 Audio publishing:', localParticipant?.publishedTracks);
 
-          // Small delay to let audio stream activate
-          await new Promise(resolve => setTimeout(resolve, 500));
-
         } catch (micError) {
           console.error('❌ Failed to enable microphone:', micError);
           alert('Failed to enable microphone. Please check your microphone permissions.');
         }
 
-        // Step 4: Now disable camera for voice calls (after audio is working)
-        if (callType === 'voice') {
+        // Step 4: Enable/disable camera based on call type
+        if (callType === 'video') {
+          try {
+            await videoCall.camera.enable();
+            console.log('📞 Camera enabled for video call');
+
+            // Debug: Check camera state
+            const cameraState = videoCall.camera.state;
+            console.log('📞 Camera state:', cameraState);
+          } catch (cameraError) {
+            console.error('❌ Failed to enable camera:', cameraError);
+            alert('Failed to enable camera. Please check your camera permissions.');
+          }
+        } else {
           try {
             await videoCall.camera.disable();
             console.log('📞 Camera disabled for voice call');
@@ -161,6 +177,9 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
             console.warn('Failed to disable camera for voice call:', err);
           }
         }
+
+        // Small delay to let media streams activate
+        await new Promise(resolve => setTimeout(resolve, 300));
 
         // Debug: Log all participants and their tracks
         console.log('📞 All call participants:', videoCall.state.participants);
