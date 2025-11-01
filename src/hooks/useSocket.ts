@@ -241,11 +241,67 @@ export const useSocket = ({
       }
     };
 
+    const handleChatRequestDeclined = (data: { chatId: string; declinedBy: { _id: string; username: string; fullName: string } }) => {
+      // Remove the chat from both lists (it might be in either)
+      setChats(prev => prev.filter(chat => chat._id !== data.chatId));
+      setMessageRequests(prev => prev.filter(request => request._id !== data.chatId));
+      setAllChatsCache(prev => prev.filter(chat => chat._id !== data.chatId));
+
+      // Clear cached messages for this chat
+      requestChatCache.clearChat(data.chatId);
+
+      // Import toast dynamically to show notification
+      import('react-toastify').then(({ toast }) => {
+        toast.info(`${data.declinedBy.fullName} declined your message request`);
+      });
+    };
+
+    const handleChatRequestAccepted = (data: { chatId: string; acceptedBy: { _id: string; username: string; fullName: string } }) => {
+      // Find the chat in message requests and move it to active chats
+      const requestChat = messageRequestsRef.current.find(r => r._id === data.chatId);
+
+      if (requestChat) {
+        // Remove from message requests
+        setMessageRequests(prev => prev.filter(request => request._id !== data.chatId));
+
+        // Add to active chats if not already there
+        setChats(prev => {
+          const exists = prev.some(chat => chat._id === data.chatId);
+          if (exists) {
+            return prev;
+          }
+          // Add the chat to active chats
+          return [requestChat, ...prev].sort((a, b) =>
+            new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
+          );
+        });
+
+        // Update the all chats cache
+        setAllChatsCache(prev => {
+          const exists = prev.some(chat => chat._id === data.chatId);
+          if (exists) {
+            return prev.filter(chat => chat._id !== data.chatId);
+          }
+          return [requestChat, ...prev.filter(chat => chat._id !== data.chatId)];
+        });
+
+        // Clear cached messages from request cache
+        requestChatCache.clearChat(data.chatId);
+      }
+
+      // Import toast dynamically to show notification
+      import('react-toastify').then(({ toast }) => {
+        toast.success(`${data.acceptedBy.fullName} accepted your message request`);
+      });
+    };
+
     socketManager.on('new_message', handleNewMessage);
     socketManager.on('user_typing', handleUserTyping);
     socketManager.on('user_stopped_typing', handleUserStoppedTyping);
     socketManager.on('message_deleted', handleMessageDeleted);
     socketManager.on('messages_read', handleMessagesRead);
+    socketManager.on('chat_request_declined', handleChatRequestDeclined);
+    socketManager.on('chat_request_accepted', handleChatRequestAccepted);
 
     return () => {
       socketManager.off('new_message', handleNewMessage);
@@ -253,6 +309,8 @@ export const useSocket = ({
       socketManager.off('user_stopped_typing', handleUserStoppedTyping);
       socketManager.off('message_deleted', handleMessageDeleted);
       socketManager.off('messages_read', handleMessagesRead);
+      socketManager.off('chat_request_declined', handleChatRequestDeclined);
+      socketManager.off('chat_request_accepted', handleChatRequestAccepted);
     };
     // CRITICAL FIX: Removed 'chats' and 'messageRequests' from dependencies to prevent infinite re-renders
     // These cause the effect to re-run on every message update, creating a render loop

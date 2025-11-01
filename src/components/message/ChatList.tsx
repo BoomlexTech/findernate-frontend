@@ -126,10 +126,15 @@ export const ChatList: React.FC<ChatListProps> = ({
   onDeclineRequest,
   loading
 }) => {
-  // Remove duplicate chats by _id
+  // Remove duplicate chats by _id and filter out declined chats
   const uniqueChats = React.useMemo(() => {
     const seen = new Set();
     return chats.filter(chat => {
+      // Filter out declined chats
+      if (chat.status === 'declined') {
+        return false;
+      }
+      // Remove duplicates
       if (seen.has(chat._id)) {
         return false;
       }

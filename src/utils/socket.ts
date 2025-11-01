@@ -221,6 +221,18 @@ class SocketManager {
       this.emit('user_offline', data);
     });
 
+    // ===== CHAT REQUEST EVENT LISTENERS =====
+
+    // Chat request declined event
+    this.socket.on('chat_request_declined', (data: { chatId: string; declinedBy: { _id: string; username: string; fullName: string } }) => {
+      this.emit('chat_request_declined', data);
+    });
+
+    // Chat request accepted event
+    this.socket.on('chat_request_accepted', (data: { chatId: string; acceptedBy: { _id: string; username: string; fullName: string } }) => {
+      this.emit('chat_request_accepted', data);
+    });
+
     // ===== CALL EVENT LISTENERS =====
     
     // Call management events
