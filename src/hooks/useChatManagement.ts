@@ -95,22 +95,26 @@ export const useChatManagement = ({ user }: UseChatManagementProps) => {
           new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
         );
 
-      // Clear readChats entries for chats that have new unread messages from the server
-      const chatsWithUnread = sortedActiveChats.filter(chat => (chat.unreadCount || 0) > 0).map(chat => chat._id);
-      let updatedReadChats = readChats;
-      if (chatsWithUnread.length > 0) {
-        const newReadChats = new Set([...readChats].filter(id => !chatsWithUnread.includes(id)));
-        if (typeof window !== 'undefined') {
-          localStorage.setItem(READ_CHATS_KEY, JSON.stringify(Array.from(newReadChats)));
-        }
-        updatedReadChats = newReadChats;
-        setReadChats(newReadChats);
+      // Clear readChats for chats that have NEW unread messages from server
+      const chatsToRemoveFromRead = sortedActiveChats
+        .filter(chat => (chat.unreadCount || 0) > 0 && readChats.has(chat._id))
+        .map(chat => chat._id);
+
+      if (chatsToRemoveFromRead.length > 0) {
+        setReadChats(prev => {
+          const newReadChats = new Set([...prev]);
+          chatsToRemoveFromRead.forEach(id => newReadChats.delete(id));
+          if (typeof window !== 'undefined') {
+            localStorage.setItem(READ_CHATS_KEY, JSON.stringify(Array.from(newReadChats)));
+          }
+          return newReadChats;
+        });
       }
 
       // Preserve unreadCount: 0 for all chats that have been read (including currently selected)
       const chatsWithPreservedSelection = sortedActiveChats.map(chat => {
         // Force unreadCount to 0 for any chat that's been opened or is currently selected
-        if (chat._id === selectedChat || updatedReadChats.has(chat._id)) {
+        if ((chat._id === selectedChat || readChats.has(chat._id)) && !chatsToRemoveFromRead.includes(chat._id)) {
           return { ...chat, unreadCount: 0 };
         }
         return chat;
@@ -222,11 +226,16 @@ export const useChatManagement = ({ user }: UseChatManagementProps) => {
           new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
         );
 
-        // Clear readChats entries for chats that have new unread messages
-        const chatsWithUnread = sortedActiveChats.filter(chat => (chat.unreadCount || 0) > 0).map(chat => chat._id);
-        if (chatsWithUnread.length > 0) {
+        // Clear readChats for chats that have NEW unread messages from server
+        // Only clear if server explicitly says unreadCount > 0
+        const chatsToRemoveFromRead = sortedActiveChats
+          .filter(chat => (chat.unreadCount || 0) > 0 && readChats.has(chat._id))
+          .map(chat => chat._id);
+
+        if (chatsToRemoveFromRead.length > 0) {
           setReadChats(prev => {
-            const newReadChats = new Set([...prev].filter(id => !chatsWithUnread.includes(id)));
+            const newReadChats = new Set([...prev]);
+            chatsToRemoveFromRead.forEach(id => newReadChats.delete(id));
             if (typeof window !== 'undefined') {
               localStorage.setItem(READ_CHATS_KEY, JSON.stringify(Array.from(newReadChats)));
             }
@@ -234,9 +243,11 @@ export const useChatManagement = ({ user }: UseChatManagementProps) => {
           });
         }
 
-        // Apply readChats to preserve unreadCount: 0 for chats that were previously read
+        // Apply readChats to force unreadCount: 0 for chats that were previously read
+        // This preserves the read state across page refreshes
         const sortedActiveChatsWithReadState = sortedActiveChats.map(chat => {
-          if (readChats.has(chat._id) && (chat.unreadCount || 0) === 0) {
+          if (readChats.has(chat._id) && !chatsToRemoveFromRead.includes(chat._id)) {
+            // Force unreadCount to 0 for chats we've read (and haven't received new messages)
             return { ...chat, unreadCount: 0 };
           }
           return chat;

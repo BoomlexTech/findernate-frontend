@@ -277,6 +277,7 @@ export const GlobalCallProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         callId: incomingCall.callId,
         chatId: incomingCall.chatId,
         callType: incomingCall.callType,
+        
         isInitiator: false,
         streamCallType: streamCallData.streamCallType
       });
