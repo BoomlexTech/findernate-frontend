@@ -152,14 +152,9 @@ export const useSocket = ({
         setChats(prev => {
           const updatedChats = prev.map(chat => {
             if (chat._id === data.chatId) {
-              const newUnreadCount = data.chatId !== selectedChatRef.current ? (chat.unreadCount || 0) + 1 : 0;
-              // //console.log(`Socket: Updating unread count for chat ${data.chatId}:`, {
-              //   wasSelected: data.chatId === selectedChatRef.current,
-              //   selectedChat: selectedChatRef.current,
-              //   oldCount: chat.unreadCount,
-              //   newCount: newUnreadCount
-              // });
-              
+              // Don't increment if this is the selected chat (messages are being read)
+              const shouldIncrementCount = data.chatId !== selectedChatRef.current;
+
               return {
                 ...chat,
                 lastMessage: {
@@ -168,7 +163,9 @@ export const useSocket = ({
                   timestamp: data.message.timestamp
                 },
                 lastMessageAt: data.message.timestamp,
-                unreadCount: newUnreadCount
+                // Only update unread count if not the selected chat
+                // For selected chat, keep it at 0 (messages are being read)
+                unreadCount: shouldIncrementCount ? (chat.unreadCount || 0) + 1 : 0
               };
             }
             return chat;
@@ -176,9 +173,10 @@ export const useSocket = ({
 
           return updatedChats.sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime());
         });
-        
-        // Refresh global unread counts after updating chat unread count
-        refreshUnreadCounts();
+
+        // Don't call refreshUnreadCounts() here to avoid flickering
+        // The local increment is accurate enough, and calling the API causes the count to flicker
+        // The count will be refreshed when user navigates or reloads
       } else if (chatInRequests) {
         // Cache the message for request chats so recipients can see the full conversation
         // //console.log('Caching message for request chat:', data.chatId, data.message.message);
