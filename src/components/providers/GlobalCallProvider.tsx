@@ -122,6 +122,7 @@ export const GlobalCallProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       if (currentCallRef.current?.callId === data.callId) {
         setIsVideoCallOpen(false);
         setCurrentCall(null);
+        setStreamToken(null);
         alert('Call was declined');
       }
     };
@@ -131,6 +132,7 @@ export const GlobalCallProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       if (currentCallRef.current?.callId === data.callId) {
         setIsVideoCallOpen(false);
         setCurrentCall(null);
+        setStreamToken(null);
       }
     };
 
@@ -250,6 +252,7 @@ export const GlobalCallProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       // Close modal on error
       setIsVideoCallOpen(false);
       setCurrentCall(null);
+      setStreamToken(null);
       const errorMessage = error?.response?.data?.message || error?.message || 'Failed to accept call';
       alert(errorMessage);
     }
