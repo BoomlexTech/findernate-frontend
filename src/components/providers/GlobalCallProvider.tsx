@@ -61,12 +61,17 @@ export const GlobalCallProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const router = useRouter();
   const pathname = usePathname();
 
-  // Use ref to avoid re-registering socket listeners
+  // Use refs to avoid re-registering socket listeners
   const currentCallRef = React.useRef<CurrentCall | null>(null);
+  const routeBeforeCallRef = React.useRef<string | null>(null);
 
   React.useEffect(() => {
     currentCallRef.current = currentCall;
   }, [currentCall]);
+
+  React.useEffect(() => {
+    routeBeforeCallRef.current = routeBeforeCall;
+  }, [routeBeforeCall]);
 
   // Initialize socket connection globally (so it works on all pages)
   useEffect(() => {
@@ -130,9 +135,10 @@ export const GlobalCallProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         setStreamToken(null);
 
         // Navigate back to the route before call
-        if (routeBeforeCall && routeBeforeCall !== pathname) {
-          console.log('📍 Navigating back to route after decline:', routeBeforeCall);
-          router.push(routeBeforeCall);
+        const savedRoute = routeBeforeCallRef.current;
+        if (savedRoute) {
+          console.log('📍 Navigating back to route after decline:', savedRoute);
+          router.push(savedRoute);
         }
         setRouteBeforeCall(null);
 
@@ -148,9 +154,10 @@ export const GlobalCallProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         setStreamToken(null);
 
         // Navigate back to the route before call
-        if (routeBeforeCall && routeBeforeCall !== pathname) {
-          console.log('📍 Navigating back to route after end:', routeBeforeCall);
-          router.push(routeBeforeCall);
+        const savedRoute = routeBeforeCallRef.current;
+        if (savedRoute) {
+          console.log('📍 Navigating back to route after end:', savedRoute);
+          router.push(savedRoute);
         }
         setRouteBeforeCall(null);
       }
@@ -277,6 +284,7 @@ export const GlobalCallProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       setIsVideoCallOpen(false);
       setCurrentCall(null);
       setStreamToken(null);
+      setRouteBeforeCall(null);
       const errorMessage = error?.response?.data?.message || error?.message || 'Failed to accept call';
       alert(errorMessage);
     }
@@ -302,7 +310,7 @@ export const GlobalCallProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     if (!currentCall) return;
 
     const callId = currentCall.callId;
-    const savedRoute = routeBeforeCall;
+    const savedRoute = routeBeforeCallRef.current;
 
     // Optimistic update - clear state immediately for better UX
     setIsVideoCallOpen(false);
@@ -310,7 +318,7 @@ export const GlobalCallProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setStreamToken(null);
 
     // Navigate back to the route before call
-    if (savedRoute && savedRoute !== pathname) {
+    if (savedRoute) {
       console.log('📍 Navigating back to route:', savedRoute);
       router.push(savedRoute);
     }

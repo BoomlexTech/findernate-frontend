@@ -92,7 +92,8 @@ export const useVideoCall = ({ user }: UseVideoCallProps) => {
       // Close modal on error
       setIsVideoCallOpen(false);
       setCurrentCall(null);
-      setStreamToken(null); 
+      setStreamToken(null);
+      setRouteBeforeCall(null);
       setIsInitiating(false);
       const errorMessage = error?.response?.data?.message || error?.message || 'Failed to initiate call';
       alert(errorMessage);
