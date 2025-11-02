@@ -146,8 +146,6 @@ export const GlobalCallProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             router.push(savedRoute);
           }
         }, 100);
-
-        alert('Call was declined');
       }
     };
 
