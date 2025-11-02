@@ -28,12 +28,26 @@ interface VideoCallModalProps {
   streamCallType?: 'audio_room' | 'default';
 }
 
-const CallLayout: React.FC<{ callType?: 'voice' | 'video' }> = ({ callType = 'video' }) => {
+const CallLayout: React.FC<{ callType?: 'voice' | 'video'; onCallEnd: () => void }> = ({ callType = 'video', onCallEnd }) => {
   const { useCallCallingState, useParticipants } = useCallStateHooks();
   const callingState = useCallCallingState();
   const participants = useParticipants();
 
+  // Auto-close when call ends or is left
+  React.useEffect(() => {
+    if (callingState === CallingState.LEFT || callingState === CallingState.IDLE) {
+      console.log('📞 Call state changed to LEFT/IDLE - auto-closing modal');
+      onCallEnd();
+    }
+  }, [callingState, onCallEnd]);
+
+  // Show connecting screen only for initial states, not for LEFT/ENDED
   if (callingState !== CallingState.JOINED) {
+    // If call was left or ended, don't show connecting screen
+    if (callingState === CallingState.LEFT || callingState === CallingState.IDLE) {
+      return null;
+    }
+
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
@@ -247,6 +261,31 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
 
         console.log('📞 Successfully joined call!');
 
+        // Listen for call end events to auto-close modal
+        const handleCallEnded = () => {
+          console.log('📞 Stream.io call ended - auto-closing modal');
+          if (!isCancelled) {
+            onClose();
+          }
+        };
+
+        // Subscribe to call ended event
+        videoCall.on('call.ended', handleCallEnded);
+
+        // Also listen for when all participants leave
+        videoCall.on('call.session_participant_left', (event: any) => {
+          console.log('📞 Participant left:', event);
+          // Give a small delay to check if there are any participants left
+          setTimeout(() => {
+            const remoteParticipants = videoCall.state.remoteParticipants || [];
+            console.log('📞 Remote participants count:', remoteParticipants.length);
+            if (remoteParticipants.length === 0 && !isCancelled) {
+              console.log('📞 All remote participants left - closing call');
+              onClose();
+            }
+          }, 500);
+        });
+
         // Step 2: Enable microphone after joining
         try {
           await videoCall.microphone.enable();
@@ -413,7 +452,7 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
         {client && call && !isClosing ? (
           <StreamVideo client={client}>
             <StreamCall call={call}>
-              <CallLayout callType={callType} />
+              <CallLayout callType={callType} onCallEnd={handleClose} />
             </StreamCall>
           </StreamVideo>
         ) : !isClosing ? (
