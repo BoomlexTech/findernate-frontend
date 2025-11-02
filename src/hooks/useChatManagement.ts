@@ -10,6 +10,7 @@ import { toast } from 'react-toastify';
 
 const REQUEST_DECISIONS_KEY = 'message_request_decisions';
 const VIEWED_REQUESTS_KEY = 'viewedMessageRequests';
+const READ_CHATS_KEY = 'readChats';
 
 interface UseChatManagementProps {
   user: any;
@@ -26,8 +27,14 @@ export const useChatManagement = ({ user }: UseChatManagementProps) => {
   const [userFollowingList, setUserFollowingList] = useState<string[]>([]);
   const [requestDecisionCache, setRequestDecisionCache] = useState<Map<string, 'accepted' | 'declined'>>(new Map());
 
-  // Track chats that have been opened and should have unreadCount: 0
-  const [readChats, setReadChats] = useState<Set<string>>(new Set());
+  // Track chats that have been opened and should have unreadCount: 0 (persist to localStorage)
+  const [readChats, setReadChats] = useState<Set<string>>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(READ_CHATS_KEY);
+      return saved ? new Set(JSON.parse(saved)) : new Set();
+    }
+    return new Set();
+  });
   
   // Track which requests we've viewed (to prevent auto-acceptance after refresh)
   const [viewedRequests, setViewedRequests] = useState<Set<string>>(() => {
@@ -63,7 +70,14 @@ export const useChatManagement = ({ user }: UseChatManagementProps) => {
 
   // Function to mark a chat as read and add it to readChats set
   const markChatAsRead = (chatId: string) => {
-    setReadChats(prev => new Set([...prev, chatId]));
+    setReadChats(prev => {
+      const newReadChats = new Set([...prev, chatId]);
+      // Persist to localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(READ_CHATS_KEY, JSON.stringify(Array.from(newReadChats)));
+      }
+      return newReadChats;
+    });
   };
 
   // Function to refresh chats with accurate unread counts
@@ -81,10 +95,22 @@ export const useChatManagement = ({ user }: UseChatManagementProps) => {
           new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
         );
 
+      // Clear readChats entries for chats that have new unread messages from the server
+      const chatsWithUnread = sortedActiveChats.filter(chat => (chat.unreadCount || 0) > 0).map(chat => chat._id);
+      let updatedReadChats = readChats;
+      if (chatsWithUnread.length > 0) {
+        const newReadChats = new Set([...readChats].filter(id => !chatsWithUnread.includes(id)));
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(READ_CHATS_KEY, JSON.stringify(Array.from(newReadChats)));
+        }
+        updatedReadChats = newReadChats;
+        setReadChats(newReadChats);
+      }
+
       // Preserve unreadCount: 0 for all chats that have been read (including currently selected)
       const chatsWithPreservedSelection = sortedActiveChats.map(chat => {
         // Force unreadCount to 0 for any chat that's been opened or is currently selected
-        if (chat._id === selectedChat || readChats.has(chat._id)) {
+        if (chat._id === selectedChat || updatedReadChats.has(chat._id)) {
           return { ...chat, unreadCount: 0 };
         }
         return chat;
@@ -196,6 +222,26 @@ export const useChatManagement = ({ user }: UseChatManagementProps) => {
           new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
         );
 
+        // Clear readChats entries for chats that have new unread messages
+        const chatsWithUnread = sortedActiveChats.filter(chat => (chat.unreadCount || 0) > 0).map(chat => chat._id);
+        if (chatsWithUnread.length > 0) {
+          setReadChats(prev => {
+            const newReadChats = new Set([...prev].filter(id => !chatsWithUnread.includes(id)));
+            if (typeof window !== 'undefined') {
+              localStorage.setItem(READ_CHATS_KEY, JSON.stringify(Array.from(newReadChats)));
+            }
+            return newReadChats;
+          });
+        }
+
+        // Apply readChats to preserve unreadCount: 0 for chats that were previously read
+        const sortedActiveChatsWithReadState = sortedActiveChats.map(chat => {
+          if (readChats.has(chat._id) && (chat.unreadCount || 0) === 0) {
+            return { ...chat, unreadCount: 0 };
+          }
+          return chat;
+        });
+
         // Filter out declined chats from requests
         const filteredRequests = requestsResponse.chats.filter(chat => {
           if (!user?._id) return false;
@@ -221,9 +267,9 @@ export const useChatManagement = ({ user }: UseChatManagementProps) => {
             JSON.stringify(Array.from(newDecisions.entries())));
         }
 
-        setChats(sortedActiveChats);
+        setChats(sortedActiveChatsWithReadState);
         setMessageRequests(sortedRequests);
-        setAllChatsCache([...sortedActiveChats, ...sortedRequests]);
+        setAllChatsCache([...sortedActiveChatsWithReadState, ...sortedRequests]);
         
         // Cache any existing lastMessages from the initial load
         //console.log('Caching initial lastMessages for', sortedRequests.length, 'request chats');

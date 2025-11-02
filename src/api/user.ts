@@ -45,6 +45,18 @@ export const editProfile = async (data: {
     return response.data.data;
 }
 
+export const uploadProfileImage = async (imageFile: File) => {
+    const formData = new FormData();
+    formData.append('profileImage', imageFile);
+
+    const response = await axios.post('/users/profile/upload-image', formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data',
+        },
+    });
+    return response.data.data;
+}
+
 export const followUser = async (userId: string) => {
     try {
         const response = await axios.post('/users/follow', { userId });

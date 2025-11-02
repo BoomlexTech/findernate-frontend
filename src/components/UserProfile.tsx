@@ -10,7 +10,7 @@ import ShareModal from './ShareModal';
 import { Button } from "./ui/button";
 import SettingsModal from "./SettingsModal";
 import { UserProfile as UserProfileType } from "@/types";
-import { followUser, unfollowUser, editProfile, blockUser, unblockUser, checkIfUserBlocked } from "@/api/user";
+import { followUser, unfollowUser, editProfile, blockUser, unblockUser, checkIfUserBlocked, uploadProfileImage } from "@/api/user";
 import { toggleAccountPrivacy } from "@/api/privacy";
 import { storyAPI } from "@/api/story";
 import { Story } from "@/types/story";
@@ -618,87 +618,58 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
     setSelectedImage(null);
   };
 
-  // Upload image to Cloudinary and return the URL
-  const uploadImageToCloudinary = async (dataUrl: string): Promise<string> => {
-    // Convert data URL to blob
-    const response = await fetch(dataUrl);
-    const blob = await response.blob();
-
-    // Get Cloudinary signature from our API
-    const signResponse = await fetch('/api/cloudinary-sign', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ folder: 'findernate/profiles' }),
-    });
-
-    if (!signResponse.ok) {
-      throw new Error('Failed to get Cloudinary signature');
+  // Helper function to convert data URL to File
+  const dataURLtoFile = (dataurl: string, filename: string): File => {
+    const arr = dataurl.split(',');
+    const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
     }
-
-    const { signature, timestamp, apiKey, cloudName, folder } = await signResponse.json();
-
-    // Upload to Cloudinary
-    const formData = new FormData();
-    formData.append('file', blob);
-    formData.append('api_key', apiKey);
-    formData.append('timestamp', timestamp.toString());
-    formData.append('signature', signature);
-    formData.append('folder', folder);
-
-    const uploadResponse = await fetch(
-      `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-      {
-        method: 'POST',
-        body: formData,
-      }
-    );
-
-    if (!uploadResponse.ok) {
-      throw new Error('Failed to upload image to Cloudinary');
-    }
-
-    const uploadData = await uploadResponse.json();
-    return uploadData.secure_url; // Return the Cloudinary URL
+    return new File([u8arr], filename, { type: mime });
   };
 
   const handleSave = async () => {
     try {
-      // Prepare data for API - only include fields that the API expects
+      let updatedProfile: any = {};
+
+      // If image is a data URL (newly selected), upload to backend first
+      if (formData.profileImageUrl && formData.profileImageUrl.startsWith('data:')) {
+        try {
+          // Resize to safe dimensions before upload
+          const resizedDataUrl = await resizeImageDataUrl(formData.profileImageUrl, 512, 512, 0.85, 'image/jpeg');
+
+          // Convert data URL to File
+          const imageFile = dataURLtoFile(resizedDataUrl, 'profile-image.jpg');
+
+          // Upload to backend using the upload-image endpoint
+          const uploadResponse = await uploadProfileImage(imageFile);
+
+          console.log('Profile image uploaded successfully:', uploadResponse);
+
+          // The upload endpoint returns the updated profile with new image URL
+          updatedProfile = uploadResponse;
+        } catch (uploadError) {
+          console.error('Error uploading profile image:', uploadError);
+          throw new Error('Failed to upload profile image. Please try again.');
+        }
+      }
+
+      // Prepare data for editProfile API - only non-image fields
       const profileData = {
         fullName: formData.fullName,
         bio: formData.bio,
         location: formData.location,
         link: formData.link,
-        profileImageUrl: formData.profileImageUrl,
       };
 
-      // Debug: Log what we're sending to the API
-      // //console.log('Sending profile data to API:', {
-      //   fullName: profileData.fullName,
-      //   bio: profileData.bio,
-      //   location: profileData.location,
-      //   link: profileData.link,
-      //   profileImageUrlLength: profileData.profileImageUrl ? profileData.profileImageUrl.length : 0,
-      //   profileImageUrlStart: profileData.profileImageUrl ? profileData.profileImageUrl.substring(0, 100) : 'No image URL'
-      // });
+      // Call the editProfile API for other fields
+      const editResponse = await editProfile(profileData);
 
-      // If image is a data URL (newly selected), upload to Cloudinary first
-      if (profileData.profileImageUrl && profileData.profileImageUrl.startsWith('data:')) {
-        try {
-          // Resize to safe dimensions before upload
-          const resizedDataUrl = await resizeImageDataUrl(profileData.profileImageUrl, 512, 512, 0.85, 'image/jpeg');
-
-          // Upload to Cloudinary and get URL back
-          const cloudinaryUrl = await uploadImageToCloudinary(resizedDataUrl);
-          profileData.profileImageUrl = cloudinaryUrl;
-        } catch (uploadError) {
-          console.error('Error uploading image to Cloudinary:', uploadError);
-          throw new Error('Failed to upload profile image. Please try again.');
-        }
-      }
-
-      // Call the editProfile API
-      const updatedProfile = await editProfile(profileData);
+      // Merge both responses (image upload + profile edit)
+      updatedProfile = { ...editResponse, ...updatedProfile };
       
       // Debug: Log the response
       // //console.log('API Response:', updatedProfile);
