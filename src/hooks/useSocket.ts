@@ -37,6 +37,7 @@ export const useSocket = ({
   const selectedChatRef = useRef<string | null>(null);
   const chatsRef = useRef<Chat[]>([]);
   const messageRequestsRef = useRef<Chat[]>([]);
+  const processedMessageIds = useRef<Set<string>>(new Set());
 
   // Update refs when values change
   useEffect(() => {
@@ -93,6 +94,20 @@ export const useSocket = ({
         unreadCount: data.unreadCount,
         fullData: data
       });
+
+      // Deduplicate: Check if we've already processed this message
+      const messageKey = `${data.chatId}-${data.message._id}`;
+      if (processedMessageIds.current.has(messageKey)) {
+        console.log('⚠️ Duplicate message detected, skipping:', messageKey);
+        return;
+      }
+      processedMessageIds.current.add(messageKey);
+
+      // Clean up old message IDs to prevent memory leak (keep last 1000)
+      if (processedMessageIds.current.size > 1000) {
+        const idsArray = Array.from(processedMessageIds.current);
+        processedMessageIds.current = new Set(idsArray.slice(-1000));
+      }
 
       const chatInRegular = chats.find(c => c._id === data.chatId);
       const chatInRequests = messageRequests.find(r => r._id === data.chatId);
