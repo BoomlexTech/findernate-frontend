@@ -88,19 +88,23 @@ export const useSocket = ({
   // Socket event handlers
   useEffect(() => {
     const handleNewMessage = (data: { chatId: string; message: Message; unreadCount?: number }) => {
+      // Deduplicate: Check if we've already processed this message FIRST
+      const messageKey = `${data.chatId}-${data.message._id}`;
+
       console.log('📨 Socket new_message received:', {
         chatId: data.chatId,
         messageId: data.message._id,
-        unreadCount: data.unreadCount,
-        fullData: data
+        messageKey: messageKey,
+        alreadyProcessed: processedMessageIds.current.has(messageKey),
+        processedCount: processedMessageIds.current.size
       });
 
-      // Deduplicate: Check if we've already processed this message
-      const messageKey = `${data.chatId}-${data.message._id}`;
       if (processedMessageIds.current.has(messageKey)) {
-        console.log('⚠️ Duplicate message detected, skipping:', messageKey);
+        console.log('⚠️ DUPLICATE MESSAGE DETECTED - SKIPPING:', messageKey);
         return;
       }
+
+      console.log('✅ New message, processing:', messageKey);
       processedMessageIds.current.add(messageKey);
 
       // Clean up old message IDs to prevent memory leak (keep last 1000)
@@ -337,6 +341,17 @@ export const useSocket = ({
       });
     };
 
+    // Remove all previous listeners first to prevent duplicates
+    socketManager.off('new_message');
+    socketManager.off('user_typing');
+    socketManager.off('user_stopped_typing');
+    socketManager.off('message_deleted');
+    socketManager.off('messages_read');
+    socketManager.off('chat_request_declined');
+    socketManager.off('chat_request_accepted');
+
+    console.log('🔧 Registering socket handlers');
+
     socketManager.on('new_message', handleNewMessage);
     socketManager.on('user_typing', handleUserTyping);
     socketManager.on('user_stopped_typing', handleUserStoppedTyping);
@@ -346,6 +361,7 @@ export const useSocket = ({
     socketManager.on('chat_request_accepted', handleChatRequestAccepted);
 
     return () => {
+      console.log('🧹 Cleaning up socket handlers');
       socketManager.off('new_message', handleNewMessage);
       socketManager.off('user_typing', handleUserTyping);
       socketManager.off('user_stopped_typing', handleUserStoppedTyping);
