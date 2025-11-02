@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { usePathname } from 'next/navigation';
 import { callAPI } from '@/api/call';
 import { streamAPI } from '@/api/stream';
 import { Chat } from '@/api/message';
@@ -10,6 +11,7 @@ interface UseVideoCallProps {
 
 export const useVideoCall = ({ user }: UseVideoCallProps) => {
   const [isInitiating, setIsInitiating] = useState(false);
+  const pathname = usePathname();
 
   // Use global call state from the provider
   const {
@@ -22,7 +24,8 @@ export const useVideoCall = ({ user }: UseVideoCallProps) => {
     endCall,
     setCurrentCall,
     setIsVideoCallOpen,
-    setStreamToken
+    setStreamToken,
+    setRouteBeforeCall
   } = useGlobalCall();
 
   // Initiate a call
@@ -66,7 +69,11 @@ export const useVideoCall = ({ user }: UseVideoCallProps) => {
 
       console.log('📞 Stream.io call created with type:', streamCallData.streamCallType);
 
-      // Step 5: Open modal with correct streamCallType from backend response
+      // Step 5: Store current route before opening modal
+      setRouteBeforeCall(pathname);
+      console.log('📍 Storing route before call:', pathname);
+
+      // Step 6: Open modal with correct streamCallType from backend response
       setStreamToken(token);
       setCurrentCall({
         callId: call._id,
@@ -90,7 +97,7 @@ export const useVideoCall = ({ user }: UseVideoCallProps) => {
       const errorMessage = error?.response?.data?.message || error?.message || 'Failed to initiate call';
       alert(errorMessage);
     }
-  }, [user, setCurrentCall, setIsVideoCallOpen, setStreamToken]);
+  }, [user, pathname, setCurrentCall, setIsVideoCallOpen, setStreamToken, setRouteBeforeCall]);
 
   return {
     isVideoCallOpen,

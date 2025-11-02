@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, createContext, useContext } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import { socketManager } from '@/utils/socket';
 import { callAPI } from '@/api/call';
 import { streamAPI } from '@/api/stream';
@@ -37,6 +38,7 @@ interface GlobalCallContextType {
   setCurrentCall: (call: CurrentCall | null) => void;
   setIsVideoCallOpen: (open: boolean) => void;
   setStreamToken: (token: string | null) => void;
+  setRouteBeforeCall: (route: string | null) => void;
 }
 
 const GlobalCallContext = createContext<GlobalCallContextType | null>(null);
@@ -54,7 +56,10 @@ export const GlobalCallProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [currentCall, setCurrentCall] = useState<CurrentCall | null>(null);
   const [isVideoCallOpen, setIsVideoCallOpen] = useState(false);
   const [streamToken, setStreamToken] = useState<string | null>(null);
+  const [routeBeforeCall, setRouteBeforeCall] = useState<string | null>(null);
   const { user } = useUserStore();
+  const router = useRouter();
+  const pathname = usePathname();
 
   // Use ref to avoid re-registering socket listeners
   const currentCallRef = React.useRef<CurrentCall | null>(null);
@@ -123,6 +128,14 @@ export const GlobalCallProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         setIsVideoCallOpen(false);
         setCurrentCall(null);
         setStreamToken(null);
+
+        // Navigate back to the route before call
+        if (routeBeforeCall && routeBeforeCall !== pathname) {
+          console.log('📍 Navigating back to route after decline:', routeBeforeCall);
+          router.push(routeBeforeCall);
+        }
+        setRouteBeforeCall(null);
+
         alert('Call was declined');
       }
     };
@@ -133,6 +146,13 @@ export const GlobalCallProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         setIsVideoCallOpen(false);
         setCurrentCall(null);
         setStreamToken(null);
+
+        // Navigate back to the route before call
+        if (routeBeforeCall && routeBeforeCall !== pathname) {
+          console.log('📍 Navigating back to route after end:', routeBeforeCall);
+          router.push(routeBeforeCall);
+        }
+        setRouteBeforeCall(null);
       }
     };
 
@@ -211,6 +231,10 @@ export const GlobalCallProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     if (!incomingCall) return;
 
     try {
+      // Store current route before opening call modal
+      setRouteBeforeCall(pathname);
+      console.log('📍 Storing route before call:', pathname);
+
       // Step 1: Get token immediately (cached if available - instant!)
       const tokenPromise = streamAPI.getStreamToken();
 
@@ -278,11 +302,19 @@ export const GlobalCallProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     if (!currentCall) return;
 
     const callId = currentCall.callId;
+    const savedRoute = routeBeforeCall;
 
     // Optimistic update - clear state immediately for better UX
     setIsVideoCallOpen(false);
     setCurrentCall(null);
     setStreamToken(null);
+
+    // Navigate back to the route before call
+    if (savedRoute && savedRoute !== pathname) {
+      console.log('📍 Navigating back to route:', savedRoute);
+      router.push(savedRoute);
+    }
+    setRouteBeforeCall(null);
 
     try {
       // Make API call in background (with timeout protection)
@@ -312,7 +344,8 @@ export const GlobalCallProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     endCall,
     setCurrentCall,
     setIsVideoCallOpen,
-    setStreamToken
+    setStreamToken,
+    setRouteBeforeCall
   };
 
   return (
