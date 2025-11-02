@@ -378,11 +378,14 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
     }
   };
 
-  // Don't render anything if modal is closed or closing
-  if (!isOpen || isClosing) return null;
+  // Don't render anything if modal is closed
+  if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black">
+    <div
+      className="fixed inset-0 z-50 bg-black"
+      style={{ display: isClosing ? 'none' : 'block' }}
+    >
       {/* Global CSS override for full-width video */}
       <style jsx global>{`
         .str-video__call-layout,
