@@ -39,6 +39,10 @@ export const useSocket = ({
   const messageRequestsRef = useRef<Chat[]>([]);
   const processedMessageIds = useRef<Set<string>>(new Set());
 
+  // Create refs for functions that might change to prevent re-registering handlers
+  const scrollToBottomRef = useRef(scrollToBottom);
+  const isIncomingRequestRef = useRef(isIncomingRequest);
+
   // Update refs when values change
   useEffect(() => {
     selectedChatRef.current = selectedChat;
@@ -51,6 +55,14 @@ export const useSocket = ({
   useEffect(() => {
     messageRequestsRef.current = messageRequests;
   }, [messageRequests]);
+
+  useEffect(() => {
+    scrollToBottomRef.current = scrollToBottom;
+  }, [scrollToBottom]);
+
+  useEffect(() => {
+    isIncomingRequestRef.current = isIncomingRequest;
+  }, [isIncomingRequest]);
 
   // Initialize socket connection
   useEffect(() => {
@@ -134,7 +146,7 @@ export const useSocket = ({
             const filteredRequests = requestsResponse.chats.filter(chat => {
               if (!user?._id) return false;
               if (chat.status === 'declined') return false;
-              return isIncomingRequest(chat, user._id);
+              return isIncomingRequestRef.current(chat, user._id);
             });
 
             const sortedRequests = filteredRequests.sort((a, b) =>
@@ -167,10 +179,10 @@ export const useSocket = ({
             // //console.log('Adding message to cache for currently selected request chat');
             requestChatCache.addMessage(data.chatId, data.message);
           }
-          
+
           return [...prev, data.message];
         });
-        scrollToBottom();
+        scrollToBottomRef.current();
       }
 
       // Update the appropriate chat list
@@ -370,10 +382,10 @@ export const useSocket = ({
       socketManager.off('chat_request_declined', handleChatRequestDeclined);
       socketManager.off('chat_request_accepted', handleChatRequestAccepted);
     };
-    // CRITICAL FIX: Removed 'chats' and 'messageRequests' from dependencies to prevent infinite re-renders
-    // These cause the effect to re-run on every message update, creating a render loop
-    // Socket handlers use refs and callbacks that remain stable
-  }, [selectedChat, user, setChats, setMessageRequests, setAllChatsCache, setMessages, setTypingUsers, scrollToBottom, isIncomingRequest]);
+    // CRITICAL FIX: Minimal dependencies to prevent infinite re-renders
+    // We use refs for state values and the setters are stable from useState
+    // Only re-register handlers when user changes (login/logout)
+  }, [user]);
 
   return {
     selectedChatRef
