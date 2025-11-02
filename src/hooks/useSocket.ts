@@ -86,7 +86,14 @@ export const useSocket = ({
 
   // Socket event handlers
   useEffect(() => {
-    const handleNewMessage = (data: { chatId: string; message: Message }) => {
+    const handleNewMessage = (data: { chatId: string; message: Message; unreadCount?: number }) => {
+      console.log('📨 Socket new_message received:', {
+        chatId: data.chatId,
+        messageId: data.message._id,
+        unreadCount: data.unreadCount,
+        fullData: data
+      });
+
       const chatInRegular = chats.find(c => c._id === data.chatId);
       const chatInRequests = messageRequests.find(r => r._id === data.chatId);
       const chat = chatInRegular || chatInRequests;
@@ -152,8 +159,21 @@ export const useSocket = ({
         setChats(prev => {
           const updatedChats = prev.map(chat => {
             if (chat._id === data.chatId) {
-              // Don't increment if this is the selected chat (messages are being read)
-              const shouldIncrementCount = data.chatId !== selectedChatRef.current;
+              // Determine the correct unread count
+              let newUnreadCount = 0;
+
+              if (data.chatId === selectedChatRef.current) {
+                // If this is the selected chat, keep unread count at 0 (messages are being read)
+                newUnreadCount = 0;
+              } else if (typeof data.unreadCount === 'number') {
+                // If backend provides the unread count in socket data, use it (most accurate)
+                newUnreadCount = data.unreadCount;
+                console.log('✅ Using backend unread count from socket:', newUnreadCount);
+              } else {
+                // Fallback: increment locally if backend doesn't provide count
+                newUnreadCount = (chat.unreadCount || 0) + 1;
+                console.log('📊 Incrementing locally:', newUnreadCount);
+              }
 
               return {
                 ...chat,
@@ -163,9 +183,7 @@ export const useSocket = ({
                   timestamp: data.message.timestamp
                 },
                 lastMessageAt: data.message.timestamp,
-                // Only update unread count if not the selected chat
-                // For selected chat, keep it at 0 (messages are being read)
-                unreadCount: shouldIncrementCount ? (chat.unreadCount || 0) + 1 : 0
+                unreadCount: newUnreadCount
               };
             }
             return chat;
