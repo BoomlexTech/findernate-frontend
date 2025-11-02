@@ -169,7 +169,11 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
     if (!isOpen) {
       // Mark as closing to hide content immediately
       setIsClosing(true);
-      // Don't clear states here - let the component unmount naturally
+
+      // Clear client and call immediately to prevent "Connecting..." screen
+      setClient(null);
+      setCall(null);
+
       // The cleanup function will handle Stream.io cleanup
       return;
     }
@@ -378,14 +382,11 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
     }
   };
 
-  // Don't render anything if modal is closed
-  if (!isOpen) return null;
+  // Don't render anything if modal is closed or closing
+  if (!isOpen || isClosing) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 bg-black"
-      style={{ display: isClosing ? 'none' : 'block' }}
-    >
+    <div className="fixed inset-0 z-50 bg-black">
       {/* Global CSS override for full-width video */}
       <style jsx global>{`
         .str-video__call-layout,
@@ -409,13 +410,13 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
 
       {/* Video call container - full screen */}
       <div className="w-full h-full bg-gray-900">
-        {client && call ? (
+        {client && call && !isClosing ? (
           <StreamVideo client={client}>
             <StreamCall call={call}>
               <CallLayout callType={callType} />
             </StreamCall>
           </StreamVideo>
-        ) : (
+        ) : !isClosing ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
@@ -423,7 +424,7 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
               <p className="text-gray-400 text-sm mt-2">Please wait</p>
             </div>
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );

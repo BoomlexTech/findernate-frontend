@@ -130,17 +130,22 @@ export const GlobalCallProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     const handleCallDeclined = (data: any) => {
       console.log('📞 Call declined:', data);
       if (currentCallRef.current?.callId === data.callId) {
+        // Store route before clearing states
+        const savedRoute = routeBeforeCallRef.current;
+
+        // Clear states first to close modal
         setIsVideoCallOpen(false);
         setCurrentCall(null);
         setStreamToken(null);
-
-        // Navigate back to the route before call
-        const savedRoute = routeBeforeCallRef.current;
-        if (savedRoute) {
-          console.log('📍 Navigating back to route after decline:', savedRoute);
-          router.push(savedRoute);
-        }
         setRouteBeforeCall(null);
+
+        // Small delay to ensure modal closes before navigation
+        setTimeout(() => {
+          if (savedRoute) {
+            console.log('📍 Navigating back to route after decline:', savedRoute);
+            router.push(savedRoute);
+          }
+        }, 100);
 
         alert('Call was declined');
       }
@@ -149,17 +154,22 @@ export const GlobalCallProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     const handleCallEnded = (data: any) => {
       console.log('📞 Call ended:', data);
       if (currentCallRef.current?.callId === data.callId) {
+        // Store route before clearing states
+        const savedRoute = routeBeforeCallRef.current;
+
+        // Clear states first to close modal
         setIsVideoCallOpen(false);
         setCurrentCall(null);
         setStreamToken(null);
-
-        // Navigate back to the route before call
-        const savedRoute = routeBeforeCallRef.current;
-        if (savedRoute) {
-          console.log('📍 Navigating back to route after end:', savedRoute);
-          router.push(savedRoute);
-        }
         setRouteBeforeCall(null);
+
+        // Small delay to ensure modal closes before navigation
+        setTimeout(() => {
+          if (savedRoute) {
+            console.log('📍 Navigating back to route after end:', savedRoute);
+            router.push(savedRoute);
+          }
+        }, 100);
       }
     };
 
@@ -316,13 +326,15 @@ export const GlobalCallProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setIsVideoCallOpen(false);
     setCurrentCall(null);
     setStreamToken(null);
-
-    // Navigate back to the route before call
-    if (savedRoute) {
-      console.log('📍 Navigating back to route:', savedRoute);
-      router.push(savedRoute);
-    }
     setRouteBeforeCall(null);
+
+    // Small delay to ensure modal closes before navigation
+    setTimeout(() => {
+      if (savedRoute) {
+        console.log('📍 Navigating back to route:', savedRoute);
+        router.push(savedRoute);
+      }
+    }, 100);
 
     try {
       // Make API call in background (with timeout protection)
