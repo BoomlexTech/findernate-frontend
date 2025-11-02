@@ -266,6 +266,7 @@ export const GlobalCallProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       await callAPI.declineCall(incomingCall.callId);
       console.log('📞 Call declined:', incomingCall.callId);
       setIncomingCall(null);
+      
     } catch (error) {
       console.error('Failed to decline call:', error);
       setIncomingCall(null);

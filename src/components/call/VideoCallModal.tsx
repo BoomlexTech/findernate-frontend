@@ -163,9 +163,19 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
 }) => {
   const [client, setClient] = useState<StreamVideoClient | null>(null);
   const [call, setCall] = useState<any>(null);
+  const [isClosing, setIsClosing] = useState(false);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      // Mark as closing to hide content immediately
+      setIsClosing(true);
+      // Don't clear states here - let the component unmount naturally
+      // The cleanup function will handle Stream.io cleanup
+      return;
+    }
+
+    // Reset closing state when modal opens
+    setIsClosing(false);
 
     // Don't initialize Stream.io if we're still connecting (waiting for real callId)
     if (callId === 'connecting') {
@@ -175,6 +185,7 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
     // Declare these outside async function so cleanup can access them
     let videoClient: StreamVideoClient | null = null;
     let videoCall: any = null;
+    let isCancelled = false; // Flag to track if effect was cleaned up
 
     const initializeCall = async () => {
       try {
@@ -187,6 +198,14 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
         // Initialize Stream Video client
         console.log('📞 Initializing Stream.io client...');
         videoClient = new StreamVideoClient({ apiKey, user, token });
+
+        // Check if cancelled before setting state
+        if (isCancelled) {
+          console.log('📞 Initialization cancelled, cleaning up...');
+          videoClient.disconnectUser().catch(console.error);
+          return;
+        }
+
         setClient(videoClient);
 
         // Use the streamCallType from backend
@@ -197,6 +216,14 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
         // Get the existing call that was already created by backend
         videoCall = videoClient.call(streamCallType, callId);
 
+        // Check if cancelled before setting state
+        if (isCancelled) {
+          console.log('📞 Initialization cancelled, cleaning up...');
+          videoCall.leave().catch(console.error);
+          videoClient.disconnectUser().catch(console.error);
+          return;
+        }
+
         // Set call state immediately for faster UI
         setCall(videoCall);
 
@@ -205,6 +232,14 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
         await videoCall.join({
           create: false
         });
+
+        // Check if cancelled after joining
+        if (isCancelled) {
+          console.log('📞 Join completed but effect cancelled, leaving call...');
+          videoCall.leave().catch(console.error);
+          videoClient.disconnectUser().catch(console.error);
+          return;
+        }
 
         console.log('📞 Successfully joined call!');
 
@@ -265,6 +300,9 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
     initializeCall();
 
     return () => {
+      // Set cancellation flag immediately
+      isCancelled = true;
+
       // Cleanup on unmount - use parallel cleanup with timeout
       const cleanupPromises: Promise<unknown>[] = [];
 
@@ -295,6 +333,9 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
   }, [isOpen, apiKey, token, userId, userName, userImage, callId, callType, streamCallType, onClose]);
 
   const handleClose = async () => {
+    // Hide content immediately to prevent showing connecting screen
+    setIsClosing(true);
+
     // Optimistic UI update - close modal immediately for better UX
     onClose();
 
@@ -337,7 +378,8 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
     }
   };
 
-  if (!isOpen) return null;
+  // Don't render anything if modal is closed or closing
+  if (!isOpen || isClosing) return null;
 
   return (
     <div className="fixed inset-0 z-50 bg-black">
