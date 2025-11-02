@@ -405,7 +405,12 @@ export const useMessageManagement = ({ selectedChat, user, setChats, messageRequ
       setChats(prev => {
         const updatedChats = prev.map(chat =>
           chat._id === selectedChat
-            ? { ...chat, lastMessage: { sender: message.sender._id, message: message.message, timestamp: message.timestamp }, lastMessageAt: message.timestamp }
+            ? {
+                ...chat,
+                lastMessage: { sender: message.sender._id, message: message.message, timestamp: message.timestamp },
+                lastMessageAt: message.timestamp,
+                unreadCount: 0  // Reset unread count when sending a message
+              }
             : chat
         );
 
