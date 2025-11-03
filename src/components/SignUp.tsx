@@ -104,12 +104,13 @@ export default function SignupComponent() {
       }));
       return;
     }
-    // Special handling for username: remove spaces and dots, check availability
+    // Special handling for username: allow only alphanumeric characters (letters and numbers)
     if (name === 'username') {
-      const sanitized = value.replace(/[\s.]/g, '');
+      // Allow only a-z, A-Z, and 0-9 (no special characters)
+      const alphanumericOnly = value.replace(/[^a-zA-Z0-9]/g, '');
       setFormData(prev => ({
         ...prev,
-        [name]: sanitized
+        [name]: alphanumericOnly
       }));
 
       // Clear existing timeout
@@ -119,7 +120,7 @@ export default function SignupComponent() {
 
       // Set new timeout for debounced API call
       usernameTimeoutRef.current = setTimeout(() => {
-        checkUsernameWithSuggestions(sanitized);
+        checkUsernameWithSuggestions(alphanumericOnly);
       }, 500); // 500ms delay
 
       return;

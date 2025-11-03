@@ -225,7 +225,7 @@ export default function MessagePanel() {
         loading={loading}
       />
 
-      <div className={`flex-1 flex items-center justify-center bg-gray-50 ${selected ? 'flex' : 'hidden'} sm:flex`}>
+      <div className={`flex-1 min-h-0 flex ${selected ? 'flex-col' : 'items-center justify-center'} bg-gray-50 ${selected ? 'flex' : 'hidden'} sm:flex overflow-hidden`}>
         {selected ? (
           <RightPanel
             selected={selected}

@@ -125,7 +125,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
         isInitiatingCall={isInitiatingCall}
       />
 
-      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-6 bg-gray-50">
+      <div ref={messagesContainerRef} className="flex-1 min-h-0 overflow-y-auto p-6 bg-gray-50">
         {messages.length === 0 ? (
           <div className="flex justify-center items-center h-full">
             <div className="text-center">
