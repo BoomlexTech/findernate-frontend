@@ -1089,23 +1089,32 @@ const handleProductChange = (
       image: organizedMedia,
       category: finalCategory
     };
-    
-    // Determine the final post type for regular posts
+
+    // Determine if we should set postType to 'reel' based on reel visibility toggle
+    const shouldBeReel = reelVisibility && showReelVisibility;
+
+    // Determine the final post type for each post type
     let finalRegularForm = { ...regularForm };
-    if (postType === 'Regular' && reelVisibility && showReelVisibility) {
+    let finalProductForm = { ...productForm };
+    let finalServiceForm = { ...serviceForm };
+
+    if (shouldBeReel) {
       finalRegularForm = { ...regularForm, postType: 'reel' };
+      finalProductForm = { ...productForm, postType: 'reel' };
+      finalServiceForm = { ...serviceForm, postType: 'reel' };
     }
-    
+
     switch (postType) {
       case 'Regular':
         return { ...sharedFormWithCaption, ...finalRegularForm };
       case 'Product':
-        return { ...sharedFormWithCaption, ...productForm };
+        return { ...sharedFormWithCaption, ...finalProductForm };
       case 'Service':
-        return { ...sharedFormWithCaption, ...serviceForm };
+        return { ...sharedFormWithCaption, ...finalServiceForm };
       case 'Business':
         return {
           ...businessForm.formData,  // Get the business form data
+          postType: shouldBeReel ? 'reel' : businessForm.formData.postType, // Set reel postType if applicable
           ...sharedFormWithCaption,  // Override with shared form data (images, etc.)
           business: businessForm.formData.business  // Keep the business object
         };
@@ -1292,10 +1301,10 @@ const handleProductChange = (
     
     if (contentType === 'Reel') {
       // Check if there's any video
-      const hasVideo = sharedForm.image.some(file => 
+      const hasVideo = sharedForm.image.some(file =>
         file.type === 'video/mp4' || file.type === 'video/quicktime' || file.type === 'video/webm'
       );
-      
+
       if (!hasVideo) {
         toast.error('Please upload a video to create a Reel', {
           position: "top-right",
@@ -1303,7 +1312,7 @@ const handleProductChange = (
         });
         return;
       }
-      
+
       // Check if video is under 60 seconds
       if (videoDuration && videoDuration > 60) {
         toast.error(`Video is ${Math.round(videoDuration)} seconds long. Please upload a video under 60 seconds for Reels.`, {
@@ -1312,25 +1321,62 @@ const handleProductChange = (
         });
         return;
       }
-      
-      // Treat short video as a Regular post with postType 'reel'
+
+      // Validate form before submission (same as regular posts)
+      if (!validateForm()) {
+        return;
+      }
+
+      // Organize media and build payload based on postType
       const organizedMedia = organizeMediaForReel(sharedForm.image);
+
+      // Determine final category
+      const finalCategory = sharedForm.category === 'Other' && sharedForm.customCategory.trim()
+        ? sharedForm.customCategory.trim()
+        : sharedForm.category;
+
       const sharedFormWithCaption = {
         ...sharedForm,
         caption: sharedForm.description,
         image: organizedMedia,
+        category: finalCategory
       };
-      const reelRegularForm = { ...regularForm, postType: 'reel' };
-
-      const payload: RegularPostPayload = {
-        ...sharedFormWithCaption,
-        ...reelRegularForm,
-      } as unknown as RegularPostPayload;
 
       try {
         setLoading(true);
         setError(null);
-        const response = await createRegularPost(payload);
+        let response;
+
+        // Create reel based on selected postType
+        if (postType === 'Regular') {
+          const reelRegularForm = { ...regularForm, postType: 'reel' };
+          const payload: RegularPostPayload = {
+            ...sharedFormWithCaption,
+            ...reelRegularForm,
+          } as unknown as RegularPostPayload;
+          console.log('[REEL CONTENT TYPE] Creating Regular Reel with payload:', payload);
+          response = await createRegularPost(payload);
+        } else if (postType === 'Product') {
+          const reelProductForm = { ...productForm, postType: 'reel' };
+          const payload = { ...sharedFormWithCaption, ...reelProductForm };
+          console.log('[REEL CONTENT TYPE] Creating Product Reel with payload:', payload);
+          response = await createProductPost({formData: payload} as unknown as ProductDetailsFormProps);
+        } else if (postType === 'Service') {
+          const reelServiceForm = { ...serviceForm, postType: 'reel' };
+          const payload = { ...sharedFormWithCaption, ...reelServiceForm };
+          console.log('[REEL CONTENT TYPE] Creating Service Reel with payload:', payload);
+          response = await createServicePost({formData: payload} as unknown as ServiceDetailsFormProps);
+        } else if (postType === 'Business') {
+          const reelBusinessForm = {
+            ...businessForm.formData,
+            postType: 'reel',
+            ...sharedFormWithCaption,
+            business: businessForm.formData.business
+          };
+          console.log('[REEL CONTENT TYPE] Creating Business Reel with payload:', reelBusinessForm);
+          response = await createBusinessPost({formData: reelBusinessForm} as unknown as BusinessPostFormProps);
+        }
+
         if (response && (response.status === 200 || response.status === 201)) {
           toast.success('Reel created successfully!', { position: 'top-right', autoClose: 3000 });
           postRefreshEvents.emitPostCreated(response.data || response);
@@ -1362,25 +1408,21 @@ const handleProductChange = (
       let response;
       
       if (postType === 'Regular') {
-        //console.log("Payload being sent:", sharedForm, regularForm);
         const regularPayload = finalPayload as RegularPostPayload;
+        console.log('[POST CONTENT TYPE] Creating Regular Post with payload:', regularPayload);
         response = await createRegularPost(regularPayload);
-        //console.log(response);
       } else if (postType === 'Product') {
-        //console.log('Product Post Data:',sharedForm, productForm); 
         const productPayload = finalPayload;
+        console.log('[POST CONTENT TYPE] Creating Product Post with payload:', productPayload);
         response = await createProductPost({formData:productPayload} as unknown as ProductDetailsFormProps);
-        //console.log(response);
       } else if (postType === 'Service') {
-        //console.log('Service Post Data:',sharedForm, serviceForm);
         const servicePayload = finalPayload;
+        console.log('[POST CONTENT TYPE] Creating Service Post with payload:', servicePayload);
         response = await createServicePost({formData:servicePayload} as unknown as ServiceDetailsFormProps);
-        //console.log(response);
        } else if (postType === 'Business') {
-        //console.log('Business Post Data:',sharedForm, businessForm);
         const businessPayload = finalPayload;
+        console.log('[POST CONTENT TYPE] Creating Business Post with payload:', businessPayload);
         response = await createBusinessPost({formData:businessPayload} as unknown as BusinessPostFormProps);
-        //console.log(response);
        }
 
       // Only show success toast if we actually got a successful response
@@ -1782,55 +1824,101 @@ const handleProductChange = (
 
           {/* Post Type Selection (radio buttons) - Only show for business accounts */}
           {(contentType === 'Post' || contentType === 'Reel') && isBusinessProfile && (
-            <div className="mb-6">
+            <div className="mb-5">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Choose Post Type (optional)
+                Choose Post Type
               </label>
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-wrap gap-2">
                 {allowBusiness && (
-                  <label className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer select-none text-black hover:bg-gray-50">
+                  <label className={`
+                    relative inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border cursor-pointer select-none
+                    transition-all duration-200 ease-in-out text-sm
+                    ${postType === 'Business'
+                      ? 'border-yellow-500 bg-yellow-50 shadow-sm'
+                      : 'border-gray-200 bg-white hover:border-yellow-300 hover:bg-yellow-50/50'
+                    }
+                  `}>
                     <input
                       type="radio"
                       name="postType"
                       value="Business"
                       checked={postType === 'Business'}
                       onChange={() => setPostType('Business')}
-                      className="text-yellow-500 focus:ring-yellow-500"
+                      className="w-3.5 h-3.5 text-yellow-500 focus:ring-0 focus:ring-offset-0 border-gray-300"
                     />
-                    <span>Business</span>
+                    <span className={`font-medium ${postType === 'Business' ? 'text-yellow-700' : 'text-gray-700'}`}>
+                      Business
+                    </span>
+                    {postType === 'Business' && (
+                      <svg className="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    )}
                   </label>
                 )}
                 {allowService && (
-                  <label className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer select-none text-black hover:bg-gray-50">
+                  <label className={`
+                    relative inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border cursor-pointer select-none
+                    transition-all duration-200 ease-in-out text-sm
+                    ${postType === 'Service'
+                      ? 'border-blue-500 bg-blue-50 shadow-sm'
+                      : 'border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/50'
+                    }
+                  `}>
                     <input
                       type="radio"
                       name="postType"
                       value="Service"
                       checked={postType === 'Service'}
                       onChange={() => setPostType('Service')}
-                      className="text-yellow-500 focus:ring-yellow-500"
+                      className="w-3.5 h-3.5 text-blue-500 focus:ring-0 focus:ring-offset-0 border-gray-300"
                     />
-                    <span>Service</span>
+                    <span className={`font-medium ${postType === 'Service' ? 'text-blue-700' : 'text-gray-700'}`}>
+                      Service
+                    </span>
+                    {postType === 'Service' && (
+                      <svg className="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    )}
                   </label>
                 )}
                 {allowProduct && (
-                  <label className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer select-none text-black hover:bg-gray-50">
+                  <label className={`
+                    relative inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border cursor-pointer select-none
+                    transition-all duration-200 ease-in-out text-sm
+                    ${postType === 'Product'
+                      ? 'border-green-500 bg-green-50 shadow-sm'
+                      : 'border-gray-200 bg-white hover:border-green-300 hover:bg-green-50/50'
+                    }
+                  `}>
                     <input
                       type="radio"
                       name="postType"
                       value="Product"
                       checked={postType === 'Product'}
                       onChange={() => setPostType('Product')}
-                      className="text-yellow-500 focus:ring-yellow-500"
+                      className="w-3.5 h-3.5 text-green-500 focus:ring-0 focus:ring-offset-0 border-gray-300"
                     />
-                    <span>Product</span>
+                    <span className={`font-medium ${postType === 'Product' ? 'text-green-700' : 'text-gray-700'}`}>
+                      Product
+                    </span>
+                    {postType === 'Product' && (
+                      <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    )}
                   </label>
                 )}
-                {/* If none selected, it's Regular by default */}
-                {postType !== 'Business' && postType !== 'Service' && postType !== 'Product' && (
-                  <span className="text-sm text-gray-500 self-center">Default: Regular Post</span>
-                )}
               </div>
+              {postType !== 'Business' && postType !== 'Service' && postType !== 'Product' && (
+                <p className="text-xs text-gray-500 mt-2 flex items-center gap-1">
+                  <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                  </svg>
+                  No selection will default to Regular Post
+                </p>
+              )}
             </div>
           )}
 
@@ -1882,42 +1970,6 @@ const handleProductChange = (
               />
               <div className="text-right text-xs text-black mt-1">
                 {sharedForm.description.length}/500
-              </div>
-            </div>
-          )}
-
-          {/* Reel Visibility Option */}
-          {showReelVisibility && (
-            <div className="mb-6">
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="text-sm font-semibold text-yellow-800 mb-1">
-                      🎬 Reel Visibility
-                    </h4>
-                    <p className="text-xs text-yellow-700">
-                      Your video is under 1 minute and eligible for reels. Enable this option to show it in the reels section.
-                      {sharedForm.image.some(file => file.type.startsWith('image/')) && 
-                        " Videos will appear first in the reel slider, followed by images."
-                      }
-                    </p>
-                  </div>
-                  <label className="flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={reelVisibility}
-                      onChange={(e) => setReelVisibility(e.target.checked)}
-                      className="sr-only"
-                    />
-                    <div className={`relative w-11 h-6 rounded-full transition-colors ${
-                      reelVisibility ? 'bg-yellow-500' : 'bg-gray-300'
-                    }`}>
-                      <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
-                        reelVisibility ? 'translate-x-5' : 'translate-x-0'
-                      }`} />
-                    </div>
-                  </label>
-                </div>
               </div>
             </div>
           )}
@@ -2097,6 +2149,42 @@ const handleProductChange = (
           {(contentType === 'Post' || contentType === 'Reel') && (
             <div className="mb-6">
               <TagInput tags={sharedForm.tags} setTags={(tags) => setSharedForm({...sharedForm, tags})} />
+            </div>
+          )}
+
+          {/* Reel Visibility Option */}
+          {showReelVisibility && (
+            <div className="mb-6">
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm font-semibold text-yellow-800 mb-1">
+                      🎬 Reel Visibility
+                    </h4>
+                    <p className="text-xs text-yellow-700">
+                      Your video is under 1 minute and eligible for reels. Enable this option to show it in the reels section.
+                      {sharedForm.image.some(file => file.type.startsWith('image/')) &&
+                        " Videos will appear first in the reel slider, followed by images."
+                      }
+                    </p>
+                  </div>
+                  <label className="flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={reelVisibility}
+                      onChange={(e) => setReelVisibility(e.target.checked)}
+                      className="sr-only"
+                    />
+                    <div className={`relative w-11 h-6 rounded-full transition-colors ${
+                      reelVisibility ? 'bg-yellow-500' : 'bg-gray-300'
+                    }`}>
+                      <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
+                        reelVisibility ? 'translate-x-5' : 'translate-x-0'
+                      }`} />
+                    </div>
+                  </label>
+                </div>
+              </div>
             </div>
           )}
         </div>

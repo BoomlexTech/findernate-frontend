@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { Send, Paperclip, Smile, Trash2, Ban } from 'lucide-react';
 import EmojiPicker, { EmojiClickData, EmojiStyle } from 'emoji-picker-react';
@@ -50,6 +50,57 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   isBlocked = false,
   blockedUserInfo
 }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Handle input focus - scroll into view when keyboard appears on mobile
+  const handleInputFocus = () => {
+    // Use a timeout to allow the keyboard animation to start
+    setTimeout(() => {
+      if (containerRef.current) {
+        // Scroll the container into view smoothly
+        containerRef.current.scrollIntoView({
+          behavior: 'smooth',
+          block: 'end',
+          inline: 'nearest'
+        });
+      }
+
+      // Additional scroll for the input itself after a short delay
+      setTimeout(() => {
+        if (messageInputRef.current) {
+          messageInputRef.current.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center',
+            inline: 'nearest'
+          });
+        }
+      }, 100);
+    }, 300);
+  };
+
+  // Also handle when the virtual keyboard appears (viewport resize on mobile)
+  useEffect(() => {
+    const handleResize = () => {
+      // Check if input is focused and viewport height decreased (keyboard appeared)
+      if (messageInputRef.current === document.activeElement && containerRef.current) {
+        setTimeout(() => {
+          containerRef.current?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'end',
+            inline: 'nearest'
+          });
+        }, 100);
+      }
+    };
+
+    // Listen for viewport changes (keyboard appearing/disappearing)
+    window.visualViewport?.addEventListener('resize', handleResize);
+
+    return () => {
+      window.visualViewport?.removeEventListener('resize', handleResize);
+    };
+  }, []);
+
   // Show blocked user message instead of input
   if (isBlocked && blockedUserInfo) {
     return (
@@ -88,7 +139,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   }
 
   return (
-    <div className="p-4 border-t border-gray-200 bg-white relative">
+    <div ref={containerRef} className="p-4 border-t border-gray-200 bg-white relative">
       {selectedFile && (
         <div className="mb-3 p-3 bg-gray-50 rounded-lg border">
           <div className="flex items-center justify-between">
@@ -144,14 +195,15 @@ export const MessageInput: React.FC<MessageInputProps> = ({
         />
 
         <div className="relative flex-1">
-          <input 
+          <input
             ref={messageInputRef}
-            type="text" 
-            placeholder={selectedFile ? "Add a caption (optional)..." : "Type a message..."} 
+            type="text"
+            placeholder={selectedFile ? "Add a caption (optional)..." : "Type a message..."}
             value={newMessage}
             onChange={onInputChange}
+            onFocus={handleInputFocus}
             disabled={sendingMessage || uploadingFile}
-            className="w-full py-3 px-4 pr-10 border border-gray-300 rounded-full focus:ring-2 focus:ring-yellow-500 disabled:opacity-50 text-black placeholder-gray-400" 
+            className="w-full py-3 px-4 pr-10 border border-gray-300 rounded-full focus:ring-2 focus:ring-yellow-500 disabled:opacity-50 text-black placeholder-gray-400"
           />
           <button 
             type="button" 

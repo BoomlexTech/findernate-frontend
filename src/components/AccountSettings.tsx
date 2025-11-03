@@ -825,17 +825,17 @@ export default function AccountSettings() {
                   
                   {/* Service Autofill Checkbox */}
                   {servicePostsAllowed && (
-                    <div className="flex items-center justify-between pl-13 pt-2 border-t border-gray-100">
-                      <div className="flex items-center gap-2">
-                        <label className="text-sm font-medium text-gray-700 cursor-pointer">
+                    <div className="flex items-center justify-between gap-2 pl-4 sm:pl-13 pt-2 border-t border-gray-100">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 min-w-0 flex-1">
+                        <label className="text-sm font-medium text-gray-700 cursor-pointer whitespace-nowrap">
                           Enable Autofill
                         </label>
-                        <span className="text-xs text-gray-500">(Auto-fill from previous posts)</span>
+                        <span className="text-xs text-gray-500 truncate">(Auto-fill from previous posts)</span>
                       </div>
                       <button
                         onClick={handleToggleServiceAutofill}
                         disabled={togglingServiceAutofill}
-                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 ${
+                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 flex-shrink-0 ${
                           serviceAutofillEnabled ? 'bg-blue-600' : 'bg-gray-200'
                         } ${togglingServiceAutofill ? 'opacity-60 cursor-not-allowed' : ''}`}
                       >
@@ -878,17 +878,17 @@ export default function AccountSettings() {
                   
                   {/* Product Autofill Checkbox */}
                   {productPostsAllowed && (
-                    <div className="flex items-center justify-between pl-13 pt-2 border-t border-gray-100">
-                      <div className="flex items-center gap-2">
-                        <label className="text-sm font-medium text-gray-700 cursor-pointer">
+                    <div className="flex items-center justify-between gap-2 pl-4 sm:pl-13 pt-2 border-t border-gray-100">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 min-w-0 flex-1">
+                        <label className="text-sm font-medium text-gray-700 cursor-pointer whitespace-nowrap">
                           Enable Autofill
                         </label>
-                        <span className="text-xs text-gray-500">(Auto-fill from previous posts)</span>
+                        <span className="text-xs text-gray-500 truncate">(Auto-fill from previous posts)</span>
                       </div>
                       <button
                         onClick={handleToggleProductAutofill}
                         disabled={togglingProductAutofill}
-                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-1 ${
+                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-1 flex-shrink-0 ${
                           productAutofillEnabled ? 'bg-green-600' : 'bg-gray-200'
                         } ${togglingProductAutofill ? 'opacity-60 cursor-not-allowed' : ''}`}
                       >
