@@ -311,14 +311,11 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
         // Step 3: For video calls, enable camera
         if (callType === 'video') {
           try {
-            // Set preferred camera to front camera
-            await videoCall.camera.setSettings({
-              preferredFacingMode: 'user' // Front camera (selfie camera on mobile)
+            // Enable camera with front-facing mode (user = front camera, environment = back camera)
+            await videoCall.camera.enable({
+              facingMode: 'user' // Front camera (selfie camera on mobile)
             });
-
-            // Enable camera
-            await videoCall.camera.enable();
-            console.log('📞 Camera enabled');
+            console.log('📞 Camera enabled with front-facing mode');
           } catch (cameraError) {
             console.error('❌ Failed to enable camera:', cameraError);
             // Continue even if camera fails - audio works
