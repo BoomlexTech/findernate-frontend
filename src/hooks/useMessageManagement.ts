@@ -382,14 +382,18 @@ export const useMessageManagement = ({ selectedChat, user, setChats, messageRequ
     }
 
     const messageText = newMessage.trim();
+
+    // Keep the input focused before clearing message (prevents keyboard close on mobile)
+    messageInputRef.current?.focus();
+
     setNewMessage("");
-    
+
     await stopTypingIndicator();
-    
+
     try {
       setSendingMessage(true);
       const message = await messageAPI.sendMessage(selectedChat, messageText);
-      
+
       //console.log('API: Adding message from API response', message._id);
       setMessagesWithDebug(prev => {
         const messageExists = prev.some(msg => msg._id === message._id);
@@ -401,7 +405,7 @@ export const useMessageManagement = ({ selectedChat, user, setChats, messageRequ
         //console.log('API: Adding new message to state');
         return [...prev, message];
       });
-      
+
       setChats(prev => {
         const updatedChats = prev.map(chat =>
           chat._id === selectedChat
@@ -420,13 +424,8 @@ export const useMessageManagement = ({ selectedChat, user, setChats, messageRequ
       // Force scroll to bottom when user sends a message
       scrollToBottom(true);
 
-      // Only refocus if the input doesn't already have focus
-      // This prevents keyboard flicker on mobile devices
-      setTimeout(() => {
-        if (document.activeElement !== messageInputRef.current) {
-          messageInputRef.current?.focus();
-        }
-      }, 100);
+      // Keep input focused after sending (like WhatsApp)
+      messageInputRef.current?.focus();
       
     } catch (error) {
       console.error('Failed to send message:', error);

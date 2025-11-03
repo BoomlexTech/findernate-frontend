@@ -50,12 +50,23 @@ const CallControlsWrapper: React.FC<{ callType: 'voice' | 'video'; onCallEnd: ()
     }
   };
 
+  const handleSwitchCamera = async () => {
+    try {
+      // Flip between front and rear cameras
+      await camera.flip();
+      console.log('📷 Camera flipped successfully');
+    } catch (error) {
+      console.error('❌ Failed to flip camera:', error);
+    }
+  };
+
   return (
     <CustomCallControls
       isAudioEnabled={microphone.enabled}
       isVideoEnabled={camera.enabled}
       onToggleAudio={handleToggleAudio}
       onToggleVideo={handleToggleVideo}
+      onSwitchCamera={handleSwitchCamera}
       onEndCall={onCallEnd}
       callType={callType}
     />
