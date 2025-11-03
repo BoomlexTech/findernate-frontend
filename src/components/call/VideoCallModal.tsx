@@ -35,7 +35,7 @@ const CallControlsWrapper: React.FC<{ callType: 'voice' | 'video'; onCallEnd: ()
   const { camera } = useCameraState();
 
   const handleToggleAudio = async () => {
-    if (microphone.isEnabled) {
+    if (microphone.enabled) {
       await microphone.disable();
     } else {
       await microphone.enable();
@@ -43,7 +43,7 @@ const CallControlsWrapper: React.FC<{ callType: 'voice' | 'video'; onCallEnd: ()
   };
 
   const handleToggleVideo = async () => {
-    if (camera.isEnabled) {
+    if (camera.enabled) {
       await camera.disable();
     } else {
       await camera.enable();
@@ -52,8 +52,8 @@ const CallControlsWrapper: React.FC<{ callType: 'voice' | 'video'; onCallEnd: ()
 
   return (
     <CustomCallControls
-      isAudioEnabled={microphone.isEnabled}
-      isVideoEnabled={camera.isEnabled}
+      isAudioEnabled={microphone.enabled}
+      isVideoEnabled={camera.enabled}
       onToggleAudio={handleToggleAudio}
       onToggleVideo={handleToggleVideo}
       onEndCall={onCallEnd}
