@@ -103,7 +103,7 @@ const CallLayout: React.FC<{ callType?: 'voice' | 'video'; onCallEnd: () => void
     }
   }, [callingState, onCallEnd]);
 
-  // Hide all menu items except "Enter fullscreen"
+  // Hide all menu items except "Enter fullscreen" and ensure menu visibility
   React.useEffect(() => {
     const hideMenuItems = () => {
       // Find all menu containers
@@ -116,8 +116,22 @@ const CallLayout: React.FC<{ callType?: 'voice' | 'video'; onCallEnd: () => void
           // Only show "Enter fullscreen" option
           if (!text.toLowerCase().includes('fullscreen') && !text.toLowerCase().includes('entire screen')) {
             (button as HTMLElement).style.display = 'none';
+          } else {
+            // Ensure fullscreen option is visible on mobile with proper styling
+            (button as HTMLElement).style.display = 'flex';
+            (button as HTMLElement).style.visibility = 'visible';
+            (button as HTMLElement).style.opacity = '1';
           }
         });
+      });
+
+      // Ensure three-dot menu button is visible on mobile
+      const menuButtons = document.querySelectorAll('[class*="menu-button"], [class*="MenuButton"], button[aria-haspopup="menu"]');
+      menuButtons.forEach((btn) => {
+        (btn as HTMLElement).style.display = 'flex';
+        (btn as HTMLElement).style.visibility = 'visible';
+        (btn as HTMLElement).style.opacity = '1';
+        (btn as HTMLElement).style.zIndex = '10';
       });
     };
 
@@ -142,7 +156,7 @@ const CallLayout: React.FC<{ callType?: 'voice' | 'video'; onCallEnd: () => void
     }
 
     return (
-      <div className="flex items-center justify-center h-full">
+      <div className="flex items-center justify-center h-full bg-gray-900">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
           <p className="text-white text-lg">
@@ -239,9 +253,9 @@ const CallLayout: React.FC<{ callType?: 'voice' | 'video'; onCallEnd: () => void
   // Video call UI - show video feeds
   return (
     <StreamTheme>
-      <div className="w-full h-full flex flex-col" style={{ maxWidth: '100%', width: '100%' }}>
+      <div className="w-full h-full flex flex-col bg-gray-900" style={{ maxWidth: '100%', width: '100%' }}>
         {/* Video area - force full width */}
-        <div className="flex-1 overflow-hidden" style={{ width: '100%', maxWidth: '100%' }}>
+        <div className="flex-1 overflow-hidden bg-gray-900" style={{ width: '100%', maxWidth: '100%' }}>
           <div style={{ width: '100%', height: '100%', maxWidth: '100%' }}>
             <SpeakerLayout participantsBarPosition="top" />
           </div>
