@@ -104,24 +104,25 @@ export default function SignupComponent() {
       }));
       return;
     }
-    // Special handling for username: remove spaces and check availability
+    // Special handling for username: allow only alphanumeric characters (letters and numbers)
     if (name === 'username') {
-      const noSpaces = value.replace(/\s/g, '');
+      // Allow only a-z, A-Z, and 0-9 (no special characters)
+      const alphanumericOnly = value.replace(/[^a-zA-Z0-9]/g, '');
       setFormData(prev => ({
         ...prev,
-        [name]: noSpaces
+        [name]: alphanumericOnly
       }));
-      
+
       // Clear existing timeout
       if (usernameTimeoutRef.current) {
         clearTimeout(usernameTimeoutRef.current);
       }
-      
+
       // Set new timeout for debounced API call
       usernameTimeoutRef.current = setTimeout(() => {
-        checkUsernameWithSuggestions(noSpaces);
+        checkUsernameWithSuggestions(alphanumericOnly);
       }, 500); // 500ms delay
-      
+
       return;
     }
     setFormData(prev => ({
