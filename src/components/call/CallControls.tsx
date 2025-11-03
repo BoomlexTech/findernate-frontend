@@ -1,15 +1,17 @@
 'use client';
 
 import React from 'react';
-import { Mic, MicOff, Video, VideoOff, Phone, PhoneOff, SwitchCamera } from 'lucide-react';
+import { Mic, MicOff, Video, VideoOff, Phone, PhoneOff, SwitchCamera, MonitorUp, MonitorX } from 'lucide-react';
 
 interface CallControlsProps {
   isAudioEnabled: boolean;
   isVideoEnabled: boolean;
+  isScreenSharing?: boolean;
   onToggleAudio: () => void;
   onToggleVideo: () => void;
   onEndCall: () => void;
   onSwitchCamera?: () => void;
+  onToggleScreenShare?: () => void;
   callType: 'voice' | 'video';
   size?: 'small' | 'medium' | 'large';
   disabled?: boolean;
@@ -18,10 +20,12 @@ interface CallControlsProps {
 export const CallControls: React.FC<CallControlsProps> = ({
   isAudioEnabled,
   isVideoEnabled,
+  isScreenSharing,
   onToggleAudio,
   onToggleVideo,
   onEndCall,
   onSwitchCamera,
+  onToggleScreenShare,
   callType,
   size = 'large',
   disabled = false
@@ -108,6 +112,29 @@ export const CallControls: React.FC<CallControlsProps> = ({
           title="Switch camera"
         >
           <SwitchCamera className={classes.icon} />
+        </button>
+      )}
+
+      {/* Screen Share Toggle */}
+      {onToggleScreenShare && (
+        <button
+          onClick={onToggleScreenShare}
+          disabled={disabled}
+          className={`
+            ${classes.button} rounded-full flex items-center justify-center transition-all duration-200
+            ${isScreenSharing
+              ? 'bg-blue-500 hover:bg-blue-600 text-white'
+              : 'bg-gray-700 hover:bg-gray-600 text-white'
+            }
+            ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105 active:scale-95'}
+          `}
+          title={isScreenSharing ? 'Stop sharing screen' : 'Share screen'}
+        >
+          {isScreenSharing ? (
+            <MonitorX className={classes.icon} />
+          ) : (
+            <MonitorUp className={classes.icon} />
+          )}
         </button>
       )}
 

@@ -30,9 +30,10 @@ interface VideoCallModalProps {
 
 // Wrapper component that integrates Stream SDK with custom CallControls
 const CallControlsWrapper: React.FC<{ callType: 'voice' | 'video'; onCallEnd: () => void }> = ({ callType, onCallEnd }) => {
-  const { useMicrophoneState, useCameraState } = useCallStateHooks();
+  const { useMicrophoneState, useCameraState, useScreenShareState } = useCallStateHooks();
   const { microphone } = useMicrophoneState();
   const { camera } = useCameraState();
+  const { screenShare } = useScreenShareState();
 
   const handleToggleAudio = async () => {
     if (microphone.enabled) {
@@ -60,13 +61,29 @@ const CallControlsWrapper: React.FC<{ callType: 'voice' | 'video'; onCallEnd: ()
     }
   };
 
+  const handleToggleScreenShare = async () => {
+    try {
+      if (screenShare.enabled) {
+        await screenShare.disable();
+        console.log('🖥️ Screen sharing stopped');
+      } else {
+        await screenShare.enable();
+        console.log('🖥️ Screen sharing started');
+      }
+    } catch (error) {
+      console.error('❌ Failed to toggle screen share:', error);
+    }
+  };
+
   return (
     <CustomCallControls
       isAudioEnabled={microphone.enabled}
       isVideoEnabled={camera.enabled}
+      isScreenSharing={screenShare.enabled}
       onToggleAudio={handleToggleAudio}
       onToggleVideo={handleToggleVideo}
       onSwitchCamera={handleSwitchCamera}
+      onToggleScreenShare={handleToggleScreenShare}
       onEndCall={onCallEnd}
       callType={callType}
     />
@@ -85,6 +102,37 @@ const CallLayout: React.FC<{ callType?: 'voice' | 'video'; onCallEnd: () => void
       onCallEnd();
     }
   }, [callingState, onCallEnd]);
+
+  // Hide all menu items except "Enter fullscreen"
+  React.useEffect(() => {
+    const hideMenuItems = () => {
+      // Find all menu containers
+      const menus = document.querySelectorAll('[role="menu"], [class*="menu"]');
+
+      menus.forEach((menu) => {
+        const buttons = menu.querySelectorAll('button');
+        buttons.forEach((button) => {
+          const text = button.textContent || '';
+          // Only show "Enter fullscreen" option
+          if (!text.toLowerCase().includes('fullscreen') && !text.toLowerCase().includes('entire screen')) {
+            (button as HTMLElement).style.display = 'none';
+          }
+        });
+      });
+    };
+
+    // Run immediately
+    hideMenuItems();
+
+    // Run on mutations (when menu opens)
+    const observer = new MutationObserver(hideMenuItems);
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+
+    return () => observer.disconnect();
+  }, []);
 
   // Show connecting screen only for initial states, not for LEFT/ENDED
   if (callingState !== CallingState.JOINED) {
