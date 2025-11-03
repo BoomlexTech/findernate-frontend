@@ -98,7 +98,8 @@ export default function MessagePanel() {
     setNewMessage,
     setMessages,
     setChats,
-    scrollToBottom
+    scrollToBottom,
+    messageInputRef
   });
 
   // Modal state

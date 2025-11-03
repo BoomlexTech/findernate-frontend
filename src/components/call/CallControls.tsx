@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Mic, MicOff, Video, VideoOff, Phone, PhoneOff } from 'lucide-react';
+import { Mic, MicOff, Video, VideoOff, Phone, PhoneOff, SwitchCamera } from 'lucide-react';
 
 interface CallControlsProps {
   isAudioEnabled: boolean;
@@ -9,6 +9,7 @@ interface CallControlsProps {
   onToggleAudio: () => void;
   onToggleVideo: () => void;
   onEndCall: () => void;
+  onSwitchCamera?: () => void;
   callType: 'voice' | 'video';
   size?: 'small' | 'medium' | 'large';
   disabled?: boolean;
@@ -20,6 +21,7 @@ export const CallControls: React.FC<CallControlsProps> = ({
   onToggleAudio,
   onToggleVideo,
   onEndCall,
+  onSwitchCamera,
   callType,
   size = 'large',
   disabled = false
@@ -77,8 +79,8 @@ export const CallControls: React.FC<CallControlsProps> = ({
           disabled={disabled}
           className={`
             ${classes.button} rounded-full flex items-center justify-center transition-all duration-200
-            ${isVideoEnabled 
-              ? 'bg-gray-700 hover:bg-gray-600 text-white' 
+            ${isVideoEnabled
+              ? 'bg-gray-700 hover:bg-gray-600 text-white'
               : 'bg-red-500 hover:bg-red-600 text-white'
             }
             ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105 active:scale-95'}
@@ -90,6 +92,22 @@ export const CallControls: React.FC<CallControlsProps> = ({
           ) : (
             <VideoOff className={classes.icon} />
           )}
+        </button>
+      )}
+
+      {/* Camera Switch (only for video calls when camera is enabled) */}
+      {callType === 'video' && isVideoEnabled && onSwitchCamera && (
+        <button
+          onClick={onSwitchCamera}
+          disabled={disabled}
+          className={`
+            ${classes.button} rounded-full flex items-center justify-center transition-all duration-200
+            bg-gray-700 hover:bg-gray-600 text-white
+            ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105 active:scale-95'}
+          `}
+          title="Switch camera"
+        >
+          <SwitchCamera className={classes.icon} />
         </button>
       )}
 

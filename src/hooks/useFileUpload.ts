@@ -8,6 +8,7 @@ interface UseFileUploadProps {
   setMessages: React.Dispatch<React.SetStateAction<any[]>>;
   setChats: React.Dispatch<React.SetStateAction<Chat[]>>;
   scrollToBottom: () => void;
+  messageInputRef?: React.RefObject<HTMLInputElement | null>;
 }
 
 export const useFileUpload = ({
@@ -16,7 +17,8 @@ export const useFileUpload = ({
   setNewMessage,
   setMessages,
   setChats,
-  scrollToBottom
+  scrollToBottom,
+  messageInputRef
 }: UseFileUploadProps) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string | null>(null);
@@ -72,45 +74,51 @@ export const useFileUpload = ({
   const handleSendFileMessage = async () => {
     if (!selectedFile || !selectedChat || uploadingFile) return;
 
+    // Keep the input focused before clearing (prevents keyboard close on mobile)
+    messageInputRef?.current?.focus();
+
     try {
       setUploadingFile(true);
       const message = await messageAPI.sendMessageWithFile(
-        selectedChat, 
-        selectedFile, 
+        selectedChat,
+        selectedFile,
         newMessage.trim() || undefined
       );
-      
+
       // Add message immediately from API response
       setMessages(prev => {
         const messageExists = prev.some(msg => msg._id === message._id);
         if (messageExists) return prev;
         return [...prev, message];
       });
-      
+
       // Update chat list
       setChats(prev => {
-        const updatedChats = prev.map(chat => 
-          chat._id === selectedChat 
-            ? { 
-                ...chat, 
-                lastMessage: { 
-                  sender: message.sender._id, 
-                  message: message.message, 
-                  timestamp: message.timestamp 
-                }, 
-                lastMessageAt: message.timestamp 
+        const updatedChats = prev.map(chat =>
+          chat._id === selectedChat
+            ? {
+                ...chat,
+                lastMessage: {
+                  sender: message.sender._id,
+                  message: message.message,
+                  timestamp: message.timestamp
+                },
+                lastMessageAt: message.timestamp
               }
             : chat
         );
         return updatedChats.sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime());
       });
-      
+
       // Clear file and message
       setSelectedFile(null);
       setFilePreview(null);
       setNewMessage("");
-      
+
       scrollToBottom();
+
+      // Keep input focused after sending (like WhatsApp)
+      messageInputRef?.current?.focus();
       
     } catch (error: any) {
       console.error('Failed to send file:', error);
