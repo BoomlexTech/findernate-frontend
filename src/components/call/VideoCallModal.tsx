@@ -530,7 +530,7 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 bg-black">
-      {/* Global CSS override for full-width video */}
+      {/* Global CSS override for full-width video and menu visibility */}
       <style jsx global>{`
         .str-video__call-layout,
         .str-video__speaker-layout,
@@ -539,6 +539,49 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
         .str-video__speaker-layout > * {
           max-width: 100% !important;
           width: 100% !important;
+        }
+
+        /* Make menu items visible with proper contrast */
+        [role="menu"],
+        [role="menuitem"],
+        [class*="menu"] button,
+        [class*="Menu"] button,
+        .str-video__menu button,
+        .str-video__generic-menu button {
+          color: white !important;
+          background-color: rgba(31, 41, 55, 0.95) !important;
+        }
+
+        /* Menu container styling */
+        [role="menu"],
+        [class*="menu"],
+        [class*="Menu"],
+        .str-video__menu,
+        .str-video__generic-menu {
+          background-color: rgba(31, 41, 55, 0.95) !important;
+          border: 1px solid rgba(255, 255, 255, 0.1) !important;
+          backdrop-filter: blur(8px) !important;
+        }
+
+        /* Menu button hover state */
+        [role="menu"] button:hover,
+        [role="menuitem"]:hover,
+        [class*="menu"] button:hover,
+        [class*="Menu"] button:hover,
+        .str-video__menu button:hover,
+        .str-video__generic-menu button:hover {
+          background-color: rgba(59, 130, 246, 0.5) !important;
+          color: white !important;
+        }
+
+        /* Ensure menu button (three dots) is visible */
+        [class*="menu-button"],
+        [class*="MenuButton"],
+        button[aria-haspopup="menu"],
+        .str-video__menu-toggle {
+          color: white !important;
+          opacity: 1 !important;
+          visibility: visible !important;
         }
       `}</style>
 
