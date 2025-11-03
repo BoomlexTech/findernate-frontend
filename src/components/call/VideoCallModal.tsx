@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from 'react';
 import {
   CallingState,
-  CallControls,
   SpeakerLayout,
   StreamCall,
   StreamTheme,
@@ -14,6 +13,7 @@ import {
 } from '@stream-io/video-react-sdk';
 import { X, Phone, Mic, MicOff } from 'lucide-react';
 import Image from 'next/image';
+import { CallControls as CustomCallControls } from './CallControls';
 
 interface VideoCallModalProps {
   isOpen: boolean;
@@ -27,6 +27,40 @@ interface VideoCallModalProps {
   callType?: 'voice' | 'video';
   streamCallType?: 'audio_room' | 'default';
 }
+
+// Wrapper component that integrates Stream SDK with custom CallControls
+const CallControlsWrapper: React.FC<{ callType: 'voice' | 'video'; onCallEnd: () => void }> = ({ callType, onCallEnd }) => {
+  const { useMicrophoneState, useCameraState } = useCallStateHooks();
+  const { microphone } = useMicrophoneState();
+  const { camera } = useCameraState();
+
+  const handleToggleAudio = async () => {
+    if (microphone.isEnabled) {
+      await microphone.disable();
+    } else {
+      await microphone.enable();
+    }
+  };
+
+  const handleToggleVideo = async () => {
+    if (camera.isEnabled) {
+      await camera.disable();
+    } else {
+      await camera.enable();
+    }
+  };
+
+  return (
+    <CustomCallControls
+      isAudioEnabled={microphone.isEnabled}
+      isVideoEnabled={camera.isEnabled}
+      onToggleAudio={handleToggleAudio}
+      onToggleVideo={handleToggleVideo}
+      onEndCall={onCallEnd}
+      callType={callType}
+    />
+  );
+};
 
 const CallLayout: React.FC<{ callType?: 'voice' | 'video'; onCallEnd: () => void }> = ({ callType = 'video', onCallEnd }) => {
   const { useCallCallingState, useParticipants } = useCallStateHooks();
@@ -136,7 +170,7 @@ const CallLayout: React.FC<{ callType?: 'voice' | 'video'; onCallEnd: () => void
 
           {/* Control buttons */}
           <div className="flex-shrink-0 flex items-center justify-center py-6 bg-gray-800/90 backdrop-blur-sm relative z-10">
-            <CallControls />
+            <CallControlsWrapper callType={callType} onCallEnd={onCallEnd} />
           </div>
         </div>
       </StreamTheme>
@@ -156,7 +190,7 @@ const CallLayout: React.FC<{ callType?: 'voice' | 'video'; onCallEnd: () => void
 
         {/* Control buttons - inside the same StreamCall context */}
         <div className="flex-shrink-0 flex items-center justify-center py-6 bg-gray-800/90 backdrop-blur-sm">
-          <CallControls />
+          <CallControlsWrapper callType={callType} onCallEnd={onCallEnd} />
         </div>
       </div>
     </StreamTheme>
