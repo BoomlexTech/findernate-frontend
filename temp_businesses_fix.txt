@@ -1,0 +1,8 @@
+Line 233: Change to: {/* Search and Filters Section - Full Width */}
+Line 234: Change to: <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
+
+After line 375 (after filters closing div), add:
+</div>
+
+{/* Businesses Content - Constrained Width, Left Aligned */}
+<div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 ml-4 sm:ml-6 lg:ml-12">

@@ -372,7 +372,6 @@ const BusinessDetailsModal: React.FC<Props> = ({
 
     setLoading(true);
     try {
-      let response;
       
       // Prepare form data with proper null handling for GST
       const formDataToSubmit = {
@@ -383,11 +382,11 @@ const BusinessDetailsModal: React.FC<Props> = ({
       
       if (isEdit) {
         // Edit mode: PATCH API
-        response = await UpdateBusinessDetails(formDataToSubmit);
+         await UpdateBusinessDetails(formDataToSubmit);
       } else {
         // Create mode: Try POST API first, fallback to PATCH if business exists
         try {
-          response = await AddBusinessDetails(formDataToSubmit);
+           await AddBusinessDetails(formDataToSubmit);
         } catch (createError: any) {
           // Check if the error indicates business already exists
           const errorMessage = createError?.response?.data?.message || createError?.message || '';
@@ -475,7 +474,7 @@ const BusinessDetailsModal: React.FC<Props> = ({
         {/* Header */}
         <div className="bg-button-gradient px-8 py-6 relative">
           <button
-            className="absolute top-4 right-4 text-white/80 hover:text-white hover:bg-white/20 rounded-full p-2 transition-all duration-200"
+            className="absolute top-4 right-4 text-black/80 hover:text-black hover:bg-black/20 rounded-full p-2 transition-all duration-200"
             onClick={onClose}
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

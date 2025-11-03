@@ -488,14 +488,14 @@ const Notifications = () => {
                 <button
                   onClick={handleMarkAllAsRead}
                   disabled={markingAllAsRead}
-                  className="bg-white/20 backdrop-blur-sm px-3 py-2 rounded-lg text-white text-sm font-medium hover:bg-white/30 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="bg-white/20 backdrop-blur-sm px-3 py-2 rounded-lg text-black text-sm font-bold hover:bg-white/30 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {markingAllAsRead ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
                     <CheckCheck className="w-4 h-4" />
                   )}
-                  {markingAllAsRead ? 'Marking...' : 'Mark All Read'}
+                  {markingAllAsRead ? 'Marking...' : 'Mark All as Read'}
                 </button>
               )}
             </div>
@@ -559,8 +559,12 @@ const Notifications = () => {
                   <div
                     key={notification._id || `notification-${index}`}
                     onClick={() => handleNotificationClick(notification)}
-                    className={`relative flex items-start p-4 hover:bg-gray-50 transition-all duration-200 cursor-pointer group flex-row ${
-                      new Date(notification.createdAt).getTime() > lastSeenAt ? 'bg-blue-50/50' : ''
+                    className={`relative flex items-start p-4 transition-all duration-200 cursor-pointer group flex-row ${
+                      !notification.isRead
+                        ? 'bg-yellow-100/80 hover:bg-yellow-100'
+                        : new Date(notification.createdAt).getTime() > lastSeenAt
+                          ? 'bg-blue-50/50 hover:bg-gray-50'
+                          : 'hover:bg-gray-50'
                     }`}
                   >
                     {/* Profile Image with Status Ring */}
@@ -617,7 +621,7 @@ const Notifications = () => {
                             {new Date(notification.createdAt).getTime() > lastSeenAt && (
                               <div className="flex items-center space-x-1">
                                 <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
-                                <span className="text-xs text-yellow-600 font-medium">New</span>
+                                <span className="text-xs text-yellow-800 font-medium">New</span>
                               </div>
                             )}
                           </div>

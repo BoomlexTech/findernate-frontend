@@ -477,6 +477,10 @@ const ProductsPage = () => {
             <div className="fixed inset-0 z-40" onClick={closeAllDropdowns} />
           )}
         </div>
+      </div>
+
+      {/* Products Content - Constrained Width, Centered */}
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* Products Grid */}
         <div className="flex justify-between items-center mb-4">
