@@ -45,7 +45,7 @@ export const useMessageManagement = ({ selectedChat, user, setChats, messageRequ
   const searchParams = useSearchParams();
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const messageInputRef = useRef<HTMLInputElement>(null);
+  const messageInputRef = useRef<HTMLInputElement | null>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   // Typing indicators
