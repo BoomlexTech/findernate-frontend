@@ -420,8 +420,12 @@ export const useMessageManagement = ({ selectedChat, user, setChats, messageRequ
       // Force scroll to bottom when user sends a message
       scrollToBottom(true);
 
+      // Only refocus if the input doesn't already have focus
+      // This prevents keyboard flicker on mobile devices
       setTimeout(() => {
-        messageInputRef.current?.focus();
+        if (document.activeElement !== messageInputRef.current) {
+          messageInputRef.current?.focus();
+        }
       }, 100);
       
     } catch (error) {
