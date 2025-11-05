@@ -63,6 +63,7 @@ const CommentItem = memo(({ comment, onUpdate, onDelete, onReplyAdded, isReply =
   const [isLoadingReplies, setIsLoadingReplies] = useState(false);
   const [repliesFetched, setRepliesFetched] = useState(false);
   const [actualReplyCount, setActualReplyCount] = useState<number | null>(null); // Actual count from backend
+  const [hasLocalReplies, setHasLocalReplies] = useState(false); // Track if we have manually added replies
 
   const isOwnComment = user?._id === commentUserId;
   const canLikeComment = !isOwnComment; // Disable like for own comments
@@ -215,6 +216,7 @@ const CommentItem = memo(({ comment, onUpdate, onDelete, onReplyAdded, isReply =
     setShowReplyBox(false);
     setShowReplies(true);
     setRepliesFetched(true); // Mark as fetched since we now have data
+    setHasLocalReplies(true); // Mark that we have locally added replies
 
     // Also notify parent component if callback is provided
     onReplyAdded?.(reply);
@@ -244,8 +246,14 @@ const CommentItem = memo(({ comment, onUpdate, onDelete, onReplyAdded, isReply =
   // Fetch replies from backend
   const fetchReplies = async () => {
     // If we already have local replies or already fetched, just toggle visibility
-    if (repliesFetched || isLoadingReplies || replies.length > 0) {
+    if (repliesFetched || isLoadingReplies) {
       // Already fetched or currently fetching, just toggle visibility
+      setShowReplies(!showReplies);
+      return;
+    }
+
+    // If we have locally added replies, don't fetch - just show them
+    if (hasLocalReplies && replies.length > 0) {
       setShowReplies(!showReplies);
       return;
     }
@@ -273,16 +281,28 @@ const CommentItem = memo(({ comment, onUpdate, onDelete, onReplyAdded, isReply =
 
           // Merge with existing local replies (avoid duplicates)
           const mergedReplies = mergeLists(replies, fetchedReplies);
-          setReplies(mergedReplies);
-          setActualReplyCount(Math.max(totalReplies, mergedReplies.length));
-          setRepliesFetched(true);
-          setShowReplies(mergedReplies.length > 0);
-        } else {
-          // Unexpected format - keep existing local replies if any
-          if (replies.length > 0) {
+
+          // IMPORTANT: Never clear replies if we have local ones, even if backend returns 0
+          if (hasLocalReplies && mergedReplies.length === 0 && replies.length > 0) {
+            // Backend hasn't synced yet, keep local replies
+            console.warn('[CommentItem] Backend returned 0 replies but we have local ones. Keeping local.');
+            setActualReplyCount(replies.length);
+            setRepliesFetched(true);
             setShowReplies(true);
           } else {
-            setReplies([]);
+            setReplies(mergedReplies);
+            setActualReplyCount(Math.max(totalReplies, mergedReplies.length));
+            setRepliesFetched(true);
+            setShowReplies(mergedReplies.length > 0);
+          }
+        } else {
+          // Unexpected format - keep existing local replies if any
+          if (hasLocalReplies && replies.length > 0) {
+            console.warn('[CommentItem] Unexpected response format. Keeping local replies.');
+            setShowReplies(true);
+          } else if (replies.length > 0) {
+            setShowReplies(true);
+          } else {
             setActualReplyCount(0);
             setRepliesFetched(true);
             setShowReplies(false);
@@ -290,12 +310,16 @@ const CommentItem = memo(({ comment, onUpdate, onDelete, onReplyAdded, isReply =
         }
       } else {
         // No replies found from backend - keep existing local replies if any
-        if (replies.length > 0) {
+        if (hasLocalReplies && replies.length > 0) {
+          console.warn('[CommentItem] Backend returned no replies but we have local ones. Keeping local.');
+          setActualReplyCount(replies.length);
+          setRepliesFetched(true);
+          setShowReplies(true);
+        } else if (replies.length > 0) {
           setActualReplyCount(replies.length);
           setRepliesFetched(true);
           setShowReplies(true);
         } else {
-          setReplies([]);
           setActualReplyCount(0);
           setRepliesFetched(true);
           setShowReplies(false);
@@ -304,7 +328,9 @@ const CommentItem = memo(({ comment, onUpdate, onDelete, onReplyAdded, isReply =
     } catch (error: any) {
       console.error('[CommentItem] Error fetching replies:', error);
       // On error, still allow toggling with existing local replies
-      setShowReplies(!showReplies);
+      if (replies.length > 0) {
+        setShowReplies(!showReplies);
+      }
     } finally {
       setIsLoadingReplies(false);
     }
@@ -522,7 +548,7 @@ const CommentItem = memo(({ comment, onUpdate, onDelete, onReplyAdded, isReply =
             </button>
           )}
 
-          {(replies.length > 0 || (actualReplyCount !== null ? actualReplyCount > 0 : (comment.replyCount && comment.replyCount > 0))) && (
+          {(replies.length > 0 || hasLocalReplies || (actualReplyCount !== null ? actualReplyCount > 0 : (comment.replyCount && comment.replyCount > 0))) && (
             <button
               onClick={handleToggleReplies}
               disabled={isLoadingReplies || (repliesFetched && replies.length === 0)}
