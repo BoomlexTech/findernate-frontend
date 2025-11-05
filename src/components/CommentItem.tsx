@@ -221,54 +221,83 @@ const CommentItem = memo(({ comment, onUpdate, onDelete, onReplyAdded, isReply =
 
   // Fetch replies from backend
   const fetchReplies = async () => {
+    console.log(`[CommentItem] fetchReplies called for comment ${comment._id}`);
+    console.log(`[CommentItem] repliesFetched: ${repliesFetched}, isLoadingReplies: ${isLoadingReplies}`);
+
     if (repliesFetched || isLoadingReplies) {
       // Already fetched or currently fetching, just toggle visibility
+      console.log(`[CommentItem] Already fetched, just toggling visibility to: ${!showReplies}`);
       setShowReplies(!showReplies);
       return;
     }
 
+    console.log(`[CommentItem] Starting fetch for comment ${comment._id}`);
     setIsLoadingReplies(true);
-    try {
-      console.log(`[CommentItem] Fetching replies for comment: ${comment._id}`);
 
-      // Fetch the full thread using getCommentById
+    try {
+      console.log(`[CommentItem] Calling getCommentById API...`);
       const response = await getCommentById(comment._id);
-      console.log(`[CommentItem] Replies fetched:`, response);
+      console.log(`[CommentItem] Full API response:`, JSON.stringify(response, null, 2));
+      console.log(`[CommentItem] Response type:`, typeof response);
+      console.log(`[CommentItem] Response keys:`, Object.keys(response || {}));
 
       // The backend returns: { comment: {...}, replies: { comments: [...], totalReplies: N } }
-      if (response.replies && response.replies.comments) {
-        const fetchedReplies = response.replies.comments;
-        console.log(`[CommentItem] Setting ${fetchedReplies.length} replies`);
-        setReplies(fetchedReplies);
-        setRepliesFetched(true);
-        setShowReplies(true);
-      } else if (response.replies) {
-        // Handle case where replies is directly an array
-        console.log(`[CommentItem] Setting ${response.replies.length} replies (direct array)`);
-        setReplies(response.replies);
-        setRepliesFetched(true);
-        setShowReplies(true);
+      if (response && response.replies) {
+        console.log(`[CommentItem] Found response.replies:`, response.replies);
+        console.log(`[CommentItem] response.replies type:`, typeof response.replies);
+
+        if (Array.isArray(response.replies)) {
+          // replies is directly an array
+          console.log(`[CommentItem] replies is array with ${response.replies.length} items`);
+          setReplies(response.replies);
+          setRepliesFetched(true);
+          setShowReplies(true);
+        } else if (response.replies.comments && Array.isArray(response.replies.comments)) {
+          // replies is an object with comments array
+          const fetchedReplies = response.replies.comments;
+          console.log(`[CommentItem] Found ${fetchedReplies.length} replies in response.replies.comments`);
+          setReplies(fetchedReplies);
+          setRepliesFetched(true);
+          setShowReplies(true);
+        } else {
+          console.warn(`[CommentItem] response.replies exists but in unexpected format:`, response.replies);
+          setReplies([]);
+          setRepliesFetched(true);
+          setShowReplies(false);
+        }
       } else {
-        console.log(`[CommentItem] No replies found in response`);
+        console.warn(`[CommentItem] No replies found in response. Response:`, response);
         setReplies([]);
         setRepliesFetched(true);
         setShowReplies(false);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('[CommentItem] Error fetching replies:', error);
+      console.error('[CommentItem] Error details:', {
+        message: error?.message,
+        response: error?.response?.data,
+        status: error?.response?.status
+      });
       // On error, still allow toggling with existing local replies
       setShowReplies(!showReplies);
     } finally {
+      console.log(`[CommentItem] Fetch complete. isLoadingReplies set to false`);
       setIsLoadingReplies(false);
     }
   };
 
   const handleToggleReplies = () => {
+    console.log(`[CommentItem] handleToggleReplies clicked. Current showReplies: ${showReplies}`);
+    console.log(`[CommentItem] Current replies.length: ${replies.length}`);
+    console.log(`[CommentItem] comment.replyCount: ${comment.replyCount}`);
+
     if (showReplies) {
       // If already showing, just hide them
+      console.log(`[CommentItem] Hiding replies`);
       setShowReplies(false);
     } else {
       // If not showing, fetch and show them
+      console.log(`[CommentItem] Calling fetchReplies`);
       fetchReplies();
     }
   };
@@ -494,18 +523,34 @@ const CommentItem = memo(({ comment, onUpdate, onDelete, onReplyAdded, isReply =
         )}
 
         {/* Replies */}
+        {(() => {
+          console.log(`[CommentItem Render] Checking replies display:`, {
+            showReplies,
+            repliesLength: replies.length,
+            isReply,
+            shouldDisplay: showReplies && replies.length > 0 && !isReply
+          });
+          return null;
+        })()}
+
         {showReplies && replies.length > 0 && !isReply && (
-          <div className="mt-3 space-y-3">
-            {replies.map((reply) => (
-              <CommentItem
-                key={reply._id}
-                comment={reply}
-                onUpdate={handleReplyUpdate}
-                onDelete={handleReplyDelete}
-                isReply={true}
-                parentCommentUsername={comment.user?.username}
-              />
-            ))}
+          <div className="mt-3 space-y-3 border-l-2 border-gray-200 pl-4">
+            <div className="text-xs text-gray-500 mb-2">
+              {replies.length} {replies.length === 1 ? 'reply' : 'replies'}
+            </div>
+            {replies.map((reply) => {
+              console.log(`[CommentItem Render] Rendering reply:`, reply._id);
+              return (
+                <CommentItem
+                  key={reply._id}
+                  comment={reply}
+                  onUpdate={handleReplyUpdate}
+                  onDelete={handleReplyDelete}
+                  isReply={true}
+                  parentCommentUsername={comment.user?.username}
+                />
+              );
+            })}
           </div>
         )}
       </div>
