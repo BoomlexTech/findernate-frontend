@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Heart, MessageCircle, MoreHorizontal, Edit, Trash2, Flag } from 'lucide-react';
 import { Button } from './ui/button';
-import { Comment, likeComment, unlikeComment, updateComment, deleteComment } from '@/api/comment';
+import { Comment, likeComment, unlikeComment, updateComment, deleteComment, getCommentById } from '@/api/comment';
 import { useUserStore } from '@/store/useUserStore';
 import formatPostDate from '@/utils/formatDate';
 import ReportModal from './ReportModal';
@@ -56,6 +56,8 @@ const CommentItem = memo(({ comment, onUpdate, onDelete, onReplyAdded, isReply =
   const [showReplyBox, setShowReplyBox] = useState(false);
   const [replies, setReplies] = useState<Comment[]>(comment.replies || []);
   const [showReplies, setShowReplies] = useState(false);
+  const [isLoadingReplies, setIsLoadingReplies] = useState(false);
+  const [repliesFetched, setRepliesFetched] = useState(false);
 
   const isOwnComment = user?._id === comment.userId;
   const canLikeComment = !isOwnComment; // Disable like for own comments
@@ -215,6 +217,60 @@ const CommentItem = memo(({ comment, onUpdate, onDelete, onReplyAdded, isReply =
 
   const handleReplyDelete = (replyId: string) => {
     setReplies(prev => prev.filter(reply => reply._id !== replyId));
+  };
+
+  // Fetch replies from backend
+  const fetchReplies = async () => {
+    if (repliesFetched || isLoadingReplies) {
+      // Already fetched or currently fetching, just toggle visibility
+      setShowReplies(!showReplies);
+      return;
+    }
+
+    setIsLoadingReplies(true);
+    try {
+      console.log(`[CommentItem] Fetching replies for comment: ${comment._id}`);
+
+      // Fetch the full thread using getCommentById
+      const response = await getCommentById(comment._id);
+      console.log(`[CommentItem] Replies fetched:`, response);
+
+      // The backend returns: { comment: {...}, replies: { comments: [...], totalReplies: N } }
+      if (response.replies && response.replies.comments) {
+        const fetchedReplies = response.replies.comments;
+        console.log(`[CommentItem] Setting ${fetchedReplies.length} replies`);
+        setReplies(fetchedReplies);
+        setRepliesFetched(true);
+        setShowReplies(true);
+      } else if (response.replies) {
+        // Handle case where replies is directly an array
+        console.log(`[CommentItem] Setting ${response.replies.length} replies (direct array)`);
+        setReplies(response.replies);
+        setRepliesFetched(true);
+        setShowReplies(true);
+      } else {
+        console.log(`[CommentItem] No replies found in response`);
+        setReplies([]);
+        setRepliesFetched(true);
+        setShowReplies(false);
+      }
+    } catch (error) {
+      console.error('[CommentItem] Error fetching replies:', error);
+      // On error, still allow toggling with existing local replies
+      setShowReplies(!showReplies);
+    } finally {
+      setIsLoadingReplies(false);
+    }
+  };
+
+  const handleToggleReplies = () => {
+    if (showReplies) {
+      // If already showing, just hide them
+      setShowReplies(false);
+    } else {
+      // If not showing, fetch and show them
+      fetchReplies();
+    }
   };
 
   // Calculate indentation based on depth (max 3 levels for UI)
@@ -402,10 +458,20 @@ const CommentItem = memo(({ comment, onUpdate, onDelete, onReplyAdded, isReply =
 
           {(replies.length > 0 || (comment.replyCount && comment.replyCount > 0)) && !isReply && (
             <button
-              onClick={() => setShowReplies(!showReplies)}
-              className="flex items-center gap-1 hover:text-blue-600 font-semibold"
+              onClick={handleToggleReplies}
+              disabled={isLoadingReplies}
+              className="flex items-center gap-1 hover:text-blue-600 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {showReplies ? 'Hide' : 'View'} {comment.replyCount || replies.length} {(comment.replyCount || replies.length) === 1 ? 'reply' : 'replies'}
+              {isLoadingReplies ? (
+                <>
+                  <div className="w-3 h-3 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+                  Loading...
+                </>
+              ) : (
+                <>
+                  {showReplies ? 'Hide' : 'View'} {comment.replyCount || replies.length} {(comment.replyCount || replies.length) === 1 ? 'reply' : 'replies'}
+                </>
+              )}
             </button>
           )}
 
