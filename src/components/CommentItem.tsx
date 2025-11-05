@@ -58,6 +58,7 @@ const CommentItem = memo(({ comment, onUpdate, onDelete, onReplyAdded, isReply =
   const [showReplies, setShowReplies] = useState(false);
   const [isLoadingReplies, setIsLoadingReplies] = useState(false);
   const [repliesFetched, setRepliesFetched] = useState(false);
+  const [actualReplyCount, setActualReplyCount] = useState<number | null>(null); // Actual count from backend
 
   const isOwnComment = user?._id === comment.userId;
   const canLikeComment = !isOwnComment; // Disable like for own comments
@@ -201,8 +202,10 @@ const CommentItem = memo(({ comment, onUpdate, onDelete, onReplyAdded, isReply =
   const handleReplyAdded = (reply: Comment) => {
     // Add reply to local state for immediate display
     setReplies(prev => [reply, ...prev]);
+    setActualReplyCount(prev => (prev !== null ? prev + 1 : 1));
     setShowReplyBox(false);
     setShowReplies(true);
+    setRepliesFetched(true); // Mark as fetched since we now have data
     // Also notify parent component if callback is provided
     onReplyAdded?.(reply);
   };
@@ -217,87 +220,68 @@ const CommentItem = memo(({ comment, onUpdate, onDelete, onReplyAdded, isReply =
 
   const handleReplyDelete = (replyId: string) => {
     setReplies(prev => prev.filter(reply => reply._id !== replyId));
+    setActualReplyCount(prev => (prev !== null && prev > 0 ? prev - 1 : 0));
   };
 
   // Fetch replies from backend
   const fetchReplies = async () => {
-    console.log(`[CommentItem] fetchReplies called for comment ${comment._id}`);
-    console.log(`[CommentItem] repliesFetched: ${repliesFetched}, isLoadingReplies: ${isLoadingReplies}`);
-
     if (repliesFetched || isLoadingReplies) {
       // Already fetched or currently fetching, just toggle visibility
-      console.log(`[CommentItem] Already fetched, just toggling visibility to: ${!showReplies}`);
       setShowReplies(!showReplies);
       return;
     }
 
-    console.log(`[CommentItem] Starting fetch for comment ${comment._id}`);
     setIsLoadingReplies(true);
 
     try {
-      console.log(`[CommentItem] Calling getCommentById API...`);
       const response = await getCommentById(comment._id);
-      console.log(`[CommentItem] Full API response:`, JSON.stringify(response, null, 2));
-      console.log(`[CommentItem] Response type:`, typeof response);
-      console.log(`[CommentItem] Response keys:`, Object.keys(response || {}));
 
       // The backend returns: { comment: {...}, replies: { comments: [...], totalReplies: N } }
       if (response && response.replies) {
-        console.log(`[CommentItem] Found response.replies:`, response.replies);
-        console.log(`[CommentItem] response.replies type:`, typeof response.replies);
-
         if (Array.isArray(response.replies)) {
-          // replies is directly an array
-          console.log(`[CommentItem] replies is array with ${response.replies.length} items`);
+          // replies is directly an array (fallback format)
           setReplies(response.replies);
+          setActualReplyCount(response.replies.length);
           setRepliesFetched(true);
-          setShowReplies(true);
+          setShowReplies(response.replies.length > 0);
         } else if (response.replies.comments && Array.isArray(response.replies.comments)) {
-          // replies is an object with comments array
+          // replies is an object with comments array (primary format)
           const fetchedReplies = response.replies.comments;
-          console.log(`[CommentItem] Found ${fetchedReplies.length} replies in response.replies.comments`);
+          const totalReplies = response.replies.totalReplies || fetchedReplies.length;
+
           setReplies(fetchedReplies);
+          setActualReplyCount(totalReplies);
           setRepliesFetched(true);
-          setShowReplies(true);
+          setShowReplies(fetchedReplies.length > 0);
         } else {
-          console.warn(`[CommentItem] response.replies exists but in unexpected format:`, response.replies);
+          // Unexpected format
           setReplies([]);
+          setActualReplyCount(0);
           setRepliesFetched(true);
           setShowReplies(false);
         }
       } else {
-        console.warn(`[CommentItem] No replies found in response. Response:`, response);
+        // No replies found
         setReplies([]);
+        setActualReplyCount(0);
         setRepliesFetched(true);
         setShowReplies(false);
       }
     } catch (error: any) {
       console.error('[CommentItem] Error fetching replies:', error);
-      console.error('[CommentItem] Error details:', {
-        message: error?.message,
-        response: error?.response?.data,
-        status: error?.response?.status
-      });
       // On error, still allow toggling with existing local replies
       setShowReplies(!showReplies);
     } finally {
-      console.log(`[CommentItem] Fetch complete. isLoadingReplies set to false`);
       setIsLoadingReplies(false);
     }
   };
 
   const handleToggleReplies = () => {
-    console.log(`[CommentItem] handleToggleReplies clicked. Current showReplies: ${showReplies}`);
-    console.log(`[CommentItem] Current replies.length: ${replies.length}`);
-    console.log(`[CommentItem] comment.replyCount: ${comment.replyCount}`);
-
     if (showReplies) {
       // If already showing, just hide them
-      console.log(`[CommentItem] Hiding replies`);
       setShowReplies(false);
     } else {
       // If not showing, fetch and show them
-      console.log(`[CommentItem] Calling fetchReplies`);
       fetchReplies();
     }
   };
@@ -485,10 +469,10 @@ const CommentItem = memo(({ comment, onUpdate, onDelete, onReplyAdded, isReply =
             </button>
           )}
 
-          {(replies.length > 0 || (comment.replyCount && comment.replyCount > 0)) && !isReply && (
+          {(replies.length > 0 || (actualReplyCount !== null ? actualReplyCount > 0 : (comment.replyCount && comment.replyCount > 0))) && !isReply && (
             <button
               onClick={handleToggleReplies}
-              disabled={isLoadingReplies}
+              disabled={isLoadingReplies || (repliesFetched && replies.length === 0)}
               className="flex items-center gap-1 hover:text-blue-600 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoadingReplies ? (
@@ -496,9 +480,11 @@ const CommentItem = memo(({ comment, onUpdate, onDelete, onReplyAdded, isReply =
                   <div className="w-3 h-3 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
                   Loading...
                 </>
+              ) : repliesFetched && replies.length === 0 ? (
+                <span className="text-gray-400 text-xs">No replies</span>
               ) : (
                 <>
-                  {showReplies ? 'Hide' : 'View'} {comment.replyCount || replies.length} {(comment.replyCount || replies.length) === 1 ? 'reply' : 'replies'}
+                  {showReplies ? 'Hide' : 'View'} {actualReplyCount !== null ? actualReplyCount : (comment.replyCount || replies.length)} {((actualReplyCount !== null ? actualReplyCount : (comment.replyCount || replies.length)) === 1) ? 'reply' : 'replies'}
                 </>
               )}
             </button>
@@ -523,34 +509,18 @@ const CommentItem = memo(({ comment, onUpdate, onDelete, onReplyAdded, isReply =
         )}
 
         {/* Replies */}
-        {(() => {
-          console.log(`[CommentItem Render] Checking replies display:`, {
-            showReplies,
-            repliesLength: replies.length,
-            isReply,
-            shouldDisplay: showReplies && replies.length > 0 && !isReply
-          });
-          return null;
-        })()}
-
         {showReplies && replies.length > 0 && !isReply && (
-          <div className="mt-3 space-y-3 border-l-2 border-gray-200 pl-4">
-            <div className="text-xs text-gray-500 mb-2">
-              {replies.length} {replies.length === 1 ? 'reply' : 'replies'}
-            </div>
-            {replies.map((reply) => {
-              console.log(`[CommentItem Render] Rendering reply:`, reply._id);
-              return (
-                <CommentItem
-                  key={reply._id}
-                  comment={reply}
-                  onUpdate={handleReplyUpdate}
-                  onDelete={handleReplyDelete}
-                  isReply={true}
-                  parentCommentUsername={comment.user?.username}
-                />
-              );
-            })}
+          <div className="mt-3 space-y-3">
+            {replies.map((reply) => (
+              <CommentItem
+                key={reply._id}
+                comment={reply}
+                onUpdate={handleReplyUpdate}
+                onDelete={handleReplyDelete}
+                isReply={true}
+                parentCommentUsername={comment.user?.username}
+              />
+            ))}
           </div>
         )}
       </div>

@@ -70,11 +70,8 @@ const AddComment = ({
 
       const newComment = await createComment(commentData);
 
-      console.log('[AddComment] Backend response:', newComment);
-      console.log('[AddComment] replyToUserId from backend:', newComment.replyToUserId);
-
       // Add user info to the comment for immediate display
-      // Backend returns: { _id, postId, userId (string), content, parentCommentId, replyToUserId, likes: [], isEdited, isDeleted, createdAt, updatedAt, __v }
+      // Backend returns: { _id, postId, userId (string), content, parentCommentId, replyToUserId, rootCommentId, depth, likes: [], isEdited, isDeleted, createdAt, updatedAt }
       // We need to transform it to match our Comment type with user data populated
       const commentWithUser: Comment = {
         ...newComment,
@@ -97,9 +94,6 @@ const AddComment = ({
         isLikedBy: false,
         replies: [] // New comments have no replies initially
       };
-
-      console.log('[AddComment] Final comment with user:', commentWithUser);
-      console.log('[AddComment] Final replyToUserId:', commentWithUser.replyToUserId);
 
       onCommentAdded(commentWithUser);
       setContent('');
