@@ -49,6 +49,13 @@ const CommentItem = memo(({ comment, onUpdate, onDelete, onReplyAdded, isReply =
   const commentUser = comment.user || (typeof comment.userId === 'object' ? comment.userId : null);
   const commentUserId = typeof comment.userId === 'string' ? comment.userId : comment.userId?._id;
 
+  // Determine depth and limits BEFORE state initialization
+  const MAX_REPLY_DEPTH = 4;
+  const MAX_COLLAPSIBLE_DEPTH = 2;
+  const currentDepth = comment.depth || (isReply ? 1 : 0);
+  const canReply = currentDepth < MAX_REPLY_DEPTH;
+  const shouldShowViewButton = currentDepth <= MAX_COLLAPSIBLE_DEPTH;
+
   // Use the new backend field: isLikedBy
   const [isLiked, setIsLiked] = useState(comment.isLikedBy || false);
   const [likesCount, setLikesCount] = useState(comment.likesCount || 0);
@@ -59,7 +66,8 @@ const CommentItem = memo(({ comment, onUpdate, onDelete, onReplyAdded, isReply =
   const [showReportModal, setShowReportModal] = useState(false);
   const [showReplyBox, setShowReplyBox] = useState(false);
   const [replies, setReplies] = useState<Comment[]>(comment.replies || []);
-  const [showReplies, setShowReplies] = useState(false);
+  // For depth 3+, always show replies (no toggle)
+  const [showReplies, setShowReplies] = useState(currentDepth > MAX_COLLAPSIBLE_DEPTH);
   const [isLoadingReplies, setIsLoadingReplies] = useState(false);
   const [repliesFetched, setRepliesFetched] = useState(false);
   const [actualReplyCount, setActualReplyCount] = useState<number | null>(null); // Actual count from backend
@@ -67,11 +75,6 @@ const CommentItem = memo(({ comment, onUpdate, onDelete, onReplyAdded, isReply =
 
   const isOwnComment = user?._id === commentUserId;
   const canLikeComment = !isOwnComment; // Disable like for own comments
-
-  // Determine max depth for replies (Facebook allows up to 6 levels, we'll use 4)
-  const MAX_REPLY_DEPTH = 4;
-  const currentDepth = comment.depth || (isReply ? 1 : 0);
-  const canReply = currentDepth < MAX_REPLY_DEPTH;
 
   const getInitials = (name: string) => {
     return name
@@ -548,7 +551,7 @@ const CommentItem = memo(({ comment, onUpdate, onDelete, onReplyAdded, isReply =
             </button>
           )}
 
-          {(replies.length > 0 || hasLocalReplies || (actualReplyCount !== null ? actualReplyCount > 0 : (comment.replyCount && comment.replyCount > 0))) && (
+          {shouldShowViewButton && (replies.length > 0 || hasLocalReplies || (actualReplyCount !== null ? actualReplyCount > 0 : (comment.replyCount && comment.replyCount > 0))) && (
             <button
               onClick={handleToggleReplies}
               disabled={isLoadingReplies || (repliesFetched && replies.length === 0)}
@@ -588,7 +591,8 @@ const CommentItem = memo(({ comment, onUpdate, onDelete, onReplyAdded, isReply =
         )}
 
         {/* Replies */}
-        {showReplies && replies.length > 0 && (
+        {/* For depth 3+, always show replies (no toggle). For depth 0-2, respect showReplies state */}
+        {(currentDepth > MAX_COLLAPSIBLE_DEPTH || showReplies) && replies.length > 0 && (
           <div className="mt-3 space-y-3">
             {replies.map((reply) => (
               <CommentItem
