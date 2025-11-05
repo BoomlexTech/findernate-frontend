@@ -45,6 +45,10 @@ const CommentItem = memo(({ comment, onUpdate, onDelete, onReplyAdded, isReply =
 
   const replyToUsername = getReplyToUsername();
 
+  // Extract user data - handle both string userId and object userId
+  const commentUser = comment.user || (typeof comment.userId === 'object' ? comment.userId : null);
+  const commentUserId = typeof comment.userId === 'string' ? comment.userId : comment.userId?._id;
+
   // Use the new backend field: isLikedBy
   const [isLiked, setIsLiked] = useState(comment.isLikedBy || false);
   const [likesCount, setLikesCount] = useState(comment.likesCount || 0);
@@ -60,8 +64,13 @@ const CommentItem = memo(({ comment, onUpdate, onDelete, onReplyAdded, isReply =
   const [repliesFetched, setRepliesFetched] = useState(false);
   const [actualReplyCount, setActualReplyCount] = useState<number | null>(null); // Actual count from backend
 
-  const isOwnComment = user?._id === comment.userId;
+  const isOwnComment = user?._id === commentUserId;
   const canLikeComment = !isOwnComment; // Disable like for own comments
+
+  // Determine max depth for replies (Facebook allows up to 6 levels, we'll use 4)
+  const MAX_REPLY_DEPTH = 4;
+  const currentDepth = comment.depth || (isReply ? 1 : 0);
+  const canReply = currentDepth < MAX_REPLY_DEPTH;
 
   const getInitials = (name: string) => {
     return name
@@ -73,12 +82,12 @@ const CommentItem = memo(({ comment, onUpdate, onDelete, onReplyAdded, isReply =
   };
 
   const handleProfileClick = () => {
-    if (comment.user?.username) {
+    if (commentUser?.username) {
       // Check if this is the current user's own comment
-      if (user?._id === comment.userId) {
+      if (user?._id === commentUserId) {
         router.push('/profile');
       } else {
-        router.push(`/userprofile/${comment.user.username}`);
+        router.push(`/userprofile/${commentUser.username}`);
       }
     }
   };
@@ -299,14 +308,14 @@ const CommentItem = memo(({ comment, onUpdate, onDelete, onReplyAdded, isReply =
     >
       {/* Profile Image */}
       <div className="flex-shrink-0">
-        <button 
+        <button
           onClick={handleProfileClick}
           className="focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-1 rounded-full"
         >
-          {comment.user?.profileImageUrl ? (
+          {commentUser?.profileImageUrl ? (
             <Image
-              src={comment.user.profileImageUrl}
-              alt={comment.user.username || 'User'}
+              src={commentUser.profileImageUrl}
+              alt={commentUser.username || 'User'}
               width={32}
               height={32}
               className="rounded-full object-cover hover:ring-2 hover:ring-yellow-400 transition-all cursor-pointer"
@@ -314,7 +323,7 @@ const CommentItem = memo(({ comment, onUpdate, onDelete, onReplyAdded, isReply =
           ) : (
             <div className="w-8 h-8 rounded-full bg-button-gradient flex items-center justify-center hover:ring-2 hover:ring-yellow-400 transition-all cursor-pointer">
               <span className="text-white text-shadow text-xs font-bold">
-                {getInitials(comment.user?.fullName || comment.user?.username || 'U')}
+                {getInitials(commentUser?.fullName || commentUser?.username || 'U')}
               </span>
             </div>
           )}
@@ -326,11 +335,11 @@ const CommentItem = memo(({ comment, onUpdate, onDelete, onReplyAdded, isReply =
         <div className="bg-gray-50 rounded-lg px-3 py-2">
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-2">
-              <button 
+              <button
                 onClick={handleProfileClick}
                 className="font-semibold text-sm text-gray-900 hover:text-yellow-600 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-1 rounded"
               >
-                {comment.user?.fullName || comment.user?.username || 'Unknown User'}
+                {commentUser?.fullName || commentUser?.username || 'Unknown User'}
               </button>
               {comment.isEdited && (
                 <span className="text-xs text-gray-500">(edited)</span>
@@ -459,10 +468,11 @@ const CommentItem = memo(({ comment, onUpdate, onDelete, onReplyAdded, isReply =
             </span>
           </button>
 
-          {!isReply && (
-            <button 
+          {canReply && (
+            <button
               onClick={() => setShowReplyBox(!showReplyBox)}
               className="flex items-center gap-1 hover:text-blue-600"
+              title={currentDepth >= MAX_REPLY_DEPTH ? `Maximum reply depth (${MAX_REPLY_DEPTH}) reached` : ''}
             >
               <MessageCircle className="w-3 h-3" />
               Reply
@@ -494,15 +504,15 @@ const CommentItem = memo(({ comment, onUpdate, onDelete, onReplyAdded, isReply =
         </div>
 
         {/* Reply Box */}
-        {showReplyBox && !isReply && (
+        {showReplyBox && canReply && (
           <div className="mt-3">
             <AddComment
               postId={comment.postId}
               parentCommentId={comment._id}
-              originalCommenterUserId={comment.user?._id}
-              originalCommenterUsername={comment.user?.username}
+              originalCommenterUserId={commentUserId}
+              originalCommenterUsername={commentUser?.username}
               onCommentAdded={handleReplyAdded}
-              placeholder={`Reply to ${comment.user?.fullName || comment.user?.username || 'this comment'}...`}
+              placeholder={`Reply to ${commentUser?.fullName || commentUser?.username || 'this comment'}...`}
               shouldFocus={true}
             />
           </div>
