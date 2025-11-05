@@ -11,6 +11,12 @@ export interface Comment {
   };
   content: string;
   parentCommentId?: string;
+  replyToUserId?: {
+    _id: string;
+    username: string;
+    fullName: string;
+    profileImageUrl?: string;
+  };
   likes: Array<{
     _id: string;
     username: string;
@@ -36,6 +42,7 @@ export interface CreateCommentData {
   postId: string;
   content: string;
   parentCommentId?: string;
+  replyToUserId?: string;
 }
 
 // Get comments for a post  

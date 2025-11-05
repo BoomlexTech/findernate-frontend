@@ -324,7 +324,14 @@ const CommentItem = memo(({ comment, onUpdate, onDelete, onReplyAdded, isReply =
               </div>
             </div>
           ) : (
-            <p className="text-sm text-gray-800">{comment.content}</p>
+            <div className="text-sm text-gray-800">
+              {comment.replyToUserId && (
+                <span className="text-gray-600 mr-1">
+                  replying to <span className="font-semibold text-yellow-600">{comment.replyToUserId.username}</span>:
+                </span>
+              )}
+              {comment.content}
+            </div>
           )}
         </div>
 
