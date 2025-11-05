@@ -19,11 +19,31 @@ interface CommentItemProps {
   onReplyAdded?: (reply: Comment) => void;
   isReply?: boolean;
   parentCommentId?: string; // For nested replies - track the root comment ID
+  parentCommentUsername?: string; // Username of the user being replied to (fallback)
 }
 
-const CommentItem = memo(({ comment, onUpdate, onDelete, onReplyAdded, isReply = false, parentCommentId }: CommentItemProps) => {
+const CommentItem = memo(({ comment, onUpdate, onDelete, onReplyAdded, isReply = false, parentCommentId, parentCommentUsername }: CommentItemProps) => {
   const { user } = useUserStore();
   const router = useRouter();
+
+  // Helper to safely get the username being replied to
+  const getReplyToUsername = () => {
+    // Priority 1: Check if replyToUserId object has username
+    if (comment.replyToUserId && typeof comment.replyToUserId === 'object' && comment.replyToUserId.username) {
+      return comment.replyToUserId.username;
+    }
+    // Priority 2: Use fallback from props
+    if (parentCommentUsername) {
+      return parentCommentUsername;
+    }
+    // Priority 3: Check if comment.user exists (for backwards compatibility)
+    if (comment.user && comment.parentCommentId) {
+      return null; // Will show without mention if we can't determine
+    }
+    return null;
+  };
+
+  const replyToUsername = getReplyToUsername();
 
   // Use the new backend field: isLikedBy
   const [isLiked, setIsLiked] = useState(comment.isLikedBy || false);
@@ -197,10 +217,16 @@ const CommentItem = memo(({ comment, onUpdate, onDelete, onReplyAdded, isReply =
     setReplies(prev => prev.filter(reply => reply._id !== replyId));
   };
 
+  // Calculate indentation based on depth (max 3 levels for UI)
+  const maxDepth = 3;
+  const effectiveDepth = comment.depth ? Math.min(comment.depth, maxDepth) : (isReply ? 1 : 0);
+  const indentationClass = effectiveDepth > 0 ? `ml-${Math.min(effectiveDepth * 8, 24)}` : '';
+
   return (
-    <div 
+    <div
       id={`comment-${comment._id}`}
-      className={`flex gap-3 ${isReply ? 'ml-8 pt-3' : ''}`}
+      className={`flex gap-3 ${indentationClass} ${isReply || effectiveDepth > 0 ? 'pt-3' : ''}`}
+      data-depth={effectiveDepth}
     >
       {/* Profile Image */}
       <div className="flex-shrink-0">
@@ -325,12 +351,20 @@ const CommentItem = memo(({ comment, onUpdate, onDelete, onReplyAdded, isReply =
             </div>
           ) : (
             <div className="text-sm text-gray-800">
-              {comment.replyToUserId && (
-                <span className="text-gray-600 mr-1">
-                  replying to <span className="font-semibold text-yellow-600">{comment.replyToUserId.username}</span>:
+              {replyToUsername && (
+                <span className="text-xs text-gray-500 block mb-1">
+                  Replying to <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      router.push(`/userprofile/${replyToUsername}`);
+                    }}
+                    className="font-semibold text-blue-600 hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 rounded"
+                  >
+                    @{replyToUsername}
+                  </button>
                 </span>
               )}
-              {comment.content}
+              <span>{comment.content}</span>
             </div>
           )}
         </div>
@@ -366,12 +400,12 @@ const CommentItem = memo(({ comment, onUpdate, onDelete, onReplyAdded, isReply =
             </button>
           )}
 
-          {replies.length > 0 && !isReply && (
-            <button 
+          {(replies.length > 0 || (comment.replyCount && comment.replyCount > 0)) && !isReply && (
+            <button
               onClick={() => setShowReplies(!showReplies)}
-              className="flex items-center gap-1 hover:text-blue-600"
+              className="flex items-center gap-1 hover:text-blue-600 font-semibold"
             >
-              {showReplies ? 'Hide' : 'Show'} {replies.length} {replies.length === 1 ? 'reply' : 'replies'}
+              {showReplies ? 'Hide' : 'View'} {comment.replyCount || replies.length} {(comment.replyCount || replies.length) === 1 ? 'reply' : 'replies'}
             </button>
           )}
 
@@ -385,6 +419,7 @@ const CommentItem = memo(({ comment, onUpdate, onDelete, onReplyAdded, isReply =
               postId={comment.postId}
               parentCommentId={comment._id}
               originalCommenterUserId={comment.user?._id}
+              originalCommenterUsername={comment.user?.username}
               onCommentAdded={handleReplyAdded}
               placeholder={`Reply to ${comment.user?.fullName || comment.user?.username || 'this comment'}...`}
               shouldFocus={true}
@@ -402,6 +437,7 @@ const CommentItem = memo(({ comment, onUpdate, onDelete, onReplyAdded, isReply =
                 onUpdate={handleReplyUpdate}
                 onDelete={handleReplyDelete}
                 isReply={true}
+                parentCommentUsername={comment.user?.username}
               />
             ))}
           </div>

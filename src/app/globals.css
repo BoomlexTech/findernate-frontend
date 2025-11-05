@@ -147,3 +147,60 @@ body {
   border-radius: 8px;
   transition: border-left 0.3s ease, padding-left 0.3s ease;
 }
+
+/* Facebook-style comment threading */
+.comment-thread {
+  position: relative;
+}
+
+/* Visual thread indicator for nested comments */
+[data-depth="1"],
+[data-depth="2"],
+[data-depth="3"] {
+  position: relative;
+}
+
+[data-depth="1"]::before,
+[data-depth="2"]::before,
+[data-depth="3"]::before {
+  content: '';
+  position: absolute;
+  left: -12px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(to bottom, #e5e7eb 0%, #e5e7eb 100%);
+  opacity: 0.6;
+}
+
+/* Hover effect for threaded comments */
+[data-depth]:hover {
+  background-color: rgba(249, 250, 251, 0.5);
+  border-radius: 8px;
+  transition: background-color 0.2s ease;
+}
+
+/* Mobile optimization for comment threading */
+@media (max-width: 768px) {
+  /* Reduce indentation on mobile */
+  [data-depth="1"] {
+    margin-left: 1rem !important;
+  }
+
+  [data-depth="2"] {
+    margin-left: 1.5rem !important;
+  }
+
+  [data-depth="3"] {
+    margin-left: 2rem !important;
+  }
+
+  /* Make thread indicator more visible on mobile */
+  [data-depth="1"]::before,
+  [data-depth="2"]::before,
+  [data-depth="3"]::before {
+    width: 3px;
+    background: linear-gradient(to bottom, #3b82f6 0%, #3b82f6 100%);
+    opacity: 0.3;
+  }
+}

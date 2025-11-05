@@ -11,12 +11,14 @@ export interface Comment {
   };
   content: string;
   parentCommentId?: string;
+  rootCommentId?: string;
   replyToUserId?: {
     _id: string;
     username: string;
     fullName: string;
     profileImageUrl?: string;
   };
+  depth?: number;
   likes: Array<{
     _id: string;
     username: string;
@@ -36,6 +38,7 @@ export interface Comment {
   replies?: Comment[];
   likesCount: number;
   isLikedBy: boolean;
+  replyCount?: number;
 }
 
 export interface CreateCommentData {
