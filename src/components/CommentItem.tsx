@@ -215,8 +215,17 @@ const CommentItem = memo(({ comment, onUpdate, onDelete, onReplyAdded, isReply =
     setShowReplyBox(false);
     setShowReplies(true);
     setRepliesFetched(true); // Mark as fetched since we now have data
+
     // Also notify parent component if callback is provided
     onReplyAdded?.(reply);
+
+    // If this is a nested reply, also notify the root comment to update its count
+    if (onUpdate && comment.replyCount !== undefined) {
+      onUpdate({
+        ...comment,
+        replyCount: (comment.replyCount || 0) + 1
+      });
+    }
   };
 
   const handleReplyUpdate = (updatedReply: Comment) => {
@@ -234,7 +243,8 @@ const CommentItem = memo(({ comment, onUpdate, onDelete, onReplyAdded, isReply =
 
   // Fetch replies from backend
   const fetchReplies = async () => {
-    if (repliesFetched || isLoadingReplies) {
+    // If we already have local replies or already fetched, just toggle visibility
+    if (repliesFetched || isLoadingReplies || replies.length > 0) {
       // Already fetched or currently fetching, just toggle visibility
       setShowReplies(!showReplies);
       return;
@@ -249,32 +259,47 @@ const CommentItem = memo(({ comment, onUpdate, onDelete, onReplyAdded, isReply =
       if (response && response.replies) {
         if (Array.isArray(response.replies)) {
           // replies is directly an array (fallback format)
-          setReplies(response.replies);
-          setActualReplyCount(response.replies.length);
+          const fetchedReplies = response.replies;
+          // Merge with existing local replies (avoid duplicates)
+          const mergedReplies = mergeLists(replies, fetchedReplies);
+          setReplies(mergedReplies);
+          setActualReplyCount(mergedReplies.length);
           setRepliesFetched(true);
-          setShowReplies(response.replies.length > 0);
+          setShowReplies(mergedReplies.length > 0);
         } else if (response.replies.comments && Array.isArray(response.replies.comments)) {
           // replies is an object with comments array (primary format)
           const fetchedReplies = response.replies.comments;
           const totalReplies = response.replies.totalReplies || fetchedReplies.length;
 
-          setReplies(fetchedReplies);
-          setActualReplyCount(totalReplies);
+          // Merge with existing local replies (avoid duplicates)
+          const mergedReplies = mergeLists(replies, fetchedReplies);
+          setReplies(mergedReplies);
+          setActualReplyCount(Math.max(totalReplies, mergedReplies.length));
           setRepliesFetched(true);
-          setShowReplies(fetchedReplies.length > 0);
+          setShowReplies(mergedReplies.length > 0);
         } else {
-          // Unexpected format
+          // Unexpected format - keep existing local replies if any
+          if (replies.length > 0) {
+            setShowReplies(true);
+          } else {
+            setReplies([]);
+            setActualReplyCount(0);
+            setRepliesFetched(true);
+            setShowReplies(false);
+          }
+        }
+      } else {
+        // No replies found from backend - keep existing local replies if any
+        if (replies.length > 0) {
+          setActualReplyCount(replies.length);
+          setRepliesFetched(true);
+          setShowReplies(true);
+        } else {
           setReplies([]);
           setActualReplyCount(0);
           setRepliesFetched(true);
           setShowReplies(false);
         }
-      } else {
-        // No replies found
-        setReplies([]);
-        setActualReplyCount(0);
-        setRepliesFetched(true);
-        setShowReplies(false);
       }
     } catch (error: any) {
       console.error('[CommentItem] Error fetching replies:', error);
@@ -283,6 +308,24 @@ const CommentItem = memo(({ comment, onUpdate, onDelete, onReplyAdded, isReply =
     } finally {
       setIsLoadingReplies(false);
     }
+  };
+
+  // Helper function to merge reply lists and remove duplicates
+  const mergeLists = (localReplies: Comment[], fetchedReplies: Comment[]): Comment[] => {
+    const merged = [...localReplies];
+    const localIds = new Set(localReplies.map(r => r._id));
+
+    // Add fetched replies that aren't already in local
+    fetchedReplies.forEach(fetchedReply => {
+      if (!localIds.has(fetchedReply._id)) {
+        merged.push(fetchedReply);
+      }
+    });
+
+    // Sort by creation date (newest first)
+    return merged.sort((a, b) =>
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
   };
 
   const handleToggleReplies = () => {
