@@ -479,7 +479,7 @@ const CommentItem = memo(({ comment, onUpdate, onDelete, onReplyAdded, isReply =
             </button>
           )}
 
-          {(replies.length > 0 || (actualReplyCount !== null ? actualReplyCount > 0 : (comment.replyCount && comment.replyCount > 0))) && !isReply && (
+          {(replies.length > 0 || (actualReplyCount !== null ? actualReplyCount > 0 : (comment.replyCount && comment.replyCount > 0))) && (
             <button
               onClick={handleToggleReplies}
               disabled={isLoadingReplies || (repliesFetched && replies.length === 0)}
@@ -519,7 +519,7 @@ const CommentItem = memo(({ comment, onUpdate, onDelete, onReplyAdded, isReply =
         )}
 
         {/* Replies */}
-        {showReplies && replies.length > 0 && !isReply && (
+        {showReplies && replies.length > 0 && (
           <div className="mt-3 space-y-3">
             {replies.map((reply) => (
               <CommentItem
@@ -528,7 +528,7 @@ const CommentItem = memo(({ comment, onUpdate, onDelete, onReplyAdded, isReply =
                 onUpdate={handleReplyUpdate}
                 onDelete={handleReplyDelete}
                 isReply={true}
-                parentCommentUsername={comment.user?.username}
+                parentCommentUsername={commentUser?.username}
               />
             ))}
           </div>
