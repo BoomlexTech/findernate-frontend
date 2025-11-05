@@ -12,18 +12,20 @@ interface AddCommentProps {
   postId: string;
   postOwnerId?: string;
   parentCommentId?: string;
-  originalCommenterUserId?: string; // For reply notifications
+  originalCommenterUserId?: string; // For reply notifications and replyToUserId
+  originalCommenterUsername?: string; // Fallback username for display
   onCommentAdded: (comment: Comment) => void;
   placeholder?: string;
   shouldFocus?: boolean;
 }
 
-const AddComment = ({ 
-  postId, 
+const AddComment = ({
+  postId,
   postOwnerId,
   parentCommentId,
   originalCommenterUserId,
-  onCommentAdded, 
+  originalCommenterUsername,
+  onCommentAdded,
   placeholder = "Add a comment...",
   shouldFocus = false
 }: AddCommentProps) => {
@@ -67,9 +69,12 @@ const AddComment = ({
       };
 
       const newComment = await createComment(commentData);
-      
+
+      console.log('[AddComment] Backend response:', newComment);
+      console.log('[AddComment] replyToUserId from backend:', newComment.replyToUserId);
+
       // Add user info to the comment for immediate display
-      // Backend returns: { _id, postId, userId (string), content, parentCommentId, likes: [], isEdited, isDeleted, createdAt, updatedAt, __v }
+      // Backend returns: { _id, postId, userId (string), content, parentCommentId, replyToUserId, likes: [], isEdited, isDeleted, createdAt, updatedAt, __v }
       // We need to transform it to match our Comment type with user data populated
       const commentWithUser: Comment = {
         ...newComment,
@@ -80,11 +85,21 @@ const AddComment = ({
           fullName: user?.fullName || '',
           profileImageUrl: user?.profileImageUrl || ''
         },
+        // Preserve replyToUserId from backend, or create fallback
+        replyToUserId: newComment.replyToUserId || (originalCommenterUserId && originalCommenterUsername ? {
+          _id: originalCommenterUserId,
+          username: originalCommenterUsername,
+          fullName: originalCommenterUsername,
+          profileImageUrl: ''
+        } : undefined),
         likes: newComment.likes || [],
         likesCount: Array.isArray(newComment.likes) ? newComment.likes.length : 0,
         isLikedBy: false,
         replies: [] // New comments have no replies initially
       };
+
+      console.log('[AddComment] Final comment with user:', commentWithUser);
+      console.log('[AddComment] Final replyToUserId:', commentWithUser.replyToUserId);
 
       onCommentAdded(commentWithUser);
       setContent('');
