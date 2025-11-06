@@ -2,7 +2,7 @@
 import { getPostsByUserid, getUserReels, getUserVideos } from '@/api/homeFeed';
 import { getUserProfile } from '@/api/user';
 import { getPrivateSavedPosts } from '@/api/post';
-//import { getCommentsByPost, Comment } from '@/api/comment';
+import { getCommentsByPost } from '@/api/comment';
 import AccountSettings from '@/components/AccountSettings';
 //import FloatingHeader from '@/components/FloatingHeader';
 import PostCard from '@/components/PostCard';
@@ -27,6 +27,55 @@ const Page = () => {
   const [error, setError] = useState<string | null>(null);
   const { user, updateUser } = useUserStore();
   const { isAuthenticated, isLoading } = useAuthGuard();
+
+  // Helper function to fetch comment counts for posts
+  const fetchCommentCounts = async (posts: any[]) => {
+    const postsWithComments = await Promise.all(
+      posts.map(async (post) => {
+        try {
+          // Check localStorage first for efficiency
+          const savedCommentsCount = localStorage.getItem(`post_comments_count_${post._id}`);
+          if (savedCommentsCount !== null) {
+            const localCount = parseInt(savedCommentsCount);
+            // Use localStorage if it exists and is greater than API count
+            if (localCount > (post.engagement?.comments || 0)) {
+              return {
+                ...post,
+                engagement: {
+                  ...post.engagement,
+                  comments: localCount
+                }
+              };
+            }
+          }
+
+          // Fetch actual comment count from API
+          const commentsData = await getCommentsByPost(post._id, 1, 1); // Only fetch first page to get total count
+          const actualCommentCount = commentsData.totalComments || 0;
+
+          return {
+            ...post,
+            engagement: {
+              ...post.engagement,
+              comments: actualCommentCount
+            }
+          };
+        } catch (error) {
+          console.error(`Error fetching comments for post ${post._id}:`, error);
+          // Fallback to localStorage or original count
+          const savedCommentsCount = localStorage.getItem(`post_comments_count_${post._id}`);
+          return {
+            ...post,
+            engagement: {
+              ...post.engagement,
+              comments: savedCommentsCount ? parseInt(savedCommentsCount) : (post.engagement?.comments || 0)
+            }
+          };
+        }
+      })
+    );
+    return postsWithComments;
+  };
 
   // Sync profile data to global store when loaded
   useEffect(() => {
@@ -68,10 +117,17 @@ const Page = () => {
           getUserReels(user._id),
           getUserVideos(user._id)
         ]);
-        
-        setPosts(postsResponse.data?.posts || []);
-        setReels(reelsResponse.data?.posts || []);
-        setVideos(videosResponse.data?.posts || []);
+
+        // Fetch actual comment counts for all content types
+        const [postsWithCommentCounts, reelsWithCommentCounts, videosWithCommentCounts] = await Promise.all([
+          fetchCommentCounts(postsResponse.data?.posts || []),
+          fetchCommentCounts(reelsResponse.data?.posts || []),
+          fetchCommentCounts(videosResponse.data?.posts || [])
+        ]);
+
+        setPosts(postsWithCommentCounts);
+        setReels(reelsWithCommentCounts);
+        setVideos(videosWithCommentCounts);
         
         // Fetch saved posts (single endpoint) separately to prevent blocking other data
         try {
@@ -162,7 +218,7 @@ const Page = () => {
   // Refresh profile posts when new posts are created
   const refreshProfilePosts = useCallback(async () => {
     if (!isAuthenticated || !user?._id) return;
-    
+
     try {
       // Fetch user posts, reels, and videos (without saved posts to prevent blocking)
       const [postsResponse, reelsResponse, videosResponse] = await Promise.all([
@@ -170,10 +226,17 @@ const Page = () => {
         getUserReels(user._id),
         getUserVideos(user._id)
       ]);
-      
-      setPosts(postsResponse.data?.posts || []);
-      setReels(reelsResponse.data?.posts || []);
-      setVideos(videosResponse.data?.posts || []);
+
+      // Fetch actual comment counts for all content types
+      const [postsWithCommentCounts, reelsWithCommentCounts, videosWithCommentCounts] = await Promise.all([
+        fetchCommentCounts(postsResponse.data?.posts || []),
+        fetchCommentCounts(reelsResponse.data?.posts || []),
+        fetchCommentCounts(videosResponse.data?.posts || [])
+      ]);
+
+      setPosts(postsWithCommentCounts);
+      setReels(reelsWithCommentCounts);
+      setVideos(videosWithCommentCounts);
       
       // Fetch saved posts separately to prevent blocking other data
       try {
