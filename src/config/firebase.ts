@@ -94,15 +94,12 @@ export const requestFCMToken = async (): Promise<string | null> => {
     }
 
     // Get FCM token with the service worker registration
-    console.log('🔑 Requesting FCM token from Firebase...');
     const token = await getToken(messaging, {
       vapidKey: vapidKey,
       serviceWorkerRegistration: registration
     });
 
-    console.log('✅ FCM Token obtained successfully!');
-    console.log('📱 FCM Token:', token);
-    console.log('📏 Token length:', token.length, 'characters');
+    console.log('FCM Token obtained:', token);
     return token;
   } catch (error) {
     console.error('Error getting FCM token:', error);
