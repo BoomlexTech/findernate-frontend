@@ -248,16 +248,14 @@ const CommentItem = memo(({ comment, onUpdate, onDelete, onReplyAdded, isReply =
 
   // Fetch replies from backend
   const fetchReplies = async () => {
-    // If we already have local replies or already fetched, just toggle visibility
-    if (repliesFetched || isLoadingReplies) {
-      // Already fetched or currently fetching, just toggle visibility
-      setShowReplies(!showReplies);
+    // Don't fetch if already loading or already fetched
+    if (isLoadingReplies || repliesFetched) {
       return;
     }
 
     // If we have locally added replies, don't fetch - just show them
     if (hasLocalReplies && replies.length > 0) {
-      setShowReplies(!showReplies);
+      setShowReplies(true);
       return;
     }
 
@@ -362,8 +360,14 @@ const CommentItem = memo(({ comment, onUpdate, onDelete, onReplyAdded, isReply =
       // If already showing, just hide them
       setShowReplies(false);
     } else {
-      // If not showing, fetch and show them
-      fetchReplies();
+      // If not showing, check if we need to fetch or just show
+      if (repliesFetched || (hasLocalReplies && replies.length > 0)) {
+        // Already have replies, just show them
+        setShowReplies(true);
+      } else {
+        // Need to fetch from backend
+        fetchReplies();
+      }
     }
   };
 
