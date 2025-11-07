@@ -21,7 +21,10 @@ const messaging = firebase.messaging();
 
 // Handle background messages
 messaging.onBackgroundMessage((payload) => {
-  console.log('Background Message received:', payload);
+  console.log('🔔 [FCM Service Worker] Background Message received!');
+  console.log('📦 Full payload:', JSON.stringify(payload, null, 2));
+  console.log('📋 Notification:', payload.notification);
+  console.log('📋 Data:', payload.data);
 
   const notificationTitle = payload.notification?.title || payload.data?.title || 'New Notification';
   const notificationOptions = {
@@ -36,12 +39,18 @@ messaging.onBackgroundMessage((payload) => {
 
   // Add actions based on notification type
   if (payload.data?.type === 'incoming_call') {
+    console.log('📞 [FCM Service Worker] Incoming call notification detected!');
+    console.log('📞 Call ID:', payload.data?.callId);
+    console.log('📞 Caller:', payload.data?.callerName);
+    console.log('📞 Call Type:', payload.data?.callType);
+
     notificationOptions.actions = [
       { action: 'accept_call', title: 'Accept' },
       { action: 'decline_call', title: 'Decline' }
     ];
   }
 
+  console.log('🔔 [FCM Service Worker] Showing notification:', notificationTitle);
   return self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
