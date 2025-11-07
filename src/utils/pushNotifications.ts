@@ -358,11 +358,24 @@ class PushNotificationManager {
 
   // Setup FCM foreground message listener
   setupFCMListener(onCallNotification: (data: CallNotificationData) => void): void {
+    console.log('🎧 Setting up FCM foreground message listener...');
+
     onForegroundMessage((payload) => {
-      console.log('Foreground FCM message:', payload);
+      console.log('🔔 [FCM Foreground] Message received!');
+      console.log('📦 Full payload:', payload);
+      console.log('📋 Notification:', payload.notification);
+      console.log('📋 Data:', payload.data);
+      console.log('📋 Message type:', payload.data?.type);
 
       // Handle incoming call notifications
       if (payload.data?.type === 'incoming_call') {
+        console.log('📞 [FCM Foreground] Incoming call notification detected!');
+        console.log('📞 Call ID:', payload.data.callId);
+        console.log('📞 Caller ID:', payload.data.callerId);
+        console.log('📞 Caller Name:', payload.data.callerName);
+        console.log('📞 Call Type:', payload.data.callType);
+        console.log('📞 Chat ID:', payload.data.chatId);
+
         const callData: CallNotificationData = {
           title: payload.notification?.title || payload.data?.title || 'Incoming Call',
           body: payload.notification?.body || payload.data?.body || '',
@@ -375,9 +388,14 @@ class PushNotificationManager {
           type: 'incoming_call'
         };
 
+        console.log('📞 [FCM Foreground] Calling onCallNotification with:', callData);
         onCallNotification(callData);
+      } else {
+        console.log('ℹ️ [FCM Foreground] Non-call notification, type:', payload.data?.type);
       }
     });
+
+    console.log('✅ FCM foreground message listener setup complete');
   }
 
   // Show local notification (for testing or immediate feedback)
@@ -575,10 +593,83 @@ export async function logCurrentFCMToken(): Promise<string | null> {
   return token;
 }
 
+// Comprehensive FCM diagnostic function
+export async function checkFCMStatus(): Promise<void> {
+  console.log('🔍 ========== FCM STATUS CHECK ==========');
+
+  // Check notification permission
+  console.log('\n📋 1. Notification Permission:');
+  if ('Notification' in window) {
+    console.log('   Permission:', Notification.permission);
+    if (Notification.permission === 'granted') {
+      console.log('   ✅ Granted');
+    } else if (Notification.permission === 'denied') {
+      console.error('   ❌ Denied - notifications will not work');
+    } else {
+      console.warn('   ⚠️ Not requested yet');
+    }
+  } else {
+    console.error('   ❌ Notifications not supported');
+  }
+
+  // Check service worker
+  console.log('\n📋 2. Service Worker:');
+  if ('serviceWorker' in navigator) {
+    console.log('   ✅ Service Worker API available');
+    try {
+      const registration = await navigator.serviceWorker.getRegistration();
+      if (registration) {
+        console.log('   ✅ Service Worker registered');
+        console.log('   Scope:', registration.scope);
+        console.log('   State:', registration.active?.state);
+      } else {
+        console.error('   ❌ No service worker registered');
+      }
+    } catch (error) {
+      console.error('   ❌ Error checking service worker:', error);
+    }
+  } else {
+    console.error('   ❌ Service Worker not supported');
+  }
+
+  // Check Firebase config
+  console.log('\n📋 3. Firebase Configuration:');
+  const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
+  console.log('   VAPID Key configured:', !!vapidKey);
+  console.log('   API Key configured:', !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY);
+  console.log('   Project ID configured:', !!process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID);
+
+  // Check FCM token
+  console.log('\n📋 4. FCM Token:');
+  const token = await pushNotificationManager.getFCMToken();
+  if (token) {
+    console.log('   ✅ FCM Token available');
+    console.log('   Token:', token);
+    console.log('   Length:', token.length, 'characters');
+  } else {
+    console.error('   ❌ No FCM token');
+  }
+
+  // Check push subscription
+  console.log('\n📋 5. Push Subscription:');
+  const state = await pushNotificationManager.getPermissionState();
+  if (state.subscription) {
+    console.log('   ✅ Push subscription active');
+    console.log('   Endpoint:', state.subscription.endpoint);
+  } else {
+    console.warn('   ⚠️ No push subscription');
+  }
+
+  console.log('\n🔍 ========== END STATUS CHECK ==========\n');
+}
+
 // Make it available globally for easy debugging
 if (typeof window !== 'undefined') {
   (window as any).checkFCMToken = logCurrentFCMToken;
-  console.log('💡 Tip: Run window.checkFCMToken() in console to see your FCM token');
+  (window as any).checkFCMStatus = checkFCMStatus;
+  console.log('💡 Debug commands available:');
+  console.log('   - window.checkFCMToken() - Get your FCM token');
+  console.log('   - window.checkFCMStatus() - Full FCM diagnostic');
 }
 
 // Initialize push notifications
