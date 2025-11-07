@@ -302,6 +302,7 @@ class PushNotificationManager {
   async getFCMToken(): Promise<string | null> {
     try {
       if (this.fcmToken) {
+        console.log('📱 Using cached FCM token:', this.fcmToken);
         return this.fcmToken;
       }
 
@@ -310,13 +311,17 @@ class PushNotificationManager {
 
       if (token) {
         this.fcmToken = token;
+        console.log('📱 FCM Token obtained:', token);
+        console.log('📱 FCM Token length:', token.length);
         // Send token to backend
         await this.sendFCMTokenToBackend(token);
+      } else {
+        console.warn('⚠️ Failed to obtain FCM token');
       }
 
       return token;
     } catch (error) {
-      console.error('Error getting FCM token:', error);
+      console.error('❌ Error getting FCM token:', error);
       return null;
     }
   }
@@ -325,6 +330,9 @@ class PushNotificationManager {
   private async sendFCMTokenToBackend(fcmToken: string): Promise<void> {
     try {
       const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://thedashman.org';
+      console.log('📤 Sending FCM token to backend:', baseUrl + '/api/v1/users/fcm-token');
+      console.log('📱 FCM Token being sent:', fcmToken);
+
       const response = await fetch(`${baseUrl}/api/v1/users/fcm-token`, {
         method: 'POST',
         headers: {
@@ -335,12 +343,15 @@ class PushNotificationManager {
       });
 
       if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('❌ Failed to send FCM token. Status:', response.status, 'Error:', errorData);
         throw new Error('Failed to send FCM token to backend');
       }
 
-      console.log('FCM token sent to backend successfully');
+      const responseData = await response.json().catch(() => ({}));
+      console.log('✅ FCM token sent to backend successfully. Response:', responseData);
     } catch (error) {
-      console.error('Error sending FCM token to backend:', error);
+      console.error('❌ Error sending FCM token to backend:', error);
       // Don't throw error as local FCM still works
     }
   }
@@ -536,6 +547,39 @@ class PushNotificationManager {
 
 // Create singleton instance
 export const pushNotificationManager = new PushNotificationManager();
+
+// Helper function to get and log FCM token (useful for debugging)
+export async function logCurrentFCMToken(): Promise<string | null> {
+  console.log('🔍 Checking current FCM token...');
+  const token = await pushNotificationManager.getFCMToken();
+
+  if (token) {
+    console.log('✅ FCM Token:', token);
+    console.log('📋 Copy this token to test notifications');
+
+    // Also log to make it easy to copy
+    console.table({
+      'FCM Token': token,
+      'Length': token.length,
+      'First 50 chars': token.substring(0, 50) + '...',
+      'Last 50 chars': '...' + token.substring(token.length - 50)
+    });
+  } else {
+    console.error('❌ No FCM token available');
+    console.log('💡 Make sure:');
+    console.log('  1. Notification permission is granted');
+    console.log('  2. Service worker is registered');
+    console.log('  3. Firebase is configured correctly');
+  }
+
+  return token;
+}
+
+// Make it available globally for easy debugging
+if (typeof window !== 'undefined') {
+  (window as any).checkFCMToken = logCurrentFCMToken;
+  console.log('💡 Tip: Run window.checkFCMToken() in console to see your FCM token');
+}
 
 // Initialize push notifications
 export async function initializePushNotifications(): Promise<NotificationPermissionState> {
