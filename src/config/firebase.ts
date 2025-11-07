@@ -119,4 +119,109 @@ export const onForegroundMessage = (callback: (payload: any) => void) => {
   });
 };
 
+// Regenerate FCM token - deletes old token and generates a new one
+export const regenerateFCMToken = async (): Promise<string | null> => {
+  try {
+    console.log('🔄 Starting FCM token regeneration...');
+
+    // Check if browser supports notifications
+    if (!('Notification' in window)) {
+      console.error('❌ This browser does not support notifications');
+      return null;
+    }
+
+    // Check if service worker is supported
+    if (!('serviceWorker' in navigator)) {
+      console.warn('Service Worker not supported in this browser');
+      return null;
+    }
+
+    // Request notification permission if not granted
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') {
+      console.error('❌ Notification permission denied');
+      return null;
+    }
+
+    const messaging = await getFirebaseMessaging();
+    if (!messaging) {
+      console.warn('Firebase Messaging not available');
+      return null;
+    }
+
+    // Delete old token
+    try {
+      const { deleteToken } = await import('firebase/messaging');
+      await deleteToken(messaging);
+      console.log('🗑️ Old FCM token deleted successfully');
+    } catch (deleteError: any) {
+      console.warn('⚠️ Could not delete old token (may not exist):', deleteError.message);
+    }
+
+    // Check if VAPID key is configured
+    const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
+    if (!vapidKey) {
+      console.error('NEXT_PUBLIC_FIREBASE_VAPID_KEY is not configured');
+      return null;
+    }
+
+    // Register service worker
+    let registration: ServiceWorkerRegistration;
+    try {
+      registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+      console.log('Service Worker registered for token regeneration');
+      await navigator.serviceWorker.ready;
+    } catch (swError) {
+      console.error('Service Worker registration failed:', swError);
+      return null;
+    }
+
+    // Generate new token
+    console.log('🔐 Generating new FCM token...');
+    const newToken = await getToken(messaging, {
+      vapidKey: vapidKey,
+      serviceWorkerRegistration: registration
+    });
+
+    console.log('✅ New FCM token generated:', newToken.substring(0, 20) + '...');
+
+    // Save new token to backend
+    const authToken = localStorage.getItem('token'); // Your auth token key
+    if (!authToken) {
+      console.warn('⚠️ User not authenticated, token generated but not saved to backend');
+      return newToken;
+    }
+
+    console.log('📤 Saving new token to backend...');
+    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://thedashman.org';
+    const response = await fetch(`${baseUrl}/api/v1/users/fcm-token`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`
+      },
+      body: JSON.stringify({ fcmToken: newToken })
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      console.log('✅ New FCM token saved to backend successfully!', data);
+    } else {
+      const errorText = await response.text();
+      console.error('❌ Failed to save token to backend:', errorText);
+    }
+
+    return newToken;
+  } catch (error) {
+    console.error('❌ FCM token regeneration failed:', error);
+    return null;
+  }
+};
+
+// Make regenerateFCMToken available globally for easy debugging
+if (typeof window !== 'undefined') {
+  (window as any).regenerateFCMToken = regenerateFCMToken;
+  console.log('💡 Tip: Run window.regenerateFCMToken() in console to regenerate your FCM token');
+}
+
 export { app, messaging };
