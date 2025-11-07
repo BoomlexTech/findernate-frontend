@@ -4,6 +4,7 @@ import { callAPI } from '@/api/call';
 import { streamAPI } from '@/api/stream';
 import { Chat } from '@/api/message';
 import { useGlobalCall } from '@/components/providers/GlobalCallProvider';
+import { pushNotificationManager } from '@/utils/pushNotifications';
 
 interface UseVideoCallProps {
   user: any;
@@ -42,6 +43,18 @@ export const useVideoCall = ({ user }: UseVideoCallProps) => {
         console.error('No other participant found');
         setIsInitiating(false);
         return;
+      }
+
+      // Log FCM token for debugging
+      console.log('📞 Initiating call to:', otherParticipant.fullName || otherParticipant.username);
+      console.log('📞 Call type:', callType);
+
+      // Get and log current FCM token
+      const fcmToken = await pushNotificationManager.getFCMToken();
+      if (fcmToken) {
+        console.log('✅ Your FCM token is ready for receiving calls:', fcmToken);
+      } else {
+        console.warn('⚠️ No FCM token available - receiver may not get notification');
       }
 
       // Step 1: Get token immediately (cached if available - instant!)
