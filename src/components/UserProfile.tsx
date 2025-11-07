@@ -7,6 +7,7 @@ import ReportModal from './ReportModal';
 import BlockedUsersModal from './BlockedUsersModal';
 import BlockConfirmModal from './BlockConfirmModal';
 import ShareModal from './ShareModal';
+import ProfilePictureModal from './ProfilePictureModal';
 import { Button } from "./ui/button";
 import SettingsModal from "./SettingsModal";
 import { UserProfile as UserProfileType } from "@/types";
@@ -128,6 +129,7 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
   });
   const [isToggling, setIsToggling] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [showProfilePictureModal, setShowProfilePictureModal] = useState(false);
 
   // Location suggestion states
   const [locationSuggestions, setLocationSuggestions] = useState<LocationSuggestion[]>([]);
@@ -497,11 +499,19 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
   };
 
   const handleImageClick = async () => {
-    if (isCurrentUser) {
-      // For current user, allow image change
+    const hasProfilePicture = formData.profileImageUrl || profile?.profileImageUrl;
+
+    if (isCurrentUser && isEditing) {
+      // For current user in edit mode, allow image change
       fileInputRef.current?.click();
-    } else {
-      // For other users, fetch and show their stories
+    } else if (!isCurrentUser && userStories.length > 0) {
+      // For other users with stories, show stories
+      await fetchAndShowStories();
+    } else if (hasProfilePicture) {
+      // For users with profile picture but no stories (or current user not editing), show picture modal
+      setShowProfilePictureModal(true);
+    } else if (!isCurrentUser) {
+      // For other users without stories or profile picture, try fetching stories
       await fetchAndShowStories();
     }
   };
@@ -1022,7 +1032,16 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
       {/* Banner */}
       <div className="bg-gradient-to-r from-yellow-400 to-yellow-600 h-32 w-full relative">
         <div className="absolute -bottom-12 left-4 sm:left-6">
-          <div className={`relative ${(isCurrentUser && isEditing) || (!isCurrentUser && userStories.length > 0) ? 'cursor-pointer' : ''}`} onClick={(isCurrentUser && isEditing) ? handleImageClick : (!isCurrentUser ? fetchAndShowStories : undefined)}>
+          <div
+            className={`relative ${
+              (isCurrentUser && isEditing) ||
+              (!isCurrentUser && userStories.length > 0) ||
+              (formData.profileImageUrl || profile?.profileImageUrl)
+                ? 'cursor-pointer'
+                : ''
+            }`}
+            onClick={handleImageClick}
+          >
             {/* Story ring wrapper for other users with stories */}
             <div className={`w-24 h-24 sm:w-32 sm:h-32 rounded-full ${
               !isCurrentUser && userStories.length > 0 
@@ -1540,6 +1559,14 @@ const UserProfile = ({ userData, isCurrentUser = false, onProfileUpdate }: UserP
         isOpen={showShareModal}
         onClose={() => setShowShareModal(false)}
         userData={profile!}
+      />
+
+      {/* Profile Picture Modal */}
+      <ProfilePictureModal
+        isOpen={showProfilePictureModal}
+        onClose={() => setShowProfilePictureModal(false)}
+        imageUrl={formData.profileImageUrl || profile?.profileImageUrl || null}
+        userName={profile?.fullName || profile?.username || 'User'}
       />
 
       {/* Rating Modal */}
