@@ -75,50 +75,91 @@ export const useStories = () => {
   // Fetch stories feed
   const fetchStories = useCallback(async () => {
     if (!user) {
+      console.log('📖 [useStories] No user authenticated, clearing stories');
       setStories([]);
       setStoryUsers([]);
       setLoading(false);
       setError(null);
       return;
     }
-    
+
+    console.log('📖 [useStories] Fetching stories feed for user:', user.username || user._id);
     setLoading(true);
     setError(null);
-    
+
     try {
       const storiesData = await storyAPI.fetchStoriesFeed();
+      console.log(`📖 [useStories] Received ${storiesData.length} stories from backend`);
+
+      // Log story details for debugging
+      if (storiesData.length > 0) {
+        console.log('📖 [useStories] Story breakdown:', {
+          total: storiesData.length,
+          ownStories: storiesData.filter(s => s.userId._id === user._id).length,
+          othersStories: storiesData.filter(s => s.userId._id !== user._id).length,
+          uniqueUsers: new Set(storiesData.map(s => s.userId._id)).size
+        });
+      } else {
+        console.log('⚠️ [useStories] No stories returned from backend. Possible causes:');
+        console.log('   1. No one has uploaded stories');
+        console.log('   2. Backend privacy filtering is too restrictive');
+        console.log('   3. Backend /stories/feed endpoint needs privacy implementation');
+      }
+
       setStories(storiesData);
       const transformedUsers = transformStoriesToUsers(storiesData);
+      console.log(`📖 [useStories] Transformed into ${transformedUsers.length} story users`);
       setStoryUsers(transformedUsers);
     } catch (err: any) {
       setError('Failed to fetch stories');
-      console.error('Error fetching stories:', err);
+      console.error('❌ [useStories] Error fetching stories:', {
+        message: err.message,
+        status: err.response?.status,
+        data: err.response?.data
+      });
       // Set empty data on error to prevent crashes
       setStories([]);
       setStoryUsers([]);
     } finally {
       setLoading(false);
     }
-  }, [user?._id, transformStoriesToUsers]);
+  }, [user?._id, user?.username, transformStoriesToUsers]);
 
   // Upload a new story
   const uploadStory = useCallback(async (media: File, caption?: string) => {
     if (!user) {
-      console.warn('Cannot upload story: User not authenticated');
+      console.warn('⚠️ [useStories] Cannot upload story: User not authenticated');
       return false;
     }
-    
+
+    console.log('📤 [useStories] Uploading story:', {
+      mediaType: media.type,
+      mediaSize: `${(media.size / 1024 / 1024).toFixed(2)}MB`,
+      hasCaption: !!caption,
+      userId: user._id,
+      username: user.username,
+      accountPrivacy: user.privacy || 'public'
+    });
+
     setLoading(true);
     setError(null);
-    
+
     try {
-      await storyAPI.uploadStory({ media, caption });
+      const result = await storyAPI.uploadStory({ media, caption });
+      console.log('✅ [useStories] Story uploaded successfully:', result);
+
       // Refresh stories after upload
+      console.log('🔄 [useStories] Refreshing stories feed...');
       await fetchStories();
+
       return true;
-    } catch (err) {
+    } catch (err: any) {
       setError('Failed to upload story');
-      console.error('Error uploading story:', err);
+      console.error('❌ [useStories] Error uploading story:', {
+        message: err.message,
+        status: err.response?.status,
+        data: err.response?.data
+      });
       return false;
     } finally {
       setLoading(false);
