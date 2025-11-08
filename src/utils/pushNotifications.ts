@@ -95,11 +95,13 @@ class PushNotificationManager {
     }
 
     try {
-      const registration = await navigator.serviceWorker.register('/sw.js', {
+      // Use Firebase service worker instead of generic sw.js
+      // This prevents conflicts and ensures FCM notifications work properly
+      const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
         scope: '/'
       });
 
-      //console.log('Service Worker registered successfully:', registration);
+      console.log('✅ Firebase Service Worker registered successfully:', registration);
 
       // Handle service worker updates
       registration.addEventListener('updatefound', () => {
@@ -108,7 +110,7 @@ class PushNotificationManager {
           newWorker.addEventListener('statechange', () => {
             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
               // New service worker is available
-              //console.log('New service worker available');
+              console.log('🔄 New service worker available - refresh recommended');
               // You can show a notification to user to refresh
             }
           });
@@ -118,7 +120,7 @@ class PushNotificationManager {
       this.registration = registration;
       return registration;
     } catch (error) {
-      console.error('Service Worker registration failed:', error);
+      console.error('❌ Service Worker registration failed:', error);
       return null;
     }
   }
