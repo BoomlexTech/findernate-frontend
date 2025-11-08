@@ -131,7 +131,7 @@ export const testFCMNotification = async () => {
 
   console.log('✅ Showing test notification...');
 
-  const notification = new Notification('Test Call Notification', {
+  const notificationOptions: NotificationOptions & { vibrate?: number[] } = {
     body: 'This is a test incoming call from John Doe',
     icon: '/Findernate.ico',
     badge: '/Findernate.ico',
@@ -146,7 +146,9 @@ export const testFCMNotification = async () => {
       callType: 'voice',
       type: 'incoming_call'
     }
-  });
+  };
+
+  const notification = new Notification('Test Call Notification', notificationOptions);
 
   notification.onclick = () => {
     console.log('📞 Test notification clicked!');
