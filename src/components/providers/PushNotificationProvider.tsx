@@ -4,6 +4,8 @@ import React, { useEffect } from 'react';
 import { usePushNotifications } from '../../hooks/usePushNotifications';
 import { setupMessageNotifications } from '../../api/message';
 import { streamAPI } from '../../api/stream';
+// Import notification debug utilities (only active in development)
+import '@/utils/notificationDebug';
 
 interface PushNotificationProviderProps {
   children: React.ReactNode;
