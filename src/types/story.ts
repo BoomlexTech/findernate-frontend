@@ -63,3 +63,12 @@ export interface StoryUploadResponse {
   expiresAt: string;
   createdAt: string;
 }
+
+export interface DeleteStoryResponse {
+  statusCode: number;
+  data: {
+    storyId: string;
+  };
+  message: string;
+  success: boolean;
+}

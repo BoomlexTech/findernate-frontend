@@ -102,8 +102,9 @@ export default function StoryViewer({
 
   // Next story logic
   const nextStory = useCallback(() => {
-    // Mark current story as viewed before moving to next
+    // Mark current story as viewed before moving to next (for custom callback)
     if (currentStory && onStoryViewed) {
+      console.log('📝 [StoryViewer] Calling onStoryViewed callback for:', currentStory._id);
       onStoryViewed(currentStory._id);
     }
 
@@ -179,10 +180,12 @@ export default function StoryViewer({
 
   // Handle close with story marking
   const handleClose = useCallback(() => {
-    // Mark current story as viewed when closing
+    // Mark current story as viewed when closing (for custom callback)
     if (currentStory && onStoryViewed) {
+      console.log('📝 [StoryViewer] Calling onStoryViewed callback on close for:', currentStory._id);
       onStoryViewed(currentStory._id);
     }
+    console.log('🚪 [StoryViewer] Closing story viewer');
     onClose();
   }, [currentStory, onStoryViewed, onClose]);
 
@@ -260,24 +263,42 @@ export default function StoryViewer({
   // Mark story as seen and fetch viewer count
   useEffect(() => {
     if (currentStory) {
-      markStoryAsSeen(currentStory._id);
-      
+      console.log('👁️ [StoryViewer] Current story changed, marking as seen:', {
+        storyId: currentStory._id,
+        userId: currentUser._id,
+        username: currentUser.username,
+        isCurrentUser: currentUser.isCurrentUser
+      });
+
+      // Mark story as seen (async but don't wait)
+      markStoryAsSeen(currentStory._id).then(success => {
+        if (success) {
+          console.log('✅ [StoryViewer] Story view recorded successfully');
+        } else {
+          console.warn('⚠️ [StoryViewer] Failed to record story view');
+        }
+      });
+
       // Fetch accurate viewer count for current user's stories
       if (currentUser.isCurrentUser) {
         const fetchViewerCount = async () => {
           try {
+            console.log('📊 [StoryViewer] Fetching viewer count for own story:', currentStory._id);
             const analytics = await storyAPI.fetchStoryViewers(currentStory._id, 1, 1);
-            setViewerCount(analytics.pagination.total);
-          } catch {
+            const count = analytics.pagination.total;
+            console.log('✅ [StoryViewer] Viewer count fetched:', count);
+            setViewerCount(count);
+          } catch (error) {
+            console.warn('⚠️ [StoryViewer] Failed to fetch viewer count, using fallback');
             // Fallback to story viewers array length
             setViewerCount(currentStory.viewers?.length || 0);
           }
         };
-        
+
         fetchViewerCount();
       }
     }
-  }, [currentStory, markStoryAsSeen, currentUser.isCurrentUser]);
+  }, [currentStory, markStoryAsSeen, currentUser.isCurrentUser, currentUser._id, currentUser.username]);
 
   // Setup progress and keyboard listeners
   useEffect(() => {
