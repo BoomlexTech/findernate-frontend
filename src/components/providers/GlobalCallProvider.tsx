@@ -9,6 +9,7 @@ import { pushNotificationManager, CallNotificationData } from '@/utils/pushNotif
 import { IncomingCallModal } from '@/components/call/IncomingCallModal';
 import { VideoCallModal } from '@/components/call/VideoCallModal';
 import { useUserStore } from '@/store/useUserStore';
+import '@/utils/serviceWorkerCleanup'; // Make cleanup function available globally
 
 interface IncomingCall {
   callId: string;
