@@ -1,5 +1,5 @@
 import axiosInstance from './base';
-import { Story, StoryAnalytics, CreateStoryRequest, StoryUploadResponse } from '@/types/story';
+import { Story, StoryAnalytics, CreateStoryRequest, StoryUploadResponse, DeleteStoryResponse } from '@/types/story';
 
 export const storyAPI = {
   // Upload a new story
@@ -32,7 +32,19 @@ export const storyAPI = {
 
   // Mark story as seen
   markStorySeen: async (storyId: string): Promise<void> => {
-    await axiosInstance.post('/stories/seen', { storyId });
+    console.log('📊 Marking story as seen:', storyId);
+    try {
+      const response = await axiosInstance.post('/stories/seen', { storyId });
+      console.log('✅ Story marked as seen successfully:', response.data);
+    } catch (error: any) {
+      console.error('❌ Failed to mark story as seen:', {
+        storyId,
+        error: error.message,
+        status: error.response?.status,
+        data: error.response?.data
+      });
+      throw error; // Re-throw to let caller handle
+    }
   },
 
   // Get story viewers/analytics
@@ -65,8 +77,9 @@ export const storyAPI = {
     return response.data;
   },
 
-  // Delete a story (if needed)
-  deleteStory: async (storyId: string): Promise<void> => {
-    await axiosInstance.delete(`/stories/${storyId}`);
+  // Delete a story
+  deleteStory: async (storyId: string): Promise<DeleteStoryResponse> => {
+    const response = await axiosInstance.delete<DeleteStoryResponse>(`/stories/${storyId}`);
+    return response.data;
   },
 };

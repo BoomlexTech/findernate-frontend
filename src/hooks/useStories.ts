@@ -128,14 +128,23 @@ export const useStories = () => {
   // Mark story as seen
   const markStoryAsSeen = useCallback(async (storyId: string) => {
     if (!user) {
-      console.warn('Cannot mark story as seen: User not authenticated');
-      return;
+      console.warn('⚠️ Cannot mark story as seen: User not authenticated');
+      return false;
     }
-    
+
     try {
+      console.log('👁️ [useStories] Attempting to mark story as seen:', storyId);
       await storyAPI.markStorySeen(storyId);
-    } catch (err) {
-      console.error('Error marking story as seen:', err);
+      console.log('✅ [useStories] Story marked as seen successfully');
+      return true;
+    } catch (err: any) {
+      console.error('❌ [useStories] Error marking story as seen:', {
+        storyId,
+        error: err.message,
+        status: err.response?.status,
+        data: err.response?.data
+      });
+      return false;
     }
   }, [user]);
 
