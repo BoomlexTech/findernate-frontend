@@ -237,19 +237,3 @@ export const unregisterAllServiceWorkers = async () => {
 
   console.log('✅ All service workers unregistered. Refresh the page to re-register.');
 };
-
-// Make functions globally available in development
-if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
-  (window as any).checkNotificationStatus = checkNotificationStatus;
-  (window as any).testFCMNotification = testFCMNotification;
-  (window as any).requestNotificationPermission = requestNotificationPermission;
-  (window as any).getServiceWorkerInfo = getServiceWorkerInfo;
-  (window as any).unregisterAllServiceWorkers = unregisterAllServiceWorkers;
-
-  console.log('💡 Notification Debug Utils loaded! Available commands:');
-  console.log('   • window.checkNotificationStatus()');
-  console.log('   • window.testFCMNotification()');
-  console.log('   • window.requestNotificationPermission()');
-  console.log('   • window.getServiceWorkerInfo()');
-  console.log('   • window.unregisterAllServiceWorkers()');
-}
