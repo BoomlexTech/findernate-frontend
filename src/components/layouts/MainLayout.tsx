@@ -10,6 +10,7 @@ import CreatePostModal from "@/components/CreatePostModal";
 import PushNotificationProvider from "@/components/providers/PushNotificationProvider";
 import { GlobalCallProvider } from "@/components/providers/GlobalCallProvider";
 import { useCommentNotifications } from "@/hooks/useCommentNotifications";
+import NotificationDebugInit from "@/components/utils/NotificationDebugInit";
 
 const MainLayout = ({children}:{children:React.ReactNode}) => {
 
@@ -69,6 +70,8 @@ const MainLayout = ({children}:{children:React.ReactNode}) => {
   return (
     <PushNotificationProvider>
       <GlobalCallProvider>
+        {/* Initialize notification debug utilities */}
+        <NotificationDebugInit />
 
         {/* Hamburger Menu for mobile and medium screens (hidden on reels page) */}
         {!isNoSidebar && isMobile && !pathname.startsWith('/reels') && (
