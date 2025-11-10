@@ -169,17 +169,25 @@ export default function StoriesBar({ onCreateStory }: StoriesBarProps) {
   }
 
   const openStoryModal = (storyUser: StoryUser) => {
+    console.log('📖 [StoriesBar] Opening story modal for user:', {
+      username: storyUser.username,
+      isCurrentUser: storyUser.isCurrentUser,
+      storiesCount: storyUser.stories?.length || 0,
+      storyIds: storyUser.stories?.map(s => s._id.slice(-6)) || []
+    });
+
     // If current user has no stories, show create modal
     if (storyUser.isCurrentUser && (!storyUser.stories || storyUser.stories.length === 0)) {
       handleCreateStory();
       return;
     }
-    
+
     // For all other cases (current user with stories OR other users with stories), show story viewer
     if (storyUser.stories && storyUser.stories.length > 0) {
       setSelectedUser(storyUser);
       // Start from the first unviewed story (Instagram behavior)
       const startIndex = getFirstUnviewedStoryIndex(storyUser);
+      console.log('📖 [StoriesBar] Starting at story index:', startIndex);
       setCurrentStoryIndex(startIndex);
     }
   };
