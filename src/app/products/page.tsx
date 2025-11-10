@@ -81,6 +81,7 @@ const ProductsPage = () => {
     setLoading(true);
     setError(null);
     try {
+      console.log('📦 [Products Page] Fetching products with filter: types=product');
       const response = await getExploreFeed({
         page: pageNum,
         limit: 20, // Fetch more data for better filtering
@@ -88,7 +89,35 @@ const ProductsPage = () => {
         sortBy: 'time' // Use consistent sorting for base data
       });
 
+      console.log('📦 [Products Page] Backend response:', {
+        totalItems: response.data.feed.length,
+        postsCount: response.data.pagination.postsCount
+      });
+
       let transformedData = transformExploreFeedToFeedPost(response.data.feed);
+
+      // FALLBACK: If backend returns 0 product posts, try fetching all posts and filter on frontend
+      if (transformedData.length === 0 && pageNum === 1) {
+        console.warn('⚠️ [Products Page] Backend returned 0 product posts. Trying fallback: fetch all posts and filter by contentType');
+        const fallbackResponse = await getExploreFeed({
+          page: 1,
+          limit: 50,
+          types: 'all',
+          sortBy: 'time'
+        });
+
+        const allTransformed = transformExploreFeedToFeedPost(fallbackResponse.data.feed);
+
+        // Filter for product posts on frontend
+        transformedData = allTransformed.filter(post => {
+          return post.contentType === 'product' ||
+                 post.contentType === 'Product' ||
+                 post.postType === 'product' ||
+                 !!post.customization?.product;
+        });
+
+        console.log(`📦 [Products Page] Fallback filtering found ${transformedData.length} product posts`);
+      }
 
       // Normalize / enrich product posts to guarantee PostCard requirements
       transformedData = transformedData.map(post => {

@@ -81,14 +81,76 @@ const ServicesPage = () => {
     setLoading(true);
     setError(null);
     try {
+      console.log('🔧 [Services Page] Fetching services with filter: types=service');
       const response = await getExploreFeed({
         page: pageNum,
         limit: 20, // Fetch more data for better filtering
         types: 'service',
         sortBy: 'time' // Use consistent sorting for base data
       });
-      
+
+      console.log('🔧 [Services Page] Backend response:', {
+        totalItems: response.data.feed.length,
+        postsCount: response.data.pagination.postsCount,
+        reelsCount: response.data.pagination.reelsCount,
+        sampleItems: response.data.feed.slice(0, 3).map(item => ({
+          id: item._id?.slice(-6),
+          contentType: item.contentType,
+          postType: item.postType,
+          _type: item._type,
+          hasCustomization: !!item.customization,
+          customizationType: item.customization ? Object.keys(item.customization)[0] : 'none'
+        }))
+      });
+
       let transformedData = transformExploreFeedToFeedPost(response.data.feed);
+
+      console.log('🔧 [Services Page] After transformation:', {
+        count: transformedData.length,
+        sampleContentTypes: transformedData.slice(0, 5).map(p => ({
+          id: p._id.slice(-6),
+          contentType: p.contentType,
+          hasServiceCustomization: !!p.customization?.service
+        }))
+      });
+
+      // FALLBACK: If backend returns 0 service posts, try fetching all posts and filter on frontend
+      if (transformedData.length === 0 && pageNum === 1) {
+        console.warn('⚠️ [Services Page] Backend returned 0 service posts. Trying fallback: fetch all posts and filter by contentType');
+        const fallbackResponse = await getExploreFeed({
+          page: 1,
+          limit: 50,
+          types: 'all',
+          sortBy: 'time'
+        });
+
+        console.log('🔧 [Services Page] Fallback response:', {
+          totalItems: fallbackResponse.data.feed.length,
+          contentTypes: fallbackResponse.data.feed.map(item => item.contentType || item.postType || 'unknown')
+        });
+
+        const allTransformed = transformExploreFeedToFeedPost(fallbackResponse.data.feed);
+
+        // Filter for service posts on frontend
+        transformedData = allTransformed.filter(post => {
+          const isService = post.contentType === 'service' ||
+                           post.contentType === 'Service' ||
+                           post.postType === 'service' ||
+                           !!post.customization?.service;
+
+          if (isService) {
+            console.log('✅ [Services Page] Found service post via fallback:', {
+              id: post._id.slice(-6),
+              contentType: post.contentType,
+              postType: post.postType,
+              hasServiceCustomization: !!post.customization?.service
+            });
+          }
+          return isService;
+        });
+
+        console.log(`🔧 [Services Page] Fallback filtering found ${transformedData.length} service posts`);
+      }
 
       // Normalize / enrich service posts to guarantee PostCard requirements
       transformedData = transformedData.map(post => {
