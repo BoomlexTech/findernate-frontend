@@ -91,14 +91,27 @@ const ProductsPage = () => {
 
       console.log('📦 [Products Page] Backend response:', {
         totalItems: response.data.feed.length,
-        postsCount: response.data.pagination.postsCount
+        postsCount: response.data.pagination.postsCount,
+        sampleContentTypes: response.data.feed.slice(0, 3).map(item => ({
+          id: item._id?.slice(-6),
+          contentType: item.contentType
+        }))
       });
 
       let transformedData = transformExploreFeedToFeedPost(response.data.feed);
 
-      // FALLBACK: If backend returns 0 product posts, try fetching all posts and filter on frontend
-      if (transformedData.length === 0 && pageNum === 1) {
-        console.warn('⚠️ [Products Page] Backend returned 0 product posts. Trying fallback: fetch all posts and filter by contentType');
+      // Check if backend actually returned product posts
+      const productPostsFromBackend = transformedData.filter(p =>
+        p.contentType === 'product' ||
+        p.contentType === 'Product' ||
+        !!p.customization?.product
+      );
+
+      console.log(`📦 [Products Page] Backend returned ${productPostsFromBackend.length} actual product posts out of ${transformedData.length} total posts`);
+
+      // ALWAYS USE FALLBACK: Backend filtering is broken, fetch all posts and filter on frontend
+      if (pageNum === 1) {
+        console.warn('⚠️ [Products Page] Using fallback: Fetching all posts and filtering by contentType on frontend');
         const fallbackResponse = await getExploreFeed({
           page: 1,
           limit: 50,
@@ -106,14 +119,32 @@ const ProductsPage = () => {
           sortBy: 'time'
         });
 
+        console.log('📦 [Products Page] Fallback response:', {
+          totalItems: fallbackResponse.data.feed.length,
+          contentTypes: fallbackResponse.data.feed.reduce((acc, item) => {
+            const type = item.contentType || 'unknown';
+            acc[type] = (acc[type] || 0) + 1;
+            return acc;
+          }, {} as Record<string, number>)
+        });
+
         const allTransformed = transformExploreFeedToFeedPost(fallbackResponse.data.feed);
 
         // Filter for product posts on frontend
         transformedData = allTransformed.filter(post => {
-          return post.contentType === 'product' ||
-                 post.contentType === 'Product' ||
-                 post.postType === 'product' ||
-                 !!post.customization?.product;
+          const isProduct = post.contentType === 'product' ||
+                           post.contentType === 'Product' ||
+                           post.postType === 'product' ||
+                           !!post.customization?.product;
+
+          if (isProduct) {
+            console.log('✅ [Products Page] Found product post via fallback:', {
+              id: post._id.slice(-6),
+              contentType: post.contentType,
+              caption: post.caption?.slice(0, 30)
+            });
+          }
+          return isProduct;
         });
 
         console.log(`📦 [Products Page] Fallback filtering found ${transformedData.length} product posts`);

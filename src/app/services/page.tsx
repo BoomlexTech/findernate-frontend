@@ -114,9 +114,18 @@ const ServicesPage = () => {
         }))
       });
 
-      // FALLBACK: If backend returns 0 service posts, try fetching all posts and filter on frontend
-      if (transformedData.length === 0 && pageNum === 1) {
-        console.warn('⚠️ [Services Page] Backend returned 0 service posts. Trying fallback: fetch all posts and filter by contentType');
+      // Check if backend actually returned service posts
+      const servicePostsFromBackend = transformedData.filter(p =>
+        p.contentType === 'service' ||
+        p.contentType === 'Service' ||
+        !!p.customization?.service
+      );
+
+      console.log(`🔧 [Services Page] Backend returned ${servicePostsFromBackend.length} actual service posts out of ${transformedData.length} total posts`);
+
+      // ALWAYS USE FALLBACK: Backend filtering is broken, fetch all posts and filter on frontend
+      if (pageNum === 1) {
+        console.warn('⚠️ [Services Page] Using fallback: Fetching all posts and filtering by contentType on frontend');
         const fallbackResponse = await getExploreFeed({
           page: 1,
           limit: 50,
@@ -126,7 +135,11 @@ const ServicesPage = () => {
 
         console.log('🔧 [Services Page] Fallback response:', {
           totalItems: fallbackResponse.data.feed.length,
-          contentTypes: fallbackResponse.data.feed.map(item => item.contentType || item.postType || 'unknown')
+          contentTypes: fallbackResponse.data.feed.reduce((acc, item) => {
+            const type = item.contentType || 'unknown';
+            acc[type] = (acc[type] || 0) + 1;
+            return acc;
+          }, {} as Record<string, number>)
         });
 
         const allTransformed = transformExploreFeedToFeedPost(fallbackResponse.data.feed);
@@ -142,7 +155,7 @@ const ServicesPage = () => {
             console.log('✅ [Services Page] Found service post via fallback:', {
               id: post._id.slice(-6),
               contentType: post.contentType,
-              postType: post.postType,
+              caption: post.caption?.slice(0, 30),
               hasServiceCustomization: !!post.customization?.service
             });
           }
