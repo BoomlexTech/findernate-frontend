@@ -21,6 +21,18 @@ export const useStories = () => {
     
     // Add current user first if they have stories
     const currentUserStories = storiesData.filter(story => story.userId._id === user._id);
+
+    console.log('🔍 [transformStoriesToUsers] Current user stories:', {
+      userId: user._id,
+      totalStoriesFromAPI: storiesData.length,
+      currentUserStoriesCount: currentUserStories.length,
+      currentUserStoryIds: currentUserStories.map(s => ({
+        id: s._id.slice(-6),
+        createdAt: s.createdAt,
+        userId: s.userId._id === user._id ? 'ME' : 'OTHER'
+      }))
+    });
+
     if (currentUserStories.length > 0) {
       userMap.set(user._id, {
         _id: user._id,
@@ -62,14 +74,26 @@ export const useStories = () => {
 
     // Convert to array and sort: current user first, then by most recent story
     const result = Array.from(userMap.values());
-    return result.sort((a, b) => {
+    const sortedResult = result.sort((a, b) => {
       if (a.isCurrentUser) return -1;
       if (b.isCurrentUser) return 1;
-      
+
       const aLatest = new Date(a.stories[0]?.createdAt || 0).getTime();
       const bLatest = new Date(b.stories[0]?.createdAt || 0).getTime();
       return bLatest - aLatest;
     });
+
+    // Log final result for current user
+    const currentUserResult = sortedResult.find(u => u.isCurrentUser);
+    if (currentUserResult) {
+      console.log('✅ [transformStoriesToUsers] FINAL current user result:', {
+        username: currentUserResult.username,
+        storiesCount: currentUserResult.stories.length,
+        storyIds: currentUserResult.stories.map(s => s._id.slice(-6))
+      });
+    }
+
+    return sortedResult;
   }, [user?._id, user?.username, user?.fullName, user?.profileImageUrl, blockedUserIds]);
 
   // Fetch stories feed
@@ -91,16 +115,27 @@ export const useStories = () => {
       const storiesData = await storyAPI.fetchStoriesFeed();
       console.log(`📖 [useStories] Received ${storiesData.length} stories from backend`);
 
-      // Log story details for debugging
+      // Log story details for debugging - ENHANCED
       if (storiesData.length > 0) {
         const ownStories = storiesData.filter(s => s.userId._id === user._id);
         console.log('📖 [useStories] Story breakdown:', {
           total: storiesData.length,
           ownStories: ownStories.length,
-          ownStoryIds: ownStories.map(s => ({ id: s._id.slice(-6), createdAt: s.createdAt })),
+          ownStoryIds: ownStories.map(s => ({
+            id: s._id.slice(-6),
+            createdAt: s.createdAt,
+            mediaUrl: s.mediaUrl ? s.mediaUrl.slice(-20) : 'no-media'
+          })),
           othersStories: storiesData.filter(s => s.userId._id !== user._id).length,
           uniqueUsers: new Set(storiesData.map(s => s.userId._id)).size
         });
+
+        // Check if backend is returning duplicate story IDs
+        const storyIds = storiesData.map(s => s._id);
+        const uniqueStoryIds = new Set(storyIds);
+        if (storyIds.length !== uniqueStoryIds.size) {
+          console.warn('⚠️ [useStories] DUPLICATE STORY IDs DETECTED IN BACKEND RESPONSE!');
+        }
 
         // Detailed log for each user's stories
         const userStoryCounts = new Map<string, number>();
