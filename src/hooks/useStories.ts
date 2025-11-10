@@ -93,12 +93,26 @@ export const useStories = () => {
 
       // Log story details for debugging
       if (storiesData.length > 0) {
+        const ownStories = storiesData.filter(s => s.userId._id === user._id);
         console.log('📖 [useStories] Story breakdown:', {
           total: storiesData.length,
-          ownStories: storiesData.filter(s => s.userId._id === user._id).length,
+          ownStories: ownStories.length,
+          ownStoryIds: ownStories.map(s => ({ id: s._id.slice(-6), createdAt: s.createdAt })),
           othersStories: storiesData.filter(s => s.userId._id !== user._id).length,
           uniqueUsers: new Set(storiesData.map(s => s.userId._id)).size
         });
+
+        // Detailed log for each user's stories
+        const userStoryCounts = new Map<string, number>();
+        storiesData.forEach(s => {
+          const userId = s.userId._id;
+          userStoryCounts.set(userId, (userStoryCounts.get(userId) || 0) + 1);
+        });
+        console.log('📖 [useStories] Stories per user:', Array.from(userStoryCounts.entries()).map(([userId, count]) => ({
+          userId: userId.slice(-6),
+          storyCount: count,
+          isCurrentUser: userId === user._id
+        })));
       } else {
         console.log('⚠️ [useStories] No stories returned from backend. Possible causes:');
         console.log('   1. No one has uploaded stories');
@@ -259,6 +273,58 @@ export const useStories = () => {
     return storyUsers.some(storyUser => storyUser.isCurrentUser && storyUser.stories.length > 0);
   }, [user, storyUsers]);
 
+  // Delete a story
+  const deleteStory = useCallback(async (storyId: string) => {
+    if (!user) {
+      console.warn('⚠️ [useStories] Cannot delete story: User not authenticated');
+      return false;
+    }
+
+    console.log('🗑️ [useStories] Deleting story:', storyId);
+    setLoading(true);
+    setError(null);
+
+    try {
+      const result = await storyAPI.deleteStory(storyId);
+      console.log('✅ [useStories] Story deleted successfully:', result);
+
+      // Refresh stories after deletion
+      console.log('🔄 [useStories] Refreshing stories feed...');
+      await fetchStories();
+
+      toast.success('Story deleted successfully!', {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+
+      return true;
+    } catch (err: any) {
+      setError('Failed to delete story');
+      console.error('❌ [useStories] Error deleting story:', {
+        message: err.message,
+        status: err.response?.status,
+        data: err.response?.data
+      });
+
+      toast.error('Failed to delete story. Please try again.', {
+        position: "top-right",
+        autoClose: 4000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, [user, fetchStories]);
+
   // Get current user's story user object
   const getCurrentUserStories = useCallback((): StoryUser | null => {
     return storyUsers.find(storyUser => storyUser.isCurrentUser) || null;
@@ -277,6 +343,7 @@ export const useStories = () => {
     fetchStories,
     uploadStory,
     markStoryAsSeen,
+    deleteStory,
     saveStory,
     unsaveStory,
     hasActiveStories,

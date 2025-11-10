@@ -5,7 +5,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { StoryUser, Story } from "@/types/story";
 import { useStories } from "@/hooks/useStories";
-import { X, ChevronLeft, ChevronRight, Eye, Plus, MoreVertical, Flag } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, Eye, Plus, MoreVertical, Flag, Trash2 } from "lucide-react";
 import CreateStoryModal from "./CreateStoryModal";
 import { storyAPI } from "@/api/story";
 import { useUserStore } from "@/store/useUserStore";
@@ -54,7 +54,7 @@ export default function StoryViewer({
   
   const progressRef = useRef<NodeJS.Timeout | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const { markStoryAsSeen, uploadStory} = useStories();
+  const { markStoryAsSeen, uploadStory, deleteStory} = useStories();
 
   const currentUser = allStoryUsers[currentUserIndex];
   const currentStory = currentUser?.stories?.[currentStoryIndex];
@@ -243,6 +243,33 @@ export default function StoryViewer({
     }
   };
 
+  // Handle delete story
+  const handleDeleteStory = async () => {
+    if (!currentStory) return;
+
+    // Confirm deletion
+    const confirmed = window.confirm('Are you sure you want to delete this story? This action cannot be undone.');
+    if (!confirmed) return;
+
+    // Pause story and stop progress
+    setIsPaused(true);
+    stopProgress();
+
+    console.log('🗑️ [StoryViewer] Deleting story:', currentStory._id);
+    const success = await deleteStory(currentStory._id);
+
+    if (success) {
+      console.log('✅ [StoryViewer] Story deleted successfully, closing viewer');
+      // Close the viewer after successful deletion
+      handleClose();
+    } else {
+      console.error('❌ [StoryViewer] Failed to delete story');
+      // Resume story if deletion failed
+      setIsPaused(false);
+      startProgress();
+    }
+  };
+
   const handleStoryUpload = async (media: File, caption?: string) => {
     const success = await uploadStory(media, caption);
     if (success) {
@@ -354,6 +381,19 @@ export default function StoryViewer({
     handleClose();
   };
 
+  // Log story information for debugging
+  useEffect(() => {
+    if (currentUser && currentUser.stories) {
+      console.log('📺 [StoryViewer] Displaying stories for user:', {
+        username: currentUser.username,
+        isCurrentUser: currentUser.isCurrentUser,
+        totalStories: currentUser.stories.length,
+        currentStoryIndex: currentStoryIndex,
+        storyIds: currentUser.stories.map(s => s._id.slice(-6))
+      });
+    }
+  }, [currentUser, currentStoryIndex]);
+
   // Ensure we have valid data before proceeding
   if (!currentUser || !currentUser.stories || currentUser.stories.length === 0 || !currentStory) {
     return null;
@@ -436,6 +476,17 @@ export default function StoryViewer({
               >
                 <Eye size={16} />
                 <span className="text-sm">{viewerCount}</span>
+              </button>
+            )}
+
+            {/* Delete button for current user's stories */}
+            {currentUser.isCurrentUser && (
+              <button
+                onClick={handleDeleteStory}
+                className="flex items-center justify-center w-8 h-8 text-white hover:text-red-400 transition-colors"
+                title="Delete Story"
+              >
+                <Trash2 size={16} />
               </button>
             )}
 

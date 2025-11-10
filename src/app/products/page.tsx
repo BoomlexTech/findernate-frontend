@@ -28,6 +28,7 @@ const ProductsPage = () => {
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
   const [priceDropdownOpen, setPriceDropdownOpen] = useState(false);
   const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const categories = [
     "Electronics",
@@ -78,6 +79,7 @@ const ProductsPage = () => {
 
   const fetchProducts = async (pageNum: number = 1, reset: boolean = false) => {
     setLoading(true);
+    setError(null);
     try {
       const response = await getExploreFeed({
         page: pageNum,
@@ -85,11 +87,42 @@ const ProductsPage = () => {
         types: 'product',
         sortBy: 'time' // Use consistent sorting for base data
       });
-      
-      const transformedData = transformExploreFeedToFeedPost(response.data.feed);
-      
+
+      let transformedData = transformExploreFeedToFeedPost(response.data.feed);
+
+      // Normalize / enrich product posts to guarantee PostCard requirements
+      transformedData = transformedData.map(post => {
+        // Fallback caption
+        const productName = post.customization?.product?.name;
+        const description = post.description || '';
+        const captionFallback = post.caption || description || productName || 'Product Post';
+
+        // Ensure media present (PostCard returns null without media)
+        const hasValidMedia = Array.isArray(post.media) && post.media.some(m => (m.url || '').trim().length > 0);
+        const media = hasValidMedia ? post.media : [{ type: 'image', url: '/placeholderimg.png' } as any];
+
+        // Location fallback from customization.product.location
+        const location = post.location || post.customization?.product?.location || null;
+
+        // Tags fallback (merge existing + category if missing)
+        const productCategory = post.customization?.product?.name;
+        let tags = post.tags || post.hashtags || [];
+        if (productCategory && !tags.includes(productCategory)) tags = [...tags, productCategory];
+
+        return {
+          ...post,
+          caption: captionFallback,
+          description: description,
+          username: post.username || post.userId?.username || 'Unknown User',
+          profileImageUrl: post.profileImageUrl || post.userId?.profileImageUrl || '/placeholderimg.png',
+          media,
+          location,
+          tags
+        };
+      });
+
       //console.log('Transformed product data:', transformedData.slice(0, 2));
-      
+
       // Fetch comments for all product posts
       const productsWithComments = await Promise.all(
         transformedData.map(async (product) => {
@@ -144,8 +177,16 @@ const ProductsPage = () => {
       }
       
       setHasNextPage(response.data.pagination.hasNextPage);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to fetch products:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to load products';
+      setError(errorMessage);
+
+      // If this was the initial load and it failed, keep the page usable
+      if (reset) {
+        setProducts([]);
+        setAllProducts([]);
+      }
     } finally {
       setLoading(false);
     }
@@ -183,12 +224,26 @@ const ProductsPage = () => {
         username: post.userId?.username,
         profileImageUrl: post.userId?.profileImageUrl,
       }));
-      
-      //console.log('Search results:', flattenedResults.slice(0, 2));
-      
+
+      // Normalize search results similar to fetchProducts
+      const normalizedSearchResults = flattenedResults.map((post) => {
+        const productName = post.customization?.product?.name;
+        const description = post.description || '';
+        const captionFallback = post.caption || description || productName || 'Product';
+        const hasValidMedia = Array.isArray(post.media) && post.media.some(m => (m.url || '').trim().length > 0);
+        const media = hasValidMedia ? post.media : [{ type: 'image', url: '/placeholderimg.png' }];
+        const location = post.location || post.customization?.product?.location || null;
+        const productCategory = post.customization?.product?.name;
+        let tags = post.tags || [];
+        if (productCategory && !tags.includes(productCategory)) tags = [...tags, productCategory];
+        return { ...post, caption: captionFallback, media, location, tags };
+      });
+
+      //console.log('Product search results:', normalizedSearchResults.slice(0, 2));
+
       // Fetch comments for search results
       const searchResultsWithComments = await Promise.all(
-        flattenedResults.map(async (product) => {
+        normalizedSearchResults.map(async (product) => {
           try {
             //console.log(`Fetching comments for search result product: ${product._id}`);
             const commentsResponse = await getCommentsByPost(product._id, 1, 5);
@@ -490,7 +545,21 @@ const ProductsPage = () => {
           </span>
         </div>
 
-        {loading && products.length === 0 ? (
+        {error && !loading && products.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="text-6xl mb-4">⚠️</div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              Failed to Load Products
+            </h2>
+            <p className="text-gray-600 mb-4">{error}</p>
+            <button
+              onClick={() => fetchProducts(1, true)}
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Try Again
+            </button>
+          </div>
+        ) : loading && products.length === 0 ? (
           <div className="text-center py-12">
             <div className="text-6xl mb-4">📦</div>
             <p className="text-gray-600">Loading products...</p>
