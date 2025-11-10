@@ -28,6 +28,7 @@ const ServicesPage = () => {
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
   const [priceDropdownOpen, setPriceDropdownOpen] = useState(false);
   const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const categories = [
     "Technology Services",
@@ -78,6 +79,7 @@ const ServicesPage = () => {
 
   const fetchServices = async (pageNum: number = 1, reset: boolean = false) => {
     setLoading(true);
+    setError(null);
     try {
       const response = await getExploreFeed({
         page: pageNum,
@@ -177,8 +179,16 @@ const ServicesPage = () => {
       }
       
       setHasNextPage(response.data.pagination.hasNextPage);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to fetch services:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to load services';
+      setError(errorMessage);
+
+      // If this was the initial load and it failed, keep the page usable
+      if (reset) {
+        setServices([]);
+        setAllServices([]);
+      }
     } finally {
       setLoading(false);
     }
@@ -529,7 +539,21 @@ const ServicesPage = () => {
           </span>
         </div>
 
-        {loading && services.length === 0 ? (
+        {error && !loading && services.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="text-6xl mb-4">⚠️</div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              Failed to Load Services
+            </h2>
+            <p className="text-gray-600 mb-4">{error}</p>
+            <button
+              onClick={() => fetchServices(1, true)}
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Try Again
+            </button>
+          </div>
+        ) : loading && services.length === 0 ? (
           <div className="text-center py-12">
             <div className="text-6xl mb-4">🔧</div>
             <p className="text-gray-600">Loading services...</p>

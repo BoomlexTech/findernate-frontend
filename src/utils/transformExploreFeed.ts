@@ -206,6 +206,36 @@ export function transformExploreFeedToFeedPost(items: RawExploreFeedItem[]): Fee
       } : undefined
     } : undefined;
 
+    // Validate and ensure media array has at least one valid item
+    const ensureValidMedia = (): MediaItem[] => {
+      if (!item.media || item.media.length === 0) {
+        console.warn(`[transformExploreFeed] Post ${item._id} has no media, using placeholder`);
+        return [{
+          type: 'image' as const,
+          url: '/placeholderimg.png',
+          thumbnailUrl: undefined,
+          duration: null,
+          dimensions: undefined
+        }];
+      }
+
+      // Filter out media items with empty/invalid URLs
+      const validMedia = item.media.filter(m => m.url && m.url.trim().length > 0);
+
+      if (validMedia.length === 0) {
+        console.warn(`[transformExploreFeed] Post ${item._id} has no valid media URLs, using placeholder`);
+        return [{
+          type: 'image' as const,
+          url: '/placeholderimg.png',
+          thumbnailUrl: undefined,
+          duration: null,
+          dimensions: undefined
+        }];
+      }
+
+      return validMedia;
+    };
+
     // Handle posts
     return {
       _id: item._id,
@@ -216,11 +246,11 @@ export function transformExploreFeedToFeedPost(items: RawExploreFeedItem[]): Fee
         profileImageUrl: item.userId.profileImageUrl || '/placeholderimg.png'
       } : undefined,
       description: item.description || item.caption || '',
-      caption: item.caption || '',
+      caption: item.caption || item.description || '',
       contentType: item.contentType || 'normal',
       postType: item.postType || 'photo',
       createdAt: item.createdAt,
-      media: item.media || [],
+      media: ensureValidMedia(),
       engagement: {
         comments: item.engagement?.comments || 0,
         impressions: item.engagement?.impressions || 0,
