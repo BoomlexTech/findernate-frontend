@@ -47,10 +47,10 @@ const postCategories = [
 ];
 
 interface createPostModalProps {
-    closeModal: () => void;
+  closeModal: () => void;
 }
 
-const CreatePostModal = ({closeModal}: createPostModalProps ) => {
+const CreatePostModal = ({ closeModal }: createPostModalProps) => {
   const { user } = useUserStore();
 
   // Temporarily show all post types everywhere (unused flag removed)
@@ -58,13 +58,13 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
   // Content type selection (Post, Story, Reel)
   const [contentType, setContentType] = useState('Post');
   const [previousContentType, setPreviousContentType] = useState('');
-  
+
   // Set default post type to Regular for normal users, allow business types only for business accounts
   const [postType, setPostType] = useState('Regular');
   const [previousPostType, setPreviousPostType] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Only allow business post types if user has business profile
   const isBusinessProfile = user?.isBusinessProfile ?? false;
   const allowProduct = isBusinessProfile && (user?.productEnabled ?? false);
@@ -72,19 +72,25 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
   const allowBusiness = isBusinessProfile;
 
   const [sharedForm, setSharedForm] = useState({
-  description: '',
-  image: [] as File [], // array of File objects or URLs
-  location: {name: ''},
-  tags: [] as string [],
-  category: 'Personal', // Default to Personal
-  customCategory: '', // For when user selects "Other"
-});
+    description: '',
+    image: [] as File[], // array of File objects or URLs
+    location: {
+      name: '',
+      address: '',
+      city: '',
+      state: '',
+      country: ''
+    },
+    tags: [] as string[],
+    category: 'Personal', // Default to Personal
+    customCategory: '', // For when user selects "Other"
+  });
 
   const [videoDuration, setVideoDuration] = useState<number | null>(null);
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [showReelVisibility, setShowReelVisibility] = useState(false);
   const [reelVisibility, setReelVisibility] = useState(false);
-  
+
   // Location suggestion states
   const [locationSuggestions, setLocationSuggestions] = useState<LocationSuggestion[]>([]);
   const [showLocationSuggestions, setShowLocationSuggestions] = useState(false);
@@ -93,10 +99,10 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
   const locationDropdownRef = useRef<HTMLDivElement>(null);
   // Track whether we've already initialized location from profile to avoid re-filling
   const [hasInitializedLocation, setHasInitializedLocation] = useState(false);
-  
+
   // Business profile modal state
   const [showBusinessProfileModal, setShowBusinessProfileModal] = useState(false);
-  
+
   // Debug logging for modal state changes
   useEffect(() => {
   }, [showBusinessProfileModal]);
@@ -114,7 +120,7 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
             visibility: 'public',
             allowComments: true,
             allowLikes: true,
-          }, 
+          },
           status: 'scheduled',
         });
         break;
@@ -128,12 +134,12 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
             visibility: 'public',
             allowComments: true,
             allowLikes: true,
-          }, 
+          },
           product: {
             name: '',
             price: 0,
             currency: '',
-            link:'',
+            link: '',
             inStock: true,
             deliveryOptions: 'online',
           },
@@ -176,7 +182,7 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
             requirements: [],
             deliverables: [],
             tags: [],
-            link:'',
+            link: '',
             deliveryOptions: 'online',
           }
         });
@@ -235,18 +241,24 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
     setSharedForm({
       description: '',
       image: [],
-      location: {name: ''},
+      location: {
+        name: '',
+        address: '',
+        city: '',
+        state: '',
+        country: ''
+      },
       tags: [],
       category: 'Personal',
       customCategory: '',
     });
-    
+
     // Reset all post type forms
     clearPostTypeForm('Regular');
     clearPostTypeForm('Product');
     clearPostTypeForm('Service');
     clearPostTypeForm('Business');
-    
+
     setPostType('Regular');
     setVideoDuration(null);
     setShowReelVisibility(false);
@@ -269,7 +281,7 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
     if (postType !== previousPostType && previousPostType !== '') {
       // Clear the form data for the post type being switched away from
       clearPostTypeForm(previousPostType);
-      
+
       // Also clear the common description field when switching between post types
       setSharedForm(prev => ({
         ...prev,
@@ -366,7 +378,16 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
         setSharedForm(prev => {
           if (prev.location?.name) return prev;
           const composed = [biz?.location?.city, biz?.location?.state].filter(Boolean).join(', ');
-          return { ...prev, location: { name: composed || prev.location.name } };
+          return {
+            ...prev,
+            location: {
+              name: composed || prev.location.name,
+              address: biz?.location?.address || '',
+              city: biz?.location?.city || '',
+              state: biz?.location?.state || '',
+              country: biz?.location?.country || ''
+            }
+          };
         });
       } catch {
         // Ignore errors; user can still fill manually
@@ -381,7 +402,13 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
     if (!hasInitializedLocation && user?.location && !sharedForm.location.name) {
       setSharedForm(prev => ({
         ...prev,
-        location: { name: user.location || '' }
+        location: {
+          name: user.location || '',
+          address: '',
+          city: '',
+          state: '',
+          country: ''
+        }
       }));
       setHasInitializedLocation(true);
     }
@@ -409,7 +436,7 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
 
   const handleLocationInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    setSharedForm({...sharedForm, location: {name: value}});
+    setSharedForm({ ...sharedForm, location: { name: value, address: '', city: '', state: '', country: '' } });
     // Mark as initialized so profile prefill won't reapply after manual edits
     if (!hasInitializedLocation) {
       setHasInitializedLocation(true);
@@ -429,28 +456,44 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
   };
 
   const handleLocationSelect = (suggestion: LocationSuggestion) => {
-    // Extract city and state from suggestion
-    const formatLocationForPost = (suggestion: LocationSuggestion) => {
-      const address = suggestion.address;
-      
-      // Try to get city/town name
-      const city = address.town || address.city || suggestion.name;
-      
-      // Get state
-      const state = address.state;
-      
-      // Format as "City, State" or just "City" if no state
-      if (city && state) {
-        return `${city}, ${state}`;
-      } else if (city) {
-        return city;
-      } else {
-        return suggestion.name; // Fallback to suggestion name
-      }
+    const address = suggestion.address;
+
+    // Extract location details for better coordinate resolution
+    const city = address.town || address.city || '';
+    const state = address.state || '';
+    const country = address.country || '';
+    const postcode = address.postcode || '';
+
+    // Build full address string
+    const addressParts = [
+      suggestion.name,
+      city,
+      state,
+      postcode,
+      country
+    ].filter(Boolean);
+    const fullAddress = addressParts.join(', ');
+
+    // Format display name as "City, State" or just "City" if no state
+    let displayName = '';
+    if (city && state) {
+      displayName = `${city}, ${state}`;
+    } else if (city) {
+      displayName = city;
+    } else {
+      displayName = suggestion.name;
+    }
+
+    // Store complete location object for better backend resolution
+    const completeLocation = {
+      name: displayName,
+      address: fullAddress,
+      city: city,
+      state: state,
+      country: country
     };
 
-    const formattedLocation = formatLocationForPost(suggestion);
-    setSharedForm({...sharedForm, location: {name: formattedLocation}});
+    setSharedForm({ ...sharedForm, location: completeLocation });
     // Ensure we don't re-fill from profile after a selection
     if (!hasInitializedLocation) {
       setHasInitializedLocation(true);
@@ -493,26 +536,26 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d')!;
       const img = new window.Image();
-      
+
       img.onload = () => {
         // Calculate new dimensions
         const { width, height } = img;
         const aspectRatio = width / height;
-        
+
         let newWidth = width;
         let newHeight = height;
-        
+
         if (width > maxWidth) {
           newWidth = maxWidth;
           newHeight = maxWidth / aspectRatio;
         }
-        
+
         canvas.width = newWidth;
         canvas.height = newHeight;
-        
+
         // Draw and compress
         ctx.drawImage(img, 0, 0, newWidth, newHeight);
-        
+
         canvas.toBlob((blob) => {
           if (blob) {
             const compressedFile = new File([blob], file.name, {
@@ -525,7 +568,7 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
           }
         }, file.type, quality);
       };
-      
+
       img.src = URL.createObjectURL(file);
     });
   };
@@ -535,18 +578,18 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
     return new Promise((resolve, reject) => {
       const video = document.createElement('video');
       video.src = URL.createObjectURL(file);
-      
+
       video.onloadedmetadata = () => {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d')!;
-        
+
         // Set compressed dimensions (reduce by 50% if too large)
         const maxWidth = 1280;
         const maxHeight = 720;
-        
+
         let { videoWidth: width, videoHeight: height } = video;
         const aspectRatio = width / height;
-        
+
         if (width > maxWidth) {
           width = maxWidth;
           height = maxWidth / aspectRatio;
@@ -555,40 +598,40 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
           height = maxHeight;
           width = maxHeight * aspectRatio;
         }
-        
+
         canvas.width = width;
         canvas.height = height;
-        
+
         // Create MediaRecorder for video compression
         const stream = canvas.captureStream(25); // 25 FPS
         const mediaRecorder = new MediaRecorder(stream, {
           mimeType: 'video/webm;codecs=vp9',
           videoBitsPerSecond: 1000000 // 1Mbps
         });
-        
+
         const chunks: BlobPart[] = [];
-        
+
         mediaRecorder.ondataavailable = (event) => {
           if (event.data.size > 0) {
             chunks.push(event.data);
           }
         };
-        
+
         mediaRecorder.onstop = () => {
           const compressedBlob = new Blob(chunks, { type: 'video/webm' });
-          const compressedFile = new File([compressedBlob], 
+          const compressedFile = new File([compressedBlob],
             file.name.replace(/\.[^/.]+$/, '.webm'), {
             type: 'video/webm',
             lastModified: Date.now(),
           });
           resolve(compressedFile);
         };
-        
+
         // Start recording and play video
         mediaRecorder.start();
         video.currentTime = 0;
         video.play();
-        
+
         video.ontimeupdate = () => {
           if (video.currentTime < video.duration) {
             ctx.drawImage(video, 0, 0, width, height);
@@ -599,7 +642,7 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
           }
         };
       };
-      
+
       video.onerror = () => reject(new Error('Failed to load video for compression'));
     });
   };
@@ -607,25 +650,25 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
   // Optimize file based on type and size
   const optimizeFile = async (file: File): Promise<File> => {
     const maxSizeBytes = 10 * 1024 * 1024; // 10MB limit for Cloudinary
-    
+
     if (file.size <= maxSizeBytes) {
       return file; // No optimization needed
     }
-    
+
     setIsOptimizing(true);
-    
+
     try {
       if (file.type.startsWith('image/')) {
         // Compress image with progressive quality reduction
         let quality = 0.8;
         let optimizedFile = await compressImage(file, quality);
-        
+
         // Keep reducing quality until under size limit
         while (optimizedFile.size > maxSizeBytes && quality > 0.3) {
           quality -= 0.1;
           optimizedFile = await compressImage(file, quality, 1280); // Also reduce max width
         }
-        
+
         return optimizedFile;
       } else if (file.type === 'video/mp4') {
         // For large videos, use basic compression
@@ -637,7 +680,7 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
     } finally {
       setIsOptimizing(false);
     }
-    
+
     return file;
   };
 
@@ -645,18 +688,18 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
     return new Promise((resolve, reject) => {
       const video = document.createElement('video');
       video.preload = 'metadata';
-      
+
       video.onloadedmetadata = () => {
         window.URL.revokeObjectURL(video.src);
         const duration = video.duration;
         resolve(duration);
       };
-      
+
       video.onerror = () => {
         window.URL.revokeObjectURL(video.src);
         reject(new Error('Failed to load video metadata'));
       };
-      
+
       video.src = URL.createObjectURL(file);
     });
   };
@@ -666,13 +709,13 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
       try {
         const duration = await detectVideoDuration(file);
         setVideoDuration(duration);
-        
+
         // Show reel visibility option if video is under 1 minute
         if (duration <= 60) { // 60 seconds = 1 minute
           setShowReelVisibility(true);
           // Don't automatically set to reel - let user choose
           setRegularForm(prev => ({ ...prev, postType: 'video' }));
-          
+
           // Show notification about Reel availability
           toast.success(`Video is ${Math.round(duration)}s - Perfect for a Reel! 🎬`, {
             position: "top-right",
@@ -682,7 +725,7 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
           setShowReelVisibility(false);
           setReelVisibility(false);
           setRegularForm(prev => ({ ...prev, postType: 'video' }));
-          
+
           // Show notification about video being too long for Reel
           toast.info(`Video is ${Math.round(duration)}s - Too long for Reel (max 60s)`, {
             position: "top-right",
@@ -707,7 +750,7 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
       visibility: 'public',
       allowComments: true,
       allowLikes: true,
-    }, 
+    },
     status: 'scheduled',
   });
 
@@ -720,128 +763,128 @@ const CreatePostModal = ({closeModal}: createPostModalProps ) => {
       visibility: 'public',
       allowComments: true,
       allowLikes: true,
-    }, 
+    },
     product: {
       name: '',
       price: 0,
       currency: '',
-      link:'',
+      link: '',
       inStock: true,
       deliveryOptions: 'online',
     },
     status: 'scheduled',
-}); 
+  });
 
-const [serviceForm, setServiceForm] = useState({
-  // Shared post fields
-  postType: 'photo', // or whatever type you need
-  mentions: [], // Array of user IDs
-  settings: {
-    visibility: 'public',
-    allowComments: true,
-    allowLikes: true,
-  },
-  status: 'scheduled',
-
-  // Service-specific fields (as an object)
-  service: {
-    name: '',
-    description: '',
-    price: 0,
-    currency: 'INR',
-    category: '',
-    subcategory: '',
-    duration: 0,
-    serviceType: '', // 'in-person', 'online', 'hybrid'
-    availability: {
-      schedule: [], // [{ day: 'Monday', timeSlots: [{ startTime: '', endTime: '' }] }]
-      timezone: '',
-      bookingAdvance: '',
-      maxBookingsPerDay: '',
-    },
-    location: {
-      type: '', // 'studio', 'home', etc.
-      address: '',
-      city: '',
-      state: '',
-      country: '',
-      coordinates: undefined, // { type: 'Point', coordinates: [lng, lat] } or undefined
-    },
-    requirements: [],
-    deliverables: [],
-    tags: [],
-    link:'',
-    deliveryOptions: 'online',
-  }
-});
-
-const [businessForm, setBusinessForm] = useState({
-  formData: {
-    postType: 'photo',
-    caption: '',
-    description: '',
-    image: [],
-    mentions: [],
+  const [serviceForm, setServiceForm] = useState({
+    // Shared post fields
+    postType: 'photo', // or whatever type you need
+    mentions: [], // Array of user IDs
     settings: {
       visibility: 'public',
       allowComments: true,
       allowLikes: true,
     },
     status: 'scheduled',
-    business: {
-      businessName: '',
-      businessType: '',
+
+    // Service-specific fields (as an object)
+    service: {
+      name: '',
       description: '',
+      price: 0,
+      currency: 'INR',
       category: '',
       subcategory: '',
-      contact: {
-        phone: '',
-        email: '',
-        website: '',
-        socialMedia: [],
+      duration: 0,
+      serviceType: '', // 'in-person', 'online', 'hybrid'
+      availability: {
+        schedule: [], // [{ day: 'Monday', timeSlots: [{ startTime: '', endTime: '' }] }]
+        timezone: '',
+        bookingAdvance: '',
+        maxBookingsPerDay: '',
       },
       location: {
+        type: '', // 'studio', 'home', etc.
         address: '',
         city: '',
         state: '',
         country: '',
-        postalCode: '',
+        coordinates: undefined, // { type: 'Point', coordinates: [lng, lat] } or undefined
       },
-      hours: [],
-      features: [],
-      priceRange: '',
-      rating: 0,
+      requirements: [],
+      deliverables: [],
       tags: [],
-      announcement: '',
-      promotions: [],
       link: '',
       deliveryOptions: 'online',
     }
-  },
-});
+  });
+
+  const [businessForm, setBusinessForm] = useState({
+    formData: {
+      postType: 'photo',
+      caption: '',
+      description: '',
+      image: [],
+      mentions: [],
+      settings: {
+        visibility: 'public',
+        allowComments: true,
+        allowLikes: true,
+      },
+      status: 'scheduled',
+      business: {
+        businessName: '',
+        businessType: '',
+        description: '',
+        category: '',
+        subcategory: '',
+        contact: {
+          phone: '',
+          email: '',
+          website: '',
+          socialMedia: [],
+        },
+        location: {
+          address: '',
+          city: '',
+          state: '',
+          country: '',
+          postalCode: '',
+        },
+        hours: [],
+        features: [],
+        priceRange: '',
+        rating: 0,
+        tags: [],
+        announcement: '',
+        promotions: [],
+        link: '',
+        deliveryOptions: 'online',
+      }
+    },
+  });
 
   const handleRegularChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-  const { name, value } = e.target;
-  setRegularForm(prev => ({
-    ...prev,
-    [name]: value,
-   }))
+    const { name, value } = e.target;
+    setRegularForm(prev => ({
+      ...prev,
+      [name]: value,
+    }))
   }
-  
-const handleProductChange = (
-  e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
-) => {
-  const target = e.target;
-  const { name, value, type } = target;
 
-  setProductForm((prev) => ({
-    ...prev,
-    product: {
-      ...prev.product,
-      [name]: name === 'price' ? (value === '' ? 0 : Number(value)) : (type === 'checkbox' ? (target as HTMLInputElement).checked : value),
-    },
-  }));
-};
+  const handleProductChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
+    const target = e.target;
+    const { name, value, type } = target;
+
+    setProductForm((prev) => ({
+      ...prev,
+      product: {
+        ...prev.product,
+        [name]: name === 'price' ? (value === '' ? 0 : Number(value)) : (type === 'checkbox' ? (target as HTMLInputElement).checked : value),
+      },
+    }));
+  };
 
   const handleServiceChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -896,18 +939,18 @@ const handleProductChange = (
         };
       }
       // 5. Add more nested cases as needed (e.g., requirements, deliverables, tags, etc.)
-  
+
       return prev; // fallback
     });
   };
-  
+
   const handleBusinessChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
     setBusinessForm((prev) => {
       const formData = { ...prev.formData };
-      
+
       // Handle location fields
       if (name === 'address') {
         formData.business.location.address = value;
@@ -915,15 +958,15 @@ const handleProductChange = (
       // Handle promotion fields
       else if (name === 'discount' || name === 'isActive' || name === 'validUntil') {
         if (!formData.business.promotions[0]) {
-          (formData.business.promotions as any)[0] = { 
-            title: '', 
-            description: '', 
-            discount: 0, 
-            validUntil: '', 
-            isActive: false 
+          (formData.business.promotions as any)[0] = {
+            title: '',
+            description: '',
+            discount: 0,
+            validUntil: '',
+            isActive: false
           };
         }
-        
+
         if (name === 'discount') {
           (formData.business.promotions as any)[0].discount = Number(value);
         } else if (name === 'isActive') {
@@ -936,20 +979,20 @@ const handleProductChange = (
       else if (name in formData.business) {
         formData.business[name] = value;
       }
-      
+
       return { ...prev, formData };
     });
   };
 
-  const handleImageUpload = async (e:React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     // Clear the input value immediately so selecting the same file again will trigger onChange
-    try { (e.target as HTMLInputElement).value = ''; } catch {}
-    
+    try { (e.target as HTMLInputElement).value = ''; } catch { }
+
     // Check file limits based on content type
     const maxFiles = contentType === 'Post' ? 10 : 1;
     if (files.length + sharedForm.image.length > maxFiles) {
-      const limitMessage = contentType === 'Post' 
+      const limitMessage = contentType === 'Post'
         ? 'You can upload a maximum of 10 files per post.'
         : `You can upload only 1 file for ${contentType.toLowerCase()}s.`;
       toast.error(limitMessage, {
@@ -958,17 +1001,17 @@ const handleProductChange = (
       });
       return;
     }
-    
+
     // Function to check if a file is a duplicate
     const isDuplicateFile = (newFile: File, existingFiles: File[]): boolean => {
-      return existingFiles.some(existingFile => 
+      return existingFiles.some(existingFile =>
         existingFile.name === newFile.name &&
         existingFile.size === newFile.size &&
         existingFile.type === newFile.type &&
         existingFile.lastModified === newFile.lastModified
       );
     };
-    
+
     // Filter out duplicate files
     const uniqueFiles = files.filter(file => {
       const isDuplicate = isDuplicateFile(file, sharedForm.image);
@@ -980,14 +1023,14 @@ const handleProductChange = (
       }
       return !isDuplicate;
     });
-    
+
     // If no unique files to process, return early
     if (uniqueFiles.length === 0) {
       return;
     }
-    
+
     const optimizedFiles: File[] = [];
-    
+
     // Show optimization progress
     if (uniqueFiles.some(file => file.size > 10 * 1024 * 1024)) {
       toast.info('Large files detected. Optimizing for upload...', {
@@ -995,13 +1038,13 @@ const handleProductChange = (
         autoClose: 3000,
       });
     }
-    
+
     // Optimize each unique file
     for (const file of uniqueFiles) {
       try {
         const optimizedFile = await optimizeFile(file);
         optimizedFiles.push(optimizedFile);
-        
+
         // Check for MP4 videos and update post type accordingly
         if (file.type === 'video/mp4' || file.type === 'video/quicktime' || file.type === 'video/webm' || optimizedFile.type.startsWith('video/')) {
           await updatePostTypeBasedOnVideo(optimizedFile);
@@ -1011,16 +1054,16 @@ const handleProductChange = (
         return;
       }
     }
-    
+
     setSharedForm((prev) => ({
       ...prev,
       image: [...prev.image, ...optimizedFiles]
     }));
-    
+
     // Show success message if files were optimized
     const originalSize = uniqueFiles.reduce((acc, file) => acc + file.size, 0);
     const optimizedSize = optimizedFiles.reduce((acc, file) => acc + file.size, 0);
-    
+
     if (originalSize > optimizedSize) {
       const savedMB = ((originalSize - optimizedSize) / 1024 / 1024).toFixed(1);
       toast.success(`Files optimized! Saved ${savedMB}MB of upload data.`, {
@@ -1028,7 +1071,7 @@ const handleProductChange = (
         autoClose: 3000,
       });
     }
-    
+
     // Show success message for added files
     if (optimizedFiles.length > 0) {
       const fileWord = optimizedFiles.length === 1 ? 'file' : 'files';
@@ -1041,15 +1084,15 @@ const handleProductChange = (
 
   const removeImage = (index: number) => {
     const removedFile = sharedForm.image[index];
-    setSharedForm({...sharedForm, image: sharedForm.image.filter((_, i) => i !== index)});
-    
+    setSharedForm({ ...sharedForm, image: sharedForm.image.filter((_, i) => i !== index) });
+
     // Reset video duration and post type if removing a video
     if (removedFile.type === 'video/mp4' || removedFile.type === 'video/quicktime' || removedFile.type === 'video/webm') {
       setVideoDuration(null);
       setShowReelVisibility(false);
       setReelVisibility(false);
       setRegularForm(prev => ({ ...prev, postType: 'photo' }));
-      
+
       // Show info if user had Reel selected but removed video
       if (contentType === 'Reel') {
         toast.info('Video removed. You can upload another video for your Reel.', {
@@ -1064,11 +1107,11 @@ const handleProductChange = (
     if (!reelVisibility || !showReelVisibility) {
       return mediaFiles;
     }
-    
+
     // Separate videos and images
     const videos = mediaFiles.filter(file => file.type === 'video/mp4' || file.type === 'video/quicktime' || file.type === 'video/webm');
     const images = mediaFiles.filter(file => file.type.startsWith('image/'));
-    
+
     // Put videos first, then images
     return [...videos, ...images];
   };
@@ -1137,13 +1180,13 @@ const handleProductChange = (
       });
       return false;
     }
-    
+
     // Reels must have a video under 60 seconds
     if (contentType === 'Reel') {
-      const hasVideo = sharedForm.image.some(file => 
+      const hasVideo = sharedForm.image.some(file =>
         file.type === 'video/mp4' || file.type === 'video/quicktime' || file.type === 'video/webm'
       );
-      
+
       if (!hasVideo) {
         toast.error('Reels require a video file', {
           position: "top-right",
@@ -1155,7 +1198,7 @@ const handleProductChange = (
         });
         return false;
       }
-      
+
       if (videoDuration && videoDuration > 60) {
         toast.error(`Video is ${Math.round(videoDuration)} seconds long. Reel videos must be under 60 seconds.`, {
           position: "top-right",
@@ -1168,7 +1211,7 @@ const handleProductChange = (
         return false;
       }
     }
-    
+
     // Check if "Other" category is selected but custom category is empty
     if (sharedForm.category === 'Other' && !sharedForm.customCategory.trim()) {
       toast.error('Please enter a custom category or select a different category', {
@@ -1204,7 +1247,7 @@ const handleProductChange = (
     // Business-specific validation (only for business accounts)
     if (isBusinessProfile && postType === 'Business') {
       const business = businessForm.formData.business;
-      
+
       if (!business.businessName?.trim()) {
         toast.error('Business name is required', {
           position: "top-right",
@@ -1216,7 +1259,7 @@ const handleProductChange = (
         });
         return false;
       }
-      
+
       if (!business.link?.trim()) {
         toast.error('Business link is required', {
           position: "top-right",
@@ -1228,7 +1271,7 @@ const handleProductChange = (
         });
         return false;
       }
-      
+
       if (!business.announcement?.trim()) {
         toast.error('Business announcement is required', {
           position: "top-right",
@@ -1240,7 +1283,7 @@ const handleProductChange = (
         });
         return false;
       }
-      
+
       if (!business.location?.address?.trim()) {
         toast.error('Business location is required', {
           position: "top-right",
@@ -1252,7 +1295,7 @@ const handleProductChange = (
         });
         return false;
       }
-      
+
       if (!business.description?.trim()) {
         toast.error('Business description is required', {
           position: "top-right",
@@ -1265,7 +1308,7 @@ const handleProductChange = (
         return false;
       }
     }
-    
+
     return true;
   };
 
@@ -1298,7 +1341,7 @@ const handleProductChange = (
       }
       return;
     }
-    
+
     if (contentType === 'Reel') {
       // Check if there's any video
       const hasVideo = sharedForm.image.some(file =>
@@ -1360,12 +1403,12 @@ const handleProductChange = (
           const reelProductForm = { ...productForm, postType: 'reel' };
           const payload = { ...sharedFormWithCaption, ...reelProductForm };
           console.log('[REEL CONTENT TYPE] Creating Product Reel with payload:', payload);
-          response = await createProductPost({formData: payload} as unknown as ProductDetailsFormProps);
+          response = await createProductPost({ formData: payload } as unknown as ProductDetailsFormProps);
         } else if (postType === 'Service') {
           const reelServiceForm = { ...serviceForm, postType: 'reel' };
           const payload = { ...sharedFormWithCaption, ...reelServiceForm };
           console.log('[REEL CONTENT TYPE] Creating Service Reel with payload:', payload);
-          response = await createServicePost({formData: payload} as unknown as ServiceDetailsFormProps);
+          response = await createServicePost({ formData: payload } as unknown as ServiceDetailsFormProps);
         } else if (postType === 'Business') {
           const reelBusinessForm = {
             ...businessForm.formData,
@@ -1374,7 +1417,7 @@ const handleProductChange = (
             business: businessForm.formData.business
           };
           console.log('[REEL CONTENT TYPE] Creating Business Reel with payload:', reelBusinessForm);
-          response = await createBusinessPost({formData: reelBusinessForm} as unknown as BusinessPostFormProps);
+          response = await createBusinessPost({ formData: reelBusinessForm } as unknown as BusinessPostFormProps);
         }
 
         if (response && (response.status === 200 || response.status === 201)) {
@@ -1385,28 +1428,55 @@ const handleProductChange = (
           throw new Error('Reel creation failed - unexpected response');
         }
       } catch (_error) {
-        const msg = isAxiosError(_error) ? ((_error.response?.data as any)?.message || _error.message) : 'Failed to create reel';
-        setError(msg);
-        toast.error(msg, { position: 'top-right', autoClose: 5000 });
+        let userMessage = 'Failed to create reel. Please try again.';
+        if (isAxiosError(_error)) {
+          userMessage = ((_error.response?.data as any)?.message || _error.message) || userMessage;
+
+          // Check if the error is related to coordinate resolution
+          const isCoordinateError = userMessage.toLowerCase().includes('could not resolve coordinates');
+
+          // For normal reels, coordinate resolution errors are no longer thrown by backend
+          // For product/service/business reels with offline delivery, coordinates are required
+          const isOfflineDeliveryPost = isBusinessProfile && (
+            (postType === 'Product' && (productForm.product.deliveryOptions === 'offline' || productForm.product.deliveryOptions === 'both')) ||
+            (postType === 'Service' && (serviceForm.service.deliveryOptions === 'offline' || serviceForm.service.deliveryOptions === 'both')) ||
+            (postType === 'Business' && (businessForm.formData.business.deliveryOptions === 'offline' || businessForm.formData.business.deliveryOptions === 'both'))
+          );
+
+          // Only show coordinate error for offline delivery posts
+          if (isCoordinateError && isOfflineDeliveryPost) {
+            userMessage = 'Location coordinates are required for offline delivery. Please provide a valid location.';
+          } else if (isCoordinateError && postType === 'Regular') {
+            // For normal reels, coordinate resolution failure should not block creation
+            console.warn('Coordinate resolution failed for regular reel, but reel should still be created');
+            // Don't show error to user - reel should succeed
+            return;
+          }
+        } else if (_error instanceof Error) {
+          userMessage = _error.message || userMessage;
+        }
+
+        setError(userMessage);
+        toast.error(userMessage, { position: 'top-right', autoClose: 5000 });
       } finally {
         setLoading(false);
       }
       return;
     }
-    
+
     // For regular posts, validate form before submission
     if (!validateForm()) {
       return;
     }
-    
+
     const finalPayload = buildPostPayload();
     //console.log('Final payload for business post:', finalPayload);
     setLoading(true);
     setError(null);
-    
+
     try {
       let response;
-      
+
       if (postType === 'Regular') {
         const regularPayload = finalPayload as RegularPostPayload;
         console.log('[POST CONTENT TYPE] Creating Regular Post with payload:', regularPayload);
@@ -1414,23 +1484,23 @@ const handleProductChange = (
       } else if (postType === 'Product') {
         const productPayload = finalPayload;
         console.log('[POST CONTENT TYPE] Creating Product Post with payload:', productPayload);
-        response = await createProductPost({formData:productPayload} as unknown as ProductDetailsFormProps);
+        response = await createProductPost({ formData: productPayload } as unknown as ProductDetailsFormProps);
       } else if (postType === 'Service') {
         const servicePayload = finalPayload;
         console.log('[POST CONTENT TYPE] Creating Service Post with payload:', servicePayload);
-        response = await createServicePost({formData:servicePayload} as unknown as ServiceDetailsFormProps);
-       } else if (postType === 'Business') {
+        response = await createServicePost({ formData: servicePayload } as unknown as ServiceDetailsFormProps);
+      } else if (postType === 'Business') {
         const businessPayload = finalPayload;
         console.log('[POST CONTENT TYPE] Creating Business Post with payload:', businessPayload);
-        response = await createBusinessPost({formData:businessPayload} as unknown as BusinessPostFormProps);
-       }
+        response = await createBusinessPost({ formData: businessPayload } as unknown as BusinessPostFormProps);
+      }
 
       // Only show success toast if we actually got a successful response
       if (response && (response.status === 200 || response.status === 201 || response.success)) {
-        const successMessage = postType === 'Business' 
-          ? 'Business post created successfully!' 
+        const successMessage = postType === 'Business'
+          ? 'Business post created successfully!'
           : 'Post created successfully!';
-        
+
         toast.success(successMessage, {
           position: "top-right",
           autoClose: 3000,
@@ -1439,32 +1509,69 @@ const handleProductChange = (
           pauseOnHover: true,
           draggable: true,
         });
-        
+
+        // Optional: Check if location exists but coordinates weren't resolved
+        // Show info message (not error) for normal posts
+        if (postType === 'Regular' && response.data?.data) {
+          const post = response.data.data;
+          const location = post.customization?.normal?.location;
+          if (location?.name && !location?.coordinates) {
+            // Coordinates weren't resolved but post was created successfully
+            // Show optional info message
+            toast.info('Post created successfully. Location coordinates could not be resolved, but your post is published.', {
+              position: "top-right",
+              autoClose: 4000,
+              hideProgressBar: false,
+              closeOnClick: true,
+              pauseOnHover: true,
+              draggable: true,
+            });
+          }
+        }
+
         // Emit post refresh event to update current page without reload
         postRefreshEvents.emitPostCreated(response.data || response);
-        
+
         // Close modal immediately after successful post creation
         closeModal();
       } else {
         // Handle case where API doesn't return expected success response
         throw new Error('Post creation failed - unexpected response');
       }
-      
+
 
     } catch (_error) {
       console.error('Error creating post:', _error);
       //console.log('Post type:', postType);
-      
+
       let userMessage = 'Failed to create post. Please try again.';
       if (isAxiosError(_error)) {
         userMessage = (_error.response?.data as any)?.message || _error.message || userMessage;
-        
-        // Debug logging for business profile errors
-        //console.log('Error response status:', _error.response?.status);
-        //console.log('Error response data:', _error.response?.data);
-        //console.log('User message:', userMessage);
-        //console.log('User message lowercase:', userMessage.toLowerCase());
-        
+
+        // Check if the error is related to coordinate resolution
+        const isCoordinateError = userMessage.toLowerCase().includes('could not resolve coordinates');
+
+        // For normal posts, coordinate resolution errors are no longer thrown by backend
+        // But we still handle it gracefully if it somehow occurs
+        // For product/service/business posts with offline delivery, coordinates are required
+        const isOfflineDeliveryPost = isBusinessProfile && (
+          (postType === 'Product' && (productForm.product.deliveryOptions === 'offline' || productForm.product.deliveryOptions === 'both')) ||
+          (postType === 'Service' && (serviceForm.service.deliveryOptions === 'offline' || serviceForm.service.deliveryOptions === 'both')) ||
+          (postType === 'Business' && (businessForm.formData.business.deliveryOptions === 'offline' || businessForm.formData.business.deliveryOptions === 'both'))
+        );
+
+        // Only show coordinate error for offline delivery posts
+        if (isCoordinateError && isOfflineDeliveryPost) {
+          userMessage = 'Location coordinates are required for offline delivery. Please provide a valid location.';
+        } else if (isCoordinateError && postType === 'Regular') {
+          // For normal posts, coordinate resolution failure should not block post creation
+          // Backend now allows posts without coordinates, so this error shouldn't occur
+          // But if it does, we'll treat it as a non-blocking issue
+          console.warn('Coordinate resolution failed for regular post, but post should still be created');
+          // Don't show error to user - post should succeed
+          return;
+        }
+
         // Check if the error is related to business profile not found
         const isBusinessProfileError = postType === 'Business' && (
           userMessage.toLowerCase().includes('business profile not found') ||
@@ -1479,12 +1586,12 @@ const handleProductChange = (
           // Fallback: Any error when creating business post could be profile related
           (_error.response?.status !== undefined && _error.response.status >= 400 && _error.response.status < 500)
         );
-        
+
         //console.log('Is business profile error:', isBusinessProfileError);
-        
+
         if (isBusinessProfileError) {
           //console.log('Opening business profile modal...');
-          
+
           toast.error('Business profile not found. Please add your business details first.', {
             position: "top-right",
             autoClose: 3000,
@@ -1493,7 +1600,7 @@ const handleProductChange = (
             pauseOnHover: true,
             draggable: true,
           });
-          
+
           // Open business profile modal
           setShowBusinessProfileModal(true);
           //console.log('Business modal state set to true');
@@ -1503,8 +1610,8 @@ const handleProductChange = (
         userMessage = _error.message || userMessage;
       }
       setError(userMessage);
-      
-    toast.error(userMessage, {
+
+      toast.error(userMessage, {
         position: "top-right",
         autoClose: 5000,
         hideProgressBar: false,
@@ -1512,7 +1619,7 @@ const handleProductChange = (
         pauseOnHover: true,
         draggable: true,
       });
-      
+
     } finally {
       setLoading(false);
     }
@@ -1575,8 +1682,8 @@ const handleProductChange = (
               className="px-6 py-2 bg-button-gradient text-black rounded-lg hover:bg-[#b8871f] transition-colors cursor-pointer"
               disabled={loading || isOptimizing}
             >
-              {loading ? 
-                `${contentType === 'Post' ? 'Posting' : contentType === 'Story' ? 'Sharing Story' : 'Creating Reel'}...` : 
+              {loading ?
+                `${contentType === 'Post' ? 'Posting' : contentType === 'Story' ? 'Sharing Story' : 'Creating Reel'}...` :
                 `Submit ${contentType}`
               }
             </Button>
@@ -1597,33 +1704,30 @@ const handleProductChange = (
               <Button
                 variant='custom'
                 onClick={() => setContentType('Post')}
-                className={`px-6 py-2 rounded-lg border transition-colors ${
-                  contentType === 'Post'
-                    ? 'border-[#ffd65c] bg-[#fefdf5] text-[#b8871f]'
-                    : 'border-gray-300 text-gray-600 hover:bg-gray-50'
-                } flex-1 justify-center`}
+                className={`px-6 py-2 rounded-lg border transition-colors ${contentType === 'Post'
+                  ? 'border-[#ffd65c] bg-[#fefdf5] text-[#b8871f]'
+                  : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+                  } flex-1 justify-center`}
               >
                 📝 Post
               </Button>
               <Button
                 variant='custom'
                 onClick={() => setContentType('Reel')}
-                className={`px-6 py-2 rounded-lg border transition-colors ${
-                  contentType === 'Reel'
-                    ? 'border-[#ffd65c] bg-[#fefdf5] text-[#b8871f]'
-                    : 'border-gray-300 text-gray-600 hover:bg-gray-50'
-                } flex-1 justify-center`}
+                className={`px-6 py-2 rounded-lg border transition-colors ${contentType === 'Reel'
+                  ? 'border-[#ffd65c] bg-[#fefdf5] text-[#b8871f]'
+                  : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+                  } flex-1 justify-center`}
               >
                 🎬 Reel
               </Button>
               <Button
                 variant='custom'
                 onClick={() => setContentType('Story')}
-                className={`px-6 py-2 rounded-lg border transition-colors ${
-                  contentType === 'Story'
-                    ? 'border-[#ffd65c] bg-[#fefdf5] text-[#b8871f]'
-                    : 'border-gray-300 text-gray-600 hover:bg-gray-50'
-                } flex-1 justify-center`}
+                className={`px-6 py-2 rounded-lg border transition-colors ${contentType === 'Story'
+                  ? 'border-[#ffd65c] bg-[#fefdf5] text-[#b8871f]'
+                  : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+                  } flex-1 justify-center`}
               >
                 📷 Story
               </Button>
@@ -1645,27 +1749,23 @@ const handleProductChange = (
                 {sharedForm.image.length}/{contentType === 'Post' ? '10' : '1'}
               </span>
             </div>
-            <div className={`border-2 border-dashed rounded-lg p-8 text-center ${
-              (contentType === 'Post' ? sharedForm.image.length >= 10 : sharedForm.image.length >= 1)
-                ? 'border-gray-200 bg-gray-50' 
-                : 'border-gray-300'
-            }`}>
-              <Camera className={`mx-auto mb-4 ${
-                (contentType === 'Post' ? sharedForm.image.length >= 10 : sharedForm.image.length >= 1) ? 'text-gray-300' : 'text-gray-400'
-              }`} size={48} />
-              <h3 className={`text-lg font-medium mb-2 ${
-                (contentType === 'Post' ? sharedForm.image.length >= 10 : sharedForm.image.length >= 1) ? 'text-gray-500' : 'text-gray-700'
+            <div className={`border-2 border-dashed rounded-lg p-8 text-center ${(contentType === 'Post' ? sharedForm.image.length >= 10 : sharedForm.image.length >= 1)
+              ? 'border-gray-200 bg-gray-50'
+              : 'border-gray-300'
               }`}>
-                {contentType === 'Story' ? 'Add Story Media' : 
-                 contentType === 'Reel' ? 'Add Reel Video' : 
-                 'Add Photos & Videos'}
+              <Camera className={`mx-auto mb-4 ${(contentType === 'Post' ? sharedForm.image.length >= 10 : sharedForm.image.length >= 1) ? 'text-gray-300' : 'text-gray-400'
+                }`} size={48} />
+              <h3 className={`text-lg font-medium mb-2 ${(contentType === 'Post' ? sharedForm.image.length >= 10 : sharedForm.image.length >= 1) ? 'text-gray-500' : 'text-gray-700'
+                }`}>
+                {contentType === 'Story' ? 'Add Story Media' :
+                  contentType === 'Reel' ? 'Add Reel Video' :
+                    'Add Photos & Videos'}
               </h3>
-              <p className={`text-sm mb-4 ${
-                (contentType === 'Post' ? sharedForm.image.length >= 10 : sharedForm.image.length >= 1) ? 'text-gray-400' : 'text-gray-500'
-              }`}>
+              <p className={`text-sm mb-4 ${(contentType === 'Post' ? sharedForm.image.length >= 10 : sharedForm.image.length >= 1) ? 'text-gray-400' : 'text-gray-500'
+                }`}>
                 {contentType === 'Story' ? 'Upload images (JPG, PNG, GIF) or videos for your story' :
-                 contentType === 'Reel' ? 'Upload a video (MP4, MOV, WebM) - videos under 60 seconds work best for Reels' :
-                 'Upload up to 10 images (JPG, PNG, GIF) or videos (MP4, MOV, WebM)'}
+                  contentType === 'Reel' ? 'Upload a video (MP4, MOV, WebM) - videos under 60 seconds work best for Reels' :
+                    'Upload up to 10 images (JPG, PNG, GIF) or videos (MP4, MOV, WebM)'}
               </p>
               <input
                 type="file"
@@ -1678,19 +1778,18 @@ const handleProductChange = (
               />
               <label
                 htmlFor="image-upload-top"
-                className={`inline-flex items-center px-4 py-2 rounded-lg transition-colors ${
-                  (contentType === 'Post' ? sharedForm.image.length >= 10 : sharedForm.image.length >= 1)
-                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    : 'bg-button-gradient text-black hover:bg-[#b8871f] cursor-pointer'
-                }`}
+                className={`inline-flex items-center px-4 py-2 rounded-lg transition-colors ${(contentType === 'Post' ? sharedForm.image.length >= 10 : sharedForm.image.length >= 1)
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'bg-button-gradient text-black hover:bg-[#b8871f] cursor-pointer'
+                  }`}
               >
                 📎 {
-                  (contentType === 'Post' ? sharedForm.image.length >= 10 : sharedForm.image.length >= 1) 
-                    ? 'Maximum Files Reached' 
-                    : contentType === 'Story' 
-                      ? 'Add Story Media' 
-                      : contentType === 'Reel' 
-                        ? 'Add Reel Video' 
+                  (contentType === 'Post' ? sharedForm.image.length >= 10 : sharedForm.image.length >= 1)
+                    ? 'Maximum Files Reached'
+                    : contentType === 'Story'
+                      ? 'Add Story Media'
+                      : contentType === 'Reel'
+                        ? 'Add Reel Video'
                         : 'Add Images & Videos'
                 }
               </label>
@@ -1712,7 +1811,7 @@ const handleProductChange = (
                   {sharedForm.image.length} of {contentType === 'Post' ? '10' : '1'} files uploaded
                 </span>
                 <span className="text-xs text-gray-500">
-                  {contentType === 'Post' 
+                  {contentType === 'Post'
                     ? (sharedForm.image.length >= 10 ? 'Maximum limit reached' : `${10 - sharedForm.image.length} more files allowed`)
                     : (sharedForm.image.length >= 1 ? 'Maximum limit reached' : '1 file allowed')
                   }
@@ -1747,8 +1846,8 @@ const handleProductChange = (
                         />
                         <div className="absolute inset-0 bg-black/30 rounded-lg flex flex-col items-center justify-center p-1">
                           <div className="text-white text-xs font-semibold bg-black/50 px-1 rounded mb-1">
-                            {(file.type === 'video/mp4' || file.type === 'video/quicktime' || file.type === 'video/webm') && videoDuration ? 
-                              `${Math.round(videoDuration)}s ${videoDuration <= 60 ? '(Reel)' : '(Video)'}` : 
+                            {(file.type === 'video/mp4' || file.type === 'video/quicktime' || file.type === 'video/webm') && videoDuration ?
+                              `${Math.round(videoDuration)}s ${videoDuration <= 60 ? '(Reel)' : '(Video)'}` :
                               'Video'
                             }
                           </div>
@@ -1766,8 +1865,8 @@ const handleProductChange = (
                     </button>
                   </div>
                 ))}
-            </div>
-          )}
+              </div>
+            )}
           </div>
 
           {/* Post Content - Show for Posts and Reels */}
@@ -1776,7 +1875,7 @@ const handleProductChange = (
               <label className='text-black text-bold ml-2'>Add Description or Caption</label>
               <textarea
                 value={sharedForm.description}
-                onChange={(e) => setSharedForm({...sharedForm, description: e.target.value})}
+                onChange={(e) => setSharedForm({ ...sharedForm, description: e.target.value })}
                 placeholder="What's on your mind?"
                 className="w-full h-32 p-4 border border-gray-300 placeholder:text-gray-500 text-black rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
               />
@@ -1790,35 +1889,35 @@ const handleProductChange = (
                 Category
               </label>
               <select
-              value={sharedForm.category}
-              onChange={(e) => {
-                setSharedForm({
-                  ...sharedForm,
-                  category: e.target.value,
-                  customCategory: e.target.value === 'Other' ? sharedForm.customCategory : ''
-                });
-              }}
-              className="w-full p-3 border border-gray-300 text-black rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
-            >
-              {postCategories.map((category) => (
-                <option key={category} value={category}>
-                  {category}
-                </option>
-              ))}
-            </select>
+                value={sharedForm.category}
+                onChange={(e) => {
+                  setSharedForm({
+                    ...sharedForm,
+                    category: e.target.value,
+                    customCategory: e.target.value === 'Other' ? sharedForm.customCategory : ''
+                  });
+                }}
+                className="w-full p-3 border border-gray-300 text-black rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+              >
+                {postCategories.map((category) => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
+              </select>
 
-            {/* Custom Category Input - shown when "Other" is selected */}
-            {sharedForm.category === 'Other' && (
-              <div className="mt-3">
-                <input
-                  type="text"
-                  value={sharedForm.customCategory}
-                  onChange={(e) => setSharedForm({...sharedForm, customCategory: e.target.value})}
-                  placeholder="Enter custom category..."
-                  className="w-full p-3 border border-gray-300 placeholder:text-gray-500 text-black rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
-                />
-              </div>
-            )}
+              {/* Custom Category Input - shown when "Other" is selected */}
+              {sharedForm.category === 'Other' && (
+                <div className="mt-3">
+                  <input
+                    type="text"
+                    value={sharedForm.customCategory}
+                    onChange={(e) => setSharedForm({ ...sharedForm, customCategory: e.target.value })}
+                    placeholder="Enter custom category..."
+                    className="w-full p-3 border border-gray-300 placeholder:text-gray-500 text-black rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                  />
+                </div>
+              )}
             </div>
           )}
 
@@ -1962,7 +2061,7 @@ const handleProductChange = (
               </label>
               <textarea
                 value={sharedForm.description}
-                onChange={(e) => setSharedForm({...sharedForm, description: e.target.value})}
+                onChange={(e) => setSharedForm({ ...sharedForm, description: e.target.value })}
                 placeholder={`Add a caption to your ${contentType.toLowerCase()}...`}
                 className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent resize-none text-black placeholder:text-gray-500"
                 rows={3}
@@ -1988,8 +2087,8 @@ const handleProductChange = (
                     value="online"
                     checked={
                       postType === 'Product' ? productForm.product.deliveryOptions === 'online' :
-                      postType === 'Service' ? serviceForm.service.deliveryOptions === 'online' :
-                      businessForm.formData.business.deliveryOptions === 'online'
+                        postType === 'Service' ? serviceForm.service.deliveryOptions === 'online' :
+                          businessForm.formData.business.deliveryOptions === 'online'
                     }
                     onChange={(e) => {
                       if (postType === 'Product') {
@@ -2023,8 +2122,8 @@ const handleProductChange = (
                     value="offline"
                     checked={
                       postType === 'Product' ? productForm.product.deliveryOptions === 'offline' :
-                      postType === 'Service' ? serviceForm.service.deliveryOptions === 'offline' :
-                      businessForm.formData.business.deliveryOptions === 'offline'
+                        postType === 'Service' ? serviceForm.service.deliveryOptions === 'offline' :
+                          businessForm.formData.business.deliveryOptions === 'offline'
                     }
                     onChange={(e) => {
                       if (postType === 'Product') {
@@ -2058,8 +2157,8 @@ const handleProductChange = (
                     value="both"
                     checked={
                       postType === 'Product' ? productForm.product.deliveryOptions === 'both' :
-                      postType === 'Service' ? serviceForm.service.deliveryOptions === 'both' :
-                      businessForm.formData.business.deliveryOptions === 'both'
+                        postType === 'Service' ? serviceForm.service.deliveryOptions === 'both' :
+                          businessForm.formData.business.deliveryOptions === 'both'
                     }
                     onChange={(e) => {
                       if (postType === 'Product') {
@@ -2096,59 +2195,59 @@ const handleProductChange = (
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 <MapPin className="inline mr-2" size={16} />
                 Location {
-                isBusinessProfile && (postType === 'Product' || postType === 'Service' || postType === 'Business') ? 
-                  (
-                    (postType === 'Product' && (productForm.product.deliveryOptions === 'offline' || productForm.product.deliveryOptions === 'both')) ||
-                    (postType === 'Service' && (serviceForm.service.deliveryOptions === 'offline' || serviceForm.service.deliveryOptions === 'both')) ||
-                    (postType === 'Business' && (businessForm.formData.business.deliveryOptions === 'offline' || businessForm.formData.business.deliveryOptions === 'both'))
-                  ) ? '(Required)' : '(Optional)'
-                : '(Optional)'
-              }
-            </label>
-            <input
-              ref={locationInputRef}
-              type="text"
-              value={sharedForm.location.name}
-              onChange={handleLocationInputChange}
-              placeholder="Search for a location..."
-              className="w-full p-3 border border-gray-300 placeholder:text-gray-500 text-black rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
-            />
-            
-            {/* Location Suggestions Dropdown */}
-            {showLocationSuggestions && locationSuggestions.length > 0 && (
-              <div
-                ref={locationDropdownRef}
-                className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto"
-              >
-                {locationSuggestions.map((suggestion) => (
-                  <button
-                    key={suggestion.place_id}
-                    type="button"
-                    onClick={() => handleLocationSelect(suggestion)}
-                    className="w-full text-left px-4 py-3 hover:bg-gray-50 focus:bg-gray-50 focus:outline-none border-b border-gray-100 last:border-b-0"
-                  >
-                    <div className="flex items-start">
-                      <MapPin className="w-4 h-4 text-gray-400 mr-2 mt-0.5 flex-shrink-0" />
-                      <div className="min-w-0 flex-1">
-                        <div className="text-sm font-medium text-gray-900 truncate">
-                          {suggestion.name}
-                        </div>
-                        <div className="text-xs text-gray-500 truncate">
-                          {suggestion.display_name}
+                  isBusinessProfile && (postType === 'Product' || postType === 'Service' || postType === 'Business') ?
+                    (
+                      (postType === 'Product' && (productForm.product.deliveryOptions === 'offline' || productForm.product.deliveryOptions === 'both')) ||
+                      (postType === 'Service' && (serviceForm.service.deliveryOptions === 'offline' || serviceForm.service.deliveryOptions === 'both')) ||
+                      (postType === 'Business' && (businessForm.formData.business.deliveryOptions === 'offline' || businessForm.formData.business.deliveryOptions === 'both'))
+                    ) ? '(Required)' : '(Optional)'
+                    : '(Optional)'
+                }
+              </label>
+              <input
+                ref={locationInputRef}
+                type="text"
+                value={sharedForm.location.name}
+                onChange={handleLocationInputChange}
+                placeholder="Search for a location..."
+                className="w-full p-3 border border-gray-300 placeholder:text-gray-500 text-black rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+              />
+
+              {/* Location Suggestions Dropdown */}
+              {showLocationSuggestions && locationSuggestions.length > 0 && (
+                <div
+                  ref={locationDropdownRef}
+                  className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto"
+                >
+                  {locationSuggestions.map((suggestion) => (
+                    <button
+                      key={suggestion.place_id}
+                      type="button"
+                      onClick={() => handleLocationSelect(suggestion)}
+                      className="w-full text-left px-4 py-3 hover:bg-gray-50 focus:bg-gray-50 focus:outline-none border-b border-gray-100 last:border-b-0"
+                    >
+                      <div className="flex items-start">
+                        <MapPin className="w-4 h-4 text-gray-400 mr-2 mt-0.5 flex-shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm font-medium text-gray-900 truncate">
+                            {suggestion.name}
+                          </div>
+                          <div className="text-xs text-gray-500 truncate">
+                            {suggestion.display_name}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
           {/* Hashtags Input - Show for Posts and Reels */}
           {(contentType === 'Post' || contentType === 'Reel') && (
             <div className="mb-6">
-              <TagInput tags={sharedForm.tags} setTags={(tags) => setSharedForm({...sharedForm, tags})} />
+              <TagInput tags={sharedForm.tags} setTags={(tags) => setSharedForm({ ...sharedForm, tags })} />
             </div>
           )}
 
@@ -2175,12 +2274,10 @@ const handleProductChange = (
                       onChange={(e) => setReelVisibility(e.target.checked)}
                       className="sr-only"
                     />
-                    <div className={`relative w-11 h-6 rounded-full transition-colors ${
-                      reelVisibility ? 'bg-yellow-500' : 'bg-gray-300'
-                    }`}>
-                      <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
-                        reelVisibility ? 'translate-x-5' : 'translate-x-0'
-                      }`} />
+                    <div className={`relative w-11 h-6 rounded-full transition-colors ${reelVisibility ? 'bg-yellow-500' : 'bg-gray-300'
+                      }`}>
+                      <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${reelVisibility ? 'translate-x-5' : 'translate-x-0'
+                        }`} />
                     </div>
                   </label>
                 </div>
@@ -2203,11 +2300,11 @@ const handleProductChange = (
             className="px-6 py-2 bg-button-gradient text-black rounded-lg hover:bg-[#b8871f] transition-colors cursor-pointer"
             disabled={loading || isOptimizing}
           >
-            {loading ? 'Posting...': 'Post'}
+            {loading ? 'Posting...' : 'Post'}
           </Button>
         </div>
       </div>
-      
+
       {/* Business Details Modal */}
       <BusinessDetailsModal
         isOpen={showBusinessProfileModal}
