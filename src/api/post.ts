@@ -12,7 +12,13 @@ export type EditPostPayload = {
 
 export const createRegularPost = async (data: {
   description: string;
-  location: { name: string };
+  location: {
+    name: string;
+    address?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+  };
   tags: string[];
   image: File[];
   postType: string;
@@ -36,6 +42,7 @@ export const createRegularPost = async (data: {
   formData.append('activity', data.activity);
   formData.append('status', data.status);
 
+  // Send complete location object for better coordinate resolution
   formData.append('location', JSON.stringify(data.location));
   formData.append('settings', JSON.stringify(data.settings));
   formData.append('tags', JSON.stringify(data.tags));
@@ -52,7 +59,7 @@ export const createRegularPost = async (data: {
   return response;
 };
 
-export const createProductPost = async  ({ formData }: { formData: ProductDetailsFormProps['formData'] }) => {
+export const createProductPost = async ({ formData }: { formData: ProductDetailsFormProps['formData'] }) => {
   const fd = new FormData();
   buildFormData(fd, formData);
   const response = await axios.post('/posts/create/product', fd, {
@@ -63,7 +70,7 @@ export const createProductPost = async  ({ formData }: { formData: ProductDetail
   return response.data;
 };
 
-export const createServicePost = async ({formData}: {formData: ServiceDetailsFormProps['formData'] }) => {
+export const createServicePost = async ({ formData }: { formData: ServiceDetailsFormProps['formData'] }) => {
   const fd = new FormData();
   buildFormData(fd, formData);
   const response = await axios.post('/posts/create/service', fd, {
@@ -74,7 +81,7 @@ export const createServicePost = async ({formData}: {formData: ServiceDetailsFor
   return response.data;
 };
 
-export const createBusinessPost = async ({formData}: {formData: BusinessPostFormProps['formData'] }) => {
+export const createBusinessPost = async ({ formData }: { formData: BusinessPostFormProps['formData'] }) => {
   const fd = new FormData();
   buildFormData(fd, formData);
   const response = await axios.post('/posts/create/business', fd, {
@@ -99,17 +106,17 @@ export const likePost = async (postId: string) => {
     return response.data;
   } catch (error: unknown) {
     const err = error as Error;
-    const axiosError = error as { 
-      response?: { 
-        data?: unknown; 
-        status?: number; 
+    const axiosError = error as {
+      response?: {
+        data?: unknown;
+        status?: number;
         statusText?: string;
-      }; 
+      };
       message?: string;
       code?: string;
       config?: { url?: string; method?: string };
     };
-    
+
     throw error;
   }
 };
@@ -118,8 +125,8 @@ export const unlikePost = async (postId: string) => {
   try {
     // Try the request with explicit JSON data
     const requestData = { postId };
-    
-    const response = await axios.post('/posts/unlike', requestData, { 
+
+    const response = await axios.post('/posts/unlike', requestData, {
       timeout: 15000,  // Reduced timeout to fail faster
       headers: {
         'Content-Type': 'application/json'
@@ -128,36 +135,36 @@ export const unlikePost = async (postId: string) => {
     return response.data;
   } catch (error: unknown) {
     const err = error as Error;
-    const axiosError = error as { 
-      response?: { 
-        data?: unknown; 
-        status?: number; 
+    const axiosError = error as {
+      response?: {
+        data?: unknown;
+        status?: number;
         statusText?: string;
-      }; 
+      };
       message?: string;
       code?: string;
       config?: { url?: string; method?: string };
     };
-    
+
     throw error;
   }
 };
 
 export const savePost = async (postId: string, privacy: 'private' | 'public' = 'private') => {
   try {
-    
+
     // Ensure we're sending exactly the format specified by the backend
-    const requestData = { 
+    const requestData = {
       postId: postId,
-      privacy: privacy 
+      privacy: privacy
     };
-    
+
     const headers = {
       'Content-Type': 'application/json'
     };
     const response = await axios.post('/posts/save', requestData, { headers });
-    
-    
+
+
     return response.data;
   } catch (error) {
     throw error;
@@ -212,7 +219,7 @@ export const toggleSavedPostPrivacy = async (postId: string, privacy: 'private' 
   try {
     // First unsave the post
     await unsavePost(postId);
-    
+
     // Then re-save with new privacy
     const response = await savePost(postId, privacy);
     return response;

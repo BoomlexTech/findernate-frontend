@@ -33,13 +33,13 @@ export interface StepWithBackProps extends BaseStepProps {
   onPrev: () => void;
 }
 
-export type PhoneStepProps = BaseStepProps 
+export type PhoneStepProps = BaseStepProps
 
-export type OTPStepProps = StepWithBackProps 
+export type OTPStepProps = StepWithBackProps
 
-export type PersonalInfoStepProps = StepWithBackProps 
+export type PersonalInfoStepProps = StepWithBackProps
 
-export type UsernameStepProps = StepWithBackProps 
+export type UsernameStepProps = StepWithBackProps
 
 export interface WelcomeStepProps {
   data: SignupData;
@@ -47,34 +47,40 @@ export interface WelcomeStepProps {
 
 export interface ProductDetailsFormProps {
   formData: {
-      postType: string;
-      mentions: string[];
-      mood: string;
-      activity: string;
-  settings: {
-    visibility: string;
-    allowComments: boolean;
-    allowLikes: boolean;
-  };
-  product: {
-    name: string;
-    price: number;
-    currency: string;
-    inStock: boolean;
-    link: string;
-    deliveryOptions: string;
-  };
-  status: string;
-}
-  
-onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
-categories?: string[];
+    postType: string;
+    mentions: string[];
+    mood: string;
+    activity: string;
+    settings: {
+      visibility: string;
+      allowComments: boolean;
+      allowLikes: boolean;
+    };
+    product: {
+      name: string;
+      price: number;
+      currency: string;
+      inStock: boolean;
+      link: string;
+      deliveryOptions: string;
+    };
+    status: string;
+  }
+
+  onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
+  categories?: string[];
 }
 
 // Regular post
 export interface RegularPostPayload {
   description: string;
-  location: { name: string };
+  location: {
+    name: string;
+    address?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+  };
   tags: string[];
   image: File[];
   postType: 'Regular';
@@ -92,52 +98,52 @@ export interface RegularPostPayload {
 
 export interface ServiceDetailsFormProps {
   formData: {
-  postType: string;
-  mentions: string[]; // Array of user IDs
-  settings: {
-    visibility: string;
-    allowComments: boolean;
-    allowLikes: boolean;
-  };
-  status: string;
-  // Service-specific fields
-  service: {
-    name: string;
-    description: string;
-    price: number;
-    currency: string;
-    category: string;
-    subcategory: string;
-    duration: number; // Keep as string for input, convert to number for API
-    serviceType: string; // 'in-person', 'online', 'hybrid'
-    availability: {
-      schedule: Array<{
-        day: string;
-        timeSlots: Array<{
-          startTime: string;
-          endTime: string;
+    postType: string;
+    mentions: string[]; // Array of user IDs
+    settings: {
+      visibility: string;
+      allowComments: boolean;
+      allowLikes: boolean;
+    };
+    status: string;
+    // Service-specific fields
+    service: {
+      name: string;
+      description: string;
+      price: number;
+      currency: string;
+      category: string;
+      subcategory: string;
+      duration: number; // Keep as string for input, convert to number for API
+      serviceType: string; // 'in-person', 'online', 'hybrid'
+      availability: {
+        schedule: Array<{
+          day: string;
+          timeSlots: Array<{
+            startTime: string;
+            endTime: string;
+          }>;
         }>;
-      }>;
-      timezone: string;
-      bookingAdvance: string; // string for input, convert to number for API
-      maxBookingsPerDay: string; // string for input, convert to number for API
-    };
-    location: {
-      type: string; // 'studio', 'home', etc.
-      address: string;
-      city: string;
-      state: string;
-      country: string;
-      coordinates?: {
-        type: 'Point';
-        coordinates: [number, number]; // [lng, lat] (optional)
+        timezone: string;
+        bookingAdvance: string; // string for input, convert to number for API
+        maxBookingsPerDay: string; // string for input, convert to number for API
       };
-    };
-    requirements: string[];
-    deliverables: string[];
-    tags: string[];
-    link: string;
-    deliveryOptions: string;
+      location: {
+        type: string; // 'studio', 'home', etc.
+        address: string;
+        city: string;
+        state: string;
+        country: string;
+        coordinates?: {
+          type: 'Point';
+          coordinates: [number, number]; // [lng, lat] (optional)
+        };
+      };
+      requirements: string[];
+      deliverables: string[];
+      tags: string[];
+      link: string;
+      deliveryOptions: string;
     };
   }
 
@@ -147,60 +153,60 @@ export interface ServiceDetailsFormProps {
 
 export interface BusinessPostFormProps {
   formData: {
-  postType: string;
-  mentions: string[]; // Array of user IDs
-  settings: {
-    visibility: string;
-    allowComments: boolean;
-    allowLikes: boolean;
-  };
-  status: string;
+    postType: string;
+    mentions: string[]; // Array of user IDs
+    settings: {
+      visibility: string;
+      allowComments: boolean;
+      allowLikes: boolean;
+    };
+    status: string;
 
-  business: {
-    businessName: string;
-    businessType: string;
-    description: string;
-    category: string;
-    subcategory: string;
-    contact: {
-      phone: string;
-      email: string;
-      website: string;
-      socialMedia: Array<{
-        platform: string;
-        url: string;
-      }>;
-    };
-    location: {
-      address: string;
-      city: string;
-      state: string;
-      country: string;
-      postalCode: string;
-    };
-    hours: Array<{
-      day: string;
-      openTime: string;
-      closeTime: string;
-      isClosed: boolean;
-    }>;
-    features: string[];
-    priceRange: string;
-    rating: number;
-    tags: string[];
-    announcement: string;
-    promotions: Array<{
-      title: string;
+    business: {
+      businessName: string;
+      businessType: string;
       description: string;
-      discount: number;
-      validUntil: string; // ISO date string
-      isActive: boolean;
-    }>;
-    link: string;
-    deliveryOptions: string;
-  },
-}
-onChange?: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
+      category: string;
+      subcategory: string;
+      contact: {
+        phone: string;
+        email: string;
+        website: string;
+        socialMedia: Array<{
+          platform: string;
+          url: string;
+        }>;
+      };
+      location: {
+        address: string;
+        city: string;
+        state: string;
+        country: string;
+        postalCode: string;
+      };
+      hours: Array<{
+        day: string;
+        openTime: string;
+        closeTime: string;
+        isClosed: boolean;
+      }>;
+      features: string[];
+      priceRange: string;
+      rating: number;
+      tags: string[];
+      announcement: string;
+      promotions: Array<{
+        title: string;
+        description: string;
+        discount: number;
+        validUntil: string; // ISO date string
+        isActive: boolean;
+      }>;
+      link: string;
+      deliveryOptions: string;
+    },
+  }
+  onChange?: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
 
 }
 
@@ -233,7 +239,7 @@ export interface FeedPost {
   isLikedBy: boolean;
   likedBy: string[];
 
-    engagement: {
+  engagement: {
     comments: number;
     impressions: number;
     likes: number;
@@ -242,7 +248,7 @@ export interface FeedPost {
     shares: number;
     views: number;
   };
-    location: {
+  location: {
     name: string;
     coordinates?: {
       type: string;
@@ -308,12 +314,12 @@ export interface SearchUser {
   fullName: string;
   profileImageUrl?: string;
   bio?: string;
-    // Allow for Mongoose-style _doc property
-    _doc?: Partial<SearchUser>;
-    location?: string;
-    isFollowing?: boolean;
-    followersCount?: number;
-    followingCount?: number;
+  // Allow for Mongoose-style _doc property
+  _doc?: Partial<SearchUser>;
+  location?: string;
+  isFollowing?: boolean;
+  followersCount?: number;
+  followingCount?: number;
 }
 
 export interface SearchResult {
@@ -323,7 +329,7 @@ export interface SearchResult {
   contentType: string;
   userId: SearchUser;
   media?: { url: string; type: string }[];
-} 
+}
 
 export interface UserProfile {
   _id: string;
