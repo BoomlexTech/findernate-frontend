@@ -11,9 +11,10 @@ import UserProfile from '@/components/UserProfile'
 import { useUserStore } from '@/store/useUserStore';
 import { useAuthGuard } from '@/hooks/useAuthGuard';
 import { usePostRefresh } from '@/hooks/usePostRefresh';
-import { FeedPost, UserProfile as UserProfileType, 
+import {
+  FeedPost, UserProfile as UserProfileType,
   //SavedPostsResponse
- } from '@/types';
+} from '@/types';
 import React, { useCallback, useEffect, useState } from 'react'
 import { LogIn, User } from 'lucide-react';
 
@@ -95,11 +96,11 @@ const Page = () => {
         setLoading(false);
         return;
       }
-      
+
       try {
         setLoading(true);
         setError(null);
-        
+
         // Fetch user profile
         const profileResponse = await getUserProfile();
 
@@ -110,7 +111,7 @@ const Page = () => {
         } else {
           throw new Error("Profile data not found in response");
         }
-        
+
         // Fetch user posts, reels, and videos (without saved posts to prevent blocking)
         const [postsResponse, reelsResponse, videosResponse] = await Promise.all([
           getPostsByUserid(user._id),
@@ -118,17 +119,47 @@ const Page = () => {
           getUserVideos(user._id)
         ]);
 
+        // Helper function to process post data and ensure location is properly extracted
+        const processPostData = (posts: any[]) => {
+          return posts.map((post: any) => ({
+            ...post,
+            // Ensure location is properly structured - check multiple possible locations
+            location: post.location ||
+              post.customization?.normal?.location ||
+              post.customization?.service?.location ||
+              post.customization?.product?.location ||
+              post.customization?.business?.location ||
+              null,
+            // Ensure engagement object has all required fields
+            engagement: {
+              likes: post.engagement?.likes || 0,
+              comments: post.engagement?.comments || 0,
+              shares: post.engagement?.shares || 0,
+              impressions: post.engagement?.impressions || 0,
+              reach: post.engagement?.reach || 0,
+              saves: post.engagement?.saves || 0,
+              views: post.engagement?.views || 0,
+              ...post.engagement
+            }
+          }));
+        };
+
+        // Process posts to ensure location is extracted, then fetch comment counts
+        const processedPosts = processPostData(postsResponse.data?.posts || []);
+        const processedReels = processPostData(reelsResponse.data?.posts || []);
+        const processedVideos = processPostData(videosResponse.data?.posts || []);
+
         // Fetch actual comment counts for all content types
         const [postsWithCommentCounts, reelsWithCommentCounts, videosWithCommentCounts] = await Promise.all([
-          fetchCommentCounts(postsResponse.data?.posts || []),
-          fetchCommentCounts(reelsResponse.data?.posts || []),
-          fetchCommentCounts(videosResponse.data?.posts || [])
+          fetchCommentCounts(processedPosts),
+          fetchCommentCounts(processedReels),
+          fetchCommentCounts(processedVideos)
         ]);
 
         setPosts(postsWithCommentCounts);
         setReels(reelsWithCommentCounts);
         setVideos(videosWithCommentCounts);
-        
+
         // Fetch saved posts (single endpoint) separately to prevent blocking other data
         try {
           const savedResponse = await getPrivateSavedPosts(1, 100); // unified /posts/saved
@@ -200,7 +231,7 @@ const Page = () => {
           // Set empty array for saved posts if API fails
           setSavedPosts([]);
         }
-        
+
         //console.log("Posts:", postsResponse.data?.posts);
         //console.log("Reels:", reelsResponse.data?.posts);
         //console.log("Videos:", videosResponse.data?.posts);
@@ -220,6 +251,31 @@ const Page = () => {
     if (!isAuthenticated || !user?._id) return;
 
     try {
+      // Helper function to process post data and ensure location is properly extracted
+      const processPostData = (posts: any[]) => {
+        return posts.map((post: any) => ({
+          ...post,
+          // Ensure location is properly structured - check multiple possible locations
+          location: post.location ||
+            post.customization?.normal?.location ||
+            post.customization?.service?.location ||
+            post.customization?.product?.location ||
+            post.customization?.business?.location ||
+            null,
+          // Ensure engagement object has all required fields
+          engagement: {
+            likes: post.engagement?.likes || 0,
+            comments: post.engagement?.comments || 0,
+            shares: post.engagement?.shares || 0,
+            impressions: post.engagement?.impressions || 0,
+            reach: post.engagement?.reach || 0,
+            saves: post.engagement?.saves || 0,
+            views: post.engagement?.views || 0,
+            ...post.engagement
+          }
+        }));
+      };
+
       // Fetch user posts, reels, and videos (without saved posts to prevent blocking)
       const [postsResponse, reelsResponse, videosResponse] = await Promise.all([
         getPostsByUserid(user._id),
@@ -227,17 +283,22 @@ const Page = () => {
         getUserVideos(user._id)
       ]);
 
+      // Process posts to ensure location is extracted, then fetch comment counts
+      const processedPosts = processPostData(postsResponse.data?.posts || []);
+      const processedReels = processPostData(reelsResponse.data?.posts || []);
+      const processedVideos = processPostData(videosResponse.data?.posts || []);
+
       // Fetch actual comment counts for all content types
       const [postsWithCommentCounts, reelsWithCommentCounts, videosWithCommentCounts] = await Promise.all([
-        fetchCommentCounts(postsResponse.data?.posts || []),
-        fetchCommentCounts(reelsResponse.data?.posts || []),
-        fetchCommentCounts(videosResponse.data?.posts || [])
+        fetchCommentCounts(processedPosts),
+        fetchCommentCounts(processedReels),
+        fetchCommentCounts(processedVideos)
       ]);
 
       setPosts(postsWithCommentCounts);
       setReels(reelsWithCommentCounts);
       setVideos(videosWithCommentCounts);
-      
+
       // Fetch saved posts separately to prevent blocking other data
       try {
         const savedResponse = await getPrivateSavedPosts(1, 100); // unified /posts/saved
@@ -319,7 +380,7 @@ const Page = () => {
       if (profileData) {
         const newProfileData = { ...profileData, ...updatedData };
         setProfileData(newProfileData);
-        
+
         // Update the global user store with the new business status
         if (updatedData.isBusinessProfile !== undefined) {
           updateUser({ isBusinessProfile: updatedData.isBusinessProfile });
@@ -370,7 +431,7 @@ const Page = () => {
             username="Guest"
             accountBadge={false}
           /> */}
-          
+
           <div className="flex items-center justify-center min-h-[60vh]">
             <div className="text-center bg-white rounded-2xl shadow-lg p-12 max-w-md w-full mx-4">
               <div className="mb-6">
@@ -382,7 +443,7 @@ const Page = () => {
                   Sign in to view your profile, manage your posts, and access account settings.
                 </p>
               </div>
-              
+
               <button
                 onClick={handleLoginClick}
                 className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg flex items-center justify-center gap-2"
@@ -390,7 +451,7 @@ const Page = () => {
                 <LogIn className="w-5 h-5" />
                 Sign In to Continue
               </button>
-              
+
               <p className="text-sm text-gray-500 mt-4">
                 Don&apos;t have an account? <a href="/signup" className="text-yellow-600 hover:text-yellow-700 font-medium">Sign up to get started!</a>
               </p>
@@ -411,7 +472,7 @@ const Page = () => {
           </div>
           <p className="text-lg font-medium text-gray-900 mb-2">Oops! Something went wrong</p>
           <p className="text-gray-600 mb-6">{error}</p>
-          <button 
+          <button
             onClick={() => window.location.reload()}
             className="px-6 py-3 bg-yellow-500 text-black rounded-lg hover:bg-yellow-600 transition-colors font-medium"
           >
@@ -432,7 +493,7 @@ const Page = () => {
           </div>
           <p className="text-lg font-medium text-gray-900 mb-2">No Profile Data Available</p>
           <p className="text-gray-600 mb-6">We couldn&apos;t load your profile information.</p>
-          <button 
+          <button
             onClick={() => window.location.reload()}
             className="px-6 py-3 bg-yellow-500 text-black rounded-lg hover:bg-yellow-600 transition-colors font-medium"
           >
@@ -455,12 +516,12 @@ const Page = () => {
         /> */}
 
         <div className='flex flex-col gap-6'>
-          <UserProfile 
+          <UserProfile
             userData={profileData}
             isCurrentUser={true}
             onProfileUpdate={handleProfileUpdate}
           />
-          <AccountSettings/>
+          <AccountSettings />
           <div className='w-full'>
             <ProfilePostsSection
               PostCard={PostCard}
@@ -471,10 +532,10 @@ const Page = () => {
                   username: userId?.username || post.username || '',
                   profileImageUrl: userId?.profileImageUrl || post.profileImageUrl || '',
                   tags: post.customization?.normal?.tags ||
-                        post.customization?.business?.tags ||
-                        post.customization?.service?.tags ||
-                        post.customization?.product?.tags ||
-                        post.tags || [],
+                    post.customization?.business?.tags ||
+                    post.customization?.service?.tags ||
+                    post.customization?.product?.tags ||
+                    post.tags || [],
                 };
               })}
               reels={reels.map((post) => {
@@ -484,10 +545,10 @@ const Page = () => {
                   username: userId?.username || post.username || '',
                   profileImageUrl: userId?.profileImageUrl || post.profileImageUrl || '',
                   tags: post.customization?.normal?.tags ||
-                        post.customization?.business?.tags ||
-                        post.customization?.service?.tags ||
-                        post.customization?.product?.tags ||
-                        post.tags || [],
+                    post.customization?.business?.tags ||
+                    post.customization?.service?.tags ||
+                    post.customization?.product?.tags ||
+                    post.tags || [],
                 };
               })}
               videos={videos.map((post) => {
@@ -497,10 +558,10 @@ const Page = () => {
                   username: userId?.username || post.username || '',
                   profileImageUrl: userId?.profileImageUrl || post.profileImageUrl || '',
                   tags: post.customization?.normal?.tags ||
-                        post.customization?.business?.tags ||
-                        post.customization?.service?.tags ||
-                        post.customization?.product?.tags ||
-                        post.tags || [],
+                    post.customization?.business?.tags ||
+                    post.customization?.service?.tags ||
+                    post.customization?.product?.tags ||
+                    post.tags || [],
                 };
               })}
               savedPosts={savedPosts}
