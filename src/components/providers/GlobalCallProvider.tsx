@@ -64,11 +64,16 @@ export const GlobalCallProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   // Use refs to avoid re-registering socket listeners
   const currentCallRef = React.useRef<CurrentCall | null>(null);
+  const incomingCallRef = React.useRef<IncomingCall | null>(null);
   const routeBeforeCallRef = React.useRef<string | null>(null);
 
   React.useEffect(() => {
     currentCallRef.current = currentCall;
   }, [currentCall]);
+
+  React.useEffect(() => {
+    incomingCallRef.current = incomingCall;
+  }, [incomingCall]);
 
   React.useEffect(() => {
     routeBeforeCallRef.current = routeBeforeCall;
@@ -152,13 +157,17 @@ export const GlobalCallProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
     const handleCallEnded = (data: any) => {
       console.log('📞 Call ended:', data);
-      if (currentCallRef.current?.callId === data.callId) {
+      const isCurrentCall = currentCallRef.current?.callId === data.callId;
+      const isIncomingCall = incomingCallRef.current?.callId === data.callId;
+
+      if (isCurrentCall || isIncomingCall) {
         // Store route before clearing states
         const savedRoute = routeBeforeCallRef.current;
 
-        // Clear states first to close modal
+        // Clear all call-related states
         setIsVideoCallOpen(false);
         setCurrentCall(null);
+        setIncomingCall(null); // Clear incoming call if it exists
         setStreamToken(null);
         setRouteBeforeCall(null);
 
@@ -279,7 +288,7 @@ export const GlobalCallProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         chatId: incomingCall.chatId,
         callType: incomingCall.callType,
 
-        
+
         isInitiator: false,
         streamCallType: streamCallData.streamCallType
       });
@@ -309,7 +318,7 @@ export const GlobalCallProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       await callAPI.declineCall(incomingCall.callId);
       console.log('📞 Call declined:', incomingCall.callId);
       setIncomingCall(null);
-      
+
     } catch (error) {
       console.error('Failed to decline call:', error);
       setIncomingCall(null);
